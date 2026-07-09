@@ -73,44 +73,52 @@ function drawMarker(
   ctx.restore();
 }
 
+export interface ComposeOpts {
+  /** target export pixel dimensions */
+  width: number;
+  height: number;
+  markers: MarkerItem[];
+  text: ExportOptions['text'];
+  onProgress?: (msg: string) => void;
+}
+
 /**
- * Render the poster at full resolution and composite the map, markers and text
- * onto a single canvas, then download as PNG or PDF.
+ * Render the poster at full resolution and composite the map, markers, text and
+ * attribution onto a single canvas — WITHOUT any download side-effect. Reused by
+ * both `exportPoster` (interactive download) and the headless render mode.
  *
- * Strategy: the visible preview map already frames the poster exactly. We
- * temporarily raise its `pixelRatio` so its WebGL backing store becomes the
- * target pixel size (identical camera framing, just more pixels), snapshot it,
- * composite overlays, then restore the original ratio.
+ * Strategy: the map already frames the poster exactly. We temporarily raise its
+ * `pixelRatio` so its WebGL backing store becomes the target pixel size
+ * (identical camera framing, more pixels), snapshot it, composite overlays, then
+ * restore the original ratio.
  */
-export async function exportPoster(opts: ExportOptions): Promise<void> {
-  const { map, layout, format, onProgress } = opts;
+export async function composePoster(map: MlMap, opts: ComposeOpts): Promise<HTMLCanvasElement> {
   const canvasEl = map.getCanvas();
   const cssW = canvasEl.clientWidth || canvasEl.width;
 
   // device px per css px needed so the backing store width == target width
-  const ratio = layout.width / cssW;
+  const ratio = opts.width / cssW;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyMap = map as any;
   const originalRatio: number =
     typeof anyMap.getPixelRatio === 'function' ? anyMap.getPixelRatio() : window.devicePixelRatio || 1;
 
-  onProgress?.('Rendering at full resolution…');
+  opts.onProgress?.('Rendering at full resolution…');
   if (typeof anyMap.setPixelRatio === 'function') {
     anyMap.setPixelRatio(ratio);
     map.triggerRepaint();
     await waitForIdle(map);
   }
 
-  // The backing store is now ~ layout.width x layout.height. Composite it.
   const out = document.createElement('canvas');
-  out.width = layout.width;
-  out.height = layout.height;
+  out.width = opts.width;
+  out.height = opts.height;
   const ctx = out.getContext('2d');
   if (!ctx) throw new Error('Could not create export canvas');
 
   try {
-    onProgress?.('Compositing overlays…');
+    opts.onProgress?.('Compositing overlays…');
     // 1) the map (scale backing store to exact target dims, guards rounding)
     ctx.drawImage(canvasEl, 0, 0, out.width, out.height);
 
@@ -138,15 +146,28 @@ export async function exportPoster(opts: ExportOptions): Promise<void> {
     // 4) license attribution baked into the image
     drawAttribution(ctx, out.width, out.height, opts.text.color);
   } finally {
-    // restore the preview map regardless of outcome
+    // restore the map regardless of outcome
     if (typeof anyMap.setPixelRatio === 'function') {
       anyMap.setPixelRatio(originalRatio);
       map.triggerRepaint();
     }
   }
 
-  const baseName = `mapposter-${slugify(opts.text.city || 'poster')}-${layout.id}`;
+  return out;
+}
 
+/** Compose the poster and download it as PNG or PDF (interactive app path). */
+export async function exportPoster(opts: ExportOptions): Promise<void> {
+  const { map, layout, format, onProgress } = opts;
+  const out = await composePoster(map, {
+    width: layout.width,
+    height: layout.height,
+    markers: opts.markers,
+    text: opts.text,
+    onProgress,
+  });
+
+  const baseName = `mapposter-${slugify(opts.text.city || 'poster')}-${layout.id}`;
   if (format === 'png') {
     onProgress?.('Encoding PNG…');
     await downloadPng(out, `${baseName}.png`);

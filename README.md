@@ -33,6 +33,32 @@ Two layers, both automated:
 
 `npm run build` runs the fast Vitest suite as a gate before bundling. The Playwright suite is kept separate (it starts a browser) — run it via `npm run test:e2e` or in CI. First-time E2E needs the browser: `npx playwright install chromium`.
 
+## MCP map-render server
+
+`mcp-server/` exposes MapPoster's renderer to AI agents via MCP, so an agent (e.g. a video pipeline) can fetch a still map illustration on demand — geocoded, point/region-highlighted, in TikTok/other formats. It drives the app's **headless render mode** (`render.html`) in a Playwright page pool behind a stable `renderFrame(config) → PNG` primitive; geocoding + boundary lookup run in Node with caching.
+
+```bash
+npm run build          # produce dist/ (the render harness the server serves)
+npm run mcp:stdio      # run over stdio (local)
+npm run mcp:http       # run over Streamable HTTP (hosted, port 4181)
+npm run test:mcp       # gated integration test (builds app + renders a real PNG)
+```
+
+Tools: `render_map`, `render_variants`, `geocode_place`, `list_themes`, `list_formats`. Example call:
+
+```jsonc
+render_map({
+  "location": "Võ Văn Tần, Quận 3, HCMC",
+  "highlight": { "points": ["Võ Văn Tần, HCMC"] },
+  "format": "tiktok",        // 1080×1920
+  "theme": "midnight-blue",
+  "chrome": "clean"
+})
+// → { image: { path, base64, width: 1080, height: 1920 }, resolved: { center, zoom, place } }
+```
+
+Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+
 ## Features
 
 Left sidebar opens slide-over panels:

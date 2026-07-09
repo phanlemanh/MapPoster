@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vitest run && vite build",
+    "build": "tsc -b && tsc -p mcp-server/tsconfig.json && vitest run && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "verify": "tsc -b && vitest run && playwright test"
+    "test:mcp": "MCP_INTEGRATION=1 vitest run mcp-server/src/renderFrame.test.ts",
+    "typecheck:mcp": "tsc -p mcp-server/tsconfig.json",
+    "mcp:stdio": "tsx mcp-server/src/stdio.ts",
+    "mcp:http": "tsx mcp-server/src/http.ts",
+    "verify": "tsc -b && tsc -p mcp-server/tsconfig.json && vitest run && playwright test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

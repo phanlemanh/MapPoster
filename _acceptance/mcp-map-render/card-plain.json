@@ -1,0 +1,26 @@
+{
+  "feature_plain": "Cho phép AI agent (vd Video Plugin) tự lấy ảnh bản đồ minh hoạ từ MapPoster qua MCP — dọc TikTok, highlight điểm/vùng, canh đúng địa điểm — không cần người thao tác app.",
+  "will_do": [
+    { "id": "AC-1", "p": "Sẽ nhận tên/địa chỉ + khổ ảnh → trả PNG đúng kích thước (vd TikTok 1080×1920), canh đúng địa điểm." },
+    { "id": "AC-2", "p": "Sẽ tô ranh giới một vùng (quận/phường) khi được yêu cầu highlight vùng." },
+    { "id": "AC-3", "p": "Sẽ cắm marker tại địa chỉ và tự zoom mức đường-phố khi highlight điểm." },
+    { "id": "AC-5", "p": "Sẽ trả nhiều ảnh biến thể trong một lần gọi (render_variants)." },
+    { "id": "AC-6", "p": "Sẽ chạy được cả 2 kênh: stdio (local) và HTTP (hosted), cùng bộ tool." },
+    { "id": "AC-7", "p": "Sẽ trả cả ảnh base64 lẫn file đường-dẫn, ghi file vào thư mục output đã cấu hình." },
+    { "id": "AC-8", "p": "Sẽ có sẵn khổ TikTok + các preset, và nhận khổ tuỳ chỉnh {rộng,cao}." },
+    { "id": "AC-9", "p": "Sẽ mặc định ảnh 'sạch' (không tiêu đề thành phố to); bật 'poster' thì có tiêu đề." },
+    { "id": "AC-10", "p": "Sẽ render headless tất-định: nạp config là ra đúng ảnh, không phụ thuộc onboarding/localStorage." },
+    { "id": "AC-12", "p": "Sẽ cho ảnh dùng được làm B-roll video ở ví dụ thật (Võ Văn Tần, Q3) — người duyệt xác nhận (judgment)." }
+  ],
+  "wont_do": [
+    { "id": "AC-4", "p": "Sẽ KHÔNG gọi Nominatim lặp cho cùng truy vấn (cache) — nhưng vẫn gọi mới cho truy vấn khác (không trả cache sai)." },
+    { "id": "AC-11", "p": "Sẽ KHÔNG crash hay trả ảnh rỗng khi địa điểm sai — trả lỗi có cấu trúc." }
+  ],
+  "scope_plain": "Chưa làm vòng này: animation nhiều-frame (sequence) + clip mp4 (Phase 2/3); không connector claude.ai; chưa self-host tiles/geocoder; chưa lưu S3/GCS (dùng thư mục shared); chưa native engine B; chưa auth/quota.",
+  "decisions_plain": [
+    { "id": "d-20260709T103427Z-32058", "p": "Chọn Hướng A (browser headless tái dùng app) — ra nhanh, tái dùng gần hết renderer; đổi lại nặng RAM/throughput (để ngỏ đổi native B sau)." },
+    { "id": "d-20260709T103427Z-28433", "p": "KHÔNG làm sequence/mp4 vòng này — contract gọn & ship nhanh; đổi lại agent chưa có animation/clip tới phase sau." },
+    { "id": "d-20260709T103427Z-17714", "p": "KHÔNG chạy design sub-track (feature headless) — chất lượng ảnh dựa test export cũ + 1 mục người-duyệt (AC-12)." },
+    { "id": "d-20260709T103427Z-4605", "p": "Geocode ở Node có cache — tránh Nominatim rate-limit; đổi lại headless page chỉ nhận config đã-resolve." }
+  ]
+}

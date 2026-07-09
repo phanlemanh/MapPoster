@@ -6,6 +6,7 @@ baseline_minutes: []
 executors:
   test:
     api: "npm test"
+    e2e: "npm run test:e2e"
   design:
     gate: "node /Users/manhphan/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.11.2/scripts/design-gate.mjs"
     ui_check: "/Users/manhphan/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.11.2/scripts/design-scan.js"

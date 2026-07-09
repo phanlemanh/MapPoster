@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;padding:24px"><style>
+.gc{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:640px;margin:0 auto;color:#1f1f1d;line-height:1.5}
+.gc .card{background:#fff;border:1px solid #e6e4de;border-radius:14px;padding:16px 18px}
+.gc .h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.gc .ft{font-size:16px;font-weight:600}.gc .sub{font-size:12px;color:#6c6a64;margin-top:2px}
+.gc .chip{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.gc .amber{background:#FAEEDA;color:#633806}.gc .teal{background:#E1F5EE;color:#085041}.gc .coral{background:#FAECE7;color:#712B13}.gc .gray{background:#f1efe8;color:#444441}
+.gc .lab{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#8a887f;margin:16px 0 8px;font-weight:600}
+.gc .grp{border-radius:10px;padding:11px 14px;margin-bottom:8px}.gc .gdo{background:#E1F5EE}.gc .gnot{background:#f4f2ec}
+.gc .li{font-size:14px;margin:0 0 6px;padding-left:17px;position:relative}.gc .li:last-child{margin-bottom:0}
+.gc .li:before{content:"";position:absolute;left:1px;top:7px;width:7px;height:7px;border-radius:50%}
+.gc .gdo .li{color:#085041}.gc .gdo .li:before{background:#1D9E75}.gc .gnot .li{color:#56544d}.gc .gnot .li:before{background:#b4b2a9}
+.gc .item{background:#FAEEDA;border:1px solid #EF9F27;border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.gc .q{font-size:14px;font-weight:600;color:#412402;margin:0 0 3px}.gc .ai{font-size:12px;color:#854F0B;margin:0 0 9px}
+.gc .flag{display:flex;gap:8px;font-size:13px;padding:8px 11px;border-radius:9px;margin-bottom:6px}
+.gc .fwarn{background:#FAEEDA;color:#633806}.gc .finfo{background:#f4f2ec;color:#56544d}.gc .fok{background:#E1F5EE;color:#085041}.gc .fred{background:#FAECE7;color:#712B13}
+.gc .mach{background:#f4f2ec;border-radius:9px;padding:11px 13px;font-size:13px;color:#56544d}.gc .mach b{color:#1f1f1d}
+.gc .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-top:12px;border-top:1px solid #e6e4de}
+.gc .rev{font-size:12px;color:#9a988f}
+.gc .btns{display:flex;gap:8px}
+.gc .b{font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid;background:transparent;cursor:pointer}
+.gc .bn{border-color:#cfcdc4;color:#3f3e39}.gc .yes{background:#E1F5EE;border-color:#5DCAA5;color:#085041;font-weight:600}.gc .no{border-color:#F0997B;color:#993C1D}
+</style>
+<div class="gc"><div class="card">
+<div class="h"><div><div class="ft">Cho phép AI agent (vd Video Plugin) tự lấy ảnh bản đồ minh hoạ từ MapPoster qua MCP — dọc TikTok, highlight điểm/vùng, canh đúng địa điểm — không cần người thao tác app.</div><div class="sub">Cổng 1 · duyệt tiêu chí TRƯỚC khi code · ~5 phút · tier T3 (đụng critical)</div></div><span class="chip amber">duyệt tiêu chí</span></div>
+<div class="lab">Hệ thống SẼ làm</div><div class="grp gdo"><p class="li">Sẽ nhận tên/địa chỉ + khổ ảnh → trả PNG đúng kích thước (vd TikTok 1080×1920), canh đúng địa điểm.</p><p class="li">Sẽ tô ranh giới một vùng (quận/phường) khi được yêu cầu highlight vùng.</p><p class="li">Sẽ cắm marker tại địa chỉ và tự zoom mức đường-phố khi highlight điểm.</p><p class="li">Sẽ trả nhiều ảnh biến thể trong một lần gọi (render_variants).</p><p class="li">Sẽ chạy được cả 2 kênh: stdio (local) và HTTP (hosted), cùng bộ tool.</p><p class="li">Sẽ trả cả ảnh base64 lẫn file đường-dẫn, ghi file vào thư mục output đã cấu hình.</p><p class="li">Sẽ có sẵn khổ TikTok + các preset, và nhận khổ tuỳ chỉnh {rộng,cao}.</p><p class="li">Sẽ mặc định ảnh &#39;sạch&#39; (không tiêu đề thành phố to); bật &#39;poster&#39; thì có tiêu đề.</p><p class="li">Sẽ render headless tất-định: nạp config là ra đúng ảnh, không phụ thuộc onboarding/localStorage.</p><p class="li">Given an ungeocodable or malformed `location`, When `render_map` is called, Then it returns a structured error result (no thrown crash, no blank/zero-byte PNG).</p></div>
+<div class="lab">Sẽ KHÔNG làm / sẽ chặn</div><div class="grp gnot"><p class="li">Sẽ KHÔNG gọi Nominatim lặp cho cùng truy vấn (cache) — nhưng vẫn gọi mới cho truy vấn khác (không trả cache sai).</p><p class="li">Hoãn/cắt: Chưa làm vòng này: animation nhiều-frame (sequence) + clip mp4 (Phase 2/3); không connector claude.ai; chưa self-host tiles/geocoder; chưa lưu S3/GCS (dùng thư mục shared); chưa native engine B; chưa auth/quota.</p></div>
+<div class="lab">Quyết định &amp; trade-off</div>
+<div class="grp gnot"><p class="li"><b>KHÔNG làm:</b> KHÔNG làm sequence/mp4 vòng này — contract gọn &amp; ship nhanh; đổi lại agent chưa có animation/clip tới phase sau.</p><p class="li"><b>KHÔNG làm:</b> KHÔNG chạy design sub-track (feature headless) — chất lượng ảnh dựa test export cũ + 1 mục người-duyệt (AC-12).</p><p class="li">Chọn Hướng A (browser headless tái dùng app) — ra nhanh, tái dùng gần hết renderer; đổi lại nặng RAM/throughput (để ngỏ đổi native B sau).</p><p class="li">Geocode ở Node có cache — tránh Nominatim rate-limit; đổi lại headless page chỉ nhận config đã-resolve.</p></div>
+<div class="lab">Cần chú ý trước khi duyệt</div><div class="flag fwarn">AC-1 có ngưỡng/biên nhưng chưa có ca "dưới ngưỡng → KHÔNG xảy ra" — thêm 1 ca chặn ngay sẽ rẻ hơn nhiều so với phát hiện sau.</div><div class="flag fwarn">AC-2 có ngưỡng/biên nhưng chưa có ca "dưới ngưỡng → KHÔNG xảy ra" — thêm 1 ca chặn ngay sẽ rẻ hơn nhiều so với phát hiện sau.</div><div class="flag fwarn">AC-3 có ngưỡng/biên nhưng chưa có ca "dưới ngưỡng → KHÔNG xảy ra" — thêm 1 ca chặn ngay sẽ rẻ hơn nhiều so với phát hiện sau.</div><div class="flag fwarn">AC-8 có ngưỡng/biên nhưng chưa có ca "dưới ngưỡng → KHÔNG xảy ra" — thêm 1 ca chặn ngay sẽ rẻ hơn nhiều so với phát hiện sau.</div><div class="flag finfo">AC-12 cần MẮT bạn chấm sau khi code (việc người, máy không chấm được).</div><div class="flag finfo">Đụng phần nhạy cảm → tier T3, duyệt kỹ phần "sẽ KHÔNG làm".</div>
+<div class="foot"><span class="rev">↻ Sửa 1 dòng tiêu chí GIỜ rẻ hơn 10× phát hiện sai sau khi code.</span><div class="btns"><button class="b no">Sửa lại</button><button class="b yes">Duyệt, cho code</button></div></div>
+</div></div>

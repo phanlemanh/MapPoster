@@ -2,11 +2,16 @@ import type { GeoJSONFeatureCollection, LocationInfo } from '../types';
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
 
-// Nominatim's usage policy asks for identification. Browsers forbid overriding
-// the `User-Agent` request header from fetch (it is silently dropped), and they
-// send a Referer automatically — that is what identifies this app. We also pass
-// the optional `email` param, which Nominatim explicitly supports for contact.
+// Nominatim's usage policy requires identification. Browsers forbid overriding
+// the `User-Agent` fetch header (silently dropped) and send a Referer instead;
+// Node has no Referer and Nominatim 403s its default UA, so we set an explicit
+// User-Agent here — ignored by browsers, honored by Node. We also pass the
+// optional `email` param, which Nominatim explicitly supports for contact.
 const CONTACT_EMAIL = 'hello@mapposter.app';
+const NOMINATIM_HEADERS = {
+  Accept: 'application/json',
+  'User-Agent': 'MapPoster/1.0 (+hello@mapposter.app)',
+};
 
 export interface GeoResult extends LocationInfo {
   id: string;
@@ -80,7 +85,7 @@ export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSigna
 
   if (loc.osmType && loc.osmId && OSM_PREFIX[loc.osmType]) {
     const url = `${NOMINATIM}/lookup?format=jsonv2&osm_ids=${OSM_PREFIX[loc.osmType]}${loc.osmId}&${common}`;
-    const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+    const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
     if (res.ok) {
       const data = await res.json();
       const b = Array.isArray(data) ? toBoundary(data[0]) : null;
@@ -91,7 +96,7 @@ export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSigna
   const q = [loc.name, loc.country].filter(Boolean).join(', ');
   if (!q) return null;
   const url = `${NOMINATIM}/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}&${common}`;
-  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
   if (!res.ok) return null;
   const data = await res.json();
   return Array.isArray(data) && data[0] ? toBoundary(data[0]) : null;
@@ -106,7 +111,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
     `&q=${encodeURIComponent(q)}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
   const res = await fetch(url, {
     signal,
-    headers: { Accept: 'application/json' },
+    headers: NOMINATIM_HEADERS,
   });
   if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
   const data = await res.json();
@@ -119,7 +124,7 @@ export async function reverseGeocode(lng: number, lat: number, signal?: AbortSig
   const url =
     `${NOMINATIM}/reverse?format=jsonv2&addressdetails=1&zoom=12` +
     `&lat=${lat}&lon=${lng}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
-  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
   if (!res.ok) return null;
   const item = await res.json();
   if (!item || item.error) return null;

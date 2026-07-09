@@ -31,9 +31,21 @@ export const FORMATS: Record<string, { width: number; height: number }> = {
   '4k': { width: 3840, height: 2160 },
 };
 
+/** Max edge, matching the WebGL canvas budget the layouts are designed against. */
+export const MAX_EDGE = 4096;
+
+function assertDim(n: number, label: string): number {
+  if (!Number.isInteger(n) || n <= 0 || n > MAX_EDGE) {
+    throw new Error(`Invalid ${label}: ${n} (must be an integer between 1 and ${MAX_EDGE})`);
+  }
+  return n;
+}
+
 export function formatSize(format?: FormatInput): { width: number; height: number } {
   if (!format) return FORMATS.tiktok;
-  if (typeof format === 'object') return { width: format.width, height: format.height };
+  if (typeof format === 'object') {
+    return { width: assertDim(format.width, 'width'), height: assertDim(format.height, 'height') };
+  }
   if (FORMATS[format]) return FORMATS[format];
   const layout = LAYOUTS.find((l) => l.id === format);
   if (layout) return { width: layout.width, height: layout.height };
@@ -80,7 +92,11 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   for (const r of params.highlight?.regions ?? []) {
     if (typeof r === 'string') {
       const gj = await resolveBoundary(r);
-      if (gj) regions.push({ geojson: gj, color: null });
+      // Fail loudly, matching the point path (resolveLocation throws). Silently
+      // dropping the region would return a "successful" poster missing the very
+      // highlight the caller asked for.
+      if (!gj) throw new Error(`No boundary found for region "${r}"`);
+      regions.push({ geojson: gj, color: null });
     } else {
       regions.push({ geojson: r.geojson, color: null });
     }

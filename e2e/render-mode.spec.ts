@@ -13,7 +13,7 @@ const tiktokConfig = {
 };
 
 test('render mode: headless renderFrame yields exact target dims, no onboarding (AC-10)', async ({ page }) => {
-  await page.goto('/render.html#config=' + b64url(tiktokConfig));
+  await page.goto('/render.html?config=' + b64url(tiktokConfig));
 
   // no onboarding UI in render mode
   await expect(page.locator('.onboard-overlay')).toHaveCount(0);

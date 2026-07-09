@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resolveConfig, formatSize, FORMATS } from './resolveConfig';
+import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
   resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) =>
@@ -21,6 +22,13 @@ describe('formatSize', () => {
   });
   it('defaults to tiktok when omitted', () => {
     expect(formatSize(undefined)).toEqual({ width: 1080, height: 1920 });
+  });
+
+  it('rejects non-positive, non-integer and oversized custom dims (F4)', () => {
+    expect(() => formatSize({ width: 0, height: 0 })).toThrow(/invalid width/i);
+    expect(() => formatSize({ width: 1080, height: -5 })).toThrow(/invalid height/i);
+    expect(() => formatSize({ width: 99999, height: 100 })).toThrow(/invalid width/i);
+    expect(() => formatSize({ width: 10.5, height: 100 })).toThrow(/invalid width/i);
   });
 });
 
@@ -64,5 +72,12 @@ describe('resolveConfig', () => {
   it('chrome defaults to clean, poster is honored (AC-9)', async () => {
     expect((await resolveConfig({ location: 'HCMC' })).chrome).toBe('clean');
     expect((await resolveConfig({ location: 'HCMC', chrome: 'poster' })).chrome).toBe('poster');
+  });
+
+  it('throws when a requested region has no boundary — never silently drops it (F2)', async () => {
+    vi.mocked(geocode.resolveBoundary).mockResolvedValueOnce(null);
+    await expect(resolveConfig({ location: 'HCMC', highlight: { regions: ['Nowhere-with-no-polygon'] } })).rejects.toThrow(
+      /no boundary found for region/i,
+    );
   });
 });

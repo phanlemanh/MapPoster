@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import type { Map as MlMap } from 'maplibre-gl';
 import '../index.css';
 import RenderApp from './RenderApp';
 import { applyRenderConfig } from './applyRenderConfig';
@@ -11,6 +12,8 @@ import { getTheme } from '../data/themes';
 import { formatCoords } from '../lib/format';
 
 interface MapPosterApi {
+  /** the exact base64url config string this document was loaded with */
+  configKey: string;
   ready: Promise<void>;
   renderFrame(): Promise<{ dataUrl: string; width: number; height: number }>;
   setCamera(cam: RenderCamera): Promise<void>;
@@ -22,14 +25,48 @@ declare global {
   }
 }
 
-/** Decode `#config=<base64url json>` into a RenderConfig. */
-function parseConfig(): RenderConfig {
-  const params = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const b64 = params.get('config');
-  if (!b64) throw new Error('render mode: missing #config');
+const MAP_INIT_TIMEOUT_MS = 8_000;
+const IDLE_TIMEOUT_MS = 20_000;
+
+/**
+ * Read `?config=<base64url json>`.
+ *
+ * It MUST be a query param, not a hash: a pooled page navigating from
+ * `#config=A` to `#config=B` is a same-document navigation, so the document
+ * never reloads, this module never re-runs, and the page would keep serving the
+ * FIRST config's frame. A query change forces a real reload.
+ */
+function readConfigParam(): string {
+  const b64 = new URLSearchParams(location.search).get('config');
+  if (!b64) throw new Error('render mode: missing ?config');
+  return b64;
+}
+
+function decodeConfig(b64: string): RenderConfig {
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/** Wait for the map to settle, bounded so a stalled tile fetch cannot hang forever. */
+function idleOnce(map: MlMap, ms = IDLE_TIMEOUT_MS): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      map.off('idle', finish);
+      reject(new Error('render mode: timed out waiting for map idle'));
+    }, ms);
+    map.once('idle', finish);
+    map.triggerRepaint();
+  });
 }
 
 function textFromStore() {
@@ -47,30 +84,29 @@ function textFromStore() {
   };
 }
 
-const cfg = parseConfig();
+const configKey = readConfigParam();
+const cfg = decodeConfig(configKey);
 applyRenderConfig(cfg);
 createRoot(document.getElementById('root')!).render(<RenderApp width={cfg.size.width} height={cfg.size.height} />);
 
-// ready = map idle after config applied + fonts loaded
-const ready = new Promise<void>((resolve, reject) => {
+const ready = (async () => {
   const start = Date.now();
-  const wait = async () => {
-    while (!getMapInstance() && Date.now() - start < 8000) await new Promise((r) => setTimeout(r, 50));
-    const map = getMapInstance();
-    if (!map) return reject(new Error('render mode: map never initialized'));
-    await new Promise<void>((res) => {
-      map.once('idle', () => res());
-      map.triggerRepaint();
-    });
-    await (document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
-    resolve();
-  };
-  void wait();
-});
+  while (!getMapInstance() && Date.now() - start < MAP_INIT_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  const map = getMapInstance();
+  if (!map) throw new Error('render mode: map never initialized');
+  await idleOnce(map);
+  await (document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+})();
+// keep the rejection from surfacing as an unhandled error; callers still see it via `await ready`
+ready.catch(() => {});
 
 window.__mapposter = {
+  configKey,
   ready,
   async renderFrame() {
+    await ready;
     const map = getMapInstance();
     if (!map) throw new Error('render mode: no map');
     const canvas = await composePoster(map, {
@@ -85,6 +121,6 @@ window.__mapposter = {
     const map = getMapInstance();
     if (!map) throw new Error('render mode: no map');
     map.jumpTo(cam);
-    await new Promise<void>((res) => map.once('idle', () => res()));
+    await idleOnce(map);
   },
 };

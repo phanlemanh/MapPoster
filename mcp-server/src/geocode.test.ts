@@ -46,6 +46,25 @@ describe('resolveLocation', () => {
     mockFetch([]);
     await expect(resolveLocation('zzzzz-not-a-place')).rejects.toThrow(/no geocoding result/i);
   });
+
+  it('serializes concurrent upstream calls and spaces them (F3/F6)', async () => {
+    __setRateLimitMs(40);
+    const times: number[] = [];
+    const fn = vi.fn(async (_url?: string) => {
+      times.push(Date.now());
+      return { ok: true, json: async () => [searchItem] } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    // three DISTINCT queries fired at once — a read-then-stamp limiter lets all
+    // three fire in the same millisecond; a serialized one spaces them.
+    await Promise.all([resolveLocation('alpha'), resolveLocation('beta'), resolveLocation('gamma')]);
+
+    expect(fn).toHaveBeenCalledTimes(3);
+    times.sort((a, b) => a - b);
+    expect(times[1] - times[0]).toBeGreaterThanOrEqual(30);
+    expect(times[2] - times[1]).toBeGreaterThanOrEqual(30);
+  });
 });
 
 describe('resolveBoundary', () => {

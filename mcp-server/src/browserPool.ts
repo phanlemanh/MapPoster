@@ -3,40 +3,64 @@ import { chromium, type Browser, type Page } from '@playwright/test';
 // Software WebGL so MapLibre renders in headless Chromium (matches playwright.config).
 const LAUNCH_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 
-export interface Pool {
-  acquire(): Promise<Page>;
-  release(page: Page): void;
+export interface Pool<T = Page> {
+  acquire(): Promise<T>;
+  release(item: T): void;
   close(): Promise<void>;
 }
 
-/** A small pool of headless pages. Pages are reused across renders (each render
- * navigates fresh via goto), capped at `size` concurrent pages. */
-export async function createPool(size: number): Promise<Pool> {
-  const browser: Browser = await chromium.launch({ args: LAUNCH_ARGS });
-  const idle: Page[] = [];
-  const waiters: ((page: Page) => void)[] = [];
+/**
+ * Generic bounded pool. The factory is injected so the queueing/capping logic
+ * is unit-testable without launching a browser.
+ *
+ * The slot is reserved SYNCHRONOUSLY before awaiting the factory — otherwise
+ * concurrent acquires all read the same pre-increment counter, all pass the cap
+ * check, and the pool overshoots `size` (defeating its whole purpose).
+ */
+export function createResourcePool<T>(
+  size: number,
+  factory: () => Promise<T>,
+  destroy: () => Promise<void> = async () => {},
+): Pool<T> {
+  const idle: T[] = [];
+  const waiters: ((item: T) => void)[] = [];
   let created = 0;
-
-  async function makePage(): Promise<Page> {
-    const ctx = await browser.newContext({ viewport: { width: 800, height: 1400 }, deviceScaleFactor: 1 });
-    created++;
-    return ctx.newPage();
-  }
 
   return {
     async acquire() {
       const free = idle.pop();
       if (free) return free;
-      if (created < size) return makePage();
-      return new Promise<Page>((resolve) => waiters.push(resolve));
+      if (created < size) {
+        created++; // reserve the slot before any await
+        try {
+          return await factory();
+        } catch (e) {
+          created--; // release the reservation on failure
+          throw e;
+        }
+      }
+      return new Promise<T>((resolve) => waiters.push(resolve));
     },
-    release(page) {
+    release(item) {
       const waiter = waiters.shift();
-      if (waiter) waiter(page);
-      else idle.push(page);
+      if (waiter) waiter(item);
+      else idle.push(item);
     },
     async close() {
-      await browser.close();
+      await destroy();
     },
   };
+}
+
+/** A pool of headless pages. Each render navigates fresh via goto. */
+export async function createPool(size: number): Promise<Pool<Page>> {
+  const browser: Browser = await chromium.launch({ args: LAUNCH_ARGS });
+  return createResourcePool<Page>(
+    size,
+    async () => {
+      const ctx = await browser.newContext({ viewport: { width: 800, height: 1400 }, deviceScaleFactor: 1 });
+      return ctx.newPage();
+    },
+    () => browser.close(),
+  );
 }

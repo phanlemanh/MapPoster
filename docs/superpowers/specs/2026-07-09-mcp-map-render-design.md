@@ -40,7 +40,9 @@ agent ──MCP(stdio│HTTP)──▶ mcp-server (Node)
 | Component | Responsibility |
 |---|---|
 | `mcp-server/` (new Node pkg) | MCP tools (stdio + HTTP transports); geocode/boundary in Node with cache; Playwright browser pool; delivery/sink; serves built `web`. |
-| `web` render mode (new, small) | Headless entry that reads a **resolved** config (URL/postMessage), skips onboarding/localStorage, exposes `window.__mapposter.{ready, renderFrame(config), setCamera(cam)}`. Reuses `buildMapStyle` + a refactored `exportPoster` (split "compose" from "download"). |
+| `web` render mode (new, small) | Headless entry that reads a **resolved** config from the `?config=<base64url>` **query param**, skips onboarding/localStorage, exposes `window.__mapposter.{configKey, ready, renderFrame(), setCamera(cam)}`. Reuses `buildMapStyle` + a refactored `exportPoster` (split "compose" from "download"). |
+
+> **Why a query param, not a hash.** Pooled pages are reused across renders. Navigating a page from `#config=A` to `#config=B` is a *same-document* navigation: the document never reloads, the entry module never re-runs, and the page silently re-serves the **first** config's frame. A query change forces a real reload. `renderFrame` additionally asserts the loaded page reports the exact `configKey` it asked for, so a stale page fails loudly rather than returning the wrong image. (Found by adversarial review in S4 round 1; regression-tested by rendering two different configs through one pooled page.)
 | geocode cache | In-Node cache (place → point/bbox, place → boundary geojson); respects Nominatim ≤1 req/s. |
 
 **Key decisions**

@@ -13,6 +13,9 @@ const boundaryCache = new Map<string, GeoJSONFeatureCollection | null>();
 
 let minSpacingMs = 1000;
 let lastUpstreamAt = 0;
+/** Tail of the serialization chain. Every throttle() links onto it, so overlapping
+ * callers queue instead of all reading the same `lastUpstreamAt` and bursting. */
+let queue: Promise<void> = Promise.resolve();
 
 /** Test seam: shrink the rate-limit spacing so suites don't wait a second. */
 export function __setRateLimitMs(ms: number): void {
@@ -22,12 +25,23 @@ export function __resetGeoCache(): void {
   locCache.clear();
   boundaryCache.clear();
   lastUpstreamAt = 0;
+  queue = Promise.resolve();
 }
 
-async function throttle(): Promise<void> {
-  const wait = Math.max(0, lastUpstreamAt + minSpacingMs - Date.now());
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  lastUpstreamAt = Date.now();
+/**
+ * Serialize upstream calls and space them by at least `minSpacingMs`.
+ * A plain read-then-stamp is NOT enough: concurrent callers would all observe
+ * the same `lastUpstreamAt`, compute the same (possibly zero) wait, and fire
+ * simultaneously.
+ */
+function throttle(): Promise<void> {
+  const turn = queue.then(async () => {
+    const wait = Math.max(0, lastUpstreamAt + minSpacingMs - Date.now());
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastUpstreamAt = Date.now();
+  });
+  queue = turn.catch(() => {}); // a failed turn must not poison the chain
+  return turn;
 }
 
 /** Resolve a place string (geocoded + cached) or explicit coordinates. */

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig, listFormats, type RenderMapParams } from './resolveConfig';
+import { resolveConfig, listFormats, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { resolveLocation } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { THEMES } from '../../src/data/themes';
@@ -89,20 +89,27 @@ export function makeTools(deps: ToolDeps) {
 }
 
 // --- Zod input schemas (for the real MCP server registration) ---
-const locationSchema = z.union([z.string(), z.object({ lng: z.number(), lat: z.number(), zoom: z.number().optional() })]);
+// Bounded at the system boundary: unbounded dims yield a zero-size (blank) PNG
+// or OOM the shared pooled browser page; out-of-range coords silently mis-frame.
+const dim = z.number().int().positive().max(MAX_EDGE);
+const lng = z.number().min(-180).max(180);
+const lat = z.number().min(-90).max(90);
+const zoomLevel = z.number().min(0).max(22);
+
+const locationSchema = z.union([z.string().min(1), z.object({ lng, lat, zoom: zoomLevel.optional() })]);
 const highlightSchema = z
   .object({
-    regions: z.array(z.union([z.string(), z.object({ geojson: z.any() })])).optional(),
-    points: z.array(z.union([z.string(), z.object({ lng: z.number(), lat: z.number() })])).optional(),
+    regions: z.array(z.union([z.string().min(1), z.object({ geojson: z.any() })])).optional(),
+    points: z.array(z.union([z.string().min(1), z.object({ lng, lat })])).optional(),
     color: z.string().optional(),
     fill: z.boolean().optional(),
     dim: z.boolean().optional(),
     pointIcon: z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']).optional(),
   })
   .optional();
-const formatSchema = z.union([z.string(), z.object({ width: z.number(), height: z.number() })]).optional();
+const formatSchema = z.union([z.string().min(1), z.object({ width: dim, height: dim })]).optional();
 const cameraSchema = z
-  .object({ center: z.tuple([z.number(), z.number()]).optional(), zoom: z.number().optional(), bearing: z.number().optional(), pitch: z.number().optional() })
+  .object({ center: z.tuple([lng, lat]).optional(), zoom: zoomLevel.optional(), bearing: z.number().optional(), pitch: z.number().optional() })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
 

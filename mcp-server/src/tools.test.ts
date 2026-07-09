@@ -14,6 +14,7 @@ vi.mock('./geocode', () => ({
 }));
 
 import { makeTools, type ToolResult } from './tools';
+import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
 
 function fakePng(w: number, h: number): Buffer {
@@ -37,6 +38,7 @@ const render = vi.fn(async (cfg: RenderConfig) => {
 beforeEach(async () => {
   sinkDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mp-tools-'));
   lastCfg = undefined;
+  render.mockClear();
 });
 afterEach(async () => {
   await fs.rm(sinkDir, { recursive: true, force: true });
@@ -71,6 +73,23 @@ describe('render_map', () => {
     const res = await tools().render_map({ location: 'zzzzz-not-a-place' });
     expect(res.isError).toBe(true);
     expect(textJson(res).ok).toBe(false);
+  });
+
+  it('invalid custom dims → structured error, never renders a blank PNG (F4 / AC-11)', async () => {
+    for (const format of [{ width: 0, height: 0 }, { width: -1, height: 100 }, { width: 99999, height: 100 }]) {
+      const res = await tools().render_map({ location: 'HCMC', format });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).ok).toBe(false);
+    }
+    expect(render).not.toHaveBeenCalled(); // we never reach the renderer with a bad size
+  });
+
+  it('region with no boundary → structured error, not a silently unhighlighted poster (F2 / AC-2)', async () => {
+    vi.mocked(geocode.resolveBoundary).mockResolvedValueOnce(null);
+    const res = await tools().render_map({ location: 'HCMC', highlight: { regions: ['Nowhere-with-no-polygon'] } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).ok).toBe(false);
+    expect(render).not.toHaveBeenCalled();
   });
 });
 

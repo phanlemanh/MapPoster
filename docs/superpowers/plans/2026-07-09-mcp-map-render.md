@@ -8,6 +8,11 @@
 
 **Tech Stack:** Node + TypeScript, `@modelcontextprotocol/sdk`, Playwright (already a devDep), Vitest, the existing React/MapLibre app.
 
+> **Correction applied in S4 round 1 (do not follow the hash below).** Tasks 3 and 7 originally
+> specified `#config=` in the URL. That is a *same-document* navigation, so a reused pooled page
+> never reloads and returns a stale frame. The shipped code uses `?config=` plus a `configKey`
+> assertion in `renderFrame`. See the design doc.
+
 ## Global Constraints
 
 - Reuse existing pure modules — do NOT duplicate: `src/data/{themes,layouts,fonts,markers}.ts`, `src/lib/{mapStyle,geocoding,format}.ts`, `src/lib/export.ts` (refactored), `src/types.ts`, highlight/marker logic. Copy-paste of these = plan failure.

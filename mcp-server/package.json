@@ -1,0 +1,7 @@
+{
+  "name": "@mapposter/mcp-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server that renders MapPoster map illustrations for AI agents (headless browser pool). Deps are hoisted to the repo root."
+}

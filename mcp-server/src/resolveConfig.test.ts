@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveConfig, formatSize, FORMATS } from './resolveConfig';
+import { resolveConfig, formatSize, summarizeHighlights, FORMATS } from './resolveConfig';
 import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
@@ -12,6 +12,7 @@ vi.mock('./geocode', () => ({
     type: 'FeatureCollection',
     features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
   })),
+  resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
 describe('formatSize', () => {
@@ -53,6 +54,52 @@ describe('resolveConfig', () => {
     await expect(
       resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: ['District 1'] } }),
     ).rejects.toThrow(/No boundary found for region "District 1" in Vietnam/);
+  });
+
+  it('looks the country up when location is coordinates, which carry none', async () => {
+    // The README tells agents to pass explicit {lng,lat} for precision — so this is
+    // the path that matters, and it used to bypass the anchor entirely (→ Liberia).
+    vi.mocked(geocode.resolveBoundary).mockClear();
+    vi.mocked(geocode.resolveCountryAt).mockClear();
+
+    await resolveConfig({ location: { lng: 106.7, lat: 10.78 }, highlight: { regions: ['District 1'] } });
+
+    expect(geocode.resolveCountryAt).toHaveBeenCalledWith(106.7, 10.78);
+    expect(geocode.resolveBoundary).toHaveBeenCalledWith('District 1', 'Vietnam');
+  });
+
+  it('fails closed when the country at those coordinates cannot be determined', async () => {
+    vi.mocked(geocode.resolveCountryAt).mockResolvedValueOnce(null);
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, highlight: { regions: ['District 1'] } }),
+    ).rejects.toThrow(/Cannot determine the country at 10.78, 106.7/);
+  });
+
+  it('does not pay for a country lookup when no highlight is resolved by name', async () => {
+    vi.mocked(geocode.resolveCountryAt).mockClear();
+    await resolveConfig({
+      location: { lng: 106.7, lat: 10.78 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] }, // already coordinates
+    });
+    expect(geocode.resolveCountryAt).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown theme instead of silently rendering the default', async () => {
+    // getTheme() answers THEMES[0] for anything it doesn't know, and the agent
+    // never sees the image — a typo would return midnight-blue with no signal.
+    await expect(resolveConfig({ location: 'HCMC', theme: 'rubby' })).rejects.toThrow(/Unknown theme: rubby/);
+    await expect(resolveConfig({ location: 'HCMC', theme: 'ruby' })).resolves.toMatchObject({ theme: 'ruby' });
+    await expect(resolveConfig({ location: 'HCMC' })).resolves.toMatchObject({ theme: 'midnight-blue' });
+  });
+
+  it('summarizes each resolved region so the caller can tell which one it got', async () => {
+    const cfg = await resolveConfig({ location: 'HCMC', highlight: { regions: ['District 1'] } });
+    const { regions, points } = summarizeHighlights(cfg);
+    expect(regions).toHaveLength(1);
+    expect(regions[0].bbox).toEqual([106.6, 10.7, 106.8, 10.9]);
+    expect(regions[0].center![0]).toBeCloseTo(106.7, 6);
+    expect(regions[0].center![1]).toBeCloseTo(10.8, 6);
+    expect(points).toEqual([]);
   });
 
   it('geocodes the location and picks the format size (AC-1)', async () => {

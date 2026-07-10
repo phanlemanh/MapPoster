@@ -1,5 +1,6 @@
-import { resolveLocation, resolveBoundary } from './geocode';
+import { resolveLocation, resolveBoundary, resolveCountryAt } from './geocode';
 import { LAYOUTS } from '../../src/data/layouts';
+import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
 import type { GeoJSONFeatureCollection, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
 
@@ -67,6 +68,19 @@ export function formatSize(format?: FormatInput): { width: number; height: numbe
   throw new Error(`Unknown format: ${format}`);
 }
 
+/**
+ * Reject an unknown theme rather than fall back to the default.
+ *
+ * `getTheme` answers `THEMES[0]` for anything it doesn't recognise, and the
+ * agent calling this server never sees the image — so `theme: 'rubby'` would
+ * return a midnight-blue poster with no error and no signal. Every other
+ * discrete parameter here (`format`, `chrome`, `pointIcon`) refuses bad input.
+ */
+function assertTheme(id: string): string {
+  if (THEMES.some((t) => t.id === id)) return id;
+  throw new Error(`Unknown theme: ${id}. Known themes: ${THEMES.map((t) => t.id).join(', ')}`);
+}
+
 /** List every format name an agent may pass. */
 export function listFormats(): { name: string; width: number; height: number }[] {
   const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
@@ -89,6 +103,25 @@ function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, numbe
   return isFinite(w) ? [w, s, e, n] : null;
 }
 
+export interface ResolvedHighlights {
+  regions: { bbox: [number, number, number, number] | null; center: [number, number] | null }[];
+  points: { lng: number; lat: number }[];
+}
+
+/**
+ * What the agent actually got, per the tool contract's `resolved.highlights`.
+ * Region names are resolved server-side, so echo each one's extent — that is the
+ * only way a caller can tell which "District 1" it ended up with.
+ */
+export function summarizeHighlights(cfg: RenderConfig): ResolvedHighlights {
+  const regions = (cfg.highlight?.regions ?? []).map((r) => {
+    const bbox = bboxOfRegions([r]);
+    const center: [number, number] | null = bbox ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : null;
+    return { bbox, center };
+  });
+  return { regions, points: (cfg.markers ?? []).map((m) => ({ lng: m.lng, lat: m.lat })) };
+}
+
 function zoomFromSpan(span: number): number {
   if (!isFinite(span) || span <= 0) return 12;
   return Math.min(15, Math.max(3, Math.round((Math.log2(360 / span) + 0.2) * 10) / 10));
@@ -107,13 +140,31 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
 
   const base = await resolveLocation(params.location);
   const size = formatSize(params.format);
-  const theme = params.theme ?? 'midnight-blue';
+  const theme = assertTheme(params.theme ?? DEFAULT_THEME_ID);
   const chrome: Chrome = params.chrome ?? 'clean';
 
   // Anchor every highlight to the country of the location being rendered. Region
   // auto-framing (below) follows the region's bbox, so an unanchored "District 1"
   // — whose top Nominatim hit is in Liberia — would silently relocate the poster.
-  const anchor = base.place.country || undefined;
+  //
+  // An explicit {lng,lat} location carries no country, so look one up rather than
+  // let the guard pass everything. Fail closed: if we cannot say what country the
+  // map is in, we cannot vouch for a highlight resolved by name.
+  const namedHighlight =
+    (params.highlight?.regions ?? []).some((r) => typeof r === 'string') ||
+    (params.highlight?.points ?? []).some((p) => typeof p === 'string');
+
+  let anchor = base.place.country || undefined;
+  if (namedHighlight && !anchor) {
+    const [lng, lat] = base.center;
+    anchor = (await resolveCountryAt(lng, lat)) ?? undefined;
+    if (!anchor) {
+      throw new Error(
+        `Cannot determine the country at ${lat}, ${lng} to anchor the highlight. ` +
+          `Pass highlight regions/points as explicit coordinates or GeoJSON.`,
+      );
+    }
+  }
 
   const regions: RenderHighlightRegion[] = [];
   for (const r of params.highlight?.regions ?? []) {

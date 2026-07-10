@@ -54,8 +54,11 @@ render_map({
   "theme": "midnight-blue",
   "chrome": "clean"
 })
-// → { image: { path, base64, width: 1080, height: 1920 }, resolved: { center, zoom, place } }
+// → { image: { path, base64, width: 1080, height: 1920 },
+//     resolved: { center, zoom, place, theme, highlights: { regions:[{bbox,center}], points:[{lng,lat}] } } }
 ```
+
+`resolved` echoes every choice the server made on your behalf — the camera it framed, the theme it used, and the extent of each region it resolved by name, so a caller can tell *which* "District 1" it got. An unknown `theme` is refused rather than quietly replaced with the default.
 
 Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
 
@@ -70,7 +73,8 @@ Nominatim's free-form parser does not understand how VN addresses are written, s
 - A leading house number is retried without it (`123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh` returns **0 hits**; the street alone resolves correctly). The **district is never dropped automatically** — that would match a same-named street 60 km away in the same (post-2025-merger, very large) Ho Chi Minh City.
 - Same-granularity hits are re-ordered by Nominatim's `importance`; different granularities keep the order Nominatim chose. Concretely: hits are bucketed by `place_rank` and each bucket is sorted. Re-ordering *across* ranks would let the city outrank the district you asked for, and a comparator that merely returns `0` across ranks is [not a valid ordering](src/lib/geocoding.ts) — its result depends on the order Nominatim happened to send.
 - Labels use the *matched feature* (`Võ Văn Tần`, `District 3`, `Hoàn Kiếm Lake`), not the administrative parent — which today is `Thủ Đức` for most of HCMC.
-- **Regions go through the same pipeline as points**: canonicalised, filtered to the city the query names, then the polygon of that exact OSM relation is fetched by id. And every highlight is anchored to the **country** of the location being rendered — auto-framing follows a region's bounding box, so an unanchored `District 1` (whose top hit is a real district in **Liberia**) would silently relocate the whole poster.
+- **Regions go through the same pipeline as points**: canonicalised, filtered to the city the query names, then the polygon of that exact OSM relation is fetched by id.
+- Every highlight is anchored to the **country** of the location being rendered. Auto-framing follows a region's bounding box, so an unanchored `District 1` — whose top Nominatim hit is a real district in **Liberia** — would silently relocate the whole poster. When `location` is `{lng,lat}` it carries no country, so one reverse-geocode supplies the anchor; if that lookup can't say what country the map is in, a highlight named by string is **refused** rather than resolved unguarded.
 
 **Known limits.** Free-form ranking still mis-resolves some street addresses (`Đường Lê Lợi, Quận 1` ranks a nearby primary school first), and ward-level boundaries usually do not exist (`Phường Bến Nghé, Quận 1` → no polygon). An ambiguous region outside the anchor country is **refused**, not guessed. For anything that must be exact, call `geocode_place` — it returns a **candidate list** — then pass explicit `{lng,lat}` plus `placeName` to `render_map`. `placeName` overrides the poster label entirely.
 

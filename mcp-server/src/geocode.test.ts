@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveLocation, resolveBoundary, __resetGeoCache, __setRateLimitMs } from './geocode';
+import { resolveLocation, resolveBoundary, resolveCountryAt, __resetGeoCache, __setRateLimitMs } from './geocode';
 
 function mockFetch(payload: unknown) {
   const fn = vi.fn(async (_url?: string) => ({ ok: true, json: async () => payload }) as unknown as Response);
@@ -110,6 +110,28 @@ describe('resolveLocation', () => {
     times.sort((a, b) => a - b);
     expect(times[1] - times[0]).toBeGreaterThanOrEqual(30);
     expect(times[2] - times[1]).toBeGreaterThanOrEqual(30);
+  });
+});
+
+describe('resolveCountryAt', () => {
+  const reverseHit = { ...searchItem, address: { suburb: 'District 1', country: 'Vietnam' } };
+
+  it('reverse-geocodes the country and caches a positive answer', async () => {
+    const fn = mockFetch(reverseHit);
+    expect(await resolveCountryAt(106.7, 10.78)).toBe('Vietnam');
+    expect(await resolveCountryAt(106.7, 10.78)).toBe('Vietnam');
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('never caches a failed lookup — reverseGeocode returns null for an outage too', async () => {
+    // a poisoned cache would fail every render at this coordinate for the process life
+    vi.stubGlobal('fetch', vi.fn(async (_url?: string) => ({ ok: false, status: 429, json: async () => ({}) }) as unknown as Response));
+    expect(await resolveCountryAt(106.7, 10.78)).toBeNull();
+
+    vi.unstubAllGlobals();
+    const okFn = mockFetch(reverseHit);
+    expect(await resolveCountryAt(106.7, 10.78)).toBe('Vietnam');
+    expect(okFn).toHaveBeenCalledTimes(1);
   });
 });
 

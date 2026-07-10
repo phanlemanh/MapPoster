@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig, listFormats, MAX_EDGE, type RenderMapParams } from './resolveConfig';
+import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { THEMES } from '../../src/data/themes';
@@ -46,11 +46,20 @@ export function makeTools(deps: ToolDeps) {
     return { cfg, image };
   }
 
+  /** The `resolved` block of the tool contract: what the server chose on the caller's behalf. */
+  const resolvedOf = (cfg: RenderConfig) => ({
+    center: cfg.camera.center,
+    zoom: cfg.camera.zoom,
+    place: cfg.place,
+    theme: cfg.theme,
+    highlights: summarizeHighlights(cfg),
+  });
+
   return {
     async render_map(params: RenderMapParams & { delivery?: DeliveryMode }): Promise<ToolResult> {
       try {
         const { cfg, image } = await renderOne(params, params.delivery);
-        return ok({ image, resolved: { center: cfg.camera.center, zoom: cfg.camera.zoom, place: cfg.place } }, [image]);
+        return ok({ image, resolved: resolvedOf(cfg) }, [image]);
       } catch (e) {
         return fail((e as Error).message ?? String(e));
       }
@@ -61,7 +70,7 @@ export function makeTools(deps: ToolDeps) {
         const results: { image: Awaited<ReturnType<typeof deliver>>; resolved: unknown }[] = [];
         for (const v of params.variants) {
           const { cfg, image } = await renderOne({ ...params.base, ...v }, params.delivery);
-          results.push({ image, resolved: { center: cfg.camera.center, zoom: cfg.camera.zoom, place: cfg.place } });
+          results.push({ image, resolved: resolvedOf(cfg) });
         }
         return ok({ count: results.length, results }, results.map((r) => r.image));
       } catch (e) {

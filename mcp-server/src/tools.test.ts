@@ -19,6 +19,7 @@ vi.mock('./geocode', () => ({
         ],
   ),
   resolveBoundary: vi.fn(async () => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }] })),
+  resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
 import { makeTools, type ToolResult } from './tools';
@@ -62,6 +63,26 @@ describe('render_map', () => {
     expect(j.image.height).toBe(1920);
     expect(j.resolved.center).toEqual([106.7, 10.78]);
     expect(imageBlocks(res)).toHaveLength(1);
+  });
+
+  it('echoes the resolved theme and highlights, per the tool contract', async () => {
+    const res = await tools().render_map({
+      location: 'HCMC',
+      theme: 'ruby',
+      highlight: { regions: ['District 1'], points: [{ lng: 106.7, lat: 10.78 }] },
+    });
+    const { resolved } = textJson(res);
+    expect(resolved.theme).toBe('ruby');
+    expect(resolved.highlights.regions).toHaveLength(1);
+    expect(resolved.highlights.regions[0].bbox).toEqual([106.6, 10.7, 106.8, 10.9]);
+    expect(resolved.highlights.points).toEqual([{ lng: 106.7, lat: 10.78 }]);
+  });
+
+  it('returns a structured error for an unknown theme rather than a default-themed poster', async () => {
+    const res = await tools().render_map({ location: 'HCMC', theme: 'rubby' });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/Unknown theme: rubby/);
+    expect(render).not.toHaveBeenCalled();
   });
 
   it('custom format dims flow through (AC-8)', async () => {

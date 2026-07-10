@@ -1,4 +1,4 @@
-import { searchPlaces, fetchRegionBoundary } from '../../src/lib/geocoding';
+import { searchPlaces, fetchRegionBoundary, reverseGeocode } from '../../src/lib/geocoding';
 import { queryCandidates, relaxedCandidates, requiredCity, normalizeVnQuery } from './vnQuery';
 import type { GeoJSONFeatureCollection } from '../../src/types';
 
@@ -11,6 +11,7 @@ export interface ResolvedLocation {
 // --- caches + a serialized rate-limiter (Nominatim policy: <= 1 req/s) ---
 const locCache = new Map<string, ResolvedLocation>();
 const boundaryCache = new Map<string, GeoJSONFeatureCollection | null>();
+const countryCache = new Map<string, string>();
 
 let minSpacingMs = 1000;
 let lastUpstreamAt = 0;
@@ -25,6 +26,7 @@ export function __setRateLimitMs(ms: number): void {
 export function __resetGeoCache(): void {
   locCache.clear();
   boundaryCache.clear();
+  countryCache.clear();
   lastUpstreamAt = 0;
   queue = Promise.resolve();
 }
@@ -124,6 +126,29 @@ export async function resolveLocation(
   };
   locCache.set(key, resolved);
   return resolved;
+}
+
+/**
+ * The country at a coordinate.
+ *
+ * A highlight is anchored to the country of the map being rendered, but an
+ * explicit `{lng, lat}` location carries no country — so the anchor has to be
+ * looked up, or the guard silently passes everything (measured: coords + a bare
+ * "District 1" auto-framed the poster onto Liberia).
+ *
+ * Only a positive answer is cached. `reverseGeocode` returns null both for "no
+ * country here" and for a transient upstream failure, and memoizing the latter
+ * would break this coordinate for the life of the process.
+ */
+export async function resolveCountryAt(lng: number, lat: number): Promise<string | null> {
+  const key = `${lng.toFixed(3)},${lat.toFixed(3)}`;
+  const cached = countryCache.get(key);
+  if (cached) return cached;
+
+  await throttle();
+  const country = (await reverseGeocode(lng, lat))?.country || null;
+  if (country) countryCache.set(key, country);
+  return country;
 }
 
 export interface GeoCandidate {

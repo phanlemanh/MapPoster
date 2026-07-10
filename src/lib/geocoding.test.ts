@@ -46,6 +46,91 @@ describe('searchPlaces', () => {
     expect(String(fn.mock.calls[0][0])).toContain('email=');
   });
 
+  it('pins the response language so Node and the browser agree', async () => {
+    const fn = mockFetch([hcmcSearchItem]);
+    await searchPlaces('Paris');
+    expect(String(fn.mock.calls[0][0])).toContain('accept-language=en');
+  });
+
+  it('labels a search hit with the matched feature, not its parent district', async () => {
+    // a street in HCMC: OSM nests it under city "Thủ Đức", but the user asked for the street
+    mockFetch([
+      { ...hcmcSearchItem, name: 'Võ Văn Tần', address: { road: 'Võ Văn Tần', city: 'Thủ Đức', country: 'Vietnam' } },
+    ]);
+    const [r] = await searchPlaces('Võ Văn Tần, Quận 3');
+    expect(r.name).toBe('Võ Văn Tần');
+  });
+
+  it('falls back to the admin chain when the feature has no name', async () => {
+    mockFetch([hcmcSearchItem]); // no `name` field
+    const [r] = await searchPlaces('Ho Chi Minh City');
+    expect(r.name).toBe('Ho Chi Minh City');
+  });
+
+  it('breaks ties by importance within one place_rank (the API does not)', async () => {
+    // real values: the correct Nguyen Hue Boulevard (0.05340) came back BEHIND
+    // rural same-named roads (0.05338) sitting 60 km away — both place_rank 26
+    mockFetch([
+      { ...hcmcSearchItem, place_id: 1, place_rank: 26, importance: 0.05338, name: 'Nguyễn Huệ', lat: '10.579', lon: '107.071' },
+      { ...hcmcSearchItem, place_id: 2, place_rank: 26, importance: 0.0534, name: 'Nguyen Hue Boulevard', lat: '10.773', lon: '106.704' },
+    ]);
+    const rs = await searchPlaces('Nguyễn Huệ, District 1, Ho Chi Minh City');
+    expect(rs[0].name).toBe('Nguyen Hue Boulevard');
+    expect(rs[0].lat).toBeCloseTo(10.773, 2);
+  });
+
+  it('breaks ties within a rank for EVERY input order, not just lucky ones', async () => {
+    // Nominatim chooses the raw order; we do not. The real response for this query
+    // interleaves a rank-30 pedestrian-street POI between the two rank-26 roads.
+    // A comparator that answers 0 for cross-rank pairs then never compares the two
+    // roads against each other at all, and results[0] becomes order-dependent.
+    const rural = { ...hcmcSearchItem, place_id: 1, place_rank: 26, importance: 0.05338, name: 'Nguyễn Huệ', lat: '10.579', lon: '107.071' };
+    const poi = { ...hcmcSearchItem, place_id: 3, place_rank: 30, importance: 0.1, name: 'Nguyen Hue Walking Street', lat: '10.773', lon: '106.704' };
+    const road = { ...hcmcSearchItem, place_id: 2, place_rank: 26, importance: 0.0534, name: 'Nguyen Hue Boulevard', lat: '10.773', lon: '106.704' };
+
+    const permute = <T>(xs: T[]): T[][] =>
+      xs.length <= 1 ? [xs] : xs.flatMap((x, i) => permute([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p]));
+
+    for (const order of permute([rural, poi, road])) {
+      mockFetch(order);
+      const rs = await searchPlaces('Nguyễn Huệ, District 1, Ho Chi Minh City');
+      const roads = rs.filter((r) => r.placeRank === 26);
+      expect(roads.map((r) => r.name), `raw order: ${order.map((o) => o.place_id).join(',')}`).toEqual([
+        'Nguyen Hue Boulevard',
+        'Nguyễn Huệ',
+      ]);
+    }
+  });
+
+  it("preserves Nominatim's cross-granularity order (first-seen rank wins)", async () => {
+    // We re-order *within* a granularity only. Promoting the rank-30 POI just
+    // because its importance is highest would answer a different question.
+    mockFetch([
+      { ...hcmcSearchItem, place_id: 1, place_rank: 26, importance: 0.05, name: 'Road' },
+      { ...hcmcSearchItem, place_id: 2, place_rank: 30, importance: 0.9, name: 'POI' },
+    ]);
+    const rs = await searchPlaces('Nguyễn Huệ, District 1, Ho Chi Minh City');
+    expect(rs.map((r) => r.name)).toEqual(['Road', 'POI']);
+  });
+
+  it('never lets a high-importance city outrank the district that was asked for', async () => {
+    // "Q.7, TP.HCM": the city has far higher importance but a coarser place_rank.
+    // Sorting globally by importance would return all of Ho Chi Minh City.
+    mockFetch([
+      { ...hcmcSearchItem, place_id: 1, place_rank: 18, importance: 0.3, name: 'District 7', lat: '10.737', lon: '106.729' },
+      { ...hcmcSearchItem, place_id: 2, place_rank: 16, importance: 0.8, name: 'Ho Chi Minh City', lat: '10.773', lon: '106.716' },
+    ]);
+    const rs = await searchPlaces('District 7, Ho Chi Minh City');
+    expect(rs[0].name).toBe('District 7');
+  });
+
+  it('does not let Array.map pass the index in as preferFeatureName', async () => {
+    const withName = { ...hcmcSearchItem, name: 'Feature', address: { city: 'Admin', country: 'Vietnam' } };
+    mockFetch([withName, withName]);
+    const rs = await searchPlaces('some street');
+    expect(rs.map((r) => r.name)).toEqual(['Feature', 'Feature']); // both, not ['Admin', 'Feature']
+  });
+
   it('throws on a non-ok response', async () => {
     mockFetch([], false);
     await expect(searchPlaces('Paris')).rejects.toThrow(/geocoding failed/i);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { usePosterStore } from '../store/usePosterStore';
@@ -21,8 +21,11 @@ function applyInteractions(map: maplibregl.Map, lock: boolean, rotation: boolean
     } else {
       map.dragRotate.disable();
       map.touchZoomRotate.disableRotation();
-      map.setBearing(0);
-      map.setPitch(0);
+      // setBearing/setPitch call map.stop(), which cancels an in-flight flyTo.
+      // This runs in an effect right after the one that starts the flight, so
+      // resetting unconditionally would kill every camera animation at t=0.
+      if (map.getBearing() !== 0) map.setBearing(0);
+      if (map.getPitch() !== 0) map.setPitch(0);
     }
   }
 }
@@ -31,7 +34,15 @@ export default function MapView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
-  const readyRef = useRef(false);
+  /**
+   * Reactive, NOT a ref. Every effect below is a no-op until the map fires
+   * `load`, so each one must re-run when that happens. A ref cannot schedule
+   * that re-run: state arriving before `load` — a chosen marker icon, a
+   * highlight region, a new location — would be dropped silently and forever.
+   */
+  const [ready, setReady] = useState(false);
+  /** Location the camera has already been flown to; seeded at mount so a reload keeps the persisted view. */
+  const flownToRef = useRef<string | null>(null);
 
   // subscribe to style-affecting state
   const themeId = usePosterStore((s) => s.themeId);
@@ -83,6 +94,7 @@ export default function MapView() {
       dragRotate: false,
     });
     mapRef.current = map;
+    flownToRef.current = `${s.location.lng},${s.location.lat},${s.location.zoom}`;
     setMapInstance(map);
     if (import.meta.env.DEV) {
       map.on('error', (e) => console.error('[maplibre error]', e.error?.message ?? e));
@@ -90,7 +102,7 @@ export default function MapView() {
     }
 
     map.on('load', () => {
-      readyRef.current = true;
+      setReady(true);
       applyInteractions(map, s.lockMap, s.enableRotation);
     });
 
@@ -116,7 +128,7 @@ export default function MapView() {
       setMapInstance(null);
       map.remove();
       mapRef.current = null;
-      readyRef.current = false;
+      setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -124,7 +136,7 @@ export default function MapView() {
   // --- rebuild style on theme / layers / detail / routes change ---
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !readyRef.current) return;
+    if (!map || !ready) return;
     const theme = getTheme(themeId);
     map.setStyle(
       buildMapStyle({
@@ -136,27 +148,33 @@ export default function MapView() {
       }),
       { diff: true },
     );
-  }, [themeId, layers, detail, routes, highlightEnabled, highlightRegions, highlightColor, highlightFill, highlightDim]);
+  }, [ready, themeId, layers, detail, routes, highlightEnabled, highlightRegions, highlightColor, highlightFill, highlightDim]);
 
   // --- fly to a newly chosen location ---
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !readyRef.current) return;
+    if (!map || !ready) return;
+    const key = `${location.lng},${location.lat},${location.zoom}`;
+    // The map opens at the persisted `view` (where the user last panned), which
+    // is not the same as `location`. Flying on the ready-transition would throw
+    // that camera away on every reload, so only fly once the location changes.
+    if (flownToRef.current === key) return;
+    flownToRef.current = key;
     map.flyTo({ center: [location.lng, location.lat], zoom: location.zoom, duration: 900, essential: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.lng, location.lat, location.zoom]);
+  }, [ready, location.lng, location.lat, location.zoom]);
 
   // --- interactions (lock / rotation) ---
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !readyRef.current) return;
+    if (!map || !ready) return;
     applyInteractions(map, lockMap, enableRotation);
-  }, [lockMap, enableRotation]);
+  }, [ready, lockMap, enableRotation]);
 
   // --- marker placement mode: next map click drops the chosen marker ---
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !readyRef.current) return;
+    if (!map || !ready) return;
     const canvas = map.getCanvas();
     if (!placingIcon) {
       canvas.style.cursor = '';
@@ -172,7 +190,7 @@ export default function MapView() {
       map.off('click', onClick);
       canvas.style.cursor = '';
     };
-  }, [placingIcon]);
+  }, [ready, placingIcon]);
 
   // --- reconcile DOM markers ---
   useEffect(() => {

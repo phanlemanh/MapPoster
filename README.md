@@ -33,6 +33,63 @@ Two layers, both automated:
 
 `npm run build` runs the fast Vitest suite as a gate before bundling. The Playwright suite is kept separate (it starts a browser) — run it via `npm run test:e2e` or in CI. First-time E2E needs the browser: `npx playwright install chromium`.
 
+## MCP map-render server
+
+`mcp-server/` exposes MapPoster's renderer to AI agents via MCP, so an agent (e.g. a video pipeline) can fetch a still map illustration on demand — geocoded, point/region-highlighted, in TikTok/other formats. It drives the app's **headless render mode** (`render.html`) in a Playwright page pool behind a stable `renderFrame(config) → PNG` primitive; geocoding + boundary lookup run in Node with caching.
+
+```bash
+npm run build          # produce dist/ (the render harness the server serves)
+npm run mcp:stdio      # run over stdio (local)
+npm run mcp:http       # run over Streamable HTTP (hosted, port 4181)
+npm run test:mcp       # gated integration test (builds app + renders a real PNG)
+```
+
+Tools: `render_map`, `render_variants`, `geocode_place`, `list_themes`, `list_formats`. Example call:
+
+```jsonc
+render_map({
+  "location": "Võ Văn Tần, Quận 3, HCMC",
+  "highlight": { "points": ["Võ Văn Tần, HCMC"] },
+  "format": "tiktok",        // 1080×1920
+  "theme": "midnight-blue",
+  "chrome": "clean"
+})
+// → { image: { path, base64, width: 1080, height: 1920 },
+//     resolved: { center, zoom, place, theme, highlights: { regions:[{bbox,center}], points:[{lng,lat}] } } }
+```
+
+`highlight.color` must be a hex colour (`#e8b04b`) — it is interpolated into the marker SVG's `fill` and reaches `innerHTML` in the render page, so anything else is refused at the boundary.
+
+The render config never travels in the URL. It is parked in-process and the page fetches it by id — a query param would put the whole payload in the request head, which Node caps at 16 KB, and a single city boundary encodes to ~20 KB. The id still changes every render, which is what forces the real document reload the stale-frame guard depends on. Inline `highlight.regions[].geojson` is shape-checked and capped at 2 MiB.
+
+Numeric env vars are validated at startup rather than coerced: `Number('8mb')` is `NaN`, and every `size > NaN` comparison is false — a typo would silently switch the request-body cap off, or make `MAPPOSTER_POOL` produce a pool that never mints a page.
+
+A render that fails discards its browser page rather than returning it to the pool: a crashed page put back in the idle list would poison that slot for the life of the process. If Chromium itself dies, the whole runtime is rebuilt on the next call — and a transient startup failure (a busy port, a flaky launch) is never memoized, so it retries instead of bricking every later render.
+
+`resolved` echoes every choice the server made on your behalf — the camera it framed, the theme it used, and the extent of each region it resolved by name, so a caller can tell *which* "District 1" it got. An unknown `theme` is refused rather than quietly replaced with the default.
+
+Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_APP_HOST` (default `127.0.0.1`), `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`), `MAPPOSTER_GEO_CACHE_MAX` (LRU entries per geocode cache, default 500). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+
+The HTTP transport is unauthenticated, so it refuses any request whose `Host` it does not answer to, and any request carrying an `Origin` at all — a server-to-server MCP client sends none, a web page always does. Loopback binding alone would not stop DNS rebinding. A hosted deployment must therefore declare `MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal` (and `MAPPOSTER_HTTP_ALLOWED_ORIGINS=https://studio.internal` if a browser calls it); otherwise only loopback `Host` headers are accepted and the server says so on startup. Request bodies are capped at 8 MiB (`MAPPOSTER_HTTP_MAX_BODY`) and refused with `413` — `Host` and `Origin` are trivially forged by exactly the non-browser clients the guard admits, so an unbounded body would OOM the process and take the shared browser pool with it.
+
+**Two listeners, not one.** Alongside the MCP transport, `mcp-server` runs a small static server (`MAPPOSTER_APP_PORT`, default 4180) that serves `dist/` to its own headless browser. It has no access control beyond a path-traversal guard, so it binds `127.0.0.1` (`MAPPOSTER_APP_HOST`). It starts for **both** transports, including stdio — a `listen(port, callback)` there would bind every interface and quietly publish `dist/` to the LAN on every deployment.
+
+### Vietnamese addresses
+
+Nominatim's free-form parser does not understand how VN addresses are written, so `resolveLocation` canonicalises them first (measured against the live API — `npx tsx mcp-server/scripts/check-vn-addresses.ts`):
+
+- `TP.HCM` / `TPHCM` / `HCMC` / `TP. Hồ Chí Minh` / `Sài Gòn` → `Ho Chi Minh City`; likewise `Hà Nội` → `Hanoi`, `Đà Nẵng` → `Da Nang`.
+- `Quận 3` / `Q.7` → `District 3` / `District 7`; `Phường 5` → `Ward 5`; a leading `Đường` is dropped.
+- A leading house number is retried without it (`123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh` returns **0 hits**; the street alone resolves correctly). The **district is never dropped automatically** — that would match a same-named street 60 km away in the same (post-2025-merger, very large) Ho Chi Minh City.
+- Same-granularity hits are re-ordered by Nominatim's `importance`; different granularities keep the order Nominatim chose. Concretely: hits are bucketed by `place_rank` and each bucket is sorted. Re-ordering *across* ranks would let the city outrank the district you asked for, and a comparator that merely returns `0` across ranks is [not a valid ordering](src/lib/geocoding.ts) — its result depends on the order Nominatim happened to send.
+- Labels use the *matched feature* (`Võ Văn Tần`, `District 3`, `Hoàn Kiếm Lake`), not the administrative parent — which today is `Thủ Đức` for most of HCMC.
+- **Regions go through the same pipeline as points**: canonicalised, filtered to the city the query names, then the polygon of that exact OSM relation is fetched by id.
+- Every highlight is anchored to the **country** of the location being rendered. Auto-framing follows a region's bounding box, so an unanchored `District 1` — whose top Nominatim hit is a real district in **Liberia** — would silently relocate the whole poster. When `location` is `{lng,lat}` it carries no country, so one reverse-geocode supplies the anchor; if that lookup can't say what country the map is in, a highlight named by string is **refused** rather than resolved unguarded.
+
+**Known limits.** Free-form ranking still mis-resolves some street addresses (`Đường Lê Lợi, Quận 1` ranks a nearby primary school first), and ward-level boundaries usually do not exist (`Phường Bến Nghé, Quận 1` → no polygon). An ambiguous region outside the anchor country is **refused**, not guessed. For anything that must be exact, call `geocode_place` — it returns a **candidate list** — then pass explicit `{lng,lat}` plus `placeName` to `render_map`. `placeName` overrides the poster label entirely.
+
+Both paths are probed against the live API by `npx tsx mcp-server/scripts/check-vn-addresses.ts`; the unit tests mock `fetch`, so only that script can tell you whether ranking and boundary selection are still right.
+
 ## Features
 
 Left sidebar opens slide-over panels:

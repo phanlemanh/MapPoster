@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mapposter": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "tsx", "mcp-server/src/stdio.ts"],
+      "env": {
+        "MAPPOSTER_APP_PORT": "0",
+        "MAPPOSTER_POOL": "1",
+        "MAPPOSTER_SINK": "_render-out"
+      }
+    }
+  }
+}

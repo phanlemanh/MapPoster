@@ -13,7 +13,7 @@ evals:
     criterion: AC-2
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has highlight-outline/highlight-fill layers; a region resolved by name is anchored to the country of the location being rendered, including when location is {lng,lat}"
+    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has highlight-outline/highlight-fill layers; a region resolved by name is anchored to the country of the location being rendered, including when location is {lng,lat}; a region whose boundary polygon exceeds 16 KB (a whole city, not just a district) renders — the config must not travel in the URL; inline GeoJSON is shape-checked and size-bounded"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
@@ -27,7 +27,7 @@ evals:
     criterion: AC-4
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; mocked Nominatim: two identical geocodes ⇒ exactly 1 upstream call; a DIFFERENT query ⇒ 1 additional upstream call (should-not-fire pair); a transient failure is never memoized as a definitive answer"
+    expected: "exit 0; mocked Nominatim: two identical geocodes ⇒ exactly 1 upstream call; a DIFFERENT query ⇒ 1 additional upstream call (should-not-fire pair); a transient failure is never memoized as a definitive answer; numeric env vars are validated at startup, never coerced to NaN"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E5

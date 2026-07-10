@@ -13,7 +13,7 @@ evals:
     criterion: AC-2
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has highlight-outline/highlight-fill layers"
+    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has highlight-outline/highlight-fill layers; a region resolved by name is anchored to the country of the location being rendered, including when location is {lng,lat}"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
@@ -27,21 +27,21 @@ evals:
     criterion: AC-4
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; mocked Nominatim: two identical geocodes ⇒ exactly 1 upstream call; a DIFFERENT query ⇒ 1 additional upstream call (should-not-fire pair)"
+    expected: "exit 0; mocked Nominatim: two identical geocodes ⇒ exactly 1 upstream call; a DIFFERENT query ⇒ 1 additional upstream call (should-not-fire pair); a transient failure is never memoized as a definitive answer"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E5
     criterion: AC-5
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results"
+    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results; a reused pooled page renders each config fresh (no stale frame); a variant cannot smuggle out-of-range coords/zoom/dims past the boundary guard"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E6
     criterion: AC-6
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; listTools over stdio AND over HTTP transport both return {render_map, render_variants, geocode_place, list_themes, list_formats}"
+    expected: "exit 0; listTools over stdio AND over HTTP transport both return {render_map, render_variants, geocode_place, list_themes, list_formats}; the HTTP transport refuses a rebound Host and an unknown Origin"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E7
@@ -62,7 +62,7 @@ evals:
     criterion: AC-9
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; chrome=clean ⇒ showText=false (no title overlay); chrome=poster ⇒ showText=true with city title"
+    expected: "exit 0; chrome=clean ⇒ showText=false (no title overlay); chrome=poster ⇒ showText=true with city title; an unknown theme is refused rather than silently replaced by the default; resolved echoes theme + highlights"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E10

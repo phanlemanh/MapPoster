@@ -15,6 +15,7 @@ risk_tiers:
   t1_skip_globs:
     - "**/*.md"
     - "_acceptance/**"
+    - ".github/**"
   t3_paths:
     - "src/lib/export.ts"
     - "src/lib/mapStyle.ts"

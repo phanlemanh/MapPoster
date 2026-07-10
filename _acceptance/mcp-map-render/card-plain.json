@@ -1,26 +1,74 @@
 {
-  "feature_plain": "Cho phép AI agent (vd Video Plugin) tự lấy ảnh bản đồ minh hoạ từ MapPoster qua MCP — dọc TikTok, highlight điểm/vùng, canh đúng địa điểm — không cần người thao tác app.",
-  "will_do": [
-    { "id": "AC-1", "p": "Sẽ nhận tên/địa chỉ + khổ ảnh → trả PNG đúng kích thước (vd TikTok 1080×1920), canh đúng địa điểm." },
-    { "id": "AC-2", "p": "Sẽ tô ranh giới một vùng (quận/phường) khi được yêu cầu highlight vùng." },
-    { "id": "AC-3", "p": "Sẽ cắm marker tại địa chỉ và tự zoom mức đường-phố khi highlight điểm." },
-    { "id": "AC-5", "p": "Sẽ trả nhiều ảnh biến thể trong một lần gọi (render_variants)." },
-    { "id": "AC-6", "p": "Sẽ chạy được cả 2 kênh: stdio (local) và HTTP (hosted), cùng bộ tool." },
-    { "id": "AC-7", "p": "Sẽ trả cả ảnh base64 lẫn file đường-dẫn, ghi file vào thư mục output đã cấu hình." },
-    { "id": "AC-8", "p": "Sẽ có sẵn khổ TikTok + các preset, và nhận khổ tuỳ chỉnh {rộng,cao}." },
-    { "id": "AC-9", "p": "Sẽ mặc định ảnh 'sạch' (không tiêu đề thành phố to); bật 'poster' thì có tiêu đề." },
-    { "id": "AC-10", "p": "Sẽ render headless tất-định: nạp config là ra đúng ảnh, không phụ thuộc onboarding/localStorage." },
-    { "id": "AC-12", "p": "Sẽ cho ảnh dùng được làm B-roll video ở ví dụ thật (Võ Văn Tần, Q3) — người duyệt xác nhận (judgment)." }
+  "feature_plain": "Cho phép AI agent (vd Video Plugin) tự lấy ảnh bản đồ minh hoạ từ MapPoster qua MCP — dọc TikTok, tô điểm hoặc tô vùng, canh đúng địa điểm — không cần người thao tác app.",
+
+  "decisions": [
+    {
+      "id": "E12",
+      "q": "Tấm poster này dùng được làm hình minh hoạ cho video chứ?",
+      "why": "Máy chỉ ĐỀ XUẤT đạt. Chỉ anh mới quyết được ảnh có thật sự dùng được không: đúng vị trí ở giữa khung, chỗ tô đọc rõ, đường sá không vỡ. Tier T3 nên mục này bắt buộc có phán quyết của người."
+    }
   ],
-  "wont_do": [
-    { "id": "AC-4", "p": "Sẽ KHÔNG gọi Nominatim lặp cho cùng truy vấn (cache) — nhưng vẫn gọi mới cho truy vấn khác (không trả cache sai)." },
-    { "id": "AC-11", "p": "Sẽ KHÔNG crash hay trả ảnh rỗng khi địa điểm sai — trả lỗi có cấu trúc." }
-  ],
-  "scope_plain": "Chưa làm vòng này: animation nhiều-frame (sequence) + clip mp4 (Phase 2/3); không connector claude.ai; chưa self-host tiles/geocoder; chưa lưu S3/GCS (dùng thư mục shared); chưa native engine B; chưa auth/quota.",
+
+  "scope_plain": "Chưa làm vòng này: animation nhiều khung hình và clip mp4 (giai đoạn 2/3); không có connector claude.ai; chưa tự host tiles/geocoder; chưa lưu S3/GCS (đang ghi vào thư mục chung); chưa có engine native; chưa có xác thực và hạn ngạch cho từng bên gọi.",
+
+  "analyst_plain": "Một lần chạy `npm test` duy nhất đứng tên cho 10 tiêu chí (E1–E9 và E11). Nếu nó xanh thì cả 10 cùng xanh, nên nó không cho biết từng tiêu chí có thực sự được kiểm riêng hay không.",
+
   "decisions_plain": [
-    { "id": "d-20260709T103427Z-32058", "p": "Chọn Hướng A (browser headless tái dùng app) — ra nhanh, tái dùng gần hết renderer; đổi lại nặng RAM/throughput (để ngỏ đổi native B sau)." },
-    { "id": "d-20260709T103427Z-28433", "p": "KHÔNG làm sequence/mp4 vòng này — contract gọn & ship nhanh; đổi lại agent chưa có animation/clip tới phase sau." },
-    { "id": "d-20260709T103427Z-17714", "p": "KHÔNG chạy design sub-track (feature headless) — chất lượng ảnh dựa test export cũ + 1 mục người-duyệt (AC-12)." },
-    { "id": "d-20260709T103427Z-4605", "p": "Geocode ở Node có cache — tránh Nominatim rate-limit; đổi lại headless page chỉ nhận config đã-resolve." }
+    { "id": "d-20260709T103427Z-32058", "p": "Dựng ảnh bằng trình duyệt ẩn chạy lại chính app — ra nhanh, giống hệt bản xem trước; đổi lại tốn RAM, thông lượng thấp hơn bản native." },
+    { "id": "d-20260709T103427Z-28433", "p": "KHÔNG làm chuỗi khung hình và video mp4 ở giai đoạn 1, chỉ ảnh tĩnh; đổi lại agent phải chờ giai đoạn sau nếu muốn animation." },
+    { "id": "d-20260709T103427Z-17714", "p": "KHÔNG chạy nhánh thiết kế vì tính năng chạy ngầm, không có màn hình; đổi lại chất lượng thị giác chỉ được bảo chứng bằng đánh giá của người." },
+    { "id": "d-20260709T103427Z-4605", "p": "Tra địa danh và ranh giới ở phía Node thay vì trong trang ẩn — cache tập trung, đỡ chạm giới hạn Nominatim; đổi lại trang render phải nhận cấu hình đã giải xong." },
+
+    { "id": "d-20260709T104416Z-32229", "p": "Trang render là một điểm vào tối giản riêng, không lái nguyên giao diện app; đổi lại thêm một điểm build." },
+    { "id": "d-20260709T104416Z-18891", "p": "Máy chủ MCP dùng thẳng module từ app thay vì tách gói lõi — ra nhanh; đổi lại nó phụ thuộc vào đường dẫn mã nguồn app." },
+    { "id": "d-20260709T104416Z-27151", "p": "Test dựng ảnh thật cần trình duyệt nên chạy riêng, không nằm trong bộ test nhanh; đổi lại phải nhớ chạy lệnh riêng trước khi merge." },
+    { "id": "d-20260709T230203Z-24313", "p": "Cấu hình đi qua địa chỉ thay vì phần neo, kèm chốt kiểm — chặn việc trang tái dùng trả lại đúng tấm ảnh của lần render trước." },
+    { "id": "d-20260709T230203Z-18417", "p": "Vùng tô không tra được sẽ báo lỗi rõ ràng thay vì âm thầm bỏ qua — không còn poster báo thành công mà thiếu vùng." },
+    { "id": "d-20260709T230203Z-20509", "p": "Xếp hàng tuần tự các lượt gọi Nominatim, siết giới hạn kích thước và toạ độ ở biên, giữ chỗ trong pool trước khi mở trang." },
+    { "id": "d-20260709T230203Z-24456", "p": "Thêm test hồi quy cho hai cấu hình khác nhau trên cùng một trang tái dùng, và cho trần số trang." },
+
+    { "id": "d-20260710T001914Z-5441", "p": "Lỗi mạng thoáng qua khi tra ranh giới sẽ báo lỗi, thay vì bị nhớ mãi thành “vùng này không tồn tại”." },
+    { "id": "d-20260710T001914Z-29043", "p": "Biến thể render bị kiểm chặt như bản gốc — không lách được giới hạn toạ độ, mức phóng, kích thước." },
+    { "id": "d-20260710T001914Z-18074", "p": "Cổng HTTP mặc định chỉ nghe máy nội bộ; thân request đọc theo byte nên tên tiếng Việt không bị vỡ chữ." },
+    { "id": "d-20260710T001914Z-19032", "p": "Chuẩn hoá cách người Việt viết địa chỉ (TP.HCM, Quận, Phường) và đặt tên theo đúng đối tượng khớp, không theo đơn vị hành chính cha." },
+    { "id": "d-20260710T001914Z-30063", "p": "KHÔNG cố sửa thuật toán xếp hạng tự do của Nominatim cho địa chỉ đường phố; thay vào đó trả danh sách ứng viên để agent tự chọn." },
+
+    { "id": "d-20260710T075500Z-40001", "p": "Chạm trần 3 vòng rà soát: dừng lại và hỏi người, thay vì âm thầm lặp tiếp." },
+    { "id": "d-20260710T075500Z-40002", "p": "Phát hiện bộ so sánh xếp hạng địa điểm không hợp lệ: cùng dữ liệu, đổi thứ tự đầu vào là ra kết quả khác." },
+    { "id": "d-20260710T075500Z-40003", "p": "Nguyên nhân gốc là lỗ hổng thiết kế test — mọi test đều giả lập mạng nên không bao giờ nhìn thấy thứ tự kết quả thật." },
+    { "id": "d-20260710T080000Z-41001", "p": "Người duyệt cho phép vượt trần bằng một vòng có phạm vi hẹp: sửa ba lỗi và bịt lỗ hổng test." },
+    { "id": "d-20260710T084500Z-42001", "p": "Xếp hạng địa điểm nay gom theo cấp hành chính rồi mới so độ nổi bật trong từng nhóm — kết quả hết phụ thuộc thứ tự Nominatim trả về." },
+    { "id": "d-20260710T084500Z-42002", "p": "Vùng tô đi qua đúng đường xử lý như điểm, và lấy ranh giới của đúng thực thể đã khớp." },
+    { "id": "d-20260710T084500Z-42003", "p": "Ghi nhận một khẳng định của bên rà soát là SAI và đã bị lặp lại trước khi kiểm chứng; kiểm tra trực tiếp với API thật mới ra sự thật." },
+    { "id": "d-20260710T084500Z-42004", "p": "Tên vùng trống trơn như “District 1” trả về một quận có thật ở Liberia, và khung hình tự bay theo — poster đổi hẳn quốc gia mà không báo gì." },
+    { "id": "d-20260710T084500Z-42005", "p": "Mọi vùng và điểm tô nay bị neo vào quốc gia của địa điểm đang render; dùng quốc gia chứ không dùng khoảng cách." },
+    { "id": "d-20260710T084500Z-42006", "p": "Cổng HTTP từ chối tên máy lạ và mọi trang web gọi tới không nằm trong danh sách cho phép." },
+    { "id": "d-20260710T084500Z-42007", "p": "Bịt lỗ hổng test: kịch bản dò API thật nay kiểm cả đường lấy ranh giới, và mọi test hồi quy đều được xác minh là đỏ trên mã cũ." },
+
+    { "id": "d-20260710T093000Z-43001", "p": "Vòng 4 lại ra lỗi mới — dừng và báo người, không tự lặp tiếp." },
+    { "id": "d-20260710T093000Z-43002", "p": "Neo quốc gia bị vô hiệu khi truyền thẳng toạ độ — đúng cách gọi mà tài liệu khuyên dùng cho độ chính xác." },
+    { "id": "d-20260710T093000Z-43003", "p": "Gõ sai tên theme thì bị âm thầm thay bằng mặc định, và kết quả trả về không nhắc theme nên agent không thể phát hiện." },
+    { "id": "d-20260710T093500Z-44001", "p": "Người duyệt chọn cách tra ngược toạ độ ra quốc gia, và chấp nhận từ chối render nếu không xác định được quốc gia." },
+    { "id": "d-20260710T093500Z-44002", "p": "Theme lạ bị từ chối kèm danh sách theme hợp lệ; kết quả trả về có thêm theme và phạm vi của từng vùng đã giải." },
+    { "id": "d-20260710T093500Z-44003", "p": "Tám trên chín test hồi quy được xác minh là đỏ trên mã cũ, và kiểm chứng thêm trực tiếp trên API thật." },
+    { "id": "d-20260710T094500Z-45001", "p": "Siết chặt tiêu chí của năm bài eval để bao trùm hành vi mới — chỉ thêm, không nới lỏng; các vòng trước đó được chấm theo tiêu chí yếu hơn." },
+
+    { "id": "d-20260710T103000Z-46001", "p": "Vòng 5 ra hai lỗi mức trung bình, không có lỗi nghiêm trọng — báo người và đề xuất một quy tắc dừng." },
+    { "id": "d-20260710T103000Z-46002", "p": "Máy chủ tĩnh phục vụ mã app bị mở ra toàn mạng nội bộ ở mọi kiểu triển khai, trái với lời hứa “chỉ chạy nội bộ”." },
+    { "id": "d-20260710T103000Z-46003", "p": "Thân request không bị giới hạn kích thước trên một cổng không có xác thực." },
+    { "id": "d-20260710T110500Z-47001", "p": "Người duyệt đặt quy tắc dừng: sửa hai lỗi này, chạy vòng kiểm cuối, rồi sang Gate 2 bất kể còn lỗi trung bình hay thấp; chỉ lỗi nghiêm trọng mới mở lại vòng lặp." },
+    { "id": "d-20260710T110500Z-47002", "p": "Máy chủ tĩnh nay mặc định chỉ nghe máy nội bộ, có test chứng minh địa chỉ mạng LAN bị từ chối." },
+    { "id": "d-20260710T110500Z-47003", "p": "Thân request bị chặn ở 8 MiB và trả về lỗi 413, kể cả khi bên gọi không khai độ dài." },
+
+    { "id": "d-20260710T121500Z-48001", "p": "Vòng 6 bị từ chối vì bộ test giao diện đỏ — không chạy lại cho xanh mà truy ra nguyên nhân." },
+    { "id": "d-20260710T121500Z-48002", "p": "Bốn hiệu ứng của bản đồ bị khoá sau một biến không kích hoạt vẽ lại: thao tác thực hiện trước khi bản đồ tải xong bị nuốt vĩnh viễn." },
+    { "id": "d-20260710T121500Z-48003", "p": "Chuyến bay camera bị chính hiệu ứng kế bên huỷ tức thì — chọn thành phố trước khi bản đồ tải xong thì màn hình kẹt lại ở Paris." },
+    { "id": "d-20260710T121500Z-48004", "p": "Tải lại trang giữ nguyên khung nhìn người dùng đã kéo; test cho chốt chặn này ban đầu không phân biệt được và chỉ đúng sau khi sửa lỗi huỷ animation." },
+    { "id": "d-20260710T121500Z-48005", "p": "Hai lỗi của vòng 6 đi kèm thẻ quyết định như rủi ro đã chấp nhận, theo đúng quy tắc dừng." },
+
+    { "id": "d-20260710T130000Z-49001", "p": "Vòng 7: mười hai trên mười hai tiêu chí đạt, không lệnh nào đỏ, không lỗi nghiêm trọng — dừng kiểm và chuyển sang Gate 2." },
+    { "id": "d-20260710T130000Z-49002", "p": "Một trục trặc khởi động thoáng qua bị nhớ vĩnh viễn: chức năng dựng ảnh chết cho tới khi khởi động lại tiến trình." },
+    { "id": "d-20260710T130000Z-49003", "p": "Màu của phần tô không được kiểm định và chảy thẳng vào HTML của trang dựng ảnh ẩn." },
+    { "id": "d-20260710T130000Z-49004", "p": "Dấu thời gian của bài kiểm giao diện không đáng tin; tiêu chí đó đang được chống lưng bởi lần chạy test do chính phiên này thực hiện." }
   ]
 }

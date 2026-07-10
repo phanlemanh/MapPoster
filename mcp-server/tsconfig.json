@@ -13,5 +13,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "config.ts"]
+  // scripts/ was excluded, so gen-example.ts silently drifted out of sync with
+  // RenderDeps and only failed at runtime. Typecheck it like everything else.
+  "include": ["src", "scripts", "config.ts"]
 }

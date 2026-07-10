@@ -41,6 +41,13 @@ export function applyRenderConfig(cfg: RenderConfig): void {
   usePosterStore.setState({
     location: { name: cfg.place.name, country: cfg.place.country, lng: cfg.place.lng, lat: cfg.place.lat, zoom: cfg.camera.zoom },
     view: { center: cfg.camera.center, zoom: cfg.camera.zoom, bearing: cfg.camera.bearing ?? 0, pitch: cfg.camera.pitch ?? 0 },
+    // A headless render IS a locked map, and saying so is what preserves the
+    // camera. With `lockMap: false` plus the store's default `enableRotation:
+    // false`, MapView's interaction effect calls setBearing(0)/setPitch(0) on
+    // load — so `camera.bearing: 45` produced a byte-identical flat poster: a
+    // parameter accepted at the boundary and then silently discarded. The lock
+    // branch disables the handlers without ever touching the camera.
+    lockMap: true,
     themeId: cfg.theme,
     layers: { ...ALL_LAYERS_ON, ...(cfg.layers ?? {}) },
     detail: cfg.detail ?? 0.6,

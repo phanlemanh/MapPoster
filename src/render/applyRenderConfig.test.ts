@@ -16,6 +16,40 @@ const baseCfg: RenderConfig = {
 
 const fc = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] } }] };
 
+
+describe('applyRenderConfig: camera', () => {
+  it('locks the map so bearing and pitch survive', () => {
+    // MapView's interaction effect calls setBearing(0)/setPitch(0) whenever the
+    // map is unlocked and rotation is off (the store default). A headless render
+    // is a locked map — otherwise `camera.bearing: 45` is accepted at the MCP
+    // boundary and then silently discarded, giving a byte-identical flat poster.
+    applyRenderConfig({
+      camera: { center: [106.7, 10.78], zoom: 14, bearing: 45, pitch: 50 },
+      size: { width: 100, height: 100 },
+      theme: 'midnight-blue',
+      chrome: 'clean',
+      place: { name: 'x', country: 'y', lat: 10.78, lng: 106.7 },
+    } as never);
+
+    const s = usePosterStore.getState();
+    expect(s.lockMap).toBe(true);
+    expect(s.view.bearing).toBe(45);
+    expect(s.view.pitch).toBe(50);
+  });
+
+  it('defaults a missing bearing/pitch to zero', () => {
+    applyRenderConfig({
+      camera: { center: [0, 0], zoom: 5 },
+      size: { width: 10, height: 10 },
+      theme: 'midnight-blue',
+      chrome: 'clean',
+      place: { name: 'x', country: 'y', lat: 0, lng: 0 },
+    } as never);
+    expect(usePosterStore.getState().view.bearing).toBe(0);
+    expect(usePosterStore.getState().view.pitch).toBe(0);
+  });
+});
+
 describe('applyRenderConfig', () => {
   beforeEach(() => usePosterStore.setState(initial, true));
 

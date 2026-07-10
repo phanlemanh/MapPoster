@@ -5,8 +5,18 @@ const LAUNCH_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsa
 
 export interface Pool<T = Page> {
   acquire(): Promise<T>;
+  /** Hand a healthy resource back. */
   release(item: T): void;
+  /** Hand a BROKEN resource back: destroy it and free its slot. */
+  discard(item: T): void;
+  /** False once the underlying browser has died — the whole pool is a corpse. */
+  healthy(): boolean;
   close(): Promise<void>;
+}
+
+interface Waiter<T> {
+  resolve(item: T): void;
+  reject(err: unknown): void;
 }
 
 /**
@@ -21,9 +31,10 @@ export function createResourcePool<T>(
   size: number,
   factory: () => Promise<T>,
   destroy: () => Promise<void> = async () => {},
+  opts: { destroyItem?: (item: T) => Promise<void>; healthy?: () => boolean } = {},
 ): Pool<T> {
   const idle: T[] = [];
-  const waiters: ((item: T) => void)[] = [];
+  const waiters: Waiter<T>[] = [];
   let created = 0;
 
   return {
@@ -39,14 +50,34 @@ export function createResourcePool<T>(
           throw e;
         }
       }
-      return new Promise<T>((resolve) => waiters.push(resolve));
+      return new Promise<T>((resolve, reject) => waiters.push({ resolve, reject }));
     },
     release(item) {
       const waiter = waiters.shift();
-      if (waiter) waiter(item);
+      if (waiter) waiter.resolve(item);
       else idle.push(item);
     },
+    /**
+     * A crashed page handed back via `release` poisons its slot for the process
+     * lifetime: it lands in `idle`, the next `acquire` pops the same corpse, and
+     * `goto` throws again. Drop it instead — and if someone is queued behind it,
+     * mint a replacement rather than leave them waiting on a resource that is gone.
+     */
+    discard(item) {
+      created--;
+      void opts.destroyItem?.(item).catch(() => {});
+      const waiter = waiters.shift();
+      if (!waiter) return;
+      created++;
+      factory().then(waiter.resolve, (e) => {
+        created--;
+        waiter.reject(e);
+      });
+    },
+    healthy: opts.healthy ?? (() => true),
     async close() {
+      const err = new Error('pool closed');
+      while (waiters.length) waiters.shift()!.reject(err);
       await destroy();
     },
   };
@@ -62,5 +93,9 @@ export async function createPool(size: number): Promise<Pool<Page>> {
       return ctx.newPage();
     },
     () => browser.close(),
+    {
+      destroyItem: (page) => page.context().close(),
+      healthy: () => browser.isConnected(),
+    },
   );
 }

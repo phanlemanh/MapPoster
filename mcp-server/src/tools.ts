@@ -106,13 +106,15 @@ const dim = z.number().int().positive().max(MAX_EDGE);
 const lng = z.number().min(-180).max(180);
 const lat = z.number().min(-90).max(90);
 const zoomLevel = z.number().min(0).max(22);
+// reaches innerHTML in the render page via the marker SVG's fill="…"
+const hexColor = z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
 
 const locationSchema = z.union([z.string().min(1), z.object({ lng, lat, zoom: zoomLevel.optional() })]);
 const highlightSchema = z
   .object({
     regions: z.array(z.union([z.string().min(1), z.object({ geojson: z.any() })])).optional(),
     points: z.array(z.union([z.string().min(1), z.object({ lng, lat })])).optional(),
-    color: z.string().optional(),
+    color: hexColor.optional(),
     fill: z.boolean().optional(),
     dim: z.boolean().optional(),
     pointIcon: z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']).optional(),

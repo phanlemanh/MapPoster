@@ -9,7 +9,34 @@ export interface ResolvedLocation {
 }
 
 // --- caches + a serialized rate-limiter (Nominatim policy: <= 1 req/s) ---
+
+/**
+ * Bounded LRU. The HTTP transport is a long-lived process (README `mcp:http`),
+ * and `boundaryCache` holds whole region GeoJSON FeatureCollections — so an
+ * unbounded Map means a client issuing many distinct region names grows resident
+ * memory without limit, and the memory pressure takes the shared browser pool
+ * down with it.
+ *
+ * `Map` iterates in insertion order, so the oldest key is simply the first one.
+ * A hit re-inserts to refresh recency.
+ */
+export const CACHE_MAX = Number(process.env.MAPPOSTER_GEO_CACHE_MAX ?? 500);
+
+function lruGet<K, V>(m: Map<K, V>, k: K): V | undefined {
+  if (!m.has(k)) return undefined;
+  const v = m.get(k) as V;
+  m.delete(k);
+  m.set(k, v); // most-recently used
+  return v;
+}
+function lruSet<K, V>(m: Map<K, V>, k: K, v: V): void {
+  m.delete(k);
+  m.set(k, v);
+  while (m.size > CACHE_MAX) m.delete(m.keys().next().value as K);
+}
+
 const locCache = new Map<string, ResolvedLocation>();
+/** `null` is a REAL value here ("this place has no polygon"), so presence is checked with `has`. */
 const boundaryCache = new Map<string, GeoJSONFeatureCollection | null>();
 const countryCache = new Map<string, string>();
 
@@ -60,15 +87,6 @@ function cityGuard(query: string) {
 }
 
 /**
- * Walk `candidates` — the query as written, then progressively canonicalised /
- * relaxed forms — until one yields hits inside the city the query named. Each
- * attempt takes its own rate-limited turn. Without the city guard, relaxation
- * happily matches a same-named street in another province.
- *
- * Shared by the point, region and disambiguation paths: a region string is the
- * same kind of user input as a point string, and used to reach Nominatim raw.
- */
-/**
  * A highlight must live in the country of the location being rendered.
  *
  * The city guard only fires when the query names a VN city, so a bare "District 1"
@@ -86,6 +104,15 @@ function countryGuard(expect?: string) {
   return (r: { country?: string }) => !r.country || r.country.toLowerCase() === want;
 }
 
+/**
+ * Walk `candidates` — the query as written, then progressively canonicalised /
+ * relaxed forms — until one yields hits inside the city the query named. Each
+ * attempt takes its own rate-limited turn. Without the city guard, relaxation
+ * happily matches a same-named street in another province.
+ *
+ * Shared by the point, region and disambiguation paths: a region string is the
+ * same kind of user input as a point string, and used to reach Nominatim raw.
+ */
 async function searchLadder(query: string, candidates: string[], expectCountry?: string) {
   const inCity = cityGuard(query);
   const inCountry = countryGuard(expectCountry);
@@ -113,7 +140,7 @@ export async function resolveLocation(
     };
   }
   const key = `${input.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
-  const cached = locCache.get(key);
+  const cached = lruGet(locCache, key);
   if (cached) return cached;
 
   const results = await searchLadder(input, queryCandidates(input), expectCountry);
@@ -124,7 +151,7 @@ export async function resolveLocation(
     zoom: r.zoom,
     place: { name: r.name, country: r.country, lat: r.lat, lng: r.lng },
   };
-  locCache.set(key, resolved);
+  lruSet(locCache, key, resolved);
   return resolved;
 }
 
@@ -142,12 +169,12 @@ export async function resolveLocation(
  */
 export async function resolveCountryAt(lng: number, lat: number): Promise<string | null> {
   const key = `${lng.toFixed(3)},${lat.toFixed(3)}`;
-  const cached = countryCache.get(key);
+  const cached = lruGet(countryCache, key);
   if (cached) return cached;
 
   await throttle();
   const country = (await reverseGeocode(lng, lat))?.country || null;
-  if (country) countryCache.set(key, country);
+  if (country) lruSet(countryCache, key, country);
   return country;
 }
 
@@ -180,7 +207,7 @@ export async function searchCandidates(query: string, limit = 5): Promise<GeoCan
 /** Resolve a place's administrative boundary GeoJSON (cached). */
 export async function resolveBoundary(place: string, expectCountry?: string): Promise<GeoJSONFeatureCollection | null> {
   const key = `${place.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
-  if (boundaryCache.has(key)) return boundaryCache.get(key) ?? null;
+  if (boundaryCache.has(key)) return lruGet(boundaryCache, key) ?? null;
 
   // Geocode the region exactly as a point is geocoded — canonicalise "Quận 3,
   // TP.HCM" into a form Nominatim indexes, drop hits outside the named city, and
@@ -189,7 +216,7 @@ export async function resolveBoundary(place: string, expectCountry?: string): Pr
   // district abroad, and auto-framing would then follow it there.
   const hits = await searchLadder(place, queryCandidates(place), expectCountry);
   if (!hits.length) {
-    boundaryCache.set(key, null); // a definitive "nothing matches" IS cacheable
+    lruSet(boundaryCache, key, null); // a definitive "nothing matches" IS cacheable
     return null;
   }
   // OSM models administrative boundaries as relations, so prefer one when the
@@ -203,6 +230,6 @@ export async function resolveBoundary(place: string, expectCountry?: string): Pr
   // hit's osm_type/osm_id fetches the polygon of the entity we actually matched.
   const b = await fetchRegionBoundary(hit);
   const geojson = b ? b.geojson : null;
-  boundaryCache.set(key, geojson);
+  lruSet(boundaryCache, key, geojson);
   return geojson;
 }

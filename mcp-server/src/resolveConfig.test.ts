@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveConfig, formatSize, summarizeHighlights, FORMATS } from './resolveConfig';
+import { resolveConfig, formatSize, summarizeHighlights, assertColor, FORMATS } from './resolveConfig';
 import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
@@ -100,6 +100,29 @@ describe('resolveConfig', () => {
     expect(regions[0].center![0]).toBeCloseTo(106.7, 6);
     expect(regions[0].center![1]).toBeCloseTo(10.8, 6);
     expect(points).toEqual([]);
+  });
+
+  it('refuses a highlight colour that is not a hex colour', async () => {
+    // markerSvg interpolates the colour raw into `fill="${color}"`, and MapView
+    // assigns that string to el.innerHTML — so an unvalidated colour is a DOM
+    // injection into the headless render page.
+    const xss = '"/><img src=x onerror=alert(1)>';
+    expect(() => assertColor(xss)).toThrow(/Invalid color/);
+    await expect(resolveConfig({ location: 'HCMC', highlight: { color: xss, points: ['x'] } })).rejects.toThrow(
+      /Invalid highlight\.color/,
+    );
+  });
+
+  it('accepts the hex forms a caller would actually use', () => {
+    for (const c of ['#fff', '#FFFF', '#e8b04b', '#E8B04BFF']) expect(assertColor(c)).toBe(c);
+    for (const c of ['red', 'rgb(1,2,3)', '#ggg', '#12345', 'url(x)']) expect(() => assertColor(c)).toThrow();
+  });
+
+  it('rejects a bad colour BEFORE spending a geocoding request', async () => {
+    vi.mocked(geocode.resolveLocation).mockClear();
+    await expect(resolveConfig({ location: 'HCMC', theme: 'nope' })).rejects.toThrow(/Unknown theme/);
+    await expect(resolveConfig({ location: 'HCMC', highlight: { color: 'red' } })).rejects.toThrow(/Invalid highlight\.color/);
+    expect(geocode.resolveLocation).not.toHaveBeenCalled();
   });
 
   it('geocodes the location and picks the format size (AC-1)', async () => {

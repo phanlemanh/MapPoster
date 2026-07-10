@@ -34,7 +34,7 @@ evals:
     criterion: AC-5
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results; a reused pooled page renders each config fresh (no stale frame); a variant cannot smuggle out-of-range coords/zoom/dims past the boundary guard"
+    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results; a reused pooled page renders each config fresh (no stale frame); a variant cannot smuggle out-of-range coords/zoom/dims past the boundary guard; a page whose render threw is discarded, not returned to the pool; a dead browser is rebuilt; a transient startup failure is retried, never memoized"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E6
@@ -62,7 +62,7 @@ evals:
     criterion: AC-9
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; chrome=clean ⇒ showText=false (no title overlay); chrome=poster ⇒ showText=true with city title; an unknown theme is refused rather than silently replaced by the default; resolved echoes theme + highlights"
+    expected: "exit 0; chrome=clean ⇒ showText=false (no title overlay); chrome=poster ⇒ showText=true with city title; an unknown theme is refused rather than silently replaced by the default; resolved echoes theme + highlights; a non-hex highlight.color is refused at the boundary before any render"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E10

@@ -25,6 +25,7 @@ function encodeConfig(config: RenderConfig): string {
 export async function renderFrame(config: RenderConfig, deps: RenderDeps): Promise<Buffer> {
   const page = await deps.pool.acquire();
   const key = encodeConfig(config);
+  let broken = false;
   try {
     await page.goto(`${deps.appUrl}/render.html?config=${key}`, { waitUntil: 'load' });
     await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, {
@@ -44,7 +45,14 @@ export async function renderFrame(config: RenderConfig, deps: RenderDeps): Promi
       return r.dataUrl as string;
     });
     return Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
+  } catch (e) {
+    // Any failure leaves this page in an unknown state — it may have crashed (a
+    // 4k poster can OOM SwiftShader) or be stuck mid-navigation. Reusing it
+    // poisons the slot for the process lifetime; a fresh page costs milliseconds.
+    broken = true;
+    deps.pool.discard(page);
+    throw e;
   } finally {
-    deps.pool.release(page);
+    if (!broken) deps.pool.release(page);
   }
 }

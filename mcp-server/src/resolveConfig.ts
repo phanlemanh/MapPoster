@@ -81,6 +81,20 @@ function assertTheme(id: string): string {
   throw new Error(`Unknown theme: ${id}. Known themes: ${THEMES.map((t) => t.id).join(', ')}`);
 }
 
+const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/**
+ * The highlight colour is the one discrete visual parameter that reaches
+ * `innerHTML`: it is interpolated raw into the marker SVG's `fill="…"`, so a
+ * value like `"/><img src=x onerror=…>` is injected into the render page. Bound
+ * it here as well as at the Zod boundary — every runtime guard in this file
+ * exists because the boundary can be bypassed (`makeTools` is called directly).
+ */
+export function assertColor(value: string, label = 'color'): string {
+  if (HEX_COLOR.test(value)) return value;
+  throw new Error(`Invalid ${label}: ${JSON.stringify(value)} — expected a hex colour like "#e8b04b"`);
+}
+
 /** List every format name an agent may pass. */
 export function listFormats(): { name: string; width: number; height: number }[] {
   const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
@@ -138,10 +152,14 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   if (params.camera?.center) assertLngLat(params.camera.center[0], params.camera.center[1]);
   if (params.camera?.zoom != null) assertZoom(params.camera.zoom);
 
-  const base = await resolveLocation(params.location);
+  // Validate everything cheap BEFORE the first network call: a bad theme or
+  // colour should not cost a Nominatim request against our rate limit.
   const size = formatSize(params.format);
   const theme = assertTheme(params.theme ?? DEFAULT_THEME_ID);
   const chrome: Chrome = params.chrome ?? 'clean';
+  const color = params.highlight?.color != null ? assertColor(params.highlight.color, 'highlight.color') : undefined;
+
+  const base = await resolveLocation(params.location);
 
   // Anchor every highlight to the country of the location being rendered. Region
   // auto-framing (below) follows the region's bbox, so an unanchored "District 1"
@@ -187,7 +205,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
       lng: center[0],
       lat: center[1],
       icon: params.highlight?.pointIcon ?? 'pin',
-      color: params.highlight?.color ?? '#ffffff',
+      color: color ?? '#ffffff',
       size: 44,
     });
   }
@@ -209,7 +227,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const highlight = regions.length
-    ? { regions, color: params.highlight?.color ?? null, fill: params.highlight?.fill ?? true, dim: params.highlight?.dim ?? false }
+    ? { regions, color: color ?? null, fill: params.highlight?.fill ?? true, dim: params.highlight?.dim ?? false }
     : undefined;
 
   return {

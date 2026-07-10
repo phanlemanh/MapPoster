@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveLocation, resolveBoundary, resolveCountryAt, __resetGeoCache, __setRateLimitMs } from './geocode';
+import { resolveLocation, resolveBoundary, resolveCountryAt, CACHE_MAX, __resetGeoCache, __setRateLimitMs } from './geocode';
 
 function mockFetch(payload: unknown) {
   const fn = vi.fn(async (_url?: string) => ({ ok: true, json: async () => payload }) as unknown as Response);
@@ -292,5 +292,37 @@ describe('resolveBoundary', () => {
     expect(await resolveBoundary('Nowhere-with-no-polygon')).toBeNull();
     expect(await resolveBoundary('Nowhere-with-no-polygon')).toBeNull();
     expect(fn).toHaveBeenCalledTimes(1); // definitive answers ARE cached
+  });
+});
+
+describe('the geocode caches are bounded', () => {
+  it('evicts the least-recently-used entry instead of growing without limit', async () => {
+    // `mcp:http` is a long-lived process and boundaryCache holds whole region
+    // GeoJSON FeatureCollections — an unbounded Map is a slow memory leak that
+    // eventually takes the shared browser pool down with it.
+    const fn = mockFetch([searchItem]);
+    for (let i = 0; i < CACHE_MAX + 10; i++) await resolveLocation(`place-${i}`);
+    const afterFill = fn.mock.calls.length;
+    expect(afterFill).toBe(CACHE_MAX + 10);
+
+    // the most recent entry is still cached (no upstream call)
+    await resolveLocation(`place-${CACHE_MAX + 9}`);
+    expect(fn.mock.calls.length).toBe(afterFill);
+
+    // the oldest was evicted, so it costs an upstream call again
+    await resolveLocation('place-0');
+    expect(fn.mock.calls.length).toBe(afterFill + 1);
+  });
+
+  it('a cache hit refreshes recency, so a hot key is never evicted', async () => {
+    const fn = mockFetch([searchItem]);
+    await resolveLocation('hot');
+    for (let i = 0; i < CACHE_MAX - 1; i++) {
+      await resolveLocation(`cold-${i}`);
+      await resolveLocation('hot'); // keep touching it
+    }
+    const before = fn.mock.calls.length;
+    await resolveLocation('hot');
+    expect(fn.mock.calls.length).toBe(before); // still cached despite CACHE_MAX inserts
   });
 });

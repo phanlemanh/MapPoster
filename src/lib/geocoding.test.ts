@@ -79,6 +79,40 @@ describe('searchPlaces', () => {
     expect(rs[0].lat).toBeCloseTo(10.773, 2);
   });
 
+  it('breaks ties within a rank for EVERY input order, not just lucky ones', async () => {
+    // Nominatim chooses the raw order; we do not. The real response for this query
+    // interleaves a rank-30 pedestrian-street POI between the two rank-26 roads.
+    // A comparator that answers 0 for cross-rank pairs then never compares the two
+    // roads against each other at all, and results[0] becomes order-dependent.
+    const rural = { ...hcmcSearchItem, place_id: 1, place_rank: 26, importance: 0.05338, name: 'Nguyễn Huệ', lat: '10.579', lon: '107.071' };
+    const poi = { ...hcmcSearchItem, place_id: 3, place_rank: 30, importance: 0.1, name: 'Nguyen Hue Walking Street', lat: '10.773', lon: '106.704' };
+    const road = { ...hcmcSearchItem, place_id: 2, place_rank: 26, importance: 0.0534, name: 'Nguyen Hue Boulevard', lat: '10.773', lon: '106.704' };
+
+    const permute = <T>(xs: T[]): T[][] =>
+      xs.length <= 1 ? [xs] : xs.flatMap((x, i) => permute([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p]));
+
+    for (const order of permute([rural, poi, road])) {
+      mockFetch(order);
+      const rs = await searchPlaces('Nguyễn Huệ, District 1, Ho Chi Minh City');
+      const roads = rs.filter((r) => r.placeRank === 26);
+      expect(roads.map((r) => r.name), `raw order: ${order.map((o) => o.place_id).join(',')}`).toEqual([
+        'Nguyen Hue Boulevard',
+        'Nguyễn Huệ',
+      ]);
+    }
+  });
+
+  it("preserves Nominatim's cross-granularity order (first-seen rank wins)", async () => {
+    // We re-order *within* a granularity only. Promoting the rank-30 POI just
+    // because its importance is highest would answer a different question.
+    mockFetch([
+      { ...hcmcSearchItem, place_id: 1, place_rank: 26, importance: 0.05, name: 'Road' },
+      { ...hcmcSearchItem, place_id: 2, place_rank: 30, importance: 0.9, name: 'POI' },
+    ]);
+    const rs = await searchPlaces('Nguyễn Huệ, District 1, Ho Chi Minh City');
+    expect(rs.map((r) => r.name)).toEqual(['Road', 'POI']);
+  });
+
   it('never lets a high-importance city outrank the district that was asked for', async () => {
     // "Q.7, TP.HCM": the city has far higher importance but a coarser place_rank.
     // Sorting globally by importance would return all of Ho Chi Minh City.

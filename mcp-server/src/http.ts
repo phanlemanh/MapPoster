@@ -34,6 +34,44 @@ export function readJsonBody(req: NodeJS.ReadableStream): Promise<unknown> {
   });
 }
 
+function parseList(v: string | undefined): string[] {
+  return (v ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export interface OriginPolicy {
+  allowedHosts: string[];
+  allowedOrigins: string[];
+}
+
+/**
+ * Guard a side-effecting, unauthenticated endpoint against DNS rebinding.
+ *
+ * Binding to loopback is not enough: an attacker's domain can resolve to
+ * 127.0.0.1, so the socket looks local while the browser still attaches the
+ * attacker's `Host` — and, cross-site, an `Origin`. Both must be vouched for.
+ *
+ * A server-to-server MCP client sends no `Origin` at all, so anything carrying
+ * an `Origin` we don't recognise is a web page and is refused.
+ */
+export function isAllowedRequest(
+  headers: { host?: string; origin?: string },
+  { allowedHosts, allowedOrigins }: OriginPolicy,
+): boolean {
+  const origin = headers.origin?.toLowerCase();
+  if (origin && !allowedOrigins.includes(origin)) return false;
+
+  const host = headers.host?.toLowerCase();
+  if (!host) return false; // HTTP/1.1 requires Host; absent means hand-rolled
+  // strip the port, keeping a bracketed IPv6 literal intact ("[::1]:4181")
+  const name = host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.split(':')[0];
+  return allowedHosts.includes(name);
+}
+
+const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '[::1]'];
+
 /**
  * Serve the MCP server over Streamable HTTP (stateless). Per MCP's stateless
  * pattern, each request gets a fresh McpServer + transport; the render deps
@@ -41,16 +79,26 @@ export function readJsonBody(req: NodeJS.ReadableStream): Promise<unknown> {
  *
  * Binds to loopback by default: these tools have side effects (drive a headless
  * browser, write files to the sink). Hosted deployments opt in explicitly with
- * MAPPOSTER_HTTP_HOST=0.0.0.0.
+ * MAPPOSTER_HTTP_HOST=0.0.0.0, and must then declare the names they answer to in
+ * MAPPOSTER_HTTP_ALLOWED_HOSTS (browser callers also need ALLOWED_ORIGINS).
  */
 export async function startHttpServer(
   port = 4181,
   deps: ToolDeps = makeRenderDeps(),
   host: string = process.env.MAPPOSTER_HTTP_HOST ?? '127.0.0.1',
+  policy: OriginPolicy = {
+    allowedHosts: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_HOSTS),
+    allowedOrigins: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_ORIGINS),
+  },
 ): Promise<HttpServer> {
+  const allowedHosts = policy.allowedHosts.length ? policy.allowedHosts : LOOPBACK_HOSTS;
   const server = http.createServer((req, res) => {
     if (req.method !== 'POST') {
       res.writeHead(405).end('method not allowed');
+      return;
+    }
+    if (!isAllowedRequest(req.headers, { allowedOrigins: policy.allowedOrigins, allowedHosts })) {
+      res.writeHead(403).end('forbidden');
       return;
     }
     void (async () => {
@@ -72,6 +120,13 @@ export async function startHttpServer(
     })();
   });
 
+  if (!LOOPBACK_HOSTS.includes(host) && !policy.allowedHosts.length) {
+    // Fail closed, but say so — otherwise this reads as "the server is broken".
+    console.error(
+      `[mapposter] bound to ${host} with no MAPPOSTER_HTTP_ALLOWED_HOSTS; ` +
+        `only loopback Host headers will be accepted (every other request → 403).`,
+    );
+  }
   await new Promise<void>((resolve) => server.listen(port, host, resolve));
   const addr = server.address();
   const p = typeof addr === 'object' && addr ? addr.port : port;

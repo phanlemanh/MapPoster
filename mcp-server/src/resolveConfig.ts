@@ -110,14 +110,19 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const theme = params.theme ?? 'midnight-blue';
   const chrome: Chrome = params.chrome ?? 'clean';
 
+  // Anchor every highlight to the country of the location being rendered. Region
+  // auto-framing (below) follows the region's bbox, so an unanchored "District 1"
+  // — whose top Nominatim hit is in Liberia — would silently relocate the poster.
+  const anchor = base.place.country || undefined;
+
   const regions: RenderHighlightRegion[] = [];
   for (const r of params.highlight?.regions ?? []) {
     if (typeof r === 'string') {
-      const gj = await resolveBoundary(r);
+      const gj = await resolveBoundary(r, anchor);
       // Fail loudly, matching the point path (resolveLocation throws). Silently
       // dropping the region would return a "successful" poster missing the very
       // highlight the caller asked for.
-      if (!gj) throw new Error(`No boundary found for region "${r}"`);
+      if (!gj) throw new Error(`No boundary found for region "${r}"${anchor ? ` in ${anchor}` : ''}`);
       regions.push({ geojson: gj, color: null });
     } else {
       regions.push({ geojson: r.geojson, color: null });
@@ -126,7 +131,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
 
   const markers: RenderMarker[] = [];
   for (const p of params.highlight?.points ?? []) {
-    const center = typeof p === 'string' ? (await resolveLocation(p)).center : assertLngLat(p.lng, p.lat);
+    const center = typeof p === 'string' ? (await resolveLocation(p, anchor)).center : assertLngLat(p.lng, p.lat);
     markers.push({
       lng: center[0],
       lat: center[1],

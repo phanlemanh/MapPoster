@@ -1,126 +1,109 @@
-# Review Findings: mcp-map-render (Round 2)
+# Review Findings: mcp-map-render (Round 3)
 
 Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
 file). Feeds the Gate 2 decision card alongside `evidence-report.md`. All findings below went
 through the full finder → refuter adversarial-verify pass; none are flagged `unverified`, and no
 review pass died mid-way this round (see "Review incomplete" at the bottom).
 
-Verified at commit `5ecac4ebeac533c82ea4586d032913d95b14e04e` (`feature/mcp-map-render`).
+Verified at commit `433e7ea7e2e16af12392419da5edf713f7309cc0` (`feature/mcp-map-render`).
 
-**Context vs. Round 1:** the Round-1 review (commit `ea639e9`) surfaced 7 findings — 2 HIGH
-(reused pooled pages return a stale frame on hash-only navigation; a null region boundary was
-silently dropped instead of erroring), 4 MEDIUM (Nominatim rate-limiter not actually serialized,
-flagged by both the conventions and bugs lenses; format/coordinate numbers unvalidated at the MCP
-tool boundary; browser pool cap not enforced under concurrency), and 1 LOW (unbounded `idle` wait
-can hang a render forever). Commit `5ecac4e` ("close all 7 review findings + regression tests")
-closed all 7 with fixes + regression tests. This round's fresh adversarial pass ran against that
-same commit and surfaced the 4 **new** findings below — none overlap the 7 closed ones, though
-Finding 1 and Finding 2 are each a direct residual/side-effect of a Round-1 fix (noted inline).
+**Context vs. Round 2:** the Round-2 review (commit `5ecac4e`) surfaced 4 findings — 1 HIGH
+(transient Nominatim boundary-fetch failures swallowed to `null` and cached permanently, breaking a
+region's renders forever after any 429/503), 1 MEDIUM (`render_variants` bypassed the
+coordinate/zoom/dims validation `render_map` itself enforced), and 2 LOW (HTTP bound every network
+interface with no Origin/DNS-rebinding check; the HTTP request body was assembled by string
+concatenation, corrupting multibyte UTF-8 split across a chunk boundary). Commit `a8ad890` ("S4-r2 —
+close 4 findings + make VN address geocoding actually work") closed 3 of the 4 outright (the
+transient-429 HIGH, the `render_variants` MEDIUM, the UTF-8 chunk-corruption LOW) and **half-closed**
+the fourth: HTTP now defaults to binding loopback only (`MAPPOSTER_HTTP_HOST` opts a hosted deploy
+into `0.0.0.0`), but Origin/Host validation and `enableDnsRebindingProtection` were not added — so
+that finding is carried forward below as still-open, not re-discovered as new. The same commit also
+shipped a substantial VN-address geocoding quality pass (canonicalisation, city-guard, an
+importance-within-place_rank tie-break, `geocode_place` candidates, `placeName` override). This
+round's fresh adversarial pass ran against `433e7ea` (that commit plus a behavior-neutral evidence
+regeneration) and surfaced the 3 findings below: 1 new HIGH and 1 new MEDIUM, both directly inside
+the VN-geocoding code this round's fix commit touched, plus the 1 LOW carried forward.
 
 ## Findings
 
-### 1. [HIGH] Transient Nominatim boundary-fetch failures are swallowed to null and cached permanently → region renders fail forever
+### 1. [HIGH] Non-transitive sort comparator in searchPlaces silently returns the wrong same-named place as results[0]
 
-- **File:** `mcp-server/src/geocode.ts:82`
+- **File:** `src/lib/geocoding.ts:149`
 - **Severity:** high
 - **Source:** bugs
 
-resolveBoundary() (`/Users/manhphan/dev/map/mcp-server/src/geocode.ts:81-84`) calls
-fetchRegionBoundary(), whose search branch returns null on ANY non-ok HTTP status:
-`if (!res.ok) return null;` (`/Users/manhphan/dev/map/src/lib/geocoding.ts:100`). That null
-therefore conflates two very different cases — "the region genuinely has no polygon" and "the
-upstream call transiently failed (429 rate-limit / 503 / 403)". resolveBoundary then
-unconditionally caches it: `const geojson = b ? b.geojson : null; boundaryCache.set(key, geojson);`
-(lines 82-83). Downstream, the F2 fix in resolveConfig
-(`/Users/manhphan/dev/map/mcp-server/src/resolveConfig.ts`,
-`if (!gj) throw new Error("No boundary found for region ...")`) turns that null into a hard error.
+The comparator `.sort((a,b) => (a.placeRank === b.placeRank ? b.importance - a.importance : 0))` is
+non-transitive: it returns a non-zero order for same-rank pairs but 0 for every different-rank pair.
+That is not a valid total order, so V8's sort produces implementation-defined results whenever two
+same-`placeRank` candidates are separated in Nominatim's raw order by a candidate of a DIFFERENT
+rank — the within-rank importance tiebreak the code was written to perform silently does not happen.
 
-Failure scenario: `render_map({ location:'HCMC', highlight:{ regions:['Quận 3'] } })` is called
-while Nominatim returns 429 (their own review-findings.md line 89 acknowledges 429/temporary-ban
-is a real risk of the rate limiter). fetchRegionBoundary swallows the 429 to null →
-resolveBoundary caches null under key 'quận 3' → resolveConfig throws "No boundary found for
-region". Because the null is now cached, EVERY subsequent render of that region throws the same
-"not found" error for the entire process lifetime (the HTTP transport is a long-lived server),
-even after Nominatim fully recovers — the only recovery is a process restart. The transient error
-is both (a) silently misclassified as "region does not exist" and (b) made permanent by the
-cache.
+Concrete failure (reproduced deterministically on this machine, node v24.15.0 / V8): raw order =
+[C(road, place_rank 26, importance 0.05338, WRONG rural same-named road), B(POI/walking-street,
+place_rank 30, importance 0.10), A(road, place_rank 26, importance 0.05340, CORRECT)]. Because B
+(rank 30) sits between the two rank-26 roads, A is never compared against C, so the array stays [C,
+B, A] and `results[0]` is the wrong rural road. A permutation sweep shows 1 of the 6 orderings (raw
+C,B,A) leaves the lower-importance same-rank hit ahead of the correct one. This is exactly the
+scenario the surrounding comment documents ("Nguyễn Huệ, District 1, Ho Chi Minh City ... the
+correct Nguyen Hue Boulevard (0.05340) came back 3rd") — and that query famously returns a rank-30
+pedestrian-street POI interleaved with the rank-26 roads, which is precisely the interleaving that
+defeats the fix.
 
-Note the asymmetry that makes this a genuine defect and not intended behavior: the sibling path
-resolveLocation() only caches on success and searchPlaces() THROWS on !res.ok (geocoding.ts:116),
-so a transient geocode error there is surfaced and not cached — only the boundary path
-swallows-and-caches. Fix: have fetchRegionBoundary distinguish !res.ok (throw/propagate) from
-empty results (null), or have resolveBoundary refuse to cache when the failure was an HTTP error
-rather than an empty result.
+Impact path (silent): mcp-server/src/geocode.ts:94 `resolveLocation` takes `const r = results[0]`
+and renders it directly for the `render_map` tool with NO human in the loop, so the MCP server
+silently renders the wrong geographic location for this common class of VN address searches.
+`searchPlaces` is also shared by the web-app autocomplete (OnboardingModal / LocationPanel /
+HighlightControls) and by `searchCandidates`/`geocode_place`; those surface a list a human can
+override, so impact there is lower. A correct fix needs a total order, e.g. sort primarily by
+keeping/among ranks and secondarily by importance (or bucket by rank, sort each bucket by
+importance, then concatenate in first-seen rank order) rather than returning 0 for cross-rank pairs.
 
-### 2. [MEDIUM] render_variants bo qua validation toa do/zoom o system boundary (khong dong tron finding #4)
+### 2. [MEDIUM] Region-highlight geocoding bypasses the VN canonicalization + city-guard that the point path enforces (asymmetric boundary in the same resolveConfig)
 
-- **File:** `/Users/manhphan/dev/map/mcp-server/src/tools.ts:132`
+- **File:** `mcp-server/src/geocode.ts:138`
 - **Severity:** medium
 - **Source:** conventions
 
-Round-1 finding #4 duoc dong bang cach them Zod bounds vao `renderMapShape` (tools.ts:94-113):
-lng∈[-180,180], lat∈[-90,90], zoom∈[0,22], dim=int().positive().max(MAX_EDGE). Nhung
-`render_variants` khai bao `variants: z.array(z.record(z.string(), z.any()))` (line 132) — moi
-variant la record voi value `z.any()`, KHONG duoc validate. Handler
-`renderOne({ ...params.base, ...v })` (tools.ts:63) merge base + variant, nen mot variant override
-`location:{lng,lat}` hoac `camera:{center,zoom,bearing,pitch}` bang so ngoai range se di thang vao
-RenderConfig roi vao headless map ma khong qua bat ky guard nao. `resolveConfig` chi co
-`assertDim` (resolveConfig.ts:37-42) chan width/height; toa do/zoom di qua `resolveLocation`
-(coords pass-through, resolveConfig.ts:107 va cam merge 118-119) hoan toan khong kiem tra. Hau
-qua: variant render bi mis-frame am tham (MapLibre clamp lat/zoom, wrap lng, khong loi) — dung
-dung lop 'out-of-range coords silently mis-frame' ma fix F4 nham ngan o boundary, chi con thieu o
-dung tool render_variants. Base cua chinh render_variants thi lai duoc validate
-(`z.object(renderMapShape)`), nen do la bat doi xung ro rang. Kiem chung: tools.test.ts:78-85 chi
-test invalid dims cho render_map, khong co case nao cho variant coords/zoom. Huong sua (khong tu
-fix): `variants: z.array(z.object(renderMapShape).partial())`. Lien quan (cung ho `z.any()` o
-boundary, muc do thap hon vi MapLibre loi se degrade thanh failed render chu khong crash):
-object-region `geojson: z.any()` tai highlightSchema (tools.ts:102) — ap dung ca cho render_map —
-cung khong validate GeoJSON dau vao.
+In resolveConfig, a highlight POINT string is resolved by resolveLocation (geocode.ts:61), which
+runs the full VN pipeline: queryCandidates/normalizeVnQuery (Quận 3 -> District 3, TP.HCM -> Ho Chi
+Minh City, drop leading Đường), the cityGuard filter, and the candidate-relaxation ladder. A
+highlight REGION string goes resolveConfig.ts:116 -> resolveBoundary(r) (geocode.ts:138), which
+passes the RAW string straight to fetchRegionBoundary({ name: r, country: '' }) ->
+/search?q=<raw>&limit=1 (src/lib/geocoding.ts:111). None of normalizeVnQuery / queryCandidates /
+cityGuard / relaxedCandidates is applied (grep confirms they are used only by resolveLocation and
+searchCandidates). Same class of input, same function, two different treatments. Consequences in
+exactly the case the VN work exists to fix: (a) a VN admin name like
+highlight.regions:['Quận 3, HCMC'] is sent un-normalised — the form vnQuery.ts documents as
+returning 0/unreliable hits — so resolveBoundary returns null and resolveConfig.ts:120 throws 'No
+boundary found for region', i.e. AC-2 fails for VN region names even though the equivalent point
+resolves fine; (b) with no cityGuard and limit=1, an ambiguous region (e.g. 'District 1') resolves
+to whatever Nominatim ranks first globally, silently highlighting a same-named area in another
+city/country — the precise wrong-place failure cityGuard was introduced to prevent on the point
+path. This slipped past two review rounds + all evals because every region test mocks
+resolveBoundary/fetch and returns a polygon regardless of query (resolveConfig.test.ts:11,
+geocode.test.ts:118, tools.test.ts:21), and the only live VN probe
+(scripts/check-vn-addresses.ts) calls resolveLocation exclusively, never resolveBoundary — so the
+region path's real ranking behaviour is verified nowhere. Fix direction: route region strings
+through the same normalize + city-guard + candidate ladder (and ideally the precise
+osm_type/osm_id lookup) as the point path.
 
-### 3. [LOW] HTTP transport bind moi interface + khong co Origin/DNS-rebinding validation o request boundary
+### 3. [LOW] HTTP transport does no Origin/Host (DNS-rebinding) validation on a side-effecting, unauthenticated endpoint — carried forward from Round 2
 
-- **File:** `/Users/manhphan/dev/map/mcp-server/src/http.ts:35`
+- **File:** `mcp-server/src/http.ts:65`
 - **Severity:** low
 - **Source:** conventions
 
-`server.listen(port, resolve)` (http.ts:45) khong truyen host nen Node bind vao unspecified
-address (:: / 0.0.0.0) — tuc mo tren toan bo interface, khong chi localhost (url tra ve
-'localhost' chi la nhan quang cao, khong phai dia chi bind). `new StreamableHTTPServerTransport({
-sessionIdGenerator: undefined, enableJsonResponse: true })` (http.ts:35) khong bat
-`enableDnsRebindingProtection` / khong set `allowedHosts` / `allowedOrigins`, va handler
-`http.createServer` cung khong kiem tra Origin/Host header. Vi day la MCP tool co side-effect
-(dieu khien headless browser + ghi file vao sinkDir), bat ky host nao trong LAN — hoac bat ky
-trang web nao mo trong browser cua operator qua DNS-rebinding — deu co the POST vao endpoint va
-trigger render/ghi file (CORS khong chan viec REQUEST duoc xu ly server-side, va DNS-rebinding
-vuot qua same-origin). Luu y scope: contract.md defer 'per-caller auth, quotas' va mo ta 'internal
-server-to-server service only', nen reviewer co the coi day la ngoai pham vi; van bao vi day la
-mot request boundary khong co validation va guidance chinh thuc cua MCP khuyen bind server HTTP
-local vao 127.0.0.1 + bat DNS-rebinding protection. Huong sua (khong tu fix): bind 127.0.0.1
-va/hoac set `enableDnsRebindingProtection: true` voi `allowedHosts`/`allowedOrigins`.
-
-### 4. [LOW] HTTP request body assembled via string concatenation corrupts multibyte UTF-8 split across chunk boundaries
-
-- **File:** `mcp-server/src/http.ts:25`
-- **Severity:** low
-- **Source:** bugs
-
-In `/Users/manhphan/dev/map/mcp-server/src/http.ts:24-29` the request body is built as
-`let data = ''; req.on('data', (chunk) => (data += chunk)); ... JSON.parse(data)`. `chunk` is a
-Buffer, so `data += chunk` decodes each chunk to UTF-8 INDEPENDENTLY. If a multibyte UTF-8
-sequence straddles a chunk boundary, each half is decoded separately and turned into U+FFFD
-replacement characters, corrupting the string. This app's payloads make the trigger realistic:
-`highlight.regions[].geojson` can be passed inline (a full polygon FeatureCollection, easily
-exceeding one ~16KB chunk), and location strings routinely contain multibyte Vietnamese characters
-(e.g. 'Võ Văn Tần', 'Quận 3').
-
-Failure scenario: a render_map POST whose body exceeds a single 'data' chunk, with a multibyte
-character (e.g. 'ậ') falling exactly on the chunk boundary. The two byte-halves each decode to
-replacement chars; JSON.parse then either throws (client gets a 400 'invalid json' for a request
-that was actually valid) or, if the corrupted bytes still form valid JSON, silently yields a
-mangled location string that geocodes to the wrong place. Standard fix: collect chunks into an
-array and `Buffer.concat(chunks).toString('utf8')` before JSON.parse. Confidence that the code is
-defective is high; severity is low only because triggering requires the byte-boundary coincidence
-and the more common outcome is a loud 400 rather than a silent mis-geocode.
+The http.createServer handler and new StreamableHTTPServerTransport({ sessionIdGenerator:
+undefined, enableJsonResponse: true }) (http.ts:65) validate neither Origin nor Host and do not set
+enableDnsRebindingProtection / allowedHosts / allowedOrigins. These tools have real side effects
+(drive a headless browser, write PNGs to sinkDir) with no auth (auth is out of scope). The default
+bind is loopback (good — http.ts:49), but loopback does not stop a web page open in the operator's
+browser from POSTing to http://127.0.0.1:4181/mcp via DNS-rebinding and triggering renders / disk
+writes. NOTE: this was already logged as review-findings.md #3 (LOW) and remains OPEN at HEAD —
+flagging it because it is squarely the requested 'missing validation at a system boundary' category
+and MCP's own guidance recommends DNS-rebinding protection for local HTTP servers; contract.md
+defers auth and frames this as an internal server-to-server service, so the team may consciously
+accept it.
 
 ## Chưa adversarial-verify (refuter chết)
 

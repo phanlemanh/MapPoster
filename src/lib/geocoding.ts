@@ -99,11 +99,13 @@ export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSigna
   if (loc.osmType && loc.osmId && OSM_PREFIX[loc.osmType]) {
     const url = `${NOMINATIM}/lookup?format=jsonv2&osm_ids=${OSM_PREFIX[loc.osmType]}${loc.osmId}&${common}`;
     const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
-    if (res.ok) {
-      const data = await res.json();
-      const b = Array.isArray(data) ? toBoundary(data[0]) : null;
-      if (b) return b;
-    }
+    // Same rule as the search branch below: a transient failure is not an answer.
+    // Falling through to the name search on a 429 would quietly swap the exact
+    // entity we asked for with whatever Nominatim ranks first for its name.
+    if (!res.ok) throw new Error(`Boundary lookup failed: ${res.status}`);
+    const data = await res.json();
+    const b = Array.isArray(data) ? toBoundary(data[0]) : null;
+    if (b) return b; // a non-area entity (Point) falls through to the name search
   }
 
   const q = [loc.name, loc.country].filter(Boolean).join(', ');
@@ -117,6 +119,31 @@ export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSigna
   if (!res.ok) throw new Error(`Boundary lookup failed: ${res.status}`);
   const data = await res.json();
   return Array.isArray(data) && data[0] ? toBoundary(data[0]) : null;
+}
+
+/**
+ * Order same-granularity hits by `importance`, leaving Nominatim's own
+ * cross-granularity order alone.
+ *
+ * Do NOT express this as `.sort((a,b) => sameRank ? byImportance : 0)`. That
+ * comparator is not a valid ordering — it calls A==C and C==B while A!=B — and
+ * sort stability cannot rescue an inconsistent comparator: V8 never compares A
+ * against B when a different-rank C sits between them, so `results[0]` depends
+ * on the order Nominatim happened to send. Measured: the real "Nguyễn Huệ,
+ * District 1" response puts a rank-30 pedestrian-street POI between the two
+ * rank-26 roads, which is exactly that case.
+ *
+ * Bucketing by rank keeps every comparison inside one bucket. `Map` iterates in
+ * key-insertion order, so buckets emerge in first-seen rank order.
+ */
+function rankThenImportance(results: GeoResult[]): GeoResult[] {
+  const buckets = new Map<number, GeoResult[]>();
+  for (const r of results) {
+    const bucket = buckets.get(r.placeRank ?? 0);
+    if (bucket) bucket.push(r);
+    else buckets.set(r.placeRank ?? 0, [r]);
+  }
+  return [...buckets.values()].flatMap((b) => b.sort((a, z) => (z.importance ?? 0) - (a.importance ?? 0)));
 }
 
 /** Autocomplete search. Pass an AbortSignal so stale requests can be cancelled. */
@@ -139,14 +166,10 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
   // Nominatim does not order same-granularity hits by `importance`. Measured: for
   // "Nguyễn Huệ, District 1, Ho Chi Minh City" the correct Nguyen Hue Boulevard
   // (0.05340) came back 3rd, behind rural same-named roads (0.05338) 60km away.
-  //
-  // Only break ties WITHIN a place_rank. Sorting by importance globally would let
-  // a city (high importance) outrank the district you asked for — measured: "Q.7,
-  // TP.HCM" then resolved to all of Ho Chi Minh City. Array.sort is stable, so
-  // returning 0 across ranks preserves Nominatim's own cross-granularity order.
-  return data
-    .map((item) => toResult(item, true))
-    .sort((a, b) => ((a.placeRank ?? 0) === (b.placeRank ?? 0) ? (b.importance ?? 0) - (a.importance ?? 0) : 0));
+  // Re-ordering globally by importance instead would let a city (high importance)
+  // outrank the district you asked for — measured: "Q.7, TP.HCM" then resolved to
+  // all of Ho Chi Minh City.
+  return rankThenImportance(data.map((item) => toResult(item, true)));
 }
 
 /** Reverse-geocode a coordinate into a place name / country. */

@@ -33,6 +33,28 @@ describe('formatSize', () => {
 });
 
 describe('resolveConfig', () => {
+  it('anchors every highlight to the country of the location being rendered', async () => {
+    // Region auto-framing follows the region bbox, so an unanchored "District 1"
+    // (whose top Nominatim hit is in Liberia) would silently relocate the poster.
+    vi.mocked(geocode.resolveBoundary).mockClear();
+    vi.mocked(geocode.resolveLocation).mockClear();
+
+    await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: { regions: ['District 1'], points: ['Võ Văn Tần'] },
+    });
+
+    expect(geocode.resolveBoundary).toHaveBeenCalledWith('District 1', 'Vietnam');
+    expect(geocode.resolveLocation).toHaveBeenCalledWith('Võ Văn Tần', 'Vietnam');
+  });
+
+  it('names the anchor country when a region cannot be found in it', async () => {
+    vi.mocked(geocode.resolveBoundary).mockResolvedValueOnce(null);
+    await expect(
+      resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: ['District 1'] } }),
+    ).rejects.toThrow(/No boundary found for region "District 1" in Vietnam/);
+  });
+
   it('geocodes the location and picks the format size (AC-1)', async () => {
     const cfg = await resolveConfig({ location: 'HCMC', format: 'tiktok' });
     expect(cfg.size).toEqual({ width: 1080, height: 1920 });

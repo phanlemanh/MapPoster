@@ -57,9 +57,51 @@ function cityGuard(query: string) {
   return (r: { displayName?: string }) => normalizeVnQuery(r.displayName ?? '').toLowerCase().includes(want);
 }
 
-/** Resolve a place string (geocoded + cached) or explicit coordinates. */
+/**
+ * Walk `candidates` — the query as written, then progressively canonicalised /
+ * relaxed forms — until one yields hits inside the city the query named. Each
+ * attempt takes its own rate-limited turn. Without the city guard, relaxation
+ * happily matches a same-named street in another province.
+ *
+ * Shared by the point, region and disambiguation paths: a region string is the
+ * same kind of user input as a point string, and used to reach Nominatim raw.
+ */
+/**
+ * A highlight must live in the country of the location being rendered.
+ *
+ * The city guard only fires when the query names a VN city, so a bare "District 1"
+ * passes it — and Nominatim's top hit for that is a district in *Liberia*, with a
+ * real polygon. Since auto-framing follows the region's bbox, the poster would
+ * silently render Liberia while its label still said Ho Chi Minh City.
+ *
+ * Compare countries rather than distances: "location: Vietnam, highlight: HCMC" is
+ * legitimate and 800 km apart, while the Liberia hit is simply a different country.
+ * Hits with no country are allowed through — absence of evidence isn't evidence.
+ */
+function countryGuard(expect?: string) {
+  const want = expect?.trim().toLowerCase();
+  if (!want) return () => true;
+  return (r: { country?: string }) => !r.country || r.country.toLowerCase() === want;
+}
+
+async function searchLadder(query: string, candidates: string[], expectCountry?: string) {
+  const inCity = cityGuard(query);
+  const inCountry = countryGuard(expectCountry);
+  for (const candidate of candidates) {
+    await throttle();
+    const found = (await searchPlaces(candidate)).filter(inCity).filter(inCountry);
+    if (found.length) return found;
+  }
+  return [];
+}
+
+/**
+ * Resolve a place string (geocoded + cached) or explicit coordinates.
+ * `expectCountry` anchors a highlight to the country of the map being rendered.
+ */
 export async function resolveLocation(
   input: string | { lng: number; lat: number; zoom?: number },
+  expectCountry?: string,
 ): Promise<ResolvedLocation> {
   if (typeof input !== 'string') {
     return {
@@ -68,29 +110,12 @@ export async function resolveLocation(
       place: { name: '', country: '', lat: input.lat, lng: input.lng },
     };
   }
-  const key = input.trim().toLowerCase();
+  const key = `${input.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
   const cached = locCache.get(key);
   if (cached) return cached;
 
-  const searchOnce = async (q: string) => {
-    await throttle(); // each upstream attempt takes its own rate-limited turn
-    return searchPlaces(q);
-  };
-
-  // Try the query as written, then progressively canonicalised/relaxed forms.
-  // If the query names a city, discard hits that fall outside it — relaxation
-  // otherwise happily matches a same-named street in another province.
-  const inCity = cityGuard(input);
-
-  let results: Awaited<ReturnType<typeof searchPlaces>> = [];
-  for (const candidate of queryCandidates(input)) {
-    const found = (await searchOnce(candidate)).filter(inCity);
-    if (found.length) {
-      results = found;
-      break;
-    }
-  }
-  if (!results.length) throw new Error(`No geocoding result for "${input}"`);
+  const results = await searchLadder(input, queryCandidates(input), expectCountry);
+  if (!results.length) throw new Error(`No geocoding result for "${input}"${expectCountry ? ` in ${expectCountry}` : ''}`);
   const r = results[0];
   const resolved: ResolvedLocation = {
     center: [r.lng, r.lat],
@@ -116,34 +141,42 @@ export interface GeoCandidate {
  * than silently picking the top hit.
  */
 export async function searchCandidates(query: string, limit = 5): Promise<GeoCandidate[]> {
-  const inCity = cityGuard(query);
-  for (const candidate of relaxedCandidates(query)) {
-    await throttle();
-    const results = (await searchPlaces(candidate)).filter(inCity);
-    if (results.length) {
-      return results.slice(0, limit).map((r) => ({
-        name: r.name,
-        country: r.country,
-        lng: r.lng,
-        lat: r.lat,
-        zoom: r.zoom,
-        displayName: r.displayName,
-      }));
-    }
-  }
-  return [];
+  const results = await searchLadder(query, relaxedCandidates(query));
+  return results.slice(0, limit).map((r) => ({
+    name: r.name,
+    country: r.country,
+    lng: r.lng,
+    lat: r.lat,
+    zoom: r.zoom,
+    displayName: r.displayName,
+  }));
 }
 
 /** Resolve a place's administrative boundary GeoJSON (cached). */
-export async function resolveBoundary(place: string): Promise<GeoJSONFeatureCollection | null> {
-  const key = place.trim().toLowerCase();
+export async function resolveBoundary(place: string, expectCountry?: string): Promise<GeoJSONFeatureCollection | null> {
+  const key = `${place.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
   if (boundaryCache.has(key)) return boundaryCache.get(key) ?? null;
+
+  // Geocode the region exactly as a point is geocoded — canonicalise "Quận 3,
+  // TP.HCM" into a form Nominatim indexes, drop hits outside the named city, and
+  // drop hits outside the country being rendered. Passing the raw string to a
+  // global `/search?limit=1` (as this used to) could highlight a same-named
+  // district abroad, and auto-framing would then follow it there.
+  const hits = await searchLadder(place, queryCandidates(place), expectCountry);
+  if (!hits.length) {
+    boundaryCache.set(key, null); // a definitive "nothing matches" IS cacheable
+    return null;
+  }
+  // OSM models administrative boundaries as relations, so prefer one when the
+  // hits mix a boundary with POIs/roads of the same name.
+  const hit = hits.find((h) => h.osmType === 'relation') ?? hits[0];
 
   await throttle();
   // fetchRegionBoundary THROWS on a transient upstream failure and returns null
   // only for a definitive "no polygon". So a throw here skips the cache write —
-  // an outage must never be memoized as "this region does not exist".
-  const b = await fetchRegionBoundary({ name: place, country: '', lng: 0, lat: 0, zoom: 12 });
+  // an outage must never be memoized as "this region does not exist". Passing the
+  // hit's osm_type/osm_id fetches the polygon of the entity we actually matched.
+  const b = await fetchRegionBoundary(hit);
   const geojson = b ? b.geojson : null;
   boundaryCache.set(key, geojson);
   return geojson;

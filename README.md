@@ -59,17 +59,22 @@ render_map({
 
 Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
 
+The HTTP transport is unauthenticated, so it refuses any request whose `Host` it does not answer to, and any request carrying an `Origin` at all — a server-to-server MCP client sends none, a web page always does. Loopback binding alone would not stop DNS rebinding. A hosted deployment must therefore declare `MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal` (and `MAPPOSTER_HTTP_ALLOWED_ORIGINS=https://studio.internal` if a browser calls it); otherwise only loopback `Host` headers are accepted and the server says so on startup.
+
 ### Vietnamese addresses
 
 Nominatim's free-form parser does not understand how VN addresses are written, so `resolveLocation` canonicalises them first (measured against the live API — `npx tsx mcp-server/scripts/check-vn-addresses.ts`):
 
-- `TP.HCM` / `TPHCM` / `TP. Hồ Chí Minh` / `Sài Gòn` → `Ho Chi Minh City`; likewise `Hà Nội` → `Hanoi`, `Đà Nẵng` → `Da Nang`.
+- `TP.HCM` / `TPHCM` / `HCMC` / `TP. Hồ Chí Minh` / `Sài Gòn` → `Ho Chi Minh City`; likewise `Hà Nội` → `Hanoi`, `Đà Nẵng` → `Da Nang`.
 - `Quận 3` / `Q.7` → `District 3` / `District 7`; `Phường 5` → `Ward 5`; a leading `Đường` is dropped.
 - A leading house number is retried without it (`123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh` returns **0 hits**; the street alone resolves correctly). The **district is never dropped automatically** — that would match a same-named street 60 km away in the same (post-2025-merger, very large) Ho Chi Minh City.
-- Results are tie-broken by Nominatim's `importance` **within one `place_rank`**. Sorting globally would let the city outrank the district you asked for.
+- Same-granularity hits are re-ordered by Nominatim's `importance`; different granularities keep the order Nominatim chose. Concretely: hits are bucketed by `place_rank` and each bucket is sorted. Re-ordering *across* ranks would let the city outrank the district you asked for, and a comparator that merely returns `0` across ranks is [not a valid ordering](src/lib/geocoding.ts) — its result depends on the order Nominatim happened to send.
 - Labels use the *matched feature* (`Võ Văn Tần`, `District 3`, `Hoàn Kiếm Lake`), not the administrative parent — which today is `Thủ Đức` for most of HCMC.
+- **Regions go through the same pipeline as points**: canonicalised, filtered to the city the query names, then the polygon of that exact OSM relation is fetched by id. And every highlight is anchored to the **country** of the location being rendered — auto-framing follows a region's bounding box, so an unanchored `District 1` (whose top hit is a real district in **Liberia**) would silently relocate the whole poster.
 
-**Known limits.** Free-form ranking still mis-resolves some street addresses (`Đường Lê Lợi, Quận 1` ranks a nearby primary school first). For anything that must be exact, call `geocode_place` — it returns a **candidate list** — then pass explicit `{lng,lat}` plus `placeName` to `render_map`. `placeName` overrides the poster label entirely.
+**Known limits.** Free-form ranking still mis-resolves some street addresses (`Đường Lê Lợi, Quận 1` ranks a nearby primary school first), and ward-level boundaries usually do not exist (`Phường Bến Nghé, Quận 1` → no polygon). An ambiguous region outside the anchor country is **refused**, not guessed. For anything that must be exact, call `geocode_place` — it returns a **candidate list** — then pass explicit `{lng,lat}` plus `placeName` to `render_map`. `placeName` overrides the poster label entirely.
+
+Both paths are probed against the live API by `npx tsx mcp-server/scripts/check-vn-addresses.ts`; the unit tests mock `fetch`, so only that script can tell you whether ranking and boundary selection are still right.
 
 ## Features
 

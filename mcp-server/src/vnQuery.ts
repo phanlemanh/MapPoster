@@ -16,7 +16,9 @@ const B = '(?<![\\p{L}\\p{N}])';
 const E = '(?![\\p{L}\\p{N}])';
 const TP = '(?:tp\\.?\\s*|th[àa]nh\\s*ph[ốo]\\s*)?';
 
-const HCMC = new RegExp(`${B}${TP}(?:h[ồo]\\s*ch[íi]\\s*minh(?:\\s*city)?|hcm|s[àa]i\\s*g[òo]n)${E}`, 'giu');
+// `hcmc` must precede `hcm`: alternation is ordered, so `hcm` matches the first
+// three letters of "HCMC" and then fails the end-boundary against the trailing C.
+const HCMC = new RegExp(`${B}${TP}(?:h[ồo]\\s*ch[íi]\\s*minh(?:\\s*city)?|hcmc|hcm|s[àa]i\\s*g[òo]n)${E}`, 'giu');
 const HANOI = new RegExp(`${B}${TP}h[àa]\\s*n[ộo]i${E}`, 'giu');
 const DANANG = new RegExp(`${B}${TP}[đd][àa]\\s*n[ẵaă]ng${E}`, 'giu');
 

@@ -1,112 +1,94 @@
-# Review Findings: mcp-map-render (Round 9)
+# Review Findings: mcp-map-render (Round 11)
 
 Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
 file). Feeds the Gate 2 decision card alongside `evidence-report.md`. All 3 findings below went through
 the full finder → refuter adversarial-verify pass; none is flagged `unverified`, and no review pass died
-mid-way in the run that produced this content (see "Review incomplete" at the bottom) — though a *prior*,
-infrastructure-blocked attempt this same round did lose both review lenses; see below.
+mid-way in the run that produced this content (see "Review incomplete" at the bottom).
 
-Verified at commit `bc7aba2c6ff2dfa508c6d97924b806cda62b6c17` (`feature/mcp-map-render`).
+Verified at commit `9e51736a2a4e94deb4391f8d84984af049c5d39b` (`feature/mcp-map-render`).
 
-**Context vs. Round 8:** the Round-8 review (commit `8fbdbfa`) surfaced exactly 1 finding — LOW: inline
-`highlight.regions[].geojson` accepted as `z.any()` with no structural validation at the MCP boundary
-(`mcp-server/src/tools.ts:115`). **No file under `mcp-server/`, `src/`, or `e2e/` has changed since**
-(`git diff 8fbdbfae83731c60ee7c2a94d1ce1fbacebb6f10 bc7aba2c6ff2dfa508c6d97924b806cda62b6c17 -- mcp-server/
-src/ e2e/` is empty — this round's only tree changes are `lib/package.json` / `scripts/package.json`,
-added to fix the acceptance-gate tooling itself, plus `_acceptance/` report/evidence files), so that Round
-8 LOW was **not re-examined and not closed** this round — it simply wasn't in scope for a pass that probed
-different code paths. It should still be treated as open until a future round revisits it.
-
-This round's review had an unusual path to the findings below. The **first** S4-r9 verify attempt was
-infrastructure-BLOCKED, not a code verdict: 5 of the pipeline's 12 sub-agents died on transport errors,
-including **both** review lenses — `review:bugs` (`FailedToOpenSocket`) and `review:conventions`
-(`ConnectionRefused`) — alongside `ui:E10`, `capture:provenance`, and `scribe:run-log`
-(`decisions.jsonl` `d-20260710T190000Z-55001`). No findings and no verdict came out of that attempt; it
-was recorded as BLOCKED and resumed, re-running exactly the 5 dead agents (including both review lenses)
-against the identical pinned tree. The 3 findings below are the product of that successful resume — a
-genuine finder → refuter pass, not a replay of stale results — surfaced against code that has not changed
-since Round 8: 2 from the `conventions` lens, 1 from the `bugs` lens. **The first is the first HIGH
-finding since Round 4.**
+**Context vs. Round 9:** the Round-9 review surfaced 3 findings — 1 HIGH (region-highlight config shipped
+in a URL query param, capped at Node's default 16 KB header limit), 1 MEDIUM (unguarded `Number(env)`
+yielding `NaN` and silently disabling the body/pool caps), 1 LOW (`memoizeSuccess.reset()` unconditionally
+evicting a healthy concurrent rebuild). **All 3 are now CLOSED**: Round 10 replaced the URL-embedded
+config with an in-process `configStore.ts` plus a same-origin `/__config/<id>` route (closing the HIGH),
+added a fail-closed `envNumber()` helper validated at startup (closing the MEDIUM), and made
+`memoizeSuccess.reset(attempt)` clear only the matching attempt (closing the LOW). Round 10's own review
+pass then found and immediately fixed 2 more items before it could reach Gate 2 (camera
+`bearing`/`pitch` silently discarded on headless render; a self-inflicted `gen-example.ts` regression
+invisible to `tsc` because `scripts/` was never in `mcp-server/tsconfig.json`'s `include`) — see
+`evidence-report.md`'s Iterations entry for Round 10. None of those 5 prior findings is repeated below;
+this round's adversarial pass probed different code paths and found the 3 NEW items that follow.
 
 **Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and none of the findings below is
 the reason — that verdict is driven entirely by this contract's `risk_tier: T3` mandating a direct human
-verdict on judgment item E12 (AC-12), independent of code-review findings; Round 8's own E12 signoff was
-tied to the now-superseded commit `8fbdbfa` and does not carry forward to this round's `verified_commit`.
-Unlike every review round since Round 5, though, this round's findings are **not** a candidate for the
-"single LOW/MEDIUM, carry forward as accepted risk" treatment the human's Round-6 termination rule
-describes (`d-20260710T110500Z-47001`: "only a confirmed HIGH would reopen the loop") — finding #1 below
-IS a confirmed HIGH, on this feature's headline region-highlight path. Whether to accept it as risk,
-ticket it for a fast-follow, or send the feature back for a Round 10 fix is a decision for the human, not
-resolved by this review pass.
+verdict on judgment item E12 (AC-12), independent of code-review findings. Unlike Round 9, none of this
+round's 3 findings is HIGH, so per the human's Round-6 termination rule (`d-20260710T110500Z-47001`: "only
+a confirmed HIGH would reopen the loop") this round is a normal "carry forward as accepted risk, or
+ticket it" candidate for Gate 2 — it does not by itself demand another implementation round.
 
 ## Findings
 
-### 1. [HIGH] RenderConfig is shipped to the renderer inside a URL query param, but the app server caps request headers at Node's default 16 KB — region highlights and inline GeoJSON silently fail
+### 1. [MEDIUM] `render_variants`: an unbounded `variants` array is unbounded browser-render fan-out from a single within-cap request
 
-- **File:** `mcp-server/src/renderFrame.ts:30`
-- **Severity:** high
-- **Source:** conventions
-
-`renderFrame` encodes the ENTIRE `RenderConfig` (base64url) into the render URL:
-`page.goto(`${deps.appUrl}/render.html?config=${key}`)` (`renderFrame.ts:30`, `encodeConfig` at
-`deps/renderFrame`). That URL is served by the internal app server, a stock `http.createServer` with no
-`maxHeaderSize` override (`appServer.ts:30`), so the whole request head is capped at Node's default
-16,384 bytes. Meanwhile the MCP boundary accepts an 8 MiB body (`config.ts:25`) and inline region GeoJSON
-is typed `z.object({ geojson: z.any() })` — completely unbounded (`tools.ts:115`). This is a hard mismatch
-between the declared input ceiling (8 MiB) and the actual transport ceiling (~16 KB), and it defeats a
-headline feature.
-
-Measured against live Nominatim with the exact `polygon_threshold=0.0015` this code uses: the resolved
-boundary for `Ho Chi Minh City` is 20,320 base64 bytes and `Vietnam` is 155,316 — both exceed 16 KB.
-Empirically, a stock Node http server returns HTTP 431 for the 20 KB URL and ECONNRESET for the 155 KB
-one. On a 431 the render page never loads, so `window.__mapposter` is never set and renderFrame's
-`waitForFunction(..., { timeout: 20_000 })` (`renderFrame.ts:31-33`) hangs for the full 20 s before the
-tool fails with an opaque error. So `render_map({ location: 'Vietnam', highlight: { regions: ['Ho Chi Minh
-City'] } })` — an in-spec call — stalls 20 s and returns a confusing failure; any caller-supplied inline
-GeoJSON of realistic size does the same. The eval suite only exercises `Quận 3` (~500 B, well under the
-limit), so AC-11 never trips this. Root cause is the URL-param transport choice; a fix would carry the
-config out-of-band (POST body / sessionStorage / an in-process id map) or raise `maxHeaderSize`, and bound
-the inline GeoJSON.
-
-### 2. [MEDIUM] `Number(env)` with no NaN guard silently disables the HTTP request-body DoS cap
-
-- **File:** `mcp-server/src/http.ts:126`
+- **File:** `mcp-server/src/tools.ts:149`
 - **Severity:** medium
 - **Source:** conventions
 
-`maxBodyBytes = Number(process.env.MAPPOSTER_HTTP_MAX_BODY ?? DEFAULT_MAX_BODY_BYTES)` (`http.ts:126`). If
-the operator sets `MAPPOSTER_HTTP_MAX_BODY` to any non-numeric value, `Number(...)` yields `NaN`, and
-every subsequent comparison — the `Content-Length` pre-check `Number(req.headers['content-length'] ?? 0) >
-maxBodyBytes` (`http.ts:141`) and the streaming guard `size > maxBytes` (`http.ts:41`) — evaluates to
-`false`. The result is that the body cap the code carefully implements (the file's own comments call out
-OOM-ing the shared browser pool as the threat) is silently switched off, restoring the unbounded-buffering
-DoS the cap exists to prevent. The unset path is safe because `?? DEFAULT_MAX_BODY_BYTES` supplies a
-number, so this only fires on misconfiguration — but the failure mode is a security control that fails
-OPEN with no signal, which is exactly the kind of boundary this codebase otherwise fails-closed on (see
-the loopback/allowed-hosts guard that logs and refuses). The same unguarded `Number(env)` pattern recurs
-for `CACHE_MAX` (`geocode.ts:23`), `poolSize` and `appPort` (`config.ts`); `poolSize`→`NaN` makes
-`created < size` always false so the pool never mints a page and every render deadlocks. Validate these
-env-derived numbers (reject/clamp NaN) at the config boundary.
+The Zod input schema for `render_variants` is
+`variants: z.array(z.object(renderMapShape).partial())` (`tools.ts:149`) — no `.max()`. `render_variants`
+iterates every element of `variants` and drives one full headless-browser render each (`renderOne` →
+`renderFrame`, run serially per the tool's implementation). The HTTP request-body cap
+(`config.ts`'s `DEFAULT_MAX_BODY_BYTES`, enforced in `http.ts`) exists explicitly to, in the codebase's own
+words, stop a caller from OOM-ing the shared browser pool — yet a tiny, well-within-cap JSON body (a
+`variants` array of on the order of 100,000 near-empty `{}` objects is well under the 8 MiB body limit)
+enqueues on the order of 100,000 sequential renders and monopolizes the shared pool for a very long time.
+This is the identical threat class the body cap defends against, reachable in the hosted
+`MAPPOSTER_HTTP_HOST=0.0.0.0` deployment mode this server is designed to support, and it is the one
+boundary dimension left unbounded now that every scalar input (dimensions, lat/lng, zoom, colour, GeoJSON
+byte size) is capped elsewhere in this same file. No downstream cap exists to catch it. Fix: add a
+`.max(N)` to the `variants` array, matching the codebase's own bound-everything-that-grows invariant.
 
-### 3. [LOW] Unconditional `ensure.reset()` can evict and leak a freshly-rebuilt healthy runtime under concurrent renders
+### 2. [MEDIUM] `highlight.regions` / `highlight.points`: unbounded name arrays are unbounded serialized Nominatim calls from one request
 
-- **File:** `mcp-server/src/deps.ts:80`
+- **File:** `mcp-server/src/tools.ts:115` (regions), `:116` (points)
+- **Severity:** medium
+- **Source:** conventions
+
+`regions: z.array(...)` (`tools.ts:115`) and `points: z.array(...)` (`tools.ts:116`) both accept unbounded
+arrays of place-name strings. `resolveConfig` resolves each named region via `resolveBoundary` and each
+named point via `resolveLocation`, and `geocode.ts` serializes every upstream Nominatim call behind a
+>=1 req/s throttle (required by Nominatim's usage policy). A single small request containing thousands of
+distinct name strings therefore pins the process issuing serialized third-party geocode lookups for
+hours (on the order of 100,000 names ≈ 28 hours at 1/s), turning one MCP request into sustained,
+policy-relevant abuse of a shared public service — precisely the behaviour the rate limiter and the
+User-Agent/contact-email identification were added to keep compliant. This is the same root cause as
+Finding #1: array cardinality is the one input dimension at this MCP boundary still left unbounded. Fix:
+cap the length of both arrays at the schema.
+
+### 3. [LOW] `formatSize()` matches JS built-in property names instead of rejecting them (unguarded object index)
+
+- **File:** `mcp-server/src/resolveConfig.ts:65`
 - **Severity:** low
 - **Source:** bugs
 
-`memoizeSuccess`'s `reset()` (`deps.ts:34-36`) clears `cached` unconditionally, unlike the internal failure
-path (`:28-30`) which correctly guards with `if (cached === attempt) cached = null`. `makeRenderDeps.render`
-calls `ensure.reset()` in its `finally` whenever the pool is unhealthy (line 80). Because the HTTP
-transport is stateless and shares one `deps`/`ensure` across all requests (see `http.ts` `createServer(deps)`
-per request), 3+ renders can overlap. Failure interleave: renders A and B both awaited runtime R1; A
-finishes, the browser then dies (`R1.pool.healthy()` false), A resets the memo and closes R1; render C now
-calls `ensure()`, sees `cached=null`, and rebuilds a healthy R2 (`cached=R2`); B's render — still running
-against R1's dead pool — then fails and its `finally` runs `ensure.reset()` a second time, blowing away
-cached R2 even though R2 is alive and actively serving C. Nobody ever closes R2 (only A and B closed R1),
-so R2's headless browser process and its static app-server port leak silently, and the next render builds
-yet another runtime. The code explicitly anticipates the browser dying ("a 4k poster can OOM SwiftShader"),
-so the trigger is real, but it requires a specific 3-render timing window, hence low severity. Fix: give
-`reset()` the attempt to invalidate and clear only if `cached === attempt`, mirroring the internal catch.
+`formatSize` resolves a named format with `if (FORMATS[format]) return FORMATS[format];` (`resolveConfig.
+ts:65`). Because `FORMATS` is a plain object literal, this index also reaches inherited
+`Object.prototype` members, so a format string like `constructor`, `toString`, `valueOf`,
+`hasOwnProperty`, or `__proto__` is truthy and gets returned as the "size". Verified directly:
+`FORMATS['constructor']` evaluates to the `Object` function; `FORMATS['__proto__']` evaluates to
+`Object.prototype`. Reachability: the Zod `formatSchema` is
+`z.union([z.string().min(1), z.object({width,height})])`, so any such string passes validation and
+reaches `formatSize`, and the named-format branch skips `assertDim` entirely. Consequence: instead of the
+intended `throw new Error('Unknown format: ...')`, `size` becomes a function or a bare prototype object
+with no numeric `width`/`height`. It survives `resolveConfig`, and inside `renderFrame`,
+`JSON.stringify(config)` drops the function-valued `size` (or serializes it as `{}`), so the render page
+hits `cfg.size.width` on `undefined` and the render fails with an opaque TypeError rather than the clean
+"Unknown format" error the code intends. Impact is limited — a confusing error rather than a
+wrong-but-successful poster, and only for pathological format strings an agent is unlikely to send by
+accident — hence low severity. Fix: gate on ownership, e.g. `if (Object.hasOwn(FORMATS, format)) return
+FORMATS[format];`, matching the safe array-based lookups this same file already uses for `LAYOUTS` and
+`THEMES`.
 
 ## Chưa adversarial-verify (refuter chết)
 
@@ -115,7 +97,4 @@ content; none carries `unverified: true`.
 
 ## Review incomplete (finder chết)
 
-none — in the run that produced the findings above, no review pass failed to complete. (A *prior* attempt
-earlier in this round did lose both `review:bugs` and `review:conventions` to infrastructure errors before
-any finding was produced — see "Context vs. Round 8" above — but that attempt's output was discarded
-wholesale, not partially reported, and is not the source of anything in `## Findings`.)
+none — in the run that produced the findings above, no review pass failed to complete.

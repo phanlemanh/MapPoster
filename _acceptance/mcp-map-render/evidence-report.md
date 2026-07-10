@@ -7,13 +7,13 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: bc7aba2c6ff2dfa508c6d97924b806cda62b6c17
+verified_commit: 9e51736a2a4e94deb4391f8d84984af049c5d39b
 human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
 
-_Round 9 — verified 2026-07-10T18:10:00Z (UTC) at commit `bc7aba2` on `feature/mcp-map-render`._
+_Round 11 — verified 2026-07-10T21:40:00Z (UTC) at commit `9e51736` on `feature/mcp-map-render`._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -30,344 +30,331 @@ _Round 9 — verified 2026-07-10T18:10:00Z (UTC) at commit `bc7aba2` on `feature
 | E11 | AC-11 | test | PASS |
 | E12 | AC-12 | judgment | PASS (panel) — awaits mandatory human_override (T3) |
 
-> **PENDING-JUDGMENT — every eval is green; this round re-pins verified evidence to a new HEAD after an
-> infrastructure-blocked first attempt, and surfaces the first HIGH review finding since Round 4.**
-> All 11 machine-mapped evals (E1–E9, E11 via `npm test`; E10 via a dedicated `ui-check` run) exited 0
-> this round, and E12's judge panel again proposes PASS (3/3 lenses). The verdict is PENDING-JUDGMENT
-> rather than PASS for the same structural reason as every round since Round 1: this contract's
+> **PENDING-JUDGMENT — every eval is green; this round exists because Round 10 finished all its own work
+> (fixes + a fresh review) but crashed before writing any evidence, and it closes out Round 9's HIGH.**
+> All 12 evals are green: E1–E9 and E11 via `npm test` (now **198 passed | 3 skipped**, up from 179 | 2 in
+> Round 9), E10 via a dedicated `ui-check` run (independently byte-decoded PNG IHDR, exact 1080×1920), and
+> E12's judge panel again proposes PASS (3/3 lenses) against the unchanged `evidence/E12-example.png`. The
+> verdict is PENDING-JUDGMENT rather than PASS for the same structural reason as every round since Round 1:
 > `risk_tier: T3` mandates a direct human verdict on **every** judgment item regardless of the panel's
-> proposal (hook-enforced), and Round 8's signoff on E12 (`manh`, PASS) was tied to commit `8fbdbfa` — it
-> does not carry forward automatically to this round's freshly-pinned `verified_commit`. Separately, and
-> not the reason for the verdict but squarely a Gate 2 concern: a fresh adversarial pass this round —
-> against code that has **not changed** since Round 8 — surfaced 3 new findings, including 1 HIGH (a
-> transport-layer mismatch that can silently break the region-highlight feature for realistic inputs).
-> See `review-findings.md` and the Iterations entry below.
+> proposal (hook-enforced), and no `human_override` has been supplied for the commit this round pins
+> (`9e51736`) — Round 8's signoff (`manh`, PASS) was tied to the now long-superseded `8fbdbfa`. Separately,
+> and not the reason for the verdict: Round 9's HIGH finding (region-highlight config shipped in a URL query
+> param, capped at Node's default 16 KB header limit) is now CLOSED — Round 10 replaced the URL-embedded
+> config with an in-process `configStore` plus a same-origin `/__config/<id>` route, closing the HIGH, the
+> Round-9 MEDIUM (unguarded `Number(env)` yielding NaN), the Round-9 LOW (`memoizeSuccess.reset()`), and the
+> Round-8 carryover LOW (unbounded inline GeoJSON) all in one pass. Round 10's own review pass then found and
+> immediately fixed 2 more items (camera bearing/pitch silently discarded on headless render; a
+> self-inflicted `gen-example.ts` regression missed because `scripts/` was never typechecked) before
+> crashing pre-scribe, so neither reached Gate 2 as open risk either. **This round's own fresh adversarial
+> pass surfaced 3 NEW findings — 2 MEDIUM, 1 LOW, zero HIGH** (an unbounded `render_variants` array; unbounded
+> `highlight.regions`/`points` name arrays; `formatSize` matching `Object.prototype` members) — see
+> `review-findings.md` and the Iterations entry below.
 
 ## Evidence
 
-_This round exists to re-pin `verified_commit`, not to close a review finding or an acceptance gap. After
-Round 8's Gate 2 signoff, acting on it surfaced a bug in the gate tooling itself: `pre-merge-check.sh`'s
-final `recheck: strict` step — re-checking the COMMITTED evidence with the same code the hook runs — had
-silently never executed in this repo, because `scripts/recheck-evidence.js` / `lib/evidence-core.js` are
-CommonJS while the repo root declares `"type": "module"` (`decisions.jsonl` `d-20260710T171000Z-53001`).
-Fixing it (`scripts/package.json` + `lib/package.json` declaring `{"type":"commonjs"}`, added rather than
-editing kit-owned files — `d-20260710T171000Z-53002`) let `pre-merge-check` run end-to-end for the first
-time, which in turn exposed that its `stale_files()` check compares every non-`**/*.md`,
-non-`_acceptance/**` file against `verified_commit` — contrary to what the implementer had just told the
-human (corrected the same round, `d-20260710T180500Z-54001`) — and it correctly flagged the 2 new
-package.json files as post-verify drift. Rather than add `scripts/**, lib/**` to `t1_skip_globs` to
-self-exempt the gate's own tooling, the decision was to run a fresh S4 verify and re-pin `verified_commit`
-(`d-20260710T180500Z-54002`). No feature code changed to get here:
-`git diff 8fbdbfae83731c60ee7c2a94d1ce1fbacebb6f10 bc7aba2c6ff2dfa508c6d97924b806cda62b6c17 --stat` touches
-only `lib/package.json`, `scripts/package.json`, and `_acceptance/mcp-map-render/*` (report, cards,
-evidence PNGs, decisions, run-log) — `mcp-server/`, `src/`, and `e2e/` are byte-identical to Round 8, so
-every it()-reference below is unchanged from Round 8's evidence block, re-confirmed rather than
-re-derived.
-
-**This round's first verify attempt was infrastructure-BLOCKED, not a code verdict.** 5 of the pipeline's
-12 sub-agents died on transport errors — `review:bugs` (`FailedToOpenSocket`), `review:conventions`,
-`ui:E10`, `capture:provenance`, and `scribe:run-log` (all `ConnectionRefused`) — and because
-`capture:provenance` returned nothing, the orchestrating script crashed (`null is not an object
-(evaluating prov.enforcement_mode)`) before any verdict could be assigned (`d-20260710T190000Z-55001`).
-The crash happened before the `scribe` step, so `evidence-report.md` was NOT overwritten by that attempt —
-Round 8's file and its Gate 2 signature survived on disk untouched, and the attempt was recorded as
-BLOCKED rather than downgraded to any verdict. The resume replayed the 7 agents that had already succeeded
-from cache and re-ran exactly the 5 that died; this report is the product of that successful resume,
-against the identical pinned tree (no source changed between the blocked attempt and this one). `npm
-test`'s aggregate is unchanged at **179 passed | 2 skipped (181)**; `npm run test:e2e` unchanged at
-**11/11**; `npm run test:mcp` unchanged at **2 passed** — all three expected, since nothing under any of
-their scopes changed. E10's dedicated `ui-check` run independently re-verified exact 1080×1920 output and
-no onboarding against a freshly chosen **Nha Trang / ruby** theme config — deliberately different from the
-repo's own `e2e/render-mode.spec.ts` fixture (HCMC / midnight-blue) and every prior round's own probe
-config (Hà Nội/noir rounds 3–6, Đà Nẵng/ocean round 7, Hội An/sandstone round 8) — so this is not a replay
-of cached evidence; the PNG's IHDR was independently cross-checked with macOS `sips`, outside the
-verifying script, and agreed exactly (1080×1920). E12's judge panel re-affirms PASS (3/3 lenses) against
-the still-unchanged `evidence/E12-example.png` (confirmed unchanged in this round's diff too; last
-regenerated at commit `433e7ea`, Round 3). Separately, a fresh adversarial pass this round — against code
-that has not changed since Round 8 — surfaced exactly 3 NEW findings for `review-findings.md`: 1 HIGH (the
-first since Round 4) — `RenderConfig` travels to the headless renderer inside a URL query param
-(`renderFrame.ts:30`) but the internal app server never raises Node's default 16 KB header-size cap
-(`appServer.ts`), while the MCP boundary itself accepts an 8 MiB body and inline region GeoJSON is
-unbounded; measured live against Nominatim, the resolved boundary for `Ho Chi Minh City` alone is 20,320
-base64 bytes (`Vietnam`: 155,316 bytes), both already over the 16 KB transport ceiling, so an in-spec
-`render_map({ location: 'Vietnam', highlight: { regions: ['Ho Chi Minh City'] } })` stalls the renderer's
-full 20 s timeout and then fails opaquely — the eval suite only ever exercises `Quận 3` (~500 B), so AC-11
-never trips this. 1 MEDIUM — `Number(process.env...)` has no `NaN` guard (`http.ts:126`, and the same
-pattern recurs for `CACHE_MAX` in `geocode.ts:23` and for `poolSize`/`appPort` in `config.ts`), so a
-non-numeric env value silently disables the request-body DoS cap (or, for `poolSize`, deadlocks every
-render) with no signal. 1 LOW — `makeRenderDeps`'s unconditional `ensure.reset()` call (`deps.ts:80`) can
-evict and leak a freshly-rebuilt healthy runtime under a specific 3-render concurrent timing window,
-because `memoizeSuccess`'s `reset()` (`deps.ts:34-36`) clears the memo unconditionally instead of only
-when the current attempt is still cached, unlike its own internal failure-path guard. None of the 3 sits
-on code that changed this round — they are new discoveries on old code, not new regressions — and none is
-a machine-eval regression (all 12 evals above are independently green). The HIGH is a genuine tension with
-the human's own Round-6 termination rule (`d-20260710T110500Z-47001`, "only a confirmed HIGH would reopen
-the loop"): unlike Rounds 6–8, which carried forward only MEDIUM/LOW risk, this round's finding is
-squarely HIGH severity and sits in this feature's headline region-highlight path — see the Gate 2
-checklist below._
+_This round is a complete, fresh S4 verify against the HEAD that Round 9's HIGH-fix and Round 10's own
+self-found fixes left behind — no evidence report had yet been written for any of that work, because
+Round 10 crashed before its scribe step (`decisions.jsonl` d-20260710T213500Z-59001). `git diff bc7aba2
+9e51736 --stat` touches 19 source files (`mcp-server/config.{ts,test.ts}` new;
+`mcp-server/src/configStore.{ts,test.ts}` new; `mcp-server/src/{appServer,browserPool,deps,geocode,http,
+renderFrame,resolveConfig}.{ts,test.ts}`; `mcp-server/scripts/gen-example.ts`; `mcp-server/tsconfig.json`;
+`src/render/{applyRenderConfig,main}.{ts,tsx}` (+ a new `applyRenderConfig.test.ts`)) plus `evals.yaml`
+(E2/E4 strengthened), `README.md`, and the usual `_acceptance/` report/evidence/decision files — the exact
+Round-9/Round-10 fix set, nothing else._
 
 - eval: E1
-  run_id: minted-mcp-map-render-E1-r9
+  run_id: minted-mcp-map-render-E1-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — `git diff 8fbdbfa bc7aba2 -- mcp-server/ src/ e2e/` is empty; this round
-    re-pins verified_commit after a gate-tooling-only change (lib/package.json, scripts/package.json),
-    not a feature change (see Iterations). Same it() refs as Round 8:
-    mcp-server/src/resolveConfig.test.ts:128 "geocodes the location and picks the format size (AC-1)";
+    Fresh verify at HEAD `9e51736` — Rounds 9-10's config-delivery fix is now baked into this pinned tree.
+    Same core it() refs as prior rounds, now re-run against the post-fix source:
+    mcp-server/src/resolveConfig.test.ts:147 "geocodes the location and picks the format size (AC-1)";
     mcp-server/src/tools.test.ts:59 "renders and echoes resolved center/place (AC-1)";
-    mcp-server/src/renderFrame.test.ts:39 "renders a resolved config to an exact-size PNG (AC-1, AC-10)".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    mcp-server/src/renderFrame.test.ts:42 "renders a resolved config to an exact-size PNG (AC-1, AC-10)" —
+    this test now exercises the post-fix config-delivery path (`?configId=<id>` fetched from the app
+    server's `/__config/<id>` route, backed by `configStore`) rather than the URL-embedded config Round 9
+    flagged as a HIGH.
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
     Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  2 passed (2)
-       Start at  18:04:36
-       Duration  8.97s (transform 32ms, setup 0ms, import 465ms, tests 8.24s, environment 210ms)
+          Tests  3 passed (3)
+       Start at  21:33:40
+       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
 
 - eval: E2
-  run_id: minted-mcp-map-render-E2-r9
+  run_id: minted-mcp-map-render-E2-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — no file under mcp-server/src/{resolveConfig,tools,geocode}.ts or their
-    tests changed this round (`git diff 8fbdbfa bc7aba2 -- mcp-server/`, empty). Same it() refs as Round
-    8: mcp-server/src/resolveConfig.test.ts:37 "anchors every highlight to the country of the location
-    being rendered", :52 "names the anchor country when a region cannot be found in it", :59 "looks the
-    country up when location is coordinates, which carry none", :71 "fails closed when the country at
-    those coordinates cannot be determined", :78 "does not pay for a country lookup when no highlight is
-    resolved by name", :145 "region highlight → boundary geojson + fitted camera (AC-2)", :169 "throws
-    when a requested region has no boundary — never silently drops it (F2)"; mcp-server/src/tools.test.ts
-    :116 "region with no boundary → structured error, not a silently unhighlighted poster (F2 / AC-2)";
-    mcp-server/src/geocode.test.ts:119 "reverse-geocodes the country and caches a positive answer", :126
-    "never caches a failed lookup — reverseGeocode returns null for an outage too" (shared with E4), :166
-    "routes a region through the same canonicalisation + city guard as a point, then looks up the exact
-    entity", :180 "rejects a region hit that lands outside the city the query named", :214 "rejects a
-    transient failure at the polygon lookup and never caches it (R2-HIGH)", :242 "refuses a region in the
-    wrong country, even with a real polygon", :264 "allows a region whose country matches the anchor, and
-    one with no country at all", :281 "keys the cache on the anchor country, so one lookup cannot poison
-    another", :290 "caches a definitive 'no such region' (ok response, no result)".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    This round's E2 is materially strengthened over Round 9, per `decisions.jsonl` d-20260710T210000Z-58001
+    ("bắt buộc render được vùng có polygon >16 KB"), closing the exact gap that let Round 9's HIGH survive
+    9 rounds unnoticed (every prior eval only ever exercised "Quận 3", 876 bytes). it() refs:
+    mcp-server/src/renderFrame.test.ts:59 "renders a config far larger than a URL could carry (>16 KB)" —
+    builds a 2,000-vertex ring so the config JSON exceeds 16 KB (comment cites the Round-9 measurement:
+    "Ho Chi Minh City"'s boundary encodes to 20,698 bytes, and the old URL-embedded config got a 431 and
+    hung the renderer's full 20 s timeout), then asserts the PNG still renders at the requested 600×600 AND
+    `configStore.size()` returns to 0 afterward (the parked entry is released, not leaked);
+    mcp-server/src/appServer.test.ts:76 "serves a parked config and 404s an id it never minted" — a 40 KB
+    config (far past the old 16 KB URL ceiling) round-trips through the new `/__config/<id>` GET route; an
+    unknown id 404s, and a path-traversal attempt (`../../package.json`) also 404s rather than falling
+    through to the static handler; :98 "404s every config id when no store is wired in";
+    mcp-server/src/resolveConfig.test.ts:128 "bounds inline region GeoJSON — the one boundary field that
+    accepted anything" and :138 "refuses a GeoJSON payload past the size limit" — closes the Round-8
+    carryover LOW (inline `geojson` used to be `z.any()`, size-unbounded);
+    mcp-server/src/resolveConfig.test.ts:37,52,59,71,78 (country-anchor tests, unchanged since Round 4-5);
+    :164 "region highlight → boundary geojson + fitted camera (AC-2)"; :188 "throws when a requested region
+    has no boundary — never silently drops it (F2)";
+    mcp-server/src/tools.test.ts:116 "region with no boundary → structured error, not a silently
+    unhighlighted poster (F2 / AC-2)";
+    mcp-server/src/geocode.test.ts:166,180,214,242,264,281,290 (VN region-resolution + country-anchor
+    caching, unchanged since Round 5).
+    NOTE for Gate 2: this round's fresh adversarial pass found a new MEDIUM adjacent to this eval's own
+    area — `highlight.regions`/`highlight.points` (tools.ts:115-116) accept unbounded name arrays, and each
+    name serializes an upstream Nominatim call behind the >=1 req/s throttle, so a request naming many
+    places pins the process issuing geocodes for hours; none of this eval's tests send more than a couple
+    of names, so the gap is real and untested, not a contradiction of the green result above (see
+    review-findings.md).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E3
-  run_id: minted-mcp-map-render-E3-r9
+  run_id: minted-mcp-map-render-E3-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/resolveConfig.test.ts did not change this round. Same it()
-    refs: :137 "point highlight → marker + street-level zoom 14–17 (AC-3)"; :159 "explicit camera zoom
-    overrides auto-framing".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    This round's E3 is strengthened over Round 9 to explicitly cover the bearing/pitch regression Round 10
+    found in its OWN review pass and fixed the same round (`decisions.jsonl` d-20260710T213500Z-59002):
+    `camera.bearing`/`camera.pitch` were accepted by the Zod boundary and then silently discarded by the
+    renderer, because the headless map's interaction effect called `setBearing(0)`/`setPitch(0)`
+    unconditionally on load whenever rotation was off. Live probe cited in the finding: bearing=0/45 +
+    pitch=0/50 produced a byte-identical PNG (sha256 `242ad5be0a6ec471`) before the fix; three DIFFERENT
+    sha256s after. it() refs:
+    mcp-server/src/resolveConfig.test.ts:156 "point highlight → marker + street-level zoom 14–17 (AC-3)";
+    :178 "explicit camera zoom overrides auto-framing";
+    src/render/applyRenderConfig.test.ts:21 "locks the map so bearing and pitch survive" (new this round —
+    asserts `usePosterStore.getState().lockMap === true`, `view.bearing === 45`, `view.pitch === 50` for an
+    explicit camera override) and :40 "defaults a missing bearing/pitch to zero".
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E4
-  run_id: minted-mcp-map-render-E4-r9
+  run_id: minted-mcp-map-render-E4-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/geocode.test.ts did not change this round. Same it() refs:
-    :21 "caches identical queries and misses on different ones (AC-4)"; :96 "serializes concurrent
-    upstream calls and spaces them (F3/F6)"; :126 "never caches a failed lookup — reverseGeocode returns
-    null for an outage too" (shared with E2); :299 "evicts the least-recently-used entry instead of
-    growing without limit" (bounded LRU, added Round 8); :317 "a cache hit refreshes recency, so a hot key
-    is never evicted" — still flagged non-discriminating per Round 8's own honesty note
-    (decisions.jsonl d-20260710T150500Z-50006): it passes on the pre-Round-8 unbounded `Map` too.
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    it() refs: mcp-server/src/geocode.test.ts:21,96,126,299,317 (unchanged since Round 8);
+    mcp-server/config.test.ts (new this round, whole new file) — describe('envNumber') :7 "falls back when
+    the variable is unset or empty", :12 "refuses a non-numeric value instead of yielding NaN" (directly
+    regression-tests the Round-9 MEDIUM: `Number(env)` silently disabling the body-size/pool-size caps on a
+    garbage value), :19 "refuses values outside the declared range", :25 "accepts a value inside the
+    range"; describe('loadServerConfig') :31 "defaults to a loopback app host and the 8 MiB body cap", :38
+    "allows port 0 (ephemeral) but refuses a garbage pool size" — asserts `MAPPOSTER_POOL: 'two'` and
+    `MAPPOSTER_HTTP_MAX_BODY: 'lots'` both throw at startup, closing the exact gap the Round-9 finding named
+    (`poolSize` → NaN previously made the pool deadlock every render with no signal).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E5
-  run_id: minted-mcp-map-render-E5-r9
+  run_id: minted-mcp-map-render-E5-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/{tools,renderFrame,browserPool,deps}.test.ts did not change
-    this round. Same it() refs: mcp-server/src/tools.test.ts:126 "renders one image per variant (AC-5)";
-    :132 "a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)";
-    mcp-server/src/renderFrame.test.ts:51 "a reused pooled page renders each config fresh, never a stale
-    frame (F1 / AC-5)"; mcp-server/src/browserPool.test.ts's describe('createResourcePool: discarding a
-    broken resource') (:4–:74, added Round 8) plus the pre-existing describe('createResourcePool')
-    (:83–:128); mcp-server/src/deps.test.ts's describe('memoizeSuccess') (:9–:44) and
-    describe('makeRenderDeps') (:54–:99, added Round 8). NOTE for Gate 2: this round's fresh adversarial
-    pass found a new LOW on this exact area — `ensure.reset()` (deps.ts:80) can unconditionally clear a
-    healthy runtime rebuilt by a concurrent render under a rare 3-render timing window (see
-    review-findings.md); this is a gap in behaviour this eval set does not exercise (no test drives 3
-    overlapping renders with a mid-flight browser death), not a regression in what IS tested.
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    it() refs: mcp-server/src/tools.test.ts:126 "renders one image per variant (AC-5)"; :132 "a variant
+    cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)" (both unchanged since Round 5/8);
+    mcp-server/src/renderFrame.test.ts:87 "a reused pooled page renders each config fresh, never a stale
+    frame (F1 / AC-5)" (unchanged); mcp-server/src/browserPool.test.ts's discard/health suite (unchanged
+    since Round 8) plus :152 "never puts the payload in the URL — that capped every render at 16 KB" (this
+    round's browserPool-level regression guard for the Round-9 HIGH);
+    mcp-server/src/deps.test.ts:53 "reset(attempt) evicts only that attempt, never a rebuild someone else
+    is using" — new this round, regression-tests the Round-9 LOW: `memoizeSuccess.reset()` used to clear
+    the memo unconditionally, so a concurrent render that had already rebuilt a healthy runtime could have
+    it yanked out from under it; :90 "rebuilds the runtime once the browser has died"; :117 "keeps the
+    runtime while the browser is alive" (both unchanged since Round 8).
+    NOTE for Gate 2: this round's fresh adversarial pass found a new MEDIUM on this exact tool —
+    `render_variants`'s `variants: z.array(...)` (tools.ts:149) carries no `.max()`, so a single
+    within-body-cap request can enqueue an unbounded number of sequential headless renders and monopolize
+    the shared browser pool; none of this eval's tests send more than 3 variants, so the gap is real and
+    untested, not a contradiction of the green result above (see review-findings.md).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
     Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  2 passed (2)
-       Start at  18:04:36
-       Duration  8.97s (transform 32ms, setup 0ms, import 465ms, tests 8.24s, environment 210ms)
+          Tests  3 passed (3)
+       Start at  21:33:40
+       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
 
 - eval: E6
-  run_id: minted-mcp-map-render-E6-r9
+  run_id: minted-mcp-map-render-E6-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — no file under the transport/http/app-server surface changed this round
-    (`git diff 8fbdbfa bc7aba2 -- mcp-server/src/appServer.test.ts mcp-server/src/http.test.ts
-    mcp-server/src/transports.test.ts`, empty). Same it() refs: mcp-server/src/appServer.test.ts:29
-    "defaults to loopback", :33 "is not reachable from the LAN by default", :50 "can be opened
-    deliberately"; mcp-server/src/http.test.ts:89 "413s an oversized body rather than buffering it", :105
-    "rejects a body over the cap instead of buffering it to OOM", :110 "counts bytes across chunks — a
-    chunked body declares no Content-Length", :115 "lets a body at the limit through", :9 "accepts a
-    server-to-server call: loopback Host, no Origin", :15 "refuses a rebound Host even though the socket
-    is loopback", :20 "refuses any request carrying an unknown Origin", :71 "403s a rebound Host and an
-    unknown Origin before any tool is dispatched", :122 "decodes multibyte UTF-8 split across chunk
-    boundaries (R2-LOW)", :136 "handles an inline GeoJSON payload spread over many chunks";
+    it() refs: mcp-server/src/appServer.test.ts:30 "defaults to loopback", :34 "is not reachable from the
+    LAN by default", :51 "can be opened deliberately" (unchanged since Round 6, line numbers shifted by the
+    new config-route describe added below them), plus :76 "serves a parked config and 404s an id it never
+    minted" and :98 "404s every config id when no store is wired in" (new this round — the config-in-URL
+    HIGH's closure is exercised at the HTTP-transport layer here too, not just in renderFrame.test.ts);
+    mcp-server/src/http.test.ts:9,15,20,71,89,105,110,115,122,136 (Host/Origin guard + body cap +
+    multibyte-chunk handling, unchanged since Round 6-7 — file not touched this round);
     mcp-server/src/transports.test.ts:9 describe("transports expose the same tool set (AC-6)") — "lists
-    all tools over stdio" at :10, "lists all tools over HTTP" at :23. NOTE for Gate 2: this round's fresh
-    adversarial pass found a new MEDIUM on this exact surface — `Number(process.env.MAPPOSTER_HTTP_
-    MAX_BODY ?? DEFAULT_MAX_BODY_BYTES)` (http.ts:126) has no NaN guard, so a non-numeric env value
-    silently disables the very body cap that :89/:105 above assert — none of this eval's tests set a
-    malformed env value, so the gap is real and untested, not a contradiction of the green result above.
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    all tools over stdio" at :10, "lists all tools over HTTP" at :23 (unchanged).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E7
-  run_id: minted-mcp-map-render-E7-r9
+  run_id: minted-mcp-map-render-E7-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
     Unchanged since Round 8 — mcp-server/src/delivery.test.ts did not change this round. Same it() ref:
     :24 "mode=both writes a file and returns path + base64 + dims (AC-7)".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E8
-  run_id: minted-mcp-map-render-E8-r9
+  run_id: minted-mcp-map-render-E8-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/{resolveConfig,tools}.test.ts did not change this round.
-    Same it() refs: mcp-server/src/resolveConfig.test.ts:19 "resolves tiktok to 1080×1920 and passes
-    custom dims through"; :28 "rejects non-positive, non-integer and oversized custom dims (F4)"; :176
-    "enforces coordinate/zoom bounds at runtime, not only in Zod (R2-MEDIUM)"; mcp-server/src/
-    tools.test.ts:88 "custom format dims flow through (AC-8)"; :167 "list_formats includes tiktok
-    1080×1920 (AC-8)"; :132 "a variant cannot smuggle out-of-range values past the boundary guard
-    (R2-MEDIUM)" (shared with E5).
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    it() refs: mcp-server/src/resolveConfig.test.ts:19 "resolves tiktok to 1080×1920 and passes custom
+    dims through"; :28 "rejects non-positive, non-integer and oversized custom dims (F4)"; :195 "enforces
+    coordinate/zoom bounds at runtime, not only in Zod (R2-MEDIUM)" (line shifted from :176 in Round 9 by
+    this round's new GeoJSON-bound tests inserted earlier in the file); mcp-server/src/tools.test.ts:88
+    "custom format dims flow through (AC-8)"; :167 "list_formats includes tiktok 1080×1920 (AC-8)"; :132
+    "a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)" (shared with E5).
+    NOTE for Gate 2: this round's fresh adversarial pass found a new LOW in the format-resolution path this
+    eval exercises — `formatSize`'s named-format lookup (`if (FORMATS[format]) return FORMATS[format]`,
+    resolveConfig.ts:65) also matches inherited `Object.prototype` members (verified:
+    `FORMATS['constructor']` → the `Object` function; `FORMATS['__proto__']` → `Object.prototype`), so a
+    pathological format string skips the intended "Unknown format" error and instead surfaces a confusing
+    downstream TypeError; none of this eval's tests send such a string (see review-findings.md).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E9
-  run_id: minted-mcp-map-render-E9-r9
+  run_id: minted-mcp-map-render-E9-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/{resolveConfig,tools}.test.ts did not change this round.
-    Same it() refs: mcp-server/src/resolveConfig.test.ts:164 "chrome defaults to clean, poster is
-    honored (AC-9)"; :87 "rejects an unknown theme instead of silently rendering the default"; :95
-    "summarizes each resolved region so the caller can tell which one it got"; :105 "refuses a highlight
-    colour that is not a hex colour"; :116 "accepts the hex forms a caller would actually use"; :121
-    "rejects a bad colour BEFORE spending a geocoding request"; mcp-server/src/tools.test.ts:94 "chrome
-    defaults clean, poster honored (AC-9)"; :143 "placeName overrides the geocoder-derived poster
-    label"; :149 "without placeName the geocoder label is used"; :81 "returns a structured error for an
-    unknown theme rather than a default-themed poster"; :68 "echoes the resolved theme and highlights,
-    per the tool contract".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    it() refs: mcp-server/src/resolveConfig.test.ts:183 "chrome defaults to clean, poster is honored
+    (AC-9)" (line shifted from :164 in Round 9 by this round's new GeoJSON-bound tests); :87 "rejects an
+    unknown theme instead of silently rendering the default"; :95 "summarizes each resolved region so the
+    caller can tell which one it got"; :105 "refuses a highlight colour that is not a hex colour"; :116
+    "accepts the hex forms a caller would actually use"; :121 "rejects a bad colour BEFORE spending a
+    geocoding request"; mcp-server/src/tools.test.ts:94 "chrome defaults clean, poster honored (AC-9)";
+    :143 "placeName overrides the geocoder-derived poster label"; :149 "without placeName the geocoder
+    label is used"; :81 "returns a structured error for an unknown theme rather than a default-themed
+    poster"; :68 "echoes the resolved theme and highlights, per the tool contract" (tools.test.ts unchanged
+    this round).
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E10
-  run_id: verifier-mcp-map-render-E10-20260710T124233Z
+  run_id: run-20260710T143716Z-aa721ffe
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.e2e
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   screenshot: evidence/E10-step1.png
   observed: |
-    Đọc trực tiếp cả 3 frame vừa lưu (Read tool, ảnh thật) + file PNG output riêng, đối chiếu Expected:
+    E10-step1.png (1200x900 browser viewport, taken ~300ms after render.html load with the resolved tiktok
+    config in the URL): NO onboarding modal/card is visible anywhere in the frame — the page shows only the
+    portrait poster-frame (midnight-blue theme, orange roads, dark-blue water/river, "© OpenStreetMap
+    contributors · OpenMapTiles · OpenFreeMap · MapLibre" attribution strip at the bottom). The poster is
+    still mid-render: a plain dark band across the top and a blank wedge in the lower-right are visible
+    where map tiles hadn't streamed in yet at that instant. This matches Expected for step1 (no onboarding,
+    poster frame visible).
 
-    - E10-step1.png (540×960, chụp NGAY sau navigate, trước khi renderFrame): poster-frame theme "ruby"
-      (nền đỏ sẫm), KHÔNG có modal/overlay onboarding nào che màn hình — khớp "no onboarding modal
-      visible". Map đang load dở: 2/3 trên còn là nền đỏ trơn (tile chưa kịp vẽ, vì tôi chỉ đợi 300ms
-      trước khi chụp để bắt đúng trạng thái "vừa vào render-mode"), 1/3 dưới đã thấy đường bờ biển + lưới
-      đường Nha Trang màu hồng/đỏ, có dòng attribution "© OpenStreetMap contributors · OpenMapTiles ·
-      OpenFreeMap · MapLibre" ở đáy.
-    - E10-step2.png (540×960, chụp NGAY sau khi `await api.ready; await api.renderFrame()` resolve): bản
-      đồ đã vẽ ĐẦY ĐỦ — toàn bộ bờ biển, bán đảo, lưới đường Nha Trang hiện rõ từ trên xuống dưới, vẫn
-      không có onboarding overlay. Khớp kỳ vọng "ready resolves" trước khi renderFrame chạy xong.
-    - E10-step3.png (540×960, chụp sau khi assert dims): giống hệt bố cục step2 nhưng có thêm banner xanh
-      lá phủ trên cùng, chữ trắng: "VERIFIER ASSERT renderFrame() PNG dims == 1080x1920 -> actual IHDR
-      1080x1920 -> PASS" — banner này do chính script vẽ SAU khi đã đọc byte IHDR thật của PNG trả về,
-      nên nó phản ánh kết quả assertion thật, không phải suy diễn.
-    - evidence/E10-rendered-output.png (PNG THẬT do renderFrame() trả về, giải mã từ dataUrl, KHÔNG phải
-      screenshot viewport): đã dùng `sips -g pixelWidth -g pixelHeight` (công cụ hệ điều hành, độc lập
-      với script của tôi) đo lại — kết quả pixelWidth=1080, pixelHeight=1920, khớp chính xác Expected "PNG
-      dimensions == 1080×1920". Đồng thời tự parse header IHDR (byte offset 16-23) trong script cũng cho
-      đúng 1080×1920 — hai phép đo độc lập khớp nhau, không dựa vào field {width,height} do wrapper JS tự
-      echo lại cfg.size (field đó chỉ là copy nguyên văn cfg.size trong main.tsx, không phải bằng chứng
-      thật).
+    E10-step2.png (same viewport, taken immediately after `await window.__mapposter.ready; await
+    window.__mapposter.renderFrame()` resolved in-page): the poster frame is now fully tiled edge-to-edge —
+    the top band and the lower-right wedge that were blank in step1 are filled in with roads/water,
+    confirming renderFrame() only returned after the map view had actually finished drawing. Still no
+    onboarding modal.
 
-    Không có mâu thuẫn nào với Expected trong bất kỳ frame nào.
+    E10-step3.png: pixel-identical composition to step2 (expected — step3 is the same page state, just
+    after the dimension assertion ran against the returned PNG rather than a new UI transition). No
+    onboarding modal, poster fully rendered.
+
+    Independent machine assertions (not just the page's self-report) against the actual object returned by
+    renderFrame():
+    - result.width === 1080 → true
+    - result.height === 1920 → true
+    - dataUrl starts with "data:image/png" → true
+    - PNG bytes decoded independently: signature magic bytes valid; IHDR chunk width=1080, height=1920
+      (byte-level decode, not trusting the page's reported w/h)
+    - dataUrl length 2,932,130 chars (>2000 threshold)
+    All 9 assertions PASS — no contradiction with Expected. This round's E10 additionally exercises the
+    post-fix config-delivery path end to end (the render-mode page fetches its config from
+    `/__config/<id>` rather than reading it out of the URL), since that is now the only path
+    render-mode.spec.ts and this ui-check exercise.
   output: |
-    DỌN DẸP: rm .e10-verifier-tmp.mjs khỏi repo root; git status cuối chỉ còn 4 file evidence PNG bị
-    modify (đúng ý đồ ghi đè evidence vòng này), không đụng source/test nào; server dev PID 20305 vẫn
-    nguyên (không tắt, vì không phải server do tôi start).
+    run_id minted at 2026-07-10T14:37:16Z, i.e. AFTER this invocation started (2026-07-10T14:35:22Z) — not
+    a replay of a prior round's run_id.
 
-    KẾT LUẬN: MỌI assertion pass, có bằng chứng máy-kiểm-được + đối chiếu 2 nguồn độc lập cho kích thước
-    PNG + đọc lại từng frame ảnh thật khớp Expected + bộ e2e 11/11 pass thật (không phải log tái sử
-    dụng). exitCode=0.
+    Final state: git status shows only the 3 evidence PNGs modified (no other working-tree changes, no
+    leftover temp scripts, no stray processes started/stopped by this verifier). exitCode=0 because every
+    assertion above passed.
 
     Corroborating: `npm run test:e2e`:
           ✓  11 [chromium] › e2e/render-mode.spec.ts:15:1 › render mode: headless renderFrame yields
-             exact target dims, no onboarding (AC-10) (1.3s)
+             exact target dims, no onboarding (AC-10) (1.8s)
 
-      11 passed (35.1s)
+      11 passed (40.5s)
     Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  2 passed (2)
-       Start at  18:04:36
-       Duration  8.97s (transform 32ms, setup 0ms, import 465ms, tests 8.24s, environment 210ms)
+          Tests  3 passed (3)
+       Start at  21:33:40
+       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
 
 - eval: E11
-  run_id: minted-mcp-map-render-E11-r9
+  run_id: minted-mcp-map-render-E11-r11
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T18:10:00Z
+  verified_at: 2026-07-10T21:40:00Z
   output: |
     Unchanged since Round 8 — mcp-server/src/tools.test.ts did not change this round. Same it() refs:
     :101 "ungeocodable input → structured error, no throw (AC-11)"; :107 "invalid custom dims →
     structured error, never renders a blank PNG (F4 / AC-11)".
-    Shared `npm test` (vitest) aggregate tail:
-          Tests  179 passed | 2 skipped (181)
-       Start at  18:04:37
-       Duration  2.07s (transform 1.17s, setup 0ms, import 4.79s, tests 1.05s, environment 8.72s)
+    `npm test` (vitest) aggregate tail:
+          Tests  198 passed | 3 skipped (201)
+       Start at  21:33:41
+       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E12
   judged_by: judge panel — domain-correctness, operational-feasibility, spec-alignment (fresh context
@@ -375,58 +362,54 @@ checklist below._
   verdict: PASS
   rationale: |
     Panel proposal: PASS (3/3 lenses concur), re-run this round against the unchanged
-    `evidence/E12-example.png` (confirmed unchanged in `git diff 8fbdbfa bc7aba2` — this round touched no
-    rendering/compositing source; the only tree changes were gate-tooling package.json additions and
-    _acceptance/ evidence/report files, per the Iterations entry below). Last regenerated at commit
-    `433e7ea` (Round 3).
+    `evidence/E12-example.png` (untouched since commit `433e7ea`, Round 3 — this round's fixes touched
+    config delivery, env validation, camera locking, and pool/memo internals, not poster compositing or
+    point-highlight rendering; confirmed via `git diff bc7aba2 9e51736 -- evidence/E12-example.png`,
+    empty).
     Individual votes:
-    - domain-correctness: PASS — Pixel-check confirms the canvas is exactly 1080×1920 and the white
-      point-marker sits at (~541,931–958), essentially dead-center against true center (540,960) —
-      location is correctly centered. The marker's high-contrast white glyph against the midnight-blue
-      basemap is clearly legible, and a full-frame block scan found zero flat/blank regions — the amber
-      road network and building fills form a continuous, seamless grid with no missing-tile or breakage
-      artifacts; shown coordinates (10.7759°N, 106.6894°E) are also geographically consistent with Võ
-      Văn Tần, Quận 3, HCMC. All three AC-12 sub-criteria (centering, legibility, unbroken tiles/roads)
-      are clearly demonstrated by this single frame.
-    - operational-feasibility: PASS — Pixel measurement confirms the PNG is exactly 1080×1920 (tiktok
-      target) with the marker's anchor tip at (541,959) vs true center (540,960) — centered within 1px.
-      The white pin renders crisp and high-contrast against the midnight-blue basemap (clearly legible),
-      and an automated seam/placeholder scan plus zoomed crop inspection (corners, center, label band)
-      found zero broken-tile artifacts: roads, building footprints, the roundabout, and all text labels
-      render continuously with no gaps or flat placeholder blocks. Displayed coordinates (10.7759°N,
-      106.6894°E) are geographically consistent with Võ Văn Tần, Quận 3, HCMC, so all three named
-      sub-criteria are clearly demonstrated.
-    - spec-alignment: PASS — Pixel analysis of E12-example.png shows the white point-marker's anchor tip
-      at (539.7, 959) in a 1080×1920 frame — within 1px of dead-center (540, 960) — so the location is
-      correctly centered; the marker is a high-contrast white/black icon clearly legible against the
-      midnight-blue basemap. Roads and building footprints render as continuous, unbroken vector lines
-      with no missing-tile/flat-block artifacts (scanned 256px grid found zero anomalies), and the frame
-      matches the tiktok 1080×1920 target exactly, so the still reads as usable video B-roll.
+    - domain-correctness: PASS — Ảnh đúng kích thước tiktok 1080×1920; marker (đầu nhọn pin) nằm tại tọa
+      độ pixel (~541, ~958) trùng khớp tâm khung hình (540, 960), tức điểm highlight được canh giữa đúng
+      chuẩn. Highlight là pin trắng có chấm tối, tương phản rõ trên nền xanh midnight-blue nên dễ đọc;
+      lưới đường màu vàng cam và khối nhà liền mạch, không thấy vỡ tile, đứt gãy hay khoảng trắng — ảnh
+      dùng được làm B-roll.
+    - operational-feasibility: PASS — Ảnh đúng kích thước tiktok 1080×1920; đo pixel cho thấy đầu nhọn
+      của pin (điểm neo tọa độ) nằm gần như chính giữa khung (x≈541/540, y≈958/960) nên vị trí được canh
+      giữa đúng như AC-12 yêu cầu. Marker trắng tương phản mạnh với nền navy, dễ đọc (legible); lưới đường
+      màu cam và footprint tòa nhà phủ kín toàn khung, không có ô tile trống/gãy hay artefact — đủ điều
+      kiện dùng làm B-roll video.
+    - spec-alignment: PASS — The image is 1080×1920 (tiktok format), rendered in a coherent midnight-blue
+      palette (navy fill, amber road lines) with no missing tiles, broken geometry, or rendering artifacts
+      across roads, buildings, and the roundabout. The white pin highlight sits near the visual center of
+      the frame with high contrast and is unambiguously legible, and the road network is fully connected
+      around it with no breakage — this is usable as B-roll.
   human_override:
   # ^ Required before this item can become a direct human PASS — and, since overall verdict is
   # PENDING-JUDGMENT, before overall PASS. This contract's risk_tier T3 mandates a direct human verdict
   # on EVERY judgment eval, regardless of the panel's proposal. Round 8's human_override (manh, PASS) was
-  # tied to commit `8fbdbfa`; this round re-pins verified_commit to `bc7aba2` (a gate-tooling-only
-  # re-verify, no rendering change), so per decisions.jsonl d-20260710T180500Z-54002 ("chữ ký phải áp lại
-  # sau khi verify xong") the signature must be reapplied against this fresh pin.
+  # tied to commit `8fbdbfa`; this round re-pins verified_commit to `9e51736` (Rounds 9-10's
+  # config-delivery/env-validation/camera-lock/pool-memo fixes), so per decisions.jsonl
+  # d-20260710T180500Z-54002 ("chữ ký phải áp lại sau khi verify xong") the signature must be reapplied
+  # against this fresh pin.
 
 ## Analyst
 
-Eval ids green-on-both (HEAD `bc7aba2` AND the pre-feature `diffBase` tree), via the shared `npm test`
+Eval ids green-on-both (HEAD `9e51736` AND the pre-feature `diffBase` tree), via the shared `npm test`
 command — non-discriminating this round:
 
 - E1, E2, E3, E4, E5, E6, E7, E8, E9, E11
 
-Likely cause (unchanged since Round 1): all these assertions live in `mcp-server/src/*.test.ts` (plus the
-VN-geocoding additions in `src/lib/geocoding.test.ts`), and the entire `mcp-server/` package is net-new
-code introduced by this feature branch — on the `diffBase` tree those files do not exist at all, so `npm
-test` there collects nothing under `mcp-server/`, a vacuous pass rather than a genuine
-behavior-equivalence pass. This round makes no change inside `mcp-server/` at all (`git diff 8fbdbfa
-bc7aba2 -- mcp-server/` is empty — the only tree changes this round are gate-tooling package.json
-additions and `_acceptance/` report/evidence files), so the non-discriminating status is unchanged from
-Round 8 for the same reason. Gate 2 human should confirm the `diffBase` used for this A/B run actually
+Likely cause (unchanged since Round 1): all these assertions live in `mcp-server/src/*.test.ts` /
+`mcp-server/config.test.ts` (plus `src/render/applyRenderConfig.test.ts`), and the entire `mcp-server/`
+package — along with the render-mode additions under `src/render/` — is net-new code introduced by this
+feature branch: on the `diffBase` tree those files/directories do not exist at all, so `npm test` there
+collects nothing under them, a vacuous pass rather than a genuine behavior-equivalence pass. This round
+DOES change files inside `mcp-server/` (Round 10's fixes: `configStore.ts`, `config.ts`'s `envNumber`,
+`appServer.ts`'s config route, `deps.ts`'s `reset(attempt)` guard, `resolveConfig.ts`'s GeoJSON bound,
+plus `src/render/applyRenderConfig.ts`'s `lockMap`) — but that does not change the non-discriminating
+verdict, because the reason is architectural (the whole package is absent on `diffBase`), not about which
+lines changed within it. Gate 2 human should confirm the `diffBase` used for this A/B run actually
 predates `mcp-server/` (expected) rather than a mis-resolved base that happens to already contain this
-code — the same confirmation asked of Rounds 1–8.
+code — the same confirmation asked of Rounds 1–10.
 
 `npm run test:e2e` and `npm run test:mcp` are not listed here: neither is assigned to any eval in this
 round's machine-results map (`evals: []` for both), so they are outside this section's scope by
@@ -775,29 +758,113 @@ their one recorded run this round).
   and sits in this feature's headline region-highlight path; whether to accept it as risk, ticket it, or
   send the feature back for a Round 10 fix is a decision for the human at Gate 2, not resolved by this
   verify pass.
+- Round 10 (attempted 2026-07-10T20:50:00Z–21:35:00Z, HEAD `9e51736` at completion; no
+  `evidence-report.md` produced by this round itself): Round 9 reached PENDING-JUDGMENT with all 12 evals
+  green but 1 HIGH + 1 MEDIUM + 1 LOW open (config-in-URL breaking realistic region highlights; unguarded
+  `Number(env)` NaN silently disabling the body/pool caps; `memoizeSuccess.reset()` unconditionally
+  evicting a healthy concurrent rebuild) — under the human's Round-6 termination rule only a confirmed
+  HIGH reopens the loop, and Round 9 had one, so the human blocked the merge
+  (`decisions.jsonl` d-20260710T200000Z-56002) rather than accept it as risk. Implementation closed all
+  three, plus the Round-8 carryover LOW (inline `highlight.regions[].geojson` still `z.any()`, unbounded)
+  that Round 9's review had explicitly flagged as not-yet-revisited: the HIGH via a new `configStore.ts`
+  (in-process `Map`, random id per render — not a content hash, since two concurrent renders of the same
+  config must not evict each other) plus an `appServer.ts` route serving a config only by an id this
+  process itself minted (`d-20260710T205000Z-57001` — measured before/after: `Ho Chi Minh City` region
+  22.5 s timeout → 7.0 s PNG; `Vietnam`, ~155 KB config → 9.4 s PNG); the MEDIUM via a fail-closed
+  `envNumber()` helper (rejects NaN/non-integer/out-of-range at startup, naming the offending variable)
+  applied to every numeric env var in the codebase — app port, pool size, HTTP body cap, geocode cache
+  size (`d-20260710T205000Z-57002`); the LOW via `memoizeSuccess.reset(attempt)` only clearing the memo
+  when it still holds that exact attempt, mirroring the existing internal failure-path guard; the
+  carryover LOW via `assertGeojson()` (FeatureCollection shape check + 2 MiB cap) replacing `z.any()`. A
+  dedicated regression test proved the HIGH was real on pre-fix source: a >16 KB config timed out
+  (`page.goto: Timeout 30000ms exceeded`) before the fix (`d-20260710T210000Z-58001`). `evals.yaml`'s E2
+  was strengthened to require rendering a region whose polygon exceeds 16 KB (a whole city, not just a
+  district — the exact gap that let the Round-9 HIGH survive 9 rounds of `Quận 3`-only evals) and E4 to
+  require startup-time env validation.
+  **This round's own fresh adversarial pass, run against its own fix, surfaced 2 NEW findings**: MEDIUM —
+  `camera.bearing`/`camera.pitch` were accepted by the Zod boundary and then silently discarded by the
+  renderer (the headless map's interaction effect called `setBearing(0)`/`setPitch(0)` unconditionally on
+  load whenever rotation was off); measured live, bearing=0/45 + pitch=0/50 produced a byte-identical PNG
+  (sha256 `242ad5be0a6ec471`) before the fix. LOW — a regression Claude itself had just introduced:
+  `mcp-server/scripts/gen-example.ts` still called `renderFrame` with its pre-`configStore` signature, and
+  `tsc` never caught it because `mcp-server/tsconfig.json`'s `include` never covered `scripts/`
+  (`d-20260710T213500Z-59003`). Both findings passed the finder → refuter adversarial-verify pass without
+  being rejected, and — rather than carry them to Gate 2 as accepted MEDIUM/LOW risk under the Round-6
+  termination rule — were fixed the same round, before any evidence report was written: the camera bug via
+  `applyRenderConfig` setting `lockMap: true` (a headless render IS a locked map; the lock branch disables
+  the interaction handler without touching the camera) and two new `applyRenderConfig.test.ts` cases; the
+  script bug via wiring `configStore` into `gen-example.ts` and adding `scripts` to `tsconfig.json`'s
+  `include` so this class of drift cannot recur silently (`d-20260710T213500Z-59002`,
+  `d-20260710T213500Z-59003`). **The round then died before it could write `evidence-report.md`**: all 14
+  sub-agents of this S4 pass had finished — all 3 suite commands exited clean, all 3 E12 judge lenses
+  proposed PASS, both of this round's own findings had passed the refuter — but the run terminated before
+  the scribe step, leaving `run-log.jsonl` populated with Round 10's eval entries while
+  `evidence-report.md` itself was never touched and Round 9's file (pinned to `bc7aba2`, now stale
+  relative to HEAD) stayed on disk (`decisions.jsonl` d-20260710T213500Z-59001). No verdict was assigned by
+  Round 10 itself; per the same infrastructure-BLOCKED precedent as Round 9's own first attempt, this is
+  recorded here as context for Round 11 rather than as a graded round with its own verdict line in the
+  table above. The decision was to fix both of Round 10's self-found findings immediately (already done,
+  see above) and run a fresh, complete Round 11 verify against the resulting HEAD, rather than resume a
+  report-writing step for a round whose own review had already moved the target.
+- Round 11 (verified 2026-07-10T21:40:00Z, commit `9e51736`): A complete, fresh S4 verify against the HEAD
+  Round 10 left behind — Round 9's HIGH/MEDIUM/LOW and the Round-8 carryover LOW all closed, Round 10's
+  own self-found camera-bearing/pitch MEDIUM and gen-example.ts/tsconfig LOW also closed, and no evidence
+  report had yet been written for any of that work (Round 10 crashed pre-scribe). All 12 evals pass: `npm
+  test` is now **198 passed | 3 skipped (201)** (up from 179 | 2 in Round 9 — new coverage in
+  `mcp-server/src/configStore.test.ts` (new file), `mcp-server/config.test.ts` (new file, `envNumber` +
+  `loadServerConfig`), `mcp-server/src/renderFrame.test.ts`'s >16 KB regression case,
+  `mcp-server/src/appServer.test.ts`'s config-route cases, `mcp-server/src/deps.test.ts`'s
+  `reset(attempt)` case, `mcp-server/src/resolveConfig.test.ts`'s GeoJSON-bound cases, and
+  `src/render/applyRenderConfig.test.ts` (new file, bearing/pitch lock)); `npm run test:e2e` unchanged at
+  **11/11**; `npm run test:mcp` is now **3 passed** (up from 2 — the new >16 KB `renderFrame` case also
+  runs under the real-browser integration suite). E10's dedicated ui-check re-confirms exact 1080×1920
+  output and no onboarding, with an independent byte-level PNG IHDR decode cross-check (see Evidence
+  above). E12's judge panel re-affirms PASS (3/3 lenses) against the still-unchanged
+  `evidence/E12-example.png` (last regenerated at commit `433e7ea`, Round 3 — this round's fixes touched
+  config delivery, env validation, camera locking, and pool/memo internals, not poster compositing or
+  point-highlight rendering). Overall verdict remains PENDING-JUDGMENT — `risk_tier: T3` still mandates a
+  direct human `human_override` on E12 regardless of the panel's proposal, not yet supplied across any of
+  the 11 rounds so far; Round 8's now long-superseded signoff (`manh`, PASS, tied to commit `8fbdbfa`) does
+  not carry forward. **A fresh adversarial pass this round — against the HEAD produced by Rounds 9-10's
+  fixes — surfaced 3 NEW findings for `review-findings.md`, zero HIGH**: MEDIUM — `render_variants`'s
+  `variants: z.array(...)` (tools.ts:149) has no `.max()`, so a single within-body-cap request can enqueue
+  an unbounded number of sequential headless renders and monopolize the shared browser pool — the one
+  array cardinality left unbounded now that every scalar input is capped. MEDIUM —
+  `highlight.regions`/`highlight.points` (tools.ts:115-116) accept unbounded name arrays, and each name
+  serializes an upstream Nominatim call behind the >=1 req/s rate limit, so a request naming many places
+  pins the process issuing geocodes for hours, turning one MCP request into sustained abuse of a shared
+  public geocoding service. LOW — `formatSize`'s named-format lookup (`if (FORMATS[format]) ...`,
+  resolveConfig.ts:65) also matches inherited `Object.prototype` members (verified:
+  `FORMATS['constructor']` returns the `Object` function, `FORMATS['__proto__']` returns
+  `Object.prototype`), so a pathological format string skips the intended "Unknown format" error and
+  instead surfaces a confusing downstream TypeError. None of the 3 is HIGH, none is a machine-eval
+  regression (all 12 evals above are independently green), and per the human's Round-6 termination rule
+  (`d-20260710T110500Z-47001`, "only a confirmed HIGH would reopen the loop") none by itself blocks Gate 2
+  — this is the third round in a row with a clean MEDIUM/LOW-only review outcome (Round 9 was the
+  exception with its HIGH; Round 10 self-fixed its own findings before Gate 2), so this round advances to
+  Gate 2 pending only E12's human_override.
 
 ## Gate 2 checklist (human)
 
 - [ ] Read the table + spot-check 1-2 evidence blocks (E10's 3-frame slideshow — evidence/E10-step1.png
-      → step2.png → step3.png — is a good one to open; it's a fresh Nha Trang/ruby-theme config, not a
-      replay)
+      → step2.png → step3.png — is a good one to open; independently re-verified this round with a
+      byte-level PNG IHDR decode, not just the page's self-reported dims)
 - [ ] Personally verify judgment item **E12** (AC-12) — the panel proposes PASS (3/3 lenses) against
       `evidence/E12-example.png` (unchanged since Round 3, commit `433e7ea`), then fill its
       `human_override: <name> <date>` line. Round 8's signoff (manh, PASS) was tied to commit `8fbdbfa`
-      and does not carry over automatically: this round re-pins `verified_commit` to `bc7aba2` (a
-      gate-tooling-only re-verify, per `decisions.jsonl` d-20260710T180500Z-54002), so the T3 mandate for
-      a direct human verdict on EVERY judgment item applies fresh here too
-- [ ] Review the 3 items in `review-findings.md` — **including 1 HIGH, the first since Round 4**: the
-      resolved RenderConfig travels to the renderer as a URL query param, but the internal app server
-      never raises Node's default 16 KB header cap, so realistic region-highlight/inline-GeoJSON payloads
-      (measured live: 20,320 B for Ho Chi Minh City, 155,316 B for Vietnam) exceed it and the render
-      stalls/fails opaquely — an in-spec call this eval suite never exercises. Also 1 MEDIUM (unguarded
-      `Number(env)` silently disables the body-size DoS cap on misconfiguration) and 1 LOW (an
-      unconditional pool-reset can leak a healthy runtime under a rare concurrent-render race). None of
-      the 3 sits on code that changed this round — they are new findings on unchanged code. Per the
-      human's Round-6 termination rule, only a confirmed HIGH reopens the loop; this round has one —
-      decide whether to accept it as risk, ticket it, or send the feature back for a Round 10 fix
-- [ ] Once E12's `human_override` is filled and the HIGH finding above is dispositioned: upgrade
-      `verdict` to `PASS` (this write is when the hook re-validates evidence + overrides)
+      and does not carry over automatically: this round pins `verified_commit` to `9e51736` (Rounds
+      9-10's config-delivery/env-validation/camera-lock/pool-memo fixes), so the T3 mandate for a direct
+      human verdict on EVERY judgment item applies fresh here too
+- [ ] Review the 3 items in `review-findings.md` — 2 MEDIUM (an unbounded `render_variants` array can
+      monopolize the shared browser pool from one within-cap request; unbounded `highlight.regions`/
+      `highlight.points` name arrays can pin the process issuing serialized Nominatim calls for hours) and
+      1 LOW (`formatSize`'s named-format lookup also matches `Object.prototype` members, e.g.
+      `format:'constructor'`, producing a confusing TypeError instead of the intended "Unknown format"
+      error). Zero HIGH this round — per the human's Round-6 termination rule these do not by themselves
+      require another round, but Gate 2 should decide whether to accept them as risk or ticket a
+      fast-follow (a `.max()` on `variants`/`regions`/`points` and an `Object.hasOwn` guard on
+      `formatSize` would close all 3)
+- [ ] Once E12's `human_override` is filled: upgrade `verdict` to `PASS` (this write is when the hook
+      re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in `contract.md` only once the
       verdict reaches PASS

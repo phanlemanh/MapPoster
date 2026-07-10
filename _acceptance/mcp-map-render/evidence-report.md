@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 8fbdbfae83731c60ee7c2a94d1ce1fbacebb6f10
-human_signoff:
+human_signoff: manh (2026-07-10) — verdict given in session; commit authored by Claude on manh's instruction
 ---
 
 # Evidence Report: mcp-map-render
@@ -398,6 +398,7 @@ LOW does not by itself block Gate 2 — it is informational for the human's revi
        Duration  2.33s (transform 743ms, setup 0ms, import 4.61s, tests 1.15s, environment 11.03s)
 
 - eval: E12
+  human_override: PASS
   judged_by: judge panel — domain-correctness, operational-feasibility, spec-alignment (fresh context
     each)
   verdict: PASS

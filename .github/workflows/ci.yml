@@ -1,0 +1,45 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Typecheck BOTH projects — mcp-server/ has its own tsconfig, and scripts/
+      # only recently entered its include (a drift there shipped a runtime crash).
+      - name: Typecheck
+        run: |
+          npx tsc -b
+          npx tsc -p mcp-server/tsconfig.json
+
+      - name: Unit + integration (Vitest)
+        run: npm test
+
+      # These three are the ones that were NOT in CI and caught the real defects:
+      # the readyRef race (r6), the config-in-URL 16 KB cap (r9), the discarded
+      # camera (r10). A public repo without them would merge those back in.
+      - name: E2E (Playwright)
+        run: npm run test:e2e
+
+      - name: MCP render integration
+        run: npm run test:mcp
+
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Acceptance gate
+        run: bash scripts/pre-merge-check.sh --base "origin/${{ github.base_ref || 'main' }}"

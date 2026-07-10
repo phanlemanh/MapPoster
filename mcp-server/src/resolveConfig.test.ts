@@ -80,4 +80,12 @@ describe('resolveConfig', () => {
       /no boundary found for region/i,
     );
   });
+
+  it('enforces coordinate/zoom bounds at runtime, not only in Zod (R2-MEDIUM)', async () => {
+    await expect(resolveConfig({ location: { lng: 999, lat: 0 } })).rejects.toThrow(/invalid longitude/i);
+    await expect(resolveConfig({ location: { lng: 0, lat: 99 } })).rejects.toThrow(/invalid latitude/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { zoom: 99 } })).rejects.toThrow(/invalid zoom/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { center: [999, 0] } })).rejects.toThrow(/invalid longitude/i);
+    await expect(resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 500, lat: 0 }] } })).rejects.toThrow(/invalid longitude/i);
+  });
 });

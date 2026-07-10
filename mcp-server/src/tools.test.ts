@@ -10,6 +10,14 @@ vi.mock('./geocode', () => ({
       ? { center: [106.7, 10.78], zoom: 12, place: { name: 'HCMC', country: 'Vietnam', lat: 10.78, lng: 106.7 } }
       : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
   }),
+  searchCandidates: vi.fn(async (q: string) =>
+    q.toLowerCase().startsWith('zzz')
+      ? []
+      : [
+          { name: 'Nguyen Hue Boulevard', country: 'Vietnam', lng: 106.7, lat: 10.77, zoom: 15, displayName: 'Nguyen Hue Boulevard, …' },
+          { name: 'Ho Chi Minh City Hall', country: 'Vietnam', lng: 106.7, lat: 10.776, zoom: 15, displayName: 'Ho Chi Minh City Hall, …' },
+        ],
+  ),
   resolveBoundary: vi.fn(async () => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }] })),
 }));
 
@@ -98,6 +106,39 @@ describe('render_variants', () => {
     const res = await tools().render_variants({ base: { location: 'HCMC', format: 'tiktok' }, variants: [{ theme: 'ocean' }, { theme: 'ruby' }] });
     expect(textJson(res).count).toBe(2);
     expect(imageBlocks(res)).toHaveLength(2);
+  });
+
+  it('a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)', async () => {
+    for (const variant of [{ camera: { zoom: 99 } }, { location: { lng: 999, lat: 0 } }, { format: { width: 0, height: 0 } }]) {
+      const res = await tools().render_variants({ base: { location: 'HCMC', format: 'tiktok' }, variants: [variant] });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).ok).toBe(false);
+    }
+    expect(render).not.toHaveBeenCalled();
+  });
+});
+
+describe('VN address UX', () => {
+  it('placeName overrides the geocoder-derived poster label', async () => {
+    const res = await tools().render_map({ location: 'Võ Văn Tần, Quận 3, TP.HCM', placeName: 'Võ Văn Tần, Quận 3' });
+    expect(textJson(res).resolved.place.name).toBe('Võ Văn Tần, Quận 3');
+    expect(lastCfg?.place.name).toBe('Võ Văn Tần, Quận 3');
+  });
+
+  it('without placeName the geocoder label is used', async () => {
+    const res = await tools().render_map({ location: 'HCMC' });
+    expect(textJson(res).resolved.place.name).toBe('HCMC');
+  });
+
+  it('geocode_place returns candidates for disambiguation, not just the top hit', async () => {
+    const j = textJson(await tools().geocode_place({ query: 'Lê Lợi, Quận 1, TP.HCM' }));
+    expect(j.candidates).toHaveLength(2);
+    expect(j.best.name).toBe('Nguyen Hue Boulevard');
+  });
+
+  it('geocode_place surfaces a structured error when nothing matches', async () => {
+    const res = await tools().geocode_place({ query: 'zzzzz-nowhere' });
+    expect(res.isError).toBe(true);
   });
 });
 

@@ -19,6 +19,8 @@ export interface RenderMapParams {
   theme?: string;
   chrome?: Chrome;
   camera?: Partial<RenderCamera>;
+  /** Override the poster label. Geocoder naming is a heuristic — let the caller win. */
+  placeName?: string;
 }
 
 /** Named format presets (video-first). Layout ids also resolve via getLayout. */
@@ -39,6 +41,19 @@ function assertDim(n: number, label: string): number {
     throw new Error(`Invalid ${label}: ${n} (must be an integer between 1 and ${MAX_EDGE})`);
   }
   return n;
+}
+
+/** Runtime bounds, enforced even for callers that bypass the Zod layer
+ * (e.g. render_variants overrides merged onto a validated base). */
+function assertLngLat(lng: number, lat: number): [number, number] {
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) throw new Error(`Invalid longitude: ${lng} (must be between -180 and 180)`);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) throw new Error(`Invalid latitude: ${lat} (must be between -90 and 90)`);
+  return [lng, lat];
+}
+
+function assertZoom(zoom: number): number {
+  if (!Number.isFinite(zoom) || zoom < 0 || zoom > 22) throw new Error(`Invalid zoom: ${zoom} (must be between 0 and 22)`);
+  return zoom;
 }
 
 export function formatSize(format?: FormatInput): { width: number; height: number } {
@@ -83,6 +98,13 @@ const STREET_ZOOM = 16; // within the 14–17 street band
 
 /** Turn tool params into a fully-resolved RenderConfig (geocode + auto-frame). */
 export async function resolveConfig(params: RenderMapParams): Promise<RenderConfig> {
+  if (typeof params.location === 'object') {
+    assertLngLat(params.location.lng, params.location.lat);
+    if (params.location.zoom != null) assertZoom(params.location.zoom);
+  }
+  if (params.camera?.center) assertLngLat(params.camera.center[0], params.camera.center[1]);
+  if (params.camera?.zoom != null) assertZoom(params.camera.zoom);
+
   const base = await resolveLocation(params.location);
   const size = formatSize(params.format);
   const theme = params.theme ?? 'midnight-blue';
@@ -104,7 +126,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
 
   const markers: RenderMarker[] = [];
   for (const p of params.highlight?.points ?? []) {
-    const center = typeof p === 'string' ? (await resolveLocation(p)).center : ([p.lng, p.lat] as [number, number]);
+    const center = typeof p === 'string' ? (await resolveLocation(p)).center : assertLngLat(p.lng, p.lat);
     markers.push({
       lng: center[0],
       lat: center[1],
@@ -139,7 +161,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     size,
     theme,
     chrome,
-    place: base.place,
+    place: params.placeName ? { ...base.place, name: params.placeName } : base.place,
     highlight,
     markers: markers.length ? markers : undefined,
   };

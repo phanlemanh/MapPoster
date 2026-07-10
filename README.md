@@ -57,7 +57,19 @@ render_map({
 // → { image: { path, base64, width: 1080, height: 1920 }, resolved: { center, zoom, place } }
 ```
 
-Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+
+### Vietnamese addresses
+
+Nominatim's free-form parser does not understand how VN addresses are written, so `resolveLocation` canonicalises them first (measured against the live API — `npx tsx mcp-server/scripts/check-vn-addresses.ts`):
+
+- `TP.HCM` / `TPHCM` / `TP. Hồ Chí Minh` / `Sài Gòn` → `Ho Chi Minh City`; likewise `Hà Nội` → `Hanoi`, `Đà Nẵng` → `Da Nang`.
+- `Quận 3` / `Q.7` → `District 3` / `District 7`; `Phường 5` → `Ward 5`; a leading `Đường` is dropped.
+- A leading house number is retried without it (`123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh` returns **0 hits**; the street alone resolves correctly). The **district is never dropped automatically** — that would match a same-named street 60 km away in the same (post-2025-merger, very large) Ho Chi Minh City.
+- Results are tie-broken by Nominatim's `importance` **within one `place_rank`**. Sorting globally would let the city outrank the district you asked for.
+- Labels use the *matched feature* (`Võ Văn Tần`, `District 3`, `Hoàn Kiếm Lake`), not the administrative parent — which today is `Thủ Đức` for most of HCMC.
+
+**Known limits.** Free-form ranking still mis-resolves some street addresses (`Đường Lê Lợi, Quận 1` ranks a nearby primary school first). For anything that must be exact, call `geocode_place` — it returns a **candidate list** — then pass explicit `{lng,lat}` plus `placeName` to `render_map`. `placeName` overrides the poster label entirely.
 
 ## Features
 

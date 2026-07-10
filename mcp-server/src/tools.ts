@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, MAX_EDGE, type RenderMapParams } from './resolveConfig';
-import { resolveLocation } from './geocode';
+import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
@@ -69,10 +69,12 @@ export function makeTools(deps: ToolDeps) {
       }
     },
 
-    async geocode_place(params: { query: string }): Promise<ToolResult> {
+    async geocode_place(params: { query: string; limit?: number }): Promise<ToolResult> {
       try {
-        const r = await resolveLocation(params.query);
-        return ok({ place: r.place, center: r.center, zoom: r.zoom });
+        const candidates = await searchCandidates(params.query, params.limit ?? 5);
+        if (!candidates.length) return fail(`No geocoding result for "${params.query}"`);
+        // best guess first, but return the list — free-form VN ranking is unreliable
+        return ok({ best: candidates[0], candidates });
       } catch (e) {
         return fail((e as Error).message ?? String(e));
       }
@@ -120,6 +122,7 @@ const renderMapShape = {
   theme: z.string().optional(),
   chrome: z.enum(['clean', 'label', 'poster']).optional(),
   camera: cameraSchema,
+  placeName: z.string().min(1).optional(),
   delivery: deliverySchema,
 };
 
@@ -129,8 +132,11 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = server as any;
   s.registerTool('render_map', { description: 'Render a still map image (PNG) for a place/address with optional point/region highlight and format (e.g. tiktok).', inputSchema: renderMapShape }, (a: RenderMapParams & { delivery?: DeliveryMode }) => t.render_map(a));
-  s.registerTool('render_variants', { description: 'Render several map variants (different themes/formats/zoom) for one location.', inputSchema: { base: z.object(renderMapShape), variants: z.array(z.record(z.string(), z.any())), delivery: deliverySchema } }, (a: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }) => t.render_variants(a));
-  s.registerTool('geocode_place', { description: 'Resolve a place name / address to coordinates.', inputSchema: { query: z.string() } }, (a: { query: string }) => t.geocode_place(a));
+  // variants are merged onto `base`, so they must carry the SAME bounds as base —
+  // otherwise a variant could override location/camera with out-of-range values
+  // and slip straight past the boundary validation.
+  s.registerTool('render_variants', { description: 'Render several map variants (different themes/formats/zoom) for one location.', inputSchema: { base: z.object(renderMapShape), variants: z.array(z.object(renderMapShape).partial()), delivery: deliverySchema } }, (a: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }) => t.render_variants(a));
+  s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());
 }

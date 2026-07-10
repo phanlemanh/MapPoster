@@ -47,6 +47,52 @@ describe('resolveLocation', () => {
     await expect(resolveLocation('zzzzz-not-a-place')).rejects.toThrow(/no geocoding result/i);
   });
 
+  const hcmcHit = {
+    ...searchItem,
+    lat: '10.7748',
+    lon: '106.7038',
+    display_name: 'Nguyen Hue Boulevard, District 1, Ho Chi Minh City, Vietnam',
+    address: { road: 'Nguyen Hue Boulevard', city: 'Ho Chi Minh City', country: 'Vietnam' },
+  };
+
+  it('escalates through canonicalised/relaxed queries for a VN address', async () => {
+    // Measured live: only the form without the house number AND without the
+    // district returns hits. Each attempt takes its own throttled turn.
+    const fn = vi.fn(async (url?: string) => {
+      const u = decodeURIComponent(String(url));
+      const hits = !u.includes('123');
+      return { ok: true, json: async () => (hits ? [hcmcHit] : []) } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    const r = await resolveLocation('123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh');
+    expect(r.place.country).toBe('Vietnam');
+    expect(fn).toHaveBeenCalledTimes(3); // raw → normalized → no-house (district kept)
+    const lastUrl = decodeURIComponent(String(fn.mock.calls[2][0]));
+    expect(lastUrl).toContain('Nguyễn Huệ, District 1, Ho Chi Minh City');
+  });
+
+  it('rejects a relaxed hit that lands outside the requested city', async () => {
+    // a same-named street in another province — relaxation must NOT accept it
+    const wrongProvince = { ...searchItem, lat: '10.5790', lon: '107.0713', display_name: 'Nguyễn Huệ, Bà Rịa – Vũng Tàu, Vietnam', address: { road: 'Nguyễn Huệ', country: 'Vietnam' } };
+    const fn = vi.fn(async (_url?: string) => ({ ok: true, json: async () => [wrongProvince] }) as unknown as Response);
+    vi.stubGlobal('fetch', fn);
+
+    await expect(resolveLocation('123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh')).rejects.toThrow(/no geocoding result/i);
+  });
+
+  it('applies no city guard when the query names no city', async () => {
+    mockFetch([searchItem]); // display_name: 'Hanoi, Vietnam'
+    const r = await resolveLocation('Some Unnamed Street');
+    expect(r.place.country).toBe('Vietnam');
+  });
+
+  it('does not escalate when the query as written already hits', async () => {
+    const fn = mockFetch([searchItem]);
+    await resolveLocation('456 Lê Lợi, Quận 1');
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
   it('serializes concurrent upstream calls and spaces them (F3/F6)', async () => {
     __setRateLimitMs(40);
     const times: number[] = [];
@@ -75,5 +121,28 @@ describe('resolveBoundary', () => {
     expect(b1?.features[0].geometry.type).toBe('Polygon');
     expect(b2).toBe(b1);
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects on a transient upstream error and never caches it (R2-HIGH)', async () => {
+    // Nominatim rate-limits us
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url?: string) => ({ ok: false, status: 429, json: async () => ({}) }) as unknown as Response),
+    );
+    await expect(resolveBoundary('Quận 3, HCMC')).rejects.toThrow(/boundary lookup failed: 429/i);
+
+    // upstream recovers — a poisoned cache would keep throwing "no boundary" forever
+    vi.unstubAllGlobals();
+    const okFn = mockFetch([boundaryItem]);
+    const b = await resolveBoundary('Quận 3, HCMC');
+    expect(b?.features[0].geometry.type).toBe('Polygon');
+    expect(okFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('caches a definitive "no polygon" (ok response, no result)', async () => {
+    const fn = mockFetch([]);
+    expect(await resolveBoundary('Nowhere-with-no-polygon')).toBeNull();
+    expect(await resolveBoundary('Nowhere-with-no-polygon')).toBeNull();
+    expect(fn).toHaveBeenCalledTimes(1); // definitive answers ARE cached
   });
 });

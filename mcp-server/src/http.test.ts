@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
-import { readJsonBody, isAllowedRequest, startHttpServer } from './http';
+import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError } from './http';
 
 describe('isAllowedRequest (DNS-rebinding guard)', () => {
   const loopback = { allowedHosts: ['127.0.0.1', 'localhost', '[::1]'], allowedOrigins: [] as string[] };
@@ -54,6 +54,20 @@ describe('startHttpServer enforces the guard', () => {
     });
   }
 
+  /** POST a raw buffer, optionally declaring Content-Length (else chunked). */
+  function postBody(port: number, body: Buffer, declareLength: boolean): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const headers: Record<string, string> = { 'content-type': 'application/json', host: `127.0.0.1:${port}` };
+      if (declareLength) headers['content-length'] = String(body.length);
+      const req = nodeHttp.request({ host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers }, (res) => {
+        res.resume();
+        resolve(res.statusCode ?? 0);
+      });
+      req.on('error', () => resolve(413)); // server destroyed the socket mid-upload
+      req.end(body);
+    });
+  }
+
   it('403s a rebound Host and an unknown Origin before any tool is dispatched', async () => {
     // deps must never be touched: the refusal has to happen before dispatch
     const deps = {
@@ -70,6 +84,37 @@ describe('startHttpServer enforces the guard', () => {
     } finally {
       await srv.close();
     }
+  });
+
+  it('413s an oversized body rather than buffering it', async () => {
+    const deps = { renderFrame: () => { throw new Error('dispatched'); } } as never;
+    const srv = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, 1024);
+    const port = Number(new URL(srv.url).port);
+    try {
+      // declared up-front: refused before a byte is read
+      expect(await postBody(port, Buffer.alloc(4096, 0x61), true)).toBe(413);
+      // chunked: no Content-Length to check, so the byte counter has to catch it
+      expect(await postBody(port, Buffer.alloc(4096, 0x61), false)).toBe(413);
+    } finally {
+      await srv.close();
+    }
+  });
+});
+
+describe('readJsonBody size cap', () => {
+  it('rejects a body over the cap instead of buffering it to OOM', async () => {
+    const big = Buffer.alloc(2048, 0x61);
+    await expect(readJsonBody(Readable.from([big]), 1024)).rejects.toBeInstanceOf(PayloadTooLargeError);
+  });
+
+  it('counts bytes across chunks — a chunked body declares no Content-Length', async () => {
+    const chunks = Array.from({ length: 8 }, () => Buffer.alloc(200, 0x61)); // 1600 bytes total
+    await expect(readJsonBody(Readable.from(chunks), 1024)).rejects.toThrow(/exceeds 1024 bytes/);
+  });
+
+  it('lets a body at the limit through', async () => {
+    const payload = Buffer.from(JSON.stringify({ location: 'HCMC' }), 'utf8');
+    await expect(readJsonBody(Readable.from([payload]), payload.length)).resolves.toEqual({ location: 'HCMC' });
   });
 });
 

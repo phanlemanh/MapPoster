@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
+import { DEFAULT_MAX_BODY_BYTES } from '../config';
 import type { ToolDeps } from './tools';
 
 export interface HttpServer {
@@ -17,12 +18,44 @@ export interface HttpServer {
  * sequence straddling a chunk boundary is mangled into replacement chars —
  * very reachable here (Vietnamese place names, inline GeoJSON > one chunk).
  */
-export function readJsonBody(req: NodeJS.ReadableStream): Promise<unknown> {
+/** Thrown when a body exceeds the cap, so the handler can answer 413 not 400. */
+export class PayloadTooLargeError extends Error {
+  constructor(limit: number) {
+    super(`Request body exceeds ${limit} bytes`);
+    this.name = 'PayloadTooLargeError';
+  }
+}
+
+export function readJsonBody(req: NodeJS.ReadableStream, maxBytes = DEFAULT_MAX_BODY_BYTES): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer | string) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-    req.on('error', reject);
+    let size = 0;
+    let done = false;
+
+    req.on('data', (chunk: Buffer | string) => {
+      if (done) return;
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buf.length;
+      // Stop at the cap instead of buffering to OOM. A chunked body declares no
+      // Content-Length, so counting bytes as they land is the only real bound.
+      if (size > maxBytes) {
+        done = true;
+        chunks.length = 0;
+        reject(new PayloadTooLargeError(maxBytes));
+        (req as unknown as { destroy?: () => void }).destroy?.();
+        return;
+      }
+      chunks.push(buf);
+    });
+    req.on('error', (e) => {
+      if (!done) {
+        done = true;
+        reject(e);
+      }
+    });
     req.on('end', () => {
+      if (done) return;
+      done = true;
       const text = Buffer.concat(chunks).toString('utf8');
       if (!text) return resolve(undefined);
       try {
@@ -90,6 +123,7 @@ export async function startHttpServer(
     allowedHosts: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_HOSTS),
     allowedOrigins: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_ORIGINS),
   },
+  maxBodyBytes = Number(process.env.MAPPOSTER_HTTP_MAX_BODY ?? DEFAULT_MAX_BODY_BYTES),
 ): Promise<HttpServer> {
   const allowedHosts = policy.allowedHosts.length ? policy.allowedHosts : LOOPBACK_HOSTS;
   const server = http.createServer((req, res) => {
@@ -101,12 +135,20 @@ export async function startHttpServer(
       res.writeHead(403).end('forbidden');
       return;
     }
+    // Refuse an oversized body before reading a byte of it. A chunked request
+    // declares no length, so readJsonBody counts as it goes — this is the cheap
+    // path, not the only one.
+    if (Number(req.headers['content-length'] ?? 0) > maxBodyBytes) {
+      res.writeHead(413).end('payload too large');
+      return;
+    }
     void (async () => {
       let body: unknown;
       try {
-        body = await readJsonBody(req);
-      } catch {
-        res.writeHead(400).end('invalid json');
+        body = await readJsonBody(req, maxBodyBytes);
+      } catch (e) {
+        if (e instanceof PayloadTooLargeError) res.writeHead(413).end('payload too large');
+        else res.writeHead(400).end('invalid json');
         return;
       }
       const mcp = createServer(deps);

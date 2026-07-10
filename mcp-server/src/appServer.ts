@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import type { ServerConfig } from '../config';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -24,7 +25,7 @@ export interface AppServer {
 
 /** Serve the built web app (dist/, containing render.html) over HTTP so the
  * headless pages load app code locally instead of from the internet. */
-export async function startAppServer(cfg: { appDistDir: string; appPort: number }): Promise<AppServer> {
+export async function startAppServer(cfg: Pick<ServerConfig, 'appDistDir' | 'appPort' | 'appHost'>): Promise<AppServer> {
   const root = path.resolve(cfg.appDistDir);
   const server = http.createServer(async (req, res) => {
     try {
@@ -45,11 +46,16 @@ export async function startAppServer(cfg: { appDistDir: string; appPort: number 
       res.end('not found');
     }
   });
-  await new Promise<void>((resolve) => server.listen(cfg.appPort, resolve));
+  // Bind the host explicitly. `listen(port, resolve)` puts the callback where the
+  // host belongs, so Node binds `::` — and this listener has no access control
+  // beyond a path-traversal guard. It was reachable from the LAN on every
+  // deployment, including the stdio one.
+  await new Promise<void>((resolve) => server.listen(cfg.appPort, cfg.appHost, resolve));
   const addr = server.address();
   const port = typeof addr === 'object' && addr ? addr.port : cfg.appPort;
+  const dialHost = cfg.appHost === '0.0.0.0' || cfg.appHost === '::' ? 'localhost' : cfg.appHost;
   return {
-    url: `http://localhost:${port}`,
+    url: `http://${dialHost}:${port}`,
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };
 }

@@ -130,15 +130,40 @@ describe('createResourcePool', () => {
 describe('renderFrame returns a broken page via discard, not release', () => {
   it('discards the page when the render throws, and releases it when it succeeds', async () => {
     const { renderFrame } = await import('./renderFrame');
+    const { createConfigStore } = await import('./configStore');
+    const configStore = createConfigStore();
     const page = { goto: vi.fn(), waitForFunction: vi.fn(), evaluate: vi.fn() };
     const pool = { acquire: vi.fn(async () => page), release: vi.fn(), discard: vi.fn(), healthy: () => true, close: vi.fn() };
 
     // a page that crashed mid-navigation
     page.goto.mockRejectedValueOnce(new Error('Target page, context or browser has been closed'));
-    await expect(renderFrame({ size: { width: 1, height: 1 } } as never, { appUrl: 'http://x', pool } as never)).rejects.toThrow(
-      /has been closed/,
-    );
+    await expect(
+      renderFrame({ size: { width: 1, height: 1 } } as never, { appUrl: 'http://x', pool, configStore } as never),
+    ).rejects.toThrow(/has been closed/);
     expect(pool.discard).toHaveBeenCalledWith(page);
     expect(pool.release).not.toHaveBeenCalled();
+
+    // the URL carries only an id, and the entry is released even on failure
+    const url = String(page.goto.mock.calls[0][0]);
+    expect(url).toMatch(/\/render\.html\?configId=[0-9a-f]{32}$/);
+    expect(configStore.size()).toBe(0);
+  });
+
+  it('never puts the payload in the URL — that capped every render at 16 KB', async () => {
+    const { renderFrame } = await import('./renderFrame');
+    const { createConfigStore } = await import('./configStore');
+    const configStore = createConfigStore();
+    const bigConfig = { size: { width: 1, height: 1 }, pad: 'x'.repeat(40_000) };
+    const page = {
+      goto: vi.fn(),
+      waitForFunction: vi.fn(),
+      evaluate: vi.fn().mockRejectedValueOnce(new Error('stop here')),
+    };
+    const pool = { acquire: vi.fn(async () => page), release: vi.fn(), discard: vi.fn(), healthy: () => true, close: vi.fn() };
+
+    await expect(renderFrame(bigConfig as never, { appUrl: 'http://x', pool, configStore } as never)).rejects.toThrow();
+    const url = String(page.goto.mock.calls[0][0]);
+    expect(url.length).toBeLessThan(200);
+    expect(url).not.toContain('pad');
   });
 });

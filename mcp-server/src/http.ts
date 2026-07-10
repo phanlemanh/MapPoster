@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
-import { DEFAULT_MAX_BODY_BYTES } from '../config';
+import { DEFAULT_MAX_BODY_BYTES, envNumber } from '../config';
 import type { ToolDeps } from './tools';
 
 export interface HttpServer {
@@ -11,13 +11,6 @@ export interface HttpServer {
   close(): Promise<void>;
 }
 
-/**
- * Collect the request body as BYTES before decoding.
- *
- * `data += chunk` decodes each Buffer independently, so a multibyte UTF-8
- * sequence straddling a chunk boundary is mangled into replacement chars —
- * very reachable here (Vietnamese place names, inline GeoJSON > one chunk).
- */
 /** Thrown when a body exceeds the cap, so the handler can answer 413 not 400. */
 export class PayloadTooLargeError extends Error {
   constructor(limit: number) {
@@ -26,6 +19,13 @@ export class PayloadTooLargeError extends Error {
   }
 }
 
+/**
+ * Collect the request body as BYTES before decoding, bounded by `maxBytes`.
+ *
+ * `data += chunk` decodes each Buffer independently, so a multibyte UTF-8
+ * sequence straddling a chunk boundary is mangled into replacement chars —
+ * very reachable here (Vietnamese place names, inline GeoJSON > one chunk).
+ */
 export function readJsonBody(req: NodeJS.ReadableStream, maxBytes = DEFAULT_MAX_BODY_BYTES): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -123,7 +123,7 @@ export async function startHttpServer(
     allowedHosts: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_HOSTS),
     allowedOrigins: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_ORIGINS),
   },
-  maxBodyBytes = Number(process.env.MAPPOSTER_HTTP_MAX_BODY ?? DEFAULT_MAX_BODY_BYTES),
+  maxBodyBytes = envNumber(process.env, 'MAPPOSTER_HTTP_MAX_BODY', DEFAULT_MAX_BODY_BYTES, { min: 1024 }),
 ): Promise<HttpServer> {
   const allowedHosts = policy.allowedHosts.length ? policy.allowedHosts : LOOPBACK_HOSTS;
   const server = http.createServer((req, res) => {
@@ -138,7 +138,8 @@ export async function startHttpServer(
     // Refuse an oversized body before reading a byte of it. A chunked request
     // declares no length, so readJsonBody counts as it goes — this is the cheap
     // path, not the only one.
-    if (Number(req.headers['content-length'] ?? 0) > maxBodyBytes) {
+    const declared = Number(req.headers['content-length'] ?? 0);
+    if (Number.isFinite(declared) && declared > maxBodyBytes) {
       res.writeHead(413).end('payload too large');
       return;
     }
@@ -181,7 +182,7 @@ export async function startHttpServer(
 
 const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
-  startHttpServer(Number(process.env.MCP_HTTP_PORT ?? 4181))
+  startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }))
     .then((s) => console.error(`MapPoster MCP (HTTP) listening at ${s.url}`))
     .catch((e) => {
       console.error(e);

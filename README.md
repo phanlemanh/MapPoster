@@ -60,6 +60,10 @@ render_map({
 
 `highlight.color` must be a hex colour (`#e8b04b`) — it is interpolated into the marker SVG's `fill` and reaches `innerHTML` in the render page, so anything else is refused at the boundary.
 
+The render config never travels in the URL. It is parked in-process and the page fetches it by id — a query param would put the whole payload in the request head, which Node caps at 16 KB, and a single city boundary encodes to ~20 KB. The id still changes every render, which is what forces the real document reload the stale-frame guard depends on. Inline `highlight.regions[].geojson` is shape-checked and capped at 2 MiB.
+
+Numeric env vars are validated at startup rather than coerced: `Number('8mb')` is `NaN`, and every `size > NaN` comparison is false — a typo would silently switch the request-body cap off, or make `MAPPOSTER_POOL` produce a pool that never mints a page.
+
 A render that fails discards its browser page rather than returning it to the pool: a crashed page put back in the idle list would poison that slot for the life of the process. If Chromium itself dies, the whole runtime is rebuilt on the next call — and a transient startup failure (a busy port, a flaky launch) is never memoized, so it retries instead of bricking every later render.
 
 `resolved` echoes every choice the server made on your behalf — the camera it framed, the theme it used, and the extent of each region it resolved by name, so a caller can tell *which* "District 1" it got. An unknown `theme` is refused rather than quietly replaced with the default.

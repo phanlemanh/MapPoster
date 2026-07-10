@@ -2,6 +2,7 @@ import http from 'node:http';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { ServerConfig } from '../config';
+import type { ConfigStore } from './configStore';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -18,6 +19,9 @@ const MIME: Record<string, string> = {
   '.map': 'application/json',
 };
 
+/** Where the render page fetches its config. Must match src/render/main.tsx. */
+export const CONFIG_ROUTE = '/__config/';
+
 export interface AppServer {
   url: string;
   close(): Promise<void>;
@@ -25,12 +29,28 @@ export interface AppServer {
 
 /** Serve the built web app (dist/, containing render.html) over HTTP so the
  * headless pages load app code locally instead of from the internet. */
-export async function startAppServer(cfg: Pick<ServerConfig, 'appDistDir' | 'appPort' | 'appHost'>): Promise<AppServer> {
+export async function startAppServer(
+  cfg: Pick<ServerConfig, 'appDistDir' | 'appPort' | 'appHost'>,
+  configStore?: ConfigStore,
+): Promise<AppServer> {
   const root = path.resolve(cfg.appDistDir);
   const server = http.createServer(async (req, res) => {
     try {
       const u = new URL(req.url ?? '/', 'http://localhost');
       let pathname = decodeURIComponent(u.pathname);
+
+      // The render config, handed to the page out-of-band. Only ids this process
+      // minted resolve; anything else is a plain 404 and never touches the disk.
+      if (pathname.startsWith(CONFIG_ROUTE)) {
+        const json = configStore?.get(pathname.slice(CONFIG_ROUTE.length));
+        if (!json) {
+          res.writeHead(404).end('unknown config id');
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' }).end(json);
+        return;
+      }
+
       if (pathname === '/') pathname = '/index.html';
       const file = path.resolve(path.join(root, pathname));
       if (file !== root && !file.startsWith(root + path.sep)) {

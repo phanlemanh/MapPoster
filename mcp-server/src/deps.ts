@@ -1,6 +1,7 @@
 import { loadServerConfig, type ServerConfig } from '../config';
 import { startAppServer } from './appServer';
 import { createPool, type Pool } from './browserPool';
+import { createConfigStore, type ConfigStore } from './configStore';
 import { renderFrame } from './renderFrame';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -16,7 +17,8 @@ import type { RenderConfig } from '../../src/render/renderConfig';
  */
 export function memoizeSuccess<T>(factory: () => Promise<T>): {
   (): Promise<T>;
-  reset(): void;
+  /** Invalidate — but only the given attempt, so a concurrent rebuild survives. */
+  reset(attempt?: Promise<T>): void;
 } {
   let cached: Promise<T> | null = null;
   const get = () => {
@@ -31,8 +33,12 @@ export function memoizeSuccess<T>(factory: () => Promise<T>): {
     }
     return cached;
   };
-  get.reset = () => {
-    cached = null;
+  get.reset = (attempt?: Promise<T>) => {
+    // Guarded exactly like the catch above. Without the guard: renders A and B
+    // share runtime R1, the browser dies, A resets and closes R1, C rebuilds a
+    // healthy R2 — then B's finally resets again and evicts R2 while C is still
+    // using it. Nobody closes R2, so its browser and app-server port leak.
+    if (!attempt || cached === attempt) cached = null;
   };
   return get;
 }
@@ -40,15 +46,18 @@ export function memoizeSuccess<T>(factory: () => Promise<T>): {
 export interface Runtime {
   appUrl: string;
   pool: Pool;
+  configStore: ConfigStore;
   close(): Promise<void>;
 }
 
 const startReal = async (c: ServerConfig): Promise<Runtime> => {
-  const app = await startAppServer(c);
+  const configStore = createConfigStore();
+  const app = await startAppServer(c, configStore);
   const pool = await createPool(c.poolSize);
   return {
     appUrl: app.url,
     pool,
+    configStore,
     close: async () => {
       await pool.close().catch(() => {});
       await app.close().catch(() => {});
@@ -70,14 +79,17 @@ export function makeRenderDeps(
     sinkDir: cfg.sinkDir,
     defaultDelivery: 'both',
     render: async (config: RenderConfig) => {
-      const rt = await ensure();
+      const attempt = ensure();
+      const rt = await attempt;
       try {
-        return await renderFrame(config, { appUrl: rt.appUrl, pool: rt.pool });
+        return await renderFrame(config, { appUrl: rt.appUrl, pool: rt.pool, configStore: rt.configStore });
       } finally {
         // If the browser itself died, the memoized runtime is a corpse and every
-        // later render would resolve the same dead pool. Drop it and rebuild.
+        // later render would resolve the same dead pool. Drop THIS attempt and
+        // rebuild — passing `attempt` so we never evict a rebuild someone else
+        // is already using.
         if (!rt.pool.healthy()) {
-          ensure.reset();
+          ensure.reset(attempt);
           void rt.close();
         }
       }

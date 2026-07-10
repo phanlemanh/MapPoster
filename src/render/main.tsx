@@ -28,24 +28,46 @@ declare global {
 const MAP_INIT_TIMEOUT_MS = 8_000;
 const IDLE_TIMEOUT_MS = 20_000;
 
-/**
- * Read `?config=<base64url json>`.
- *
- * It MUST be a query param, not a hash: a pooled page navigating from
- * `#config=A` to `#config=B` is a same-document navigation, so the document
- * never reloads, this module never re-runs, and the page would keep serving the
- * FIRST config's frame. A query change forces a real reload.
- */
-function readConfigParam(): string {
-  const b64 = new URLSearchParams(location.search).get('config');
-  if (!b64) throw new Error('render mode: missing ?config');
-  return b64;
-}
-
 function decodeConfig(b64: string): RenderConfig {
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/**
+ * Where this document gets its config.
+ *
+ * `?configId=<id>` — the id names a payload parked on the app server. Carrying
+ * the config itself in the URL put it in the request *head*, which Node caps at
+ * 16 KB; a city boundary encodes to ~20 KB, so the server answered 431, the page
+ * never loaded, and the render timed out. See mcp-server/src/configStore.ts.
+ *
+ * `?config=<base64url>` — inline, for small configs and for tests that drive
+ * render.html directly with no app server behind it.
+ *
+ * Either way it MUST be a query param, never a hash: a pooled page navigating
+ * from `#a` to `#b` is a same-document navigation, so the document never reloads,
+ * this module never re-runs, and the page keeps serving the FIRST config's frame.
+ */
+function readConfigSource(): { key: string; load: () => Promise<RenderConfig> } {
+  const params = new URLSearchParams(location.search);
+
+  const id = params.get('configId');
+  if (id) {
+    return {
+      key: id,
+      load: async () => {
+        const res = await fetch(`/__config/${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error(`render mode: config ${id} not found (${res.status})`);
+        return (await res.json()) as RenderConfig;
+      },
+    };
+  }
+
+  const b64 = params.get('config');
+  if (b64) return { key: b64, load: async () => decodeConfig(b64) };
+
+  throw new Error('render mode: missing ?configId or ?config');
 }
 
 /** Wait for the map to settle, bounded so a stalled tile fetch cannot hang forever. */
@@ -84,12 +106,15 @@ function textFromStore() {
   };
 }
 
-const configKey = readConfigParam();
-const cfg = decodeConfig(configKey);
-applyRenderConfig(cfg);
-createRoot(document.getElementById('root')!).render(<RenderApp width={cfg.size.width} height={cfg.size.height} />);
+const { key: configKey, load } = readConfigSource();
+
+let cfg: RenderConfig;
 
 const ready = (async () => {
+  cfg = await load();
+  applyRenderConfig(cfg);
+  createRoot(document.getElementById('root')!).render(<RenderApp width={cfg.size.width} height={cfg.size.height} />);
+
   const start = Date.now();
   while (!getMapInstance() && Date.now() - start < MAP_INIT_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, 50));
@@ -102,6 +127,10 @@ const ready = (async () => {
 // keep the rejection from surfacing as an unhandled error; callers still see it via `await ready`
 ready.catch(() => {});
 
+// Published synchronously, BEFORE the config has loaded. renderFrame() polls for
+// this object and would otherwise sit out its whole timeout waiting for a fetch —
+// and a config that fails to load must surface as `await ready` rejecting with a
+// real message, not as an opaque "waitForFunction timed out".
 window.__mapposter = {
   configKey,
   ready,

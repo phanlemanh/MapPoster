@@ -81,6 +81,30 @@ function assertTheme(id: string): string {
   throw new Error(`Unknown theme: ${id}. Known themes: ${THEMES.map((t) => t.id).join(', ')}`);
 }
 
+/** Inline region GeoJSON travels to the render page and into MapLibre. Bound it. */
+export const MAX_GEOJSON_BYTES = 2 * 1024 * 1024;
+
+/**
+ * The only boundary field that used to accept anything at all (`z.any()`).
+ * A minimal shape check plus a size bound: it is consumed as data, never as a
+ * script sink, so the risk is a malformed source that MapLibre rejects (surfacing
+ * 20 s later as a render timeout) or a payload large enough to hurt.
+ */
+export function assertGeojson(value: unknown, label = 'highlight.regions[].geojson'): GeoJSONFeatureCollection {
+  const gj = value as GeoJSONFeatureCollection | null;
+  if (!gj || typeof gj !== 'object' || gj.type !== 'FeatureCollection' || !Array.isArray(gj.features)) {
+    throw new Error(`Invalid ${label}: expected a GeoJSON FeatureCollection`);
+  }
+  for (const f of gj.features) {
+    if (!f || typeof f !== 'object' || !f.geometry) throw new Error(`Invalid ${label}: a feature has no geometry`);
+  }
+  const bytes = Buffer.byteLength(JSON.stringify(gj));
+  if (bytes > MAX_GEOJSON_BYTES) {
+    throw new Error(`Invalid ${label}: ${bytes} bytes exceeds the ${MAX_GEOJSON_BYTES}-byte limit`);
+  }
+  return gj;
+}
+
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 /**
@@ -194,7 +218,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
       if (!gj) throw new Error(`No boundary found for region "${r}"${anchor ? ` in ${anchor}` : ''}`);
       regions.push({ geojson: gj, color: null });
     } else {
-      regions.push({ geojson: r.geojson, color: null });
+      regions.push({ geojson: assertGeojson(r.geojson), color: null });
     }
   }
 

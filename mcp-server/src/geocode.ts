@@ -1,5 +1,6 @@
 import { searchPlaces, fetchRegionBoundary, reverseGeocode } from '../../src/lib/geocoding';
 import { queryCandidates, relaxedCandidates, requiredCity, normalizeVnQuery } from './vnQuery';
+import { envNumber } from '../config';
 import type { GeoJSONFeatureCollection } from '../../src/types';
 
 export interface ResolvedLocation {
@@ -20,7 +21,7 @@ export interface ResolvedLocation {
  * `Map` iterates in insertion order, so the oldest key is simply the first one.
  * A hit re-inserts to refresh recency.
  */
-export const CACHE_MAX = Number(process.env.MAPPOSTER_GEO_CACHE_MAX ?? 500);
+export const CACHE_MAX = envNumber(process.env, 'MAPPOSTER_GEO_CACHE_MAX', 500, { min: 1 });
 
 function lruGet<K, V>(m: Map<K, V>, k: K): V | undefined {
   if (!m.has(k)) return undefined;

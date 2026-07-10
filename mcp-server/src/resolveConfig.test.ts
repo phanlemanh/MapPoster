@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveConfig, formatSize, summarizeHighlights, assertColor, FORMATS } from './resolveConfig';
+import { resolveConfig, formatSize, summarizeHighlights, assertColor, assertGeojson, MAX_GEOJSON_BYTES, FORMATS } from './resolveConfig';
 import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
@@ -123,6 +123,25 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', theme: 'nope' })).rejects.toThrow(/Unknown theme/);
     await expect(resolveConfig({ location: 'HCMC', highlight: { color: 'red' } })).rejects.toThrow(/Invalid highlight\.color/);
     expect(geocode.resolveLocation).not.toHaveBeenCalled();
+  });
+
+  it('bounds inline region GeoJSON — the one boundary field that accepted anything', () => {
+    const good = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [1, 2] } }] };
+    expect(assertGeojson(good)).toBe(good);
+
+    expect(() => assertGeojson(null)).toThrow(/expected a GeoJSON FeatureCollection/);
+    expect(() => assertGeojson('a string')).toThrow(/FeatureCollection/);
+    expect(() => assertGeojson({ type: 'Polygon', coordinates: [] })).toThrow(/FeatureCollection/);
+    expect(() => assertGeojson({ type: 'FeatureCollection', features: [{ properties: {} }] })).toThrow(/no geometry/);
+  });
+
+  it('refuses a GeoJSON payload past the size limit', () => {
+    // It now really does reach the render page — the URL no longer caps it at 16 KB.
+    const huge = {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: { pad: 'x'.repeat(MAX_GEOJSON_BYTES) }, geometry: { type: 'Point', coordinates: [1, 2] } }],
+    };
+    expect(() => assertGeojson(huge)).toThrow(/exceeds the \d+-byte limit/);
   });
 
   it('geocodes the location and picks the format size (AC-1)', async () => {

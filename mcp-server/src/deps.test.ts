@@ -49,6 +49,27 @@ describe('memoizeSuccess', () => {
     await get();
     expect(factory).toHaveBeenCalledTimes(2);
   });
+
+  it('reset(attempt) evicts only that attempt, never a rebuild someone else is using', async () => {
+    // A and B share runtime R1; the browser dies; A resets and closes R1; C
+    // rebuilds a healthy R2; then B's finally resets AGAIN. Unguarded, that
+    // evicts R2 while C is serving from it, and nobody ever closes R2 — its
+    // browser process and app-server port leak.
+    let n = 0;
+    const factory = vi.fn(async () => `runtime-${++n}`);
+    const get = memoizeSuccess(factory);
+
+    const first = get();
+    await first;
+
+    get.reset(first); // A
+    const second = get(); // C rebuilds
+    await second;
+
+    get.reset(first); // B, holding the STALE attempt
+    expect(await get()).toBe('runtime-2'); // C's runtime survived
+    expect(factory).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('makeRenderDeps', () => {
@@ -60,6 +81,7 @@ describe('makeRenderDeps', () => {
     const rt: Runtime = {
       appUrl: 'http://127.0.0.1:1',
       pool: { acquire: vi.fn(), release: vi.fn(), discard: vi.fn(), healthy, close: vi.fn() } as never,
+      configStore: { put: () => 'id', get: () => undefined, drop: () => {}, size: () => 0 },
       close,
     };
     return { rt, close };

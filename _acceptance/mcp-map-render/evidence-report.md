@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 9e51736a2a4e94deb4391f8d84984af049c5d39b
-human_signoff:
+human_signoff: manh (2026-07-10) — verdict given in session; commit authored by Claude on manh's instruction
 ---
 
 # Evidence Report: mcp-map-render
@@ -357,6 +357,7 @@ Round-9/Round-10 fix set, nothing else._
        Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
 
 - eval: E12
+  human_override: PASS
   judged_by: judge panel — domain-correctness, operational-feasibility, spec-alignment (fresh context
     each)
   verdict: PASS

@@ -1,80 +1,85 @@
-# Review Findings: mcp-map-render (Round 5)
+# Review Findings: mcp-map-render (Round 6)
 
 Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
 file). Feeds the Gate 2 decision card alongside `evidence-report.md`. All findings below went
 through the full finder → refuter adversarial-verify pass; none are flagged `unverified`, and no
 review pass died mid-way this round (see "Review incomplete" at the bottom).
 
-Verified at commit `ffb928b717a4acf133df91bbd0b59d6356fb99eb` (`feature/mcp-map-render`).
+Verified at commit `f320b41cd8f2a4887e06f4abc651df9bbb03901a` (`feature/mcp-map-render`).
 
-**Context vs. Round 4:** the Round-4 review (commit `4abeb9b`) surfaced 3 findings — 2 MEDIUM (the
-new country-anchor invariant was itself silently bypassed when `location` is a `{lng,lat}`
-coordinate object, since `resolveLocation` returns `country:''` on that branch; `theme` was the one
-discrete param not validated at the MCP boundary, falling open to the default with no signal to the
-caller) and 1 LOW (`resolved` omitted `highlights` vs. the Phase-1 design-spec tool contract). Round
-4's verify passed all 12/12 evals with these 3 still open, and the human's Round-3→4 cap override
-did not carry forward automatically, so the loop escalated again rather than looping unprompted
-(`decisions.jsonl` `d-20260710T093000Z-43001`). The human (manh) authorised a second, scoped round 5
-to close exactly those 3 (`d-20260710T093500Z-44001`). Commit `cadcff2` ("fix(mcp): anchor
-coords-based renders to a country, reject unknown themes, echo resolved highlights") closed all
-three: MEDIUM #1 via `resolveCountryAt(lng, lat)` — a reverse-geocode lookup that memoizes ONLY a
-positive answer (deliberately not caching a transient outage as "no country", to avoid recreating
-the Round-2 HIGH a third structural time) — threaded into `resolveConfig` whenever a highlight is
-named by string and the location itself carries no country; MEDIUM #2 via `assertTheme()`, which now
-rejects an unknown theme with the valid-id list, mirroring how `format` already throws; LOW #3 by
-making `resolved` carry `theme` and `highlights:{regions:[{bbox,center}],points:[{lng,lat}]}`. A
-follow-up commit (`ffb928b`) only strengthened `evals.yaml`'s `expected` text (strictly additive, no
-criterion weakened) and touched no source. This round's fresh adversarial pass ran against `ffb928b`
-and targeted the system boundary generally, since the last two rounds' HIGH/MEDIUM findings had both
-come from "an invariant applies on one code path but not its sibling" — it surfaced the 2 findings
-below, both MEDIUM, neither HIGH (the first round to close every open finding without
-self-discovering a new HIGH of its own), and neither is a machine-eval regression (all 11 machine
-evals still pass per `evidence-report.md`).
+**Context vs. Round 5:** the Round-5 review (commit `ffb928b`) surfaced 2 findings, both MEDIUM,
+both on the HTTP/static boundary — the app-static server (`appServer.ts`) bound every network
+interface unconditionally regardless of the MCP HTTP transport's own loopback-by-default policy,
+and `readJsonBody` read an unbounded request body into memory behind a Host/Origin check that a
+server-to-server caller can forge. Round 5's verify passed 12/12 evals with these 2 still open,
+and — this being the 5th verify round in a row to escalate rather than auto-continue — the human
+(manh) set an explicit termination rule this time rather than another plain scoped-round
+authorisation (`decisions.jsonl` `d-20260710T110500Z-47001`): land these two fixes, run one more
+verify, then proceed to Gate 2 regardless of further MED/LOW findings the review might turn up
+(reasoning that adversarial review of a real codebase always returns *something* at MED/LOW, so
+"any finding ⇒ another round" never terminates); only a confirmed HIGH — a wrong render or a real
+compromise — would reopen the loop. Commit `7e958ce` ("fix(mcp): bind the static app server to
+loopback, cap the HTTP request body") + `f320b41` (evals.yaml sync) closed both: MEDIUM #1 via an
+explicit `appHost` config field (`MAPPOSTER_APP_HOST`, default `127.0.0.1`) threaded into
+`appServer.listen()`, with a new `appServer.test.ts` asserting the default is loopback and that a
+LAN address is refused; MEDIUM #2 via a byte-counting `maxBytes` cap (default 8 MiB,
+`MAPPOSTER_HTTP_MAX_BODY`) in `readJsonBody` that answers 413 before the process can OOM, checked
+both against a declared `Content-Length` and while streaming an undeclared/chunked body. This
+round's fresh adversarial pass ran against `f320b41` and moved on to a different pair of system
+boundaries — the render pool's failure handling and the long-running cache's growth bound — now
+that the HTTP/static boundary has been hardened twice in a row; it surfaced the 2 findings below,
+1 MEDIUM + 1 LOW, neither HIGH, and neither is a machine-eval regression (all 12 evals in
+`evidence-report.md` are still green/panel-PASS on their own terms).
+
+**Note for Gate 2:** this round's *overall* verdict is REJECT, but not because of either finding
+below — per the human's termination rule (`d-20260710T110500Z-47001`), a MEDIUM/LOW pair with no
+HIGH does not by itself block Gate 2. The actual REJECT driver this round is a separate, unassigned
+*machine-test* failure (`npm run test:e2e`, spec `e2e/mapposter.spec.ts:114:1 "markers: drop a
+marker on the map"`) documented in `evidence-report.md`'s `## Evidence` section under "Unassigned
+command failure" — not a code-review finding, and not listed here.
 
 ## Findings
 
-### 1. [MEDIUM] appServer bind mọi network interface (0.0.0.0/::), phá invariant "loopback-by-default" của chính module — áp dụng cho MỌI deployment
+### 1. [MEDIUM] Browser pool never evicts a dead/crashed page, and deps never rebuild a dead pool → a single crash permanently downs the render tools
 
-- **File:** `mcp-server/src/appServer.ts:48`
+- **File:** `mcp-server/src/renderFrame.ts:48`
 - **Severity:** medium
 - **Source:** conventions
 
-Invariant an ninh trung tâm mà repo cố tình thiết lập và tài liệu hoá kỹ (README mục "MCP map-render
-server" + http.ts:75-129): listener side-effecting/không xác thực bind loopback MẶC ĐỊNH, chỉ mở
-0.0.0.0 khi opt-in tường minh và khi đó BẮT BUỘC khai báo MAPPOSTER_HTTP_ALLOWED_HOSTS. Listener MCP
-(http.ts:88) đúng pattern: host mặc định 127.0.0.1 + isAllowedRequest() chặn DNS-rebinding. Nhưng
-appServer.ts:48 `server.listen(cfg.appPort, resolve)` KHÔNG truyền host → Node bind mọi interface,
-VÔ ĐIỀU KIỆN, và listener này KHÔNG có bất kỳ guard Host/Origin nào (chỉ chặn path-traversal). Mấu
-chốt: makeRenderDeps (deps.ts:16) khởi động appServer cho CẢ hai transport (stdio.ts:7 và http.ts:87),
-nên ngay cả một deployment "chỉ loopback" theo đúng mặc định README vẫn phơi port 4180 ra LAN — lời
-hứa "loopback by default" bị phá âm thầm ở mọi deployment, không chỉ khi set 0.0.0.0. config.ts
-(ServerConfig) cũng không hề có tham số host cho appServer để vá. Failure scenario: chạy `npm run
-mcp:http` với cấu hình mặc định (MCP chỉ nghe loopback) — host bất kỳ trong cùng mạng vẫn GET được
-http://<ip-server>:4180/render.html?config=... và toàn bộ asset trong dist/. Impact giới hạn ở phục
-vụ asset tĩnh + harness render (không phải RCE), nhưng là vi phạm rõ ràng, phổ quát của invariant
-trên một listener hoàn toàn không kiểm soát truy cập — trái ngược hẳn listener MCP anh em trong cùng
-process.
+renderFrame acquires a pooled Page and, in `finally { deps.pool.release(page) }`
+(renderFrame.ts:47-49), unconditionally returns it — even when `page.goto`/`page.evaluate` threw
+because the page/context/browser crashed. createResourcePool.release (browserPool.ts:44-48) has no
+way to signal a broken resource: its only return path is `idle.push(item)`; the `Pool` interface
+(browserPool.ts:6-10) exposes acquire/release/close with no per-item discard, and there is no
+`page.on('crash')`, `isClosed`, retry, or newPage-on-failure anywhere. So a crashed page goes back
+into `idle`, the next `acquire()` pops the same dead page, and `goto` throws again — that slot is
+poisoned for the process lifetime. Worse, makeRenderDeps memoizes the pool in `started` via `??=`
+and never resets it on failure (deps.ts:13-19), so if the whole Chromium browser dies, every
+subsequent render resolves the same dead pool forever. Failure scenario: a large 4k poster
+OOMs/crashes the SwiftShader renderer (realistic for this headless setup) → that pool slot
+(poolSize default 2) is dead → after enough crashes, render_map/render_variants return errors
+permanently until the process is restarted, with no self-recovery. This contradicts the design's
+stated reason for a pool (resilience/scale under batch load; design spec "Risks" 1). Contrast with
+the app's own export path and the geocode layer, which deliberately distinguish transient failures
+from permanent ones — the pool does not.
 
-### 2. [MEDIUM] readJsonBody đọc toàn bộ request body vào RAM không giới hạn kích thước — thiếu bound ở biên HTTP không xác thực
+### 2. [LOW] Unbounded geocode caches in the long-running HTTP server (no eviction), boundaryCache holds GeoJSON polygons
 
-- **File:** `mcp-server/src/http.ts:23`
-- **Severity:** medium
+- **File:** `mcp-server/src/geocode.ts:13`
+- **Severity:** low
 - **Source:** conventions
 
-Biên hệ thống là transport HTTP mà README ghi rõ "The HTTP transport is unauthenticated". readJsonBody
-(http.ts:20-35) gom mọi chunk vào `chunks: Buffer[]` rồi Buffer.concat, KHÔNG kiểm Content-Length,
-không cap tổng bytes. Nó chạy SAU khi isAllowedRequest pass (http.ts:100 → 107), nhưng
-isAllowedRequest CHỈ chặn Host/Origin — cả hai header đều giả mạo được bởi client non-browser (README
-tự nói client server-to-server gửi Host và không gửi Origin; đúng loại request mà kẻ tấn công dựng
-tay được). Đây là lỗ hổng "thiếu validation ở system boundary" và lệch với chính kỷ luật module tự
-đặt: "Bounded at the system boundary: unbounded dims yield... or OOM the shared pooled browser page"
-(tools.ts:103-108) — mọi tham số rời rạc khác (dim/lng/lat/zoom) đều bị chặn bằng Zod + assert
-runtime, riêng đường đọc body thì hoàn toàn không giới hạn. Failure scenario: deployment hosted
-(MAPPOSTER_HTTP_HOST=0.0.0.0, MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal). Kẻ tấn công trong mạng gửi
-POST /mcp với Host: maps.internal, không Origin, body vài GB (hoặc chunked stream không kết thúc) →
-isAllowedRequest cho qua → chunks phình đến khi OOM cả process, kéo sập luôn browser pool dùng chung.
-Bị khuếch đại thêm bởi highlight.regions[].geojson = z.any() (tools.ts:113) — payload "hợp lệ" cũng
-có thể rất lớn.
+locCache, boundaryCache and countryCache (geocode.ts:12-14) are module-level Maps shared across all
+requests (correct per design's "one central cache"), but they are never bounded or evicted. The
+HTTP transport is a documented long-lived deployment (README: "mcp:http", hosted with
+MAPPOSTER_HTTP_ALLOWED_HOSTS). Over a long-running process, every distinct place/region string adds
+a permanent entry; boundaryCache in particular stores full (simplified) region GeoJSON
+FeatureCollections, so a client issuing many distinct region names grows resident memory without
+limit — and if that memory pressure crashes the shared browser pool, it compounds finding #1. The
+rate-limiter fields are reset by __resetGeoCache (test-only). No production eviction/TTL/max-size
+exists. Low severity because the HTTP endpoint is loopback/allowlist-guarded by default and typical
+distinct-place counts are modest, but it is a real resource-management gap for the hosted mode the
+README describes.
 
 ## Chưa adversarial-verify (refuter chết)
 

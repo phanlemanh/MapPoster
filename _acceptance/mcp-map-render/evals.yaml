@@ -41,7 +41,7 @@ evals:
     criterion: AC-6
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; listTools over stdio AND over HTTP transport both return {render_map, render_variants, geocode_place, list_themes, list_formats}; the HTTP transport refuses a rebound Host and an unknown Origin"
+    expected: "exit 0; listTools over stdio AND over HTTP transport both return {render_map, render_variants, geocode_place, list_themes, list_formats}; the HTTP transport refuses a rebound Host and an unknown Origin; the static app server binds loopback by default; an oversized request body is refused with 413"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E7

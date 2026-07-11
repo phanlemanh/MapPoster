@@ -62,7 +62,8 @@ export type LayerKey =
   | 'parks'
   | 'roads'
   | 'rail'
-  | 'aeroway';
+  | 'aeroway'
+  | 'roadLabels';
 
 export type LayerState = Record<LayerKey, boolean>;
 

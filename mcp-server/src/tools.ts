@@ -187,6 +187,7 @@ const renderMapShape = {
   chrome: z.enum(['clean', 'label', 'poster']).optional(),
   camera: cameraSchema,
   placeName: z.string().min(1).optional(),
+  labels: z.boolean().optional(),
   delivery: deliverySchema,
 };
 

@@ -12,6 +12,7 @@ const allLayers: LayerState = {
   roads: true,
   rail: true,
   aeroway: true,
+  roadLabels: true,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,11 +39,21 @@ describe('buildMapStyle base', () => {
     expect(layer(style, 'background').paint['background-color']).toBe(theme.colors.background);
   });
 
-  it('emits no symbol/text layers (label-free poster) and needs no glyphs', () => {
-    const style = buildMapStyle({ theme, layers: allLayers, detail: 0.6, routes: [] });
+  it('emits no symbol/text layers or glyphs unless road labels are opted in', () => {
+    const off = buildMapStyle({ theme, layers: { ...allLayers, roadLabels: false }, detail: 0.6, routes: [] });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(style.layers.some((l: any) => l.type === 'symbol')).toBe(false);
-    expect(style.glyphs).toBeUndefined();
+    expect(off.layers.some((l: any) => l.type === 'symbol')).toBe(false);
+    expect(off.glyphs).toBeUndefined();
+  });
+
+  it('labels MAJOR roads only when enabled, themed for legibility', () => {
+    const style = buildMapStyle({ theme, layers: allLayers, detail: 0.6, routes: [] });
+    expect(style.glyphs).toContain('openfreemap');
+    const label = layer(style, 'road-label-major');
+    expect(label.type).toBe('symbol');
+    expect(label.filter).toEqual(['in', 'class', 'motorway', 'trunk', 'primary', 'secondary']);
+    expect(label.paint['text-color']).toBe(theme.colors.text);
+    expect(label.paint['text-halo-color']).toBe(theme.colors.background);
   });
 });
 

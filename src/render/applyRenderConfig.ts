@@ -11,6 +11,8 @@ const ALL_LAYERS_ON: LayerState = {
   roads: true,
   rail: true,
   aeroway: true,
+  // the one exception to "all on": labels stay opt-in (cfg.layers overrides)
+  roadLabels: false,
 };
 
 /**

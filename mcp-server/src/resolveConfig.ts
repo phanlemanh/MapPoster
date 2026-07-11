@@ -22,6 +22,8 @@ export interface RenderMapParams {
   camera?: Partial<RenderCamera>;
   /** Override the poster label. Geocoder naming is a heuristic — let the caller win. */
   placeName?: string;
+  /** Show names along major roads (motorway/trunk/primary/secondary). Off by default: poster first. */
+  labels?: boolean;
 }
 
 /** Named format presets (video-first). Layout ids also resolve via getLayout. */
@@ -262,5 +264,6 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     place: params.placeName ? { ...base.place, name: params.placeName } : base.place,
     highlight,
     markers: markers.length ? markers : undefined,
+    layers: params.labels ? { roadLabels: true } : undefined,
   };
 }

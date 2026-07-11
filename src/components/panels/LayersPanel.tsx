@@ -10,6 +10,7 @@ const LAYER_LABELS: { key: LayerKey; label: string }[] = [
   { key: 'roads', label: 'Roads' },
   { key: 'rail', label: 'Railways' },
   { key: 'aeroway', label: 'Aeroways' },
+  { key: 'roadLabels', label: 'Street names' },
 ];
 
 export default function LayersPanel() {

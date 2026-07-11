@@ -98,6 +98,8 @@ const DEFAULT_LAYERS: LayerState = {
   roads: true,
   rail: true,
   aeroway: true,
+  // labels are opt-in: a poster is art first, wayfinding second
+  roadLabels: false,
 };
 
 const DEFAULT_LOCATION: LocationInfo = {

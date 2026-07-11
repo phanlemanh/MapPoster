@@ -59,10 +59,16 @@ function buildMask(fc: any) {
   };
 }
 
+// OpenFreeMap serves glyph PBFs keylessly alongside its tiles. Only referenced
+// when road labels are enabled — a label-free poster still needs no glyphs.
+export const OPENFREEMAP_GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
+
 /**
- * Build a full MapLibre style from a theme + layer toggles. No symbol/text
- * layers are emitted (the poster title is a separate overlay), so no glyphs
- * are required and the map reads as a clean artistic base.
+ * Build a full MapLibre style from a theme + layer toggles. By default no
+ * symbol/text layers are emitted (the poster title is a separate overlay), so
+ * no glyphs are required and the map reads as a clean artistic base. The one
+ * opt-in exception is `layers.roadLabels`: names along MAJOR roads only —
+ * motorway/trunk/primary/secondary — because that is wayfinding, not clutter.
  */
 export function buildMapStyle({ theme, layers, detail, routes, highlight }: BuildStyleArgs) {
   const c = theme.colors;
@@ -250,6 +256,42 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
       },
     ],
   };
+
+  // Major-road names, opt-in. Both the glyphs root and the symbol layer are
+  // emitted together: MapLibre rejects a style whose text-field has no glyphs
+  // endpoint even when the layer is hidden, so a vis() toggle can't gate this.
+  if (layers.roadLabels) {
+    style.glyphs = OPENFREEMAP_GLYPHS;
+    style.layers.push({
+      id: 'road-label-major',
+      type: 'symbol',
+      source: 'openmaptiles',
+      'source-layer': 'transportation_name',
+      filter: ['in', 'class', 'motorway', 'trunk', 'primary', 'secondary'],
+      layout: {
+        'symbol-placement': 'line',
+        'text-field': ['coalesce', ['get', 'name'], ['get', 'name:latin']],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': zoomWidth([[12, 11], [14, 13], [16, 15]], 1),
+        'text-letter-spacing': 0.06,
+        'text-max-angle': 30,
+        'text-padding': 4,
+      },
+      paint: {
+        // The label lies ON the road line, and theme text is deliberately the
+        // same hue family as the roads (1.5:1 against the azure highway — the
+        // title this color was made for sits on the 13:1 background instead).
+        // Legibility therefore comes from the halo carving the letterforms out
+        // of the road: background-colored, and thick — MapLibre caps halos at
+        // fontsize/4, which is also why the sizes above are not smaller.
+        'text-color': c.text,
+        'text-halo-color': c.background,
+        'text-halo-width': 2.2,
+        'text-halo-blur': 0.6,
+        'text-opacity': 1,
+      },
+    });
+  }
 
   // Region highlight — a list of regions, each optionally its own color.
   if (highlight?.enabled && highlight.regions?.length) {

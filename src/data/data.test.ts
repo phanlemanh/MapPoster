@@ -7,9 +7,9 @@ import { MARKER_ICONS, markerSvg } from './markers';
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 describe('themes', () => {
-  it('provides the 12 documented presets with unique ids', () => {
-    expect(THEMES).toHaveLength(12);
-    expect(new Set(THEMES.map((t) => t.id)).size).toBe(12);
+  it('provides the 13 documented presets with unique ids', () => {
+    expect(THEMES).toHaveLength(13);
+    expect(new Set(THEMES.map((t) => t.id)).size).toBe(13);
     expect(THEMES.map((t) => t.id)).toContain(DEFAULT_THEME_ID);
   });
 

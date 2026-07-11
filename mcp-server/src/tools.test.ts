@@ -168,7 +168,7 @@ describe('discovery tools', () => {
     const j = textJson(await tools().list_formats());
     expect(j.formats.some((f: { name: string; width: number; height: number }) => f.name === 'tiktok' && f.width === 1080 && f.height === 1920)).toBe(true);
   });
-  it('list_themes returns all 12 themes', async () => {
-    expect(textJson(await tools().list_themes()).themes).toHaveLength(12);
+  it('list_themes returns all 13 themes', async () => {
+    expect(textJson(await tools().list_themes()).themes).toHaveLength(13);
   });
 });

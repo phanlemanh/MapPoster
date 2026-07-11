@@ -1,6 +1,6 @@
 import type { Theme } from '../types';
 
-// 12 curated poster palettes. Each maps onto the MapLibre / OpenMapTiles layers.
+// 13 curated poster palettes. Each maps onto the MapLibre / OpenMapTiles layers.
 export const THEMES: Theme[] = [
   {
     id: 'midnight-blue',
@@ -22,6 +22,29 @@ export const THEMES: Theme[] = [
       boundary: '#3a4f66',
       text: '#f0d9a8',
       accent: '#e8b04b',
+    },
+  },
+  {
+    // Midnight Blue with the gold road ramp swapped for bright azure.
+    id: 'midnight-azure',
+    name: 'Midnight Azure',
+    dark: true,
+    colors: {
+      background: '#0d1b2a',
+      water: '#16324f',
+      waterway: '#1c3e60',
+      green: '#12304a',
+      landuse: '#122a42',
+      park: '#143752',
+      building: '#17324d',
+      roadHighway: '#4fc3ff',
+      roadMajor: '#3aa5e6',
+      roadMinor: '#2e6f9e',
+      rail: '#255a80',
+      aeroway: '#5f6b7a',
+      boundary: '#3a4f66',
+      text: '#c7e6ff',
+      accent: '#4fc3ff',
     },
   },
   {

@@ -1,125 +1,75 @@
-# Review Findings: mcp-map-render (Round 13)
+# Review Findings: mcp-map-render (Round 14)
 
 Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
-file). Feeds the Gate 2 decision card alongside `evidence-report.md`. All three findings below went
-through the full finder → refuter adversarial-verify pass; none is flagged `unverified`, and no review
-pass died mid-way in the run that produced this content (see "Review incomplete" at the bottom).
+file). Feeds the Gate 2 decision card alongside `evidence-report.md`. Zero findings survived this
+round's finder pass — the first fully clean adversarial review in this feature's 14-round history.
+No review pass died mid-way in the run that produced this content (see "Review incomplete" at the
+bottom).
 
-Verified at commit `5487f6891f56270356fd6cfcc483c18810e4f58f` (`feature/easy-setup`).
+Verified at commit `6c3d36b7ffb3d241516883b6f998514e482a25f3` (`feature/easy-setup`).
 
-**Context vs. Round 12:** Round 12's review surfaced 1 HIGH — `ensureDist()`'s default build ran
-`execSync('npx vite build', { stdio: 'inherit' })`, splicing the build's own stdout progress onto the stdio
-transport's JSON-RPC channel during `initialize`. That HIGH is now CLOSED: commit `40ecc5d` routes the
-build subprocess's stdout to fd 2 via `BUILD_STDIO = ['ignore', 2, 'inherit']`, backed by a new unit
-assertion pinning the constant and a new gated integration test (`stdioChannel.test.ts`) that spawns the
-real stdio server and asserts every stdout line parses as JSON. This round's adversarial pass targeted
-exactly the fix and its new test surface — all three findings below sit on code this round's own diff
-introduces (`mcp-server/src/ensureDist.ts`, `mcp-server/src/stdioChannel.test.ts`, `package.json`).
+**Context vs. Round 13:** Round 13's review surfaced 3 findings on the fix that closed Round 12's HIGH
+(the stdio-transport stdout leak) — 1 MEDIUM already reviewed and knowingly accepted as risk
+(`ensureDist.ts`'s build is synchronous and now blocks the `initialize` handshake instead of corrupting
+it), 1 MEDIUM (`test:mcp` raced two integration test files over the same on-disk `dist/`, able to
+spuriously fail one or silently false-pass the other), and 1 LOW (the new integration test destructively
+renamed the real workspace `dist/`, restored only in `finally`). The human (manh) chose to fix the two
+closable findings and to knowingly accept the synchronous-build MEDIUM (`decisions.jsonl`
+`d-20260711T023000Z-63001` through `-63003`).
 
-**Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and none of the findings below is the
-sole reason — that verdict is driven by this contract's `risk_tier: T3` mandating a direct human verdict on
-judgment item E12 (AC-12), independent of code-review findings, and Round 11's prior `human_override` does
-not carry forward to this round's freshly-pinned commit. Unlike Round 12 (1 HIGH), all three findings below
-are MEDIUM/LOW — per the human's Round-6 termination rule (`d-20260710T110500Z-47001`: "only a confirmed
-HIGH would reopen the loop"), none by itself is mandated to reopen the loop again. That said, the third
-finding (the `test:mcp` race) bears directly on how much confidence to place in THIS round's own
-regression proof for the HIGH it just fixed, and is worth Gate 2's attention for that reason even though it
-does not block on the termination rule alone.
+Commit `6c3d36b` ("run the integration files serially and stop the stdio test false-passing") closes both:
+
+- **MEDIUM #2 (race) — CLOSED.** `package.json`'s `test:mcp` script gained `--fileParallelism=false`,
+  forcing `mcp-server/src/renderFrame.test.ts` and `mcp-server/src/stdioChannel.test.ts` to run one after
+  another instead of Vitest 4's default concurrent-file execution. Verified: `npm run test:mcp` re-run
+  independently this round reports `Test Files 2 passed (2)` / `Tests 4 passed (4)` in 11.14s with no
+  interleaved output between the two files' build/rename/rebuild phases (confirmed by direct re-run, not
+  just trusted from the prior machine-results snapshot). `stdioChannel.test.ts` additionally now asserts
+  `!existsSync(dist)` immediately before spawning the server — if the serialization guarantee ever
+  regresses and `dist/` is present when it shouldn't be, the test fails loudly instead of silently
+  false-passing without exercising the build path — and asserts the spawned child's stderr contains
+  `"render harness not built yet"` (`mcp-server/src/ensureDist.ts:53`'s own log line, confirmed present at
+  that line by direct grep), positively proving the real build branch ran rather than merely inferring it
+  from clean stdout.
+- **LOW #3 (destructive rename) — CLOSED.** `.gitignore` gained `/dist.__stdiotest_bak`. The rename/restore
+  mechanism in `stdioChannel.test.ts` (`renameSync`/`finally`) is otherwise unchanged — this closes the
+  "could pollute a commit" tail risk, not the rename itself, which remains an accepted minor deviation from
+  the suite's isolated-temp-dir convention (low blast radius: opt-in behind `MCP_INTEGRATION=1`, and the
+  backup is a rebuildable directory).
+- **MEDIUM #1 (synchronous build blocks handshake) — NOT re-flagged, carried forward as an already-accepted
+  risk.** `ensureDist.ts:54` is unchanged this round (`git diff 5487f68 6c3d36b -- mcp-server/src/
+  ensureDist.ts` is empty). The human explicitly reviewed and accepted this tradeoff in Round 13
+  (`decisions.jsonl` `d-20260711T023000Z-63003`: "build-before-serve is a deliberate tradeoff; Claude
+  Code's own init timeout is generous; the alternative — a lazy build on first render — only relocates the
+  blocking window"). This round's fresh finder pass ran against the full HEAD (not just the diff) and
+  independently found nothing new on top of it, so it is listed here for continuity/traceability, not as a
+  Round-14 finding requiring its own adversarial-verify cycle.
+
+`git diff 5487f68 6c3d36b --stat` confirms the source-level change this round is scoped to exactly three
+files: `.gitignore`, `mcp-server/src/stdioChannel.test.ts`, and `package.json`. This round's finder passes
+(`bugs` and `conventions` lenses) targeted that scoped diff plus a fresh look at the rest of the
+`mcp-server/` surface, and reported zero new issues.
+
+**Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and no finding (new or carried
+forward) is the reason — that verdict is driven entirely by this contract's `risk_tier: T3` mandating a
+direct human verdict on judgment item E12 (AC-12), independent of code-review findings, and no prior
+`human_override` carries forward to this round's freshly-pinned commit (`6c3d36b`).
 
 ## Findings
 
-### 1. [MEDIUM] Synchronous `vite build` blocks the MCP initialize handshake on first run
-
-- **File:** `mcp-server/src/ensureDist.ts:54`
-- **Severity:** medium
-- **Confidence:** medium (the blocking behavior itself is high-confidence; whether it actually trips a
-  real client depends on that client's init-timeout policy)
-- **Source:** conventions
-
-Absolute path: `/Users/manhphan/dev/map/mcp-server/src/ensureDist.ts:54`.
-
-`ensureDist()` is invoked in the `isMain` block of `stdio.ts` (line 18) and `http.ts` (line 187) BEFORE the
-transport connects (`runStdio()` / `startHttpServer()`), and it runs the build with
-`execSync('npx vite build', { stdio: BUILD_STDIO, cwd })` — a synchronous, event-loop-blocking call. On the
-stdio path (`.mcp.json` launches `npx -y tsx mcp-server/src/stdio.ts`), the client spawns the process and
-sends `initialize`; the server cannot answer until `execSync` returns. This relocates the "worst first-run"
-the feature exists to prevent from render-time to handshake-time: a cold `vite build` on this React app can
-exceed the README's stated "~10s", and an MCP client that enforces an `initialize`/handshake timeout would
-mark the server failed. The fd-1 channel itself is now kept clean (Round 12's HIGH — `BUILD_STDIO` routes
-child stdout to fd 2, verified correct by this round's own fix), but the blocking-before-connect ordering is
-a genuine, separate boundary tension the fix did not touch. Confidence that the blocking behavior is real is
-high; whether it actually trips a client depends on that client's init timeout (Claude Code's own is
-generous), so real-world impact is medium/uncertain. The author's commit message shows the tradeoff was
-considered for the stdout leak but not explicitly for this blocking question.
-
-### 2. [LOW] Integration test destructively renames the real workspace `dist/`, restoring only in `finally`
-
-- **File:** `mcp-server/src/stdioChannel.test.ts:25`
-- **Severity:** low
-- **Confidence:** high (the hazard mechanism itself is certain; blast radius is what keeps severity low)
-- **Source:** conventions
-
-Absolute path: `/Users/manhphan/dev/map/mcp-server/src/stdioChannel.test.ts:25`.
-
-To force the build path, the test does `renameSync(dist, distHidden)` (line 25) on the repo's real
-(gitignored, rebuildable) `dist/` directory and only restores it via `renameSync(distHidden, dist)` in the
-`finally` block (line 53). If the test worker is terminated between those points — a vitest test-timeout
-kill, SIGKILL/Ctrl-C, CI cancellation, or OOM — the workspace is left with `dist/` gone and stashed as
-`dist.__stdiotest_bak`, and `dist.__stdiotest_bak` is not gitignored. This mutates a real out-of-tree
-workspace directory rather than an isolated temp dir, deviating from the rest of the suite's
-injected-deps / isolated-fixture convention (e.g. `ensureDist.test.ts` injects `exists`/`build` rather than
-touching the filesystem). Blast radius is limited because the whole suite is opt-in behind
-`MCP_INTEGRATION=1`, and the damage is a rebuildable directory, so severity is low; the hazard mechanism
-itself is certain (high confidence).
-
-### 3. [MEDIUM] `test:mcp` races two integration tests over the same on-disk `dist/`, corrupting each other
-
-- **File:** `package.json:15`
-- **Severity:** medium
-- **Source:** bugs
-
-Absolute path: `/Users/manhphan/dev/map/package.json:15`.
-
-This round's diff changes `test:mcp` to run two files in one vitest invocation:
-`MCP_INTEGRATION=1 vitest run mcp-server/src/renderFrame.test.ts mcp-server/src/stdioChannel.test.ts`.
-Vitest 4 (this repo pins `4.1.10`) runs test FILES in parallel by default (forks pool,
-`fileParallelism=true`), and `vitest.config.ts` sets no `maxWorkers`/`fileParallelism`/`singleFork`
-override — so both files execute concurrently. Both mutate the SAME directory, the repo-root `dist/`:
-
-- `renderFrame.test.ts`'s `beforeAll` runs `npx vite build` to create `dist/`, starts an app server that
-  serves files out of `dist/` via `fs.readFile`, and keeps rendering (headless browser fetching
-  `render.html` + JS chunks from `dist/`) for the whole test.
-- `stdioChannel.test.ts:25` destructively does `renameSync(dist, distHidden)` to force the fresh-clone
-  build path, spawns the stdio server (which rebuilds `dist/`), then at teardown (line 52)
-  `rmSync(dist, { recursive: true })` and renames the backup back.
-
-Under concurrent execution these collide with no synchronization. Bad interleavings that are near-certain
-given the ~10s+ overlap window:
-
-1. `stdioChannel` renames/removes `dist/` while `renderFrame` is mid-render → the app server's
-   `fs.readFile` throws → 404 → the render page never loads → `renderFrame` waits out its 20s timeout and
-   FAILS spuriously.
-2. `renderFrame`'s `vite build` recreates `dist/` before/while `stdioChannel` checks it → `stdioChannel`'s
-   spawned server sees `render.html` present and SKIPS the build, so the test passes without ever
-   exercising the build path it exists to verify — a false pass (silent loss of coverage for exactly the
-   fresh-clone-first-render regression Round 12's bug lived in).
-3. `stdioChannel`'s teardown `rmSync(dist)` + rename can delete `renderFrame`'s freshly built `dist/` and,
-   if the test process is interrupted mid-teardown, leave the working tree's real `dist/` deleted or
-   stranded as `dist.__stdiotest_bak`.
-
-The gated integration suite (the acceptance evidence relies on it for E1 and E6's corroborating depth, and
-this round's own regression proof of the HIGH fix) is therefore flaky and can silently under-test. This
-round's own `npm run test:mcp` run reported "4 passed" (genuine, exit 0), but per scenario (2) above that
-result cannot yet be trusted as a guaranteed-clean exercise of the real build path on every future run.
-Fix: run these two files serially (separate npm steps, or `--sequence.concurrent=false` /
-`--fileParallelism=false`, or `--poolOptions.forks.singleFork`), or isolate `stdioChannel`'s build into a
-temp dir instead of renaming the shared `dist/`.
+None. This round's finder pass (both `bugs` and `conventions` lenses) surfaced zero new findings against a
+diff limited to `package.json`'s `test:mcp` script, `.gitignore`, and `stdioChannel.test.ts`'s strengthened
+assertions — and a fresh look at the surrounding `mcp-server/` surface turned up nothing else. The one open
+item from Round 13 that remains genuinely open (`ensureDist.ts:54`'s synchronous build) is not listed as a
+finding here because it is unchanged code the human already adversarially-reviewed and knowingly accepted
+in Round 13 (`decisions.jsonl` `d-20260711T023000Z-63003`) — see the Context section above for its full
+detail and status.
 
 ## Chưa adversarial-verify (refuter chết)
 
-none — all three findings above completed the full finder → refuter pass in the run that produced this
-content; none carries `unverified: true`.
+none — there are no findings this round to carry an `unverified: true` flag; the finder pass itself
+completed cleanly with an empty result set.
 
 ## Review incomplete (finder chết)
 
-none — in the run that produced the findings above, no review pass failed to complete.
+none — in the run that produced this content, no review pass failed to complete.

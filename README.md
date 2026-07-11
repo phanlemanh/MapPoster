@@ -15,11 +15,31 @@ No backend, no API keys. Map data comes from [OpenFreeMap](https://openfreemap.o
 
 ## Getting started
 
+One command after cloning — installs deps, builds the render harness, fetches the
+headless browser:
+
 ```bash
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # typecheck + unit tests + production build
+npm run setup
 ```
+
+There are **two independent ways to use MapPoster** — you do not need one to run
+the other:
+
+**1. The web app** (design and download posters yourself)
+
+```bash
+npm run dev      # → http://localhost:5173
+```
+
+**2. The MCP server** (let an AI agent render maps for you — see below). It is
+already wired for Claude Code via [`.mcp.json`](.mcp.json): open this folder in
+Claude Code, approve the `mapposter` server, and ask it to render a map. The
+server runs its own headless browser — the `npm run dev` app does **not** need to
+be running. The first render builds `dist/` if `npm run setup` didn't (a one-time
+~10 s), then each render takes a few seconds.
+
+<sub>`npm run build` = typecheck both projects + unit tests + production bundle.
+`npm run setup` is the lighter "just make it runnable" path.</sub>
 
 ## Testing
 
@@ -38,10 +58,17 @@ Two layers, both automated:
 `mcp-server/` exposes MapPoster's renderer to AI agents via MCP, so an agent (e.g. a video pipeline) can fetch a still map illustration on demand — geocoded, point/region-highlighted, in TikTok/other formats. It drives the app's **headless render mode** (`render.html`) in a Playwright page pool behind a stable `renderFrame(config) → PNG` primitive; geocoding + boundary lookup run in Node with caching.
 
 ```bash
-npm run build          # produce dist/ (the render harness the server serves)
-npm run mcp:stdio      # run over stdio (local)
+npm run mcp:stdio      # run over stdio (local) — builds dist/ on first run if missing
 npm run mcp:http       # run over Streamable HTTP (hosted, port 4181)
 npm run test:mcp       # gated integration test (builds app + renders a real PNG)
+```
+
+The server serves the built app from `dist/` to its headless browser and rebuilds
+it automatically if it is missing. If you **edit app source** (`src/`) and want the
+server to pick it up, rebuild explicitly — a stale `dist/` is served silently:
+
+```bash
+npx vite build
 ```
 
 Tools: `render_map`, `render_variants`, `geocode_place`, `list_themes`, `list_formats`. Example call:

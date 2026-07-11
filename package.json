@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "setup": "npm install && vite build && playwright install chromium",
     "dev": "vite",
     "build": "tsc -b && tsc -p mcp-server/tsconfig.json && vitest run && vite build",
     "lint": "oxlint",

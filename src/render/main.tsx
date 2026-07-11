@@ -6,7 +6,7 @@ import { applyRenderConfig } from './applyRenderConfig';
 import type { RenderConfig, RenderCamera } from './renderConfig';
 import { usePosterStore } from '../store/usePosterStore';
 import { getMapInstance } from '../lib/mapRef';
-import { composePoster } from '../lib/export';
+import { composePoster, composeOverlays, snapshotMap, type PulseOpts } from '../lib/export';
 import { getFont } from '../data/fonts';
 import { getTheme } from '../data/themes';
 import { formatCoords } from '../lib/format';
@@ -16,6 +16,12 @@ interface MapPosterApi {
   configKey: string;
   ready: Promise<void>;
   renderFrame(): Promise<{ dataUrl: string; width: number; height: number }>;
+  /**
+   * One animation frame at phase t ∈ [0,1) — radar ripples around the markers.
+   * The expensive map snapshot is taken on the first call and reused, so a
+   * whole sequence costs one map render plus N cheap 2D composites.
+   */
+  renderAnimationFrame(t: number, pulse?: Omit<PulseOpts, 't'>): Promise<{ dataUrl: string; width: number; height: number }>;
   setCamera(cam: RenderCamera): Promise<void>;
 }
 
@@ -109,6 +115,8 @@ function textFromStore() {
 const { key: configKey, load } = readConfigSource();
 
 let cfg: RenderConfig;
+/** map snapshot reused across animation frames (invalidated on camera change) */
+let animBase: HTMLCanvasElement | null = null;
 
 const ready = (async () => {
   cfg = await load();
@@ -146,10 +154,25 @@ window.__mapposter = {
     });
     return { dataUrl: canvas.toDataURL('image/png'), width: cfg.size.width, height: cfg.size.height };
   },
+  async renderAnimationFrame(t, pulse) {
+    await ready;
+    const map = getMapInstance();
+    if (!map) throw new Error('render mode: no map');
+    if (!animBase) animBase = await snapshotMap(map, cfg.size.width, cfg.size.height);
+    const canvas = await composeOverlays(map, animBase, {
+      width: cfg.size.width,
+      height: cfg.size.height,
+      markers: usePosterStore.getState().markers,
+      text: textFromStore(),
+      pulse: { ...pulse, t },
+    });
+    return { dataUrl: canvas.toDataURL('image/png'), width: cfg.size.width, height: cfg.size.height };
+  },
   async setCamera(cam) {
     const map = getMapInstance();
     if (!map) throw new Error('render mode: no map');
     map.jumpTo(cam);
+    animBase = null; // camera moved — the cached snapshot no longer matches
     await idleOnce(map);
   },
 };

@@ -22,6 +22,60 @@ export interface RenderDeps {
  * stale page fails loudly instead of returning the wrong image. The payload
  * itself is fetched from the app server — see configStore.ts for why.
  */
+export interface AnimationPulse {
+  rings?: number;
+  radiusScale?: number;
+  color?: string;
+}
+
+/**
+ * Capture a whole radar-pulse sequence from ONE page load: the map renders
+ * once, then each frame is a cheap 2D composite at phase t = i/frames. Same
+ * lifecycle contract as renderFrame — a failure poisons the page, so discard it.
+ */
+export async function renderAnimationFrames(
+  config: RenderConfig,
+  opts: { frames: number; pulse?: AnimationPulse },
+  deps: RenderDeps,
+): Promise<Buffer[]> {
+  const page = await deps.pool.acquire();
+  const key = deps.configStore.put(JSON.stringify(config));
+  let broken = false;
+  try {
+    await page.goto(`${deps.appUrl}/render.html?configId=${key}`, { waitUntil: 'load' });
+    await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, {
+      timeout: 20_000,
+    });
+    const loadedKey = await page.evaluate(() => (window as unknown as { __mapposter: { configKey: string } }).__mapposter.configKey);
+    if (loadedKey !== key) {
+      throw new Error('render mode: page did not reload with the requested config (stale page)');
+    }
+
+    const buffers: Buffer[] = [];
+    for (let i = 0; i < opts.frames; i++) {
+      const dataUrl: string = await page.evaluate(
+        async ({ t, pulse }: { t: number; pulse?: AnimationPulse }) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const api = (window as any).__mapposter;
+          await api.ready;
+          const r = await api.renderAnimationFrame(t, pulse);
+          return r.dataUrl as string;
+        },
+        { t: i / opts.frames, pulse: opts.pulse },
+      );
+      buffers.push(Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64'));
+    }
+    return buffers;
+  } catch (e) {
+    broken = true;
+    deps.pool.discard(page);
+    throw e;
+  } finally {
+    deps.configStore.drop(key);
+    if (!broken) deps.pool.release(page);
+  }
+}
+
 export async function renderFrame(config: RenderConfig, deps: RenderDeps): Promise<Buffer> {
   const page = await deps.pool.acquire();
   // The config travels out-of-band. Putting it in the URL capped the whole render

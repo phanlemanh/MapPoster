@@ -10,6 +10,10 @@ import type { RenderConfig } from '../../src/render/renderConfig';
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
   render: (config: RenderConfig) => Promise<Buffer>;
+  /** Injected animation primitive (real = renderAnimationFrames bound to the pool). */
+  renderAnimation?: (config: RenderConfig, opts: { frames: number; pulse?: { rings?: number; radiusScale?: number; color?: string } }) => Promise<Buffer[]>;
+  /** Injected encoder (real = encodeAnimation / ffmpeg). */
+  encodeAnimation?: (frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => Promise<string>;
   sinkDir: string;
   defaultDelivery?: DeliveryMode;
 }
@@ -78,6 +82,55 @@ export function makeTools(deps: ToolDeps) {
       }
     },
 
+    async render_animation(
+      params: RenderMapParams & {
+        animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string };
+      },
+    ): Promise<ToolResult> {
+      try {
+        if (!deps.renderAnimation || !deps.encodeAnimation) return fail('animation is not available on this server build');
+        const anim = params.animation ?? {};
+        const frames = anim.frames ?? 24;
+        const fps = anim.fps ?? 12;
+        const format = anim.format ?? 'gif';
+
+        const cfg = await resolveConfig(params);
+        // The radar pulses around the highlight points — without one there is
+        // nothing to animate and the caller gets a still image N times over.
+        if (!cfg.markers?.length) {
+          return fail('render_animation needs at least one highlight.points entry — the radar pulse is drawn around those points');
+        }
+
+        const pngs = await deps.renderAnimation(cfg, {
+          frames,
+          pulse: { rings: anim.rings, radiusScale: anim.radiusScale, color: anim.color },
+        });
+
+        const name = fileNameFor(cfg);
+        const outputs: { format: 'gif' | 'mp4'; path: string }[] = [];
+        const wanted: ('gif' | 'mp4')[] = format === 'both' ? ['gif', 'mp4'] : [format];
+        for (const f of wanted) {
+          const outPath = await deps.encodeAnimation(pngs, {
+            fps,
+            format: f,
+            outPath: `${deps.sinkDir}/${name}.${f}`,
+            // full-size 256-color GIFs are enormous; default to half-width unless told otherwise
+            gifWidth: f === 'gif' ? (anim.gifWidth ?? Math.min(540, cfg.size.width)) : undefined,
+          });
+          outputs.push({ format: f, path: outPath });
+        }
+
+        // a mid-sequence frame as inline preview so the caller sees the effect
+        const preview = pngs[Math.floor(pngs.length / 2)];
+        return ok(
+          { animation: { outputs, frames, fps, width: cfg.size.width, height: cfg.size.height, loop: true }, resolved: resolvedOf(cfg) },
+          [{ base64: preview.toString('base64') }],
+        );
+      } catch (e) {
+        return fail((e as Error).message ?? String(e));
+      }
+    },
+
     async geocode_place(params: { query: string; limit?: number }): Promise<ToolResult> {
       try {
         const candidates = await searchCandidates(params.query, params.limit ?? 5);
@@ -137,6 +190,20 @@ const renderMapShape = {
   delivery: deliverySchema,
 };
 
+// Bounded: frames×fps beyond this buys nothing visually and ties up the pooled
+// page for the whole capture loop.
+const animationSchema = z
+  .object({
+    frames: z.number().int().min(4).max(60).optional(),
+    fps: z.number().int().min(4).max(30).optional(),
+    format: z.enum(['gif', 'mp4', 'both']).optional(),
+    gifWidth: z.number().int().min(64).max(MAX_EDGE).optional(),
+    rings: z.number().int().min(1).max(6).optional(),
+    radiusScale: z.number().min(0.5).max(8).optional(),
+    color: hexColor.optional(),
+  })
+  .optional();
+
 /** Register all tools on a real MCP server. */
 export function registerTools(server: McpServer, deps: ToolDeps): void {
   const t = makeTools(deps);
@@ -147,6 +214,16 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
   // otherwise a variant could override location/camera with out-of-range values
   // and slip straight past the boundary validation.
   s.registerTool('render_variants', { description: 'Render several map variants (different themes/formats/zoom) for one location.', inputSchema: { base: z.object(renderMapShape), variants: z.array(z.object(renderMapShape).partial()), delivery: deliverySchema } }, (a: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }) => t.render_variants(a));
+  s.registerTool(
+    'render_animation',
+    {
+      description:
+        'Render a looping radar-pulse animation (GIF and/or MP4) around highlight points — expanding rings mark the location. Requires highlight.points.',
+      inputSchema: { ...renderMapShape, animation: animationSchema },
+    },
+    (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string } }) =>
+      t.render_animation(a),
+  );
   s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());

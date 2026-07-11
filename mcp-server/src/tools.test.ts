@@ -55,6 +55,16 @@ afterEach(async () => {
 
 const tools = () => makeTools({ render, sinkDir, defaultDelivery: 'both' });
 
+const renderAnimation = vi.fn(async (cfg: RenderConfig, opts: { frames: number }) => {
+  lastCfg = cfg;
+  return Array.from({ length: opts.frames }, () => fakePng(cfg.size.width, cfg.size.height));
+});
+const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+  await fs.writeFile(opts.outPath, 'x');
+  return opts.outPath;
+});
+const animTools = () => makeTools({ render, renderAnimation, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
 describe('render_map', () => {
   it('renders and echoes resolved center/place (AC-1)', async () => {
     const res = await tools().render_map({ location: 'HCMC', format: 'tiktok' });
@@ -170,5 +180,48 @@ describe('discovery tools', () => {
   });
   it('list_themes returns all 13 themes', async () => {
     expect(textJson(await tools().list_themes()).themes).toHaveLength(13);
+  });
+});
+
+describe('render_animation', () => {
+  const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
+
+  it('rejects when there is no highlight point to pulse around', async () => {
+    const res = await animTools().render_animation({ location: 'HCMC' });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/highlight\.points/);
+  });
+
+  it('captures frames once and encodes every requested format', async () => {
+    renderAnimation.mockClear();
+    encodeAnimation.mockClear();
+    const res = await animTools().render_animation({
+      location: 'HCMC',
+      ...point,
+      animation: { frames: 8, fps: 10, format: 'both' },
+    });
+    expect(res.isError).toBeUndefined();
+    const j = textJson(res);
+    expect(renderAnimation).toHaveBeenCalledTimes(1); // one capture feeds both encodes
+    expect(encodeAnimation).toHaveBeenCalledTimes(2);
+    expect(j.animation.outputs.map((o: { format: string }) => o.format).sort()).toEqual(['gif', 'mp4']);
+    expect(j.animation.frames).toBe(8);
+    expect(j.animation.loop).toBe(true);
+    expect(imageBlocks(res)).toHaveLength(1); // inline preview frame
+  });
+
+  it('defaults GIF to a bounded width and formats to gif-only', async () => {
+    encodeAnimation.mockClear();
+    const res = await animTools().render_animation({ location: 'HCMC', ...point, format: 'tiktok' });
+    expect(res.isError).toBeUndefined();
+    expect(encodeAnimation).toHaveBeenCalledTimes(1);
+    const opts = encodeAnimation.mock.calls[0][1];
+    expect(opts.format).toBe('gif');
+    expect(opts.gifWidth).toBe(540);
+  });
+
+  it('fails cleanly when the server build has no animation deps', async () => {
+    const res = await tools().render_animation({ location: 'HCMC', ...point });
+    expect(res.isError).toBe(true);
   });
 });

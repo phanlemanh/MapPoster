@@ -1,7 +1,19 @@
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, type StdioOptions } from 'node:child_process';
 import path from 'node:path';
 import type { ServerConfig } from '../config';
+
+/**
+ * How the build subprocess wires its streams. `stdout` (slot 1) MUST NOT reach
+ * the parent's fd 1: on the stdio MCP transport, fd 1 is the JSON-RPC channel,
+ * and `vite build` writes ~14 lines of non-JSON progress to its stdout. Inheriting
+ * fd 1 would splice that garbage into the protocol stream and break the handshake
+ * on exactly the fresh-clone first render this build exists to rescue.
+ *
+ * So the child's stdout is routed to the parent's fd 2 (stderr); progress stays
+ * visible, the protocol channel stays clean. stdin is ignored; stderr inherits.
+ */
+export const BUILD_STDIO: StdioOptions = ['ignore', 2, 'inherit'];
 
 /**
  * Make sure the render harness (`dist/render.html`) exists before the server
@@ -39,7 +51,7 @@ export function ensureDist(
   }
 
   log('[mapposter] render harness not built yet — running `vite build` once (~10s)…');
-  const build = deps.build ?? (() => execSync('npx vite build', { stdio: 'inherit', cwd }));
+  const build = deps.build ?? (() => execSync('npx vite build', { stdio: BUILD_STDIO, cwd }));
   build();
 
   if (!exists(harness)) {

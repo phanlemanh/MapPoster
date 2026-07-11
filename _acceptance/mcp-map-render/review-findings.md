@@ -1,99 +1,97 @@
-# Review Findings: mcp-map-render (Round 11)
+# Review Findings: mcp-map-render (Round 12)
 
 Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
-file). Feeds the Gate 2 decision card alongside `evidence-report.md`. All 3 findings below went through
-the full finder → refuter adversarial-verify pass; none is flagged `unverified`, and no review pass died
-mid-way in the run that produced this content (see "Review incomplete" at the bottom).
+file). Feeds the Gate 2 decision card alongside `evidence-report.md`. Both findings below went through
+the full finder → refuter adversarial-verify pass; neither is flagged `unverified`, and no review pass
+died mid-way in the run that produced this content (see "Review incomplete" at the bottom).
 
-Verified at commit `9e51736a2a4e94deb4391f8d84984af049c5d39b` (`feature/mcp-map-render`).
+Verified at commit `62b02e8158644f01a0972a813d9f6096f7d87374` (`feature/mcp-map-render`).
 
-**Context vs. Round 9:** the Round-9 review surfaced 3 findings — 1 HIGH (region-highlight config shipped
-in a URL query param, capped at Node's default 16 KB header limit), 1 MEDIUM (unguarded `Number(env)`
-yielding `NaN` and silently disabling the body/pool caps), 1 LOW (`memoizeSuccess.reset()` unconditionally
-evicting a healthy concurrent rebuild). **All 3 are now CLOSED**: Round 10 replaced the URL-embedded
-config with an in-process `configStore.ts` plus a same-origin `/__config/<id>` route (closing the HIGH),
-added a fail-closed `envNumber()` helper validated at startup (closing the MEDIUM), and made
-`memoizeSuccess.reset(attempt)` clear only the matching attempt (closing the LOW). Round 10's own review
-pass then found and immediately fixed 2 more items before it could reach Gate 2 (camera
-`bearing`/`pitch` silently discarded on headless render; a self-inflicted `gen-example.ts` regression
-invisible to `tsc` because `scripts/` was never in `mcp-server/tsconfig.json`'s `include`) — see
-`evidence-report.md`'s Iterations entry for Round 10. None of those 5 prior findings is repeated below;
-this round's adversarial pass probed different code paths and found the 3 NEW items that follow.
+**Context vs. Round 11:** the Round-11 review surfaced 3 findings — 2 MEDIUM (unbounded `render_variants`
+array; unbounded `highlight.regions`/`highlight.points` name arrays) and 1 LOW (`formatSize` matching
+`Object.prototype` members). None of those 3 sits on code this round's diff touches
+(`tools.ts`/`resolveConfig.ts` are unchanged between `9e51736` and `62b02e8`), so they are neither
+re-confirmed nor closed by this round's pass — they remain open exactly as Round 11 left them, tracked in
+that round's Iterations entry in `evidence-report.md`. This round's own diff is narrowly scoped to
+startup/build plumbing (`mcp-server/src/ensureDist.ts` new, `stdio.ts`, `http.ts`, plus CI/docs), and the
+adversarial pass targeted exactly that new surface — both findings below are on the SAME line, converged
+on independently by two different review lenses.
 
-**Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and none of the findings below is
-the reason — that verdict is driven entirely by this contract's `risk_tier: T3` mandating a direct human
-verdict on judgment item E12 (AC-12), independent of code-review findings. Unlike Round 9, none of this
-round's 3 findings is HIGH, so per the human's Round-6 termination rule (`d-20260710T110500Z-47001`: "only
-a confirmed HIGH would reopen the loop") this round is a normal "carry forward as accepted risk, or
-ticket it" candidate for Gate 2 — it does not by itself demand another implementation round.
+**Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and neither finding below is the
+sole reason — that verdict is driven by this contract's `risk_tier: T3` mandating a direct human verdict on
+judgment item E12 (AC-12), independent of code-review findings. Unlike Round 11 (zero HIGH), both findings
+below ARE high severity and land on this round's own new feature — per the human's Round-6 termination rule
+(`d-20260710T110500Z-47001`: "only a confirmed HIGH would reopen the loop"), this is squarely the class of
+finding the rule was written to catch, not a routine "carry forward as accepted risk" candidate. Gate 2
+should treat this as a live decision, not a formality.
 
 ## Findings
 
-### 1. [MEDIUM] `render_variants`: an unbounded `variants` array is unbounded browser-render fan-out from a single within-cap request
+### 1. [HIGH] stdio MCP transport corrupted: vite build stdout leaks onto the JSON-RPC channel
 
-- **File:** `mcp-server/src/tools.ts:149`
-- **Severity:** medium
+- **File:** `mcp-server/src/ensureDist.ts:42`
+- **Severity:** high
 - **Source:** conventions
 
-The Zod input schema for `render_variants` is
-`variants: z.array(z.object(renderMapShape).partial())` (`tools.ts:149`) — no `.max()`. `render_variants`
-iterates every element of `variants` and drives one full headless-browser render each (`renderOne` →
-`renderFrame`, run serially per the tool's implementation). The HTTP request-body cap
-(`config.ts`'s `DEFAULT_MAX_BODY_BYTES`, enforced in `http.ts`) exists explicitly to, in the codebase's own
-words, stop a caller from OOM-ing the shared browser pool — yet a tiny, well-within-cap JSON body (a
-`variants` array of on the order of 100,000 near-empty `{}` objects is well under the 8 MiB body limit)
-enqueues on the order of 100,000 sequential renders and monopolizes the shared pool for a very long time.
-This is the identical threat class the body cap defends against, reachable in the hosted
-`MAPPOSTER_HTTP_HOST=0.0.0.0` deployment mode this server is designed to support, and it is the one
-boundary dimension left unbounded now that every scalar input (dimensions, lat/lng, zoom, colour, GeoJSON
-byte size) is capped elsewhere in this same file. No downstream cap exists to catch it. Fix: add a
-`.max(N)` to the `variants` array, matching the codebase's own bound-everything-that-grows invariant.
+Absolute path: `/Users/manhphan/dev/map/mcp-server/src/ensureDist.ts:42`.
 
-### 2. [MEDIUM] `highlight.regions` / `highlight.points`: unbounded name arrays are unbounded serialized Nominatim calls from one request
+Invariant (inferred from the codebase; repo has no CLAUDE.md/CONTRIBUTING.md): on the stdio transport,
+process stdout is reserved exclusively for the MCP JSON-RPC message stream. The whole server source obeys
+this — every log goes to stderr via `console.error` (`http.ts`, `stdio.ts`, and even `ensureDist`'s own
+injected `log` default `(m) => console.error(m)`). A grep for stdout/console.log/stdio across
+`mcp-server` source returns exactly one hit: `ensureDist.ts:42`.
 
-- **File:** `mcp-server/src/tools.ts:115` (regions), `:116` (points)
-- **Severity:** medium
-- **Source:** conventions
+Violation: the default `build` runs `execSync('npx vite build', { stdio: 'inherit', cwd })`.
+`stdio: 'inherit'` makes the child inherit fd 1, so the build's stdout is written to the server's own
+stdout. On the stdio transport (`stdio.ts`, which calls `ensureDist(loadServerConfig())` before
+`runStdio`), that stdout is the protocol channel.
 
-`regions: z.array(...)` (`tools.ts:115`) and `points: z.array(...)` (`tools.ts:116`) both accept unbounded
-arrays of place-name strings. `resolveConfig` resolves each named region via `resolveBoundary` and each
-named point via `resolveLocation`, and `geocode.ts` serializes every upstream Nominatim call behind a
->=1 req/s throttle (required by Nominatim's usage policy). A single small request containing thousands of
-distinct name strings therefore pins the process issuing serialized third-party geocode lookups for
-hours (on the order of 100,000 names ≈ 28 hours at 1/s), turning one MCP request into sustained,
-policy-relevant abuse of a shared public service — precisely the behaviour the rate limiter and the
-User-Agent/contact-email identification were added to keep compliant. This is the same root cause as
-Finding #1: array cardinality is the one input dimension at this MCP boundary still left unbounded. Fix:
-cap the length of both arrays at the schema.
+Empirical proof: running `npx vite build` with streams split writes the full build report to STDOUT (not
+stderr): `vite v8.1.4 building client environment for production...`, `transforming...`,
+`rendering chunks...`, the per-chunk size table, and `✓ built in 236ms` — ~11 non-JSON lines. Only the
+chunk-size warning goes to stderr.
 
-### 3. [LOW] `formatSize()` matches JS built-in property names instead of rejecting them (unguarded object index)
+Impact: this triggers on exactly the scenario the feature was built to fix — a fresh clone whose first
+stdio render auto-builds `dist/`. The MCP client reads those non-JSON lines off the server's stdout and
+fails to parse them as newline-delimited JSON-RPC, breaking/corrupting the connection. So the self-healing
+build sabotages the stdio first-run it is meant to rescue. `http.ts` is unaffected (stdout is not its
+channel), but `stdio.ts` shares the same `ensureDist` default.
 
-- **File:** `mcp-server/src/resolveConfig.ts:65`
-- **Severity:** low
+Untested boundary: all four unit tests inject `build`, so the real `execSync` path (the one with
+`stdio: 'inherit'`) is never exercised. Fix direction (do not apply): send the child's stdout to fd 2,
+e.g. `stdio: ['ignore', 2, 'inherit']`, so progress stays visible on stderr and stdout stays clean for the
+protocol.
+
+### 2. [HIGH] vite build output corrupts the MCP stdio JSON-RPC channel on first run
+
+- **File:** `mcp-server/src/ensureDist.ts:42`
+- **Severity:** high
 - **Source:** bugs
 
-`formatSize` resolves a named format with `if (FORMATS[format]) return FORMATS[format];` (`resolveConfig.
-ts:65`). Because `FORMATS` is a plain object literal, this index also reaches inherited
-`Object.prototype` members, so a format string like `constructor`, `toString`, `valueOf`,
-`hasOwnProperty`, or `__proto__` is truthy and gets returned as the "size". Verified directly:
-`FORMATS['constructor']` evaluates to the `Object` function; `FORMATS['__proto__']` evaluates to
-`Object.prototype`. Reachability: the Zod `formatSchema` is
-`z.union([z.string().min(1), z.object({width,height})])`, so any such string passes validation and
-reaches `formatSize`, and the named-format branch skips `assertDim` entirely. Consequence: instead of the
-intended `throw new Error('Unknown format: ...')`, `size` becomes a function or a bare prototype object
-with no numeric `width`/`height`. It survives `resolveConfig`, and inside `renderFrame`,
-`JSON.stringify(config)` drops the function-valued `size` (or serializes it as `{}`), so the render page
-hits `cfg.size.width` on `undefined` and the render fails with an opaque TypeError rather than the clean
-"Unknown format" error the code intends. Impact is limited — a confusing error rather than a
-wrong-but-successful poster, and only for pathological format strings an agent is unlikely to send by
-accident — hence low severity. Fix: gate on ownership, e.g. `if (Object.hasOwn(FORMATS, format)) return
-FORMATS[format];`, matching the safe array-based lookups this same file already uses for `LAYOUTS` and
-`THEMES`.
+`ensureDist` runs `execSync('npx vite build', { stdio: 'inherit', cwd })`. With `stdio:'inherit'` the
+child inherits the parent's fd 1 (stdout). For the stdio transport this stdout IS the JSON-RPC protocol
+channel the MCP client reads — the MCP stdio contract requires the server to write ONLY valid MCP messages
+to stdout. `vite build` emits its progress/summary (the `dist/… gzip:` table via vite's logger, which
+defaults to stdout) directly onto that channel.
+
+This triggers on exactly the scenario the feature targets: a fresh clone launched via `.mcp.json`
+(type:"stdio", command `npx -y tsx mcp-server/src/stdio.ts`) has no `dist/`, so `stdio.ts` calls
+`ensureDist` → builds → ~10s of non-JSON build text is written to stdout while the client is performing the
+`initialize` handshake, corrupting/failing it. The HTTP path is unaffected (stdout is not a protocol
+channel there).
+
+The code already knows stdout must stay clean — its own `log` default correctly uses console.error/stderr
+(`ensureDist.ts:27`) — but the build subprocess bypasses that and lands on stdout. Fix: route the build's
+stdout to stderr, e.g. `stdio: ['ignore', process.stderr, 'inherit']` (or capture with `'pipe'` and re-emit
+on stderr), so no build bytes reach fd 1.
+
+Related harmful call site: `mcp-server/src/stdio.ts:18` (`ensureDist(loadServerConfig())` in the `isMain`
+block).
 
 ## Chưa adversarial-verify (refuter chết)
 
-none — all 3 findings above completed the full finder → refuter pass in the run that produced this
-content; none carries `unverified: true`.
+none — both findings above completed the full finder → refuter pass in the run that produced this
+content; neither carries `unverified: true`.
 
 ## Review incomplete (finder chết)
 

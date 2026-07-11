@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { searchPlaces, reverseGeocode, fetchRegionBoundary } from './geocoding';
+import { searchPlaces, reverseGeocode, fetchRegionBoundary, refineThreshold } from './geocoding';
 
 function mockFetch(payload: unknown, ok = true) {
   const fn = vi.fn(async (_url?: string) => ({ ok, json: async () => payload }) as unknown as Response);
@@ -178,5 +178,61 @@ describe('fetchRegionBoundary', () => {
     const b = await fetchRegionBoundary({ name: 'Paris', country: 'France', lng: 0, lat: 0, zoom: 12 });
     expect(b).not.toBeNull();
     expect(String(fn.mock.calls[0][0])).toContain('/search?');
+  });
+});
+
+describe('boundary refinement for small features', () => {
+  // Hoàn Kiếm Lake: 0.0057° span — the coarse 0.0015° tolerance turns its
+  // 172-point shoreline into a 13-point pentagon (measured against Nominatim).
+  const lakeBbox = ['21.0259534', '21.0316445', '105.8511725', '105.8535692'];
+  const coarsePoly = { type: 'Polygon', coordinates: [[[105.851, 21.026], [105.854, 21.026], [105.854, 21.032], [105.851, 21.026]]] };
+  const finePoly = { type: 'Polygon', coordinates: [Array.from({ length: 30 }, (_, i) => [105.851 + i * 1e-4, 21.026 + i * 1e-4])] };
+  const lakeItem = { osm_type: 'relation', osm_id: 198437, display_name: 'Hồ Hoàn Kiếm, Hà Nội', boundingbox: lakeBbox, geojson: coarsePoly };
+
+  function mockFetchSeq(payloads: unknown[], okFlags?: boolean[]) {
+    let i = 0;
+    const fn = vi.fn(async (_url?: string) => {
+      const idx = Math.min(i++, payloads.length - 1);
+      return { ok: okFlags?.[idx] ?? true, json: async () => payloads[idx] } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+    return fn;
+  }
+
+  it('refineThreshold scales to the feature and stands down for large ones', () => {
+    const thr = refineThreshold(lakeBbox);
+    expect(thr).not.toBeNull();
+    expect(thr!).toBeLessThan(0.0015);
+    expect(thr!).toBeCloseTo(0.0056911 / 200, 6);
+    expect(refineThreshold(['10.34', '11.16', '106.35', '107.03'])).toBeNull(); // city-sized
+    expect(refineThreshold(undefined)).toBeNull();
+    expect(refineThreshold(['1', '1', '2', '2'])).toBeNull(); // zero span
+  });
+
+  it('refetches a small feature at feature-scaled tolerance and returns the detailed polygon', async () => {
+    const fn = mockFetchSeq([[lakeItem], [{ ...lakeItem, geojson: finePoly }]]);
+    const b = await fetchRegionBoundary({ name: 'Hồ Hoàn Kiếm', country: 'Vietnam', lng: 0, lat: 0, zoom: 15, osmType: 'relation', osmId: 198437 });
+    expect(fn).toHaveBeenCalledTimes(2);
+    const second = String(fn.mock.calls[1][0]);
+    expect(second).toContain('/lookup?');
+    expect(second).toContain('R198437');
+    const thr = parseFloat(new URL(second).searchParams.get('polygon_threshold')!);
+    expect(thr).toBeLessThan(0.0015);
+    expect(b!.geojson.features[0].geometry).toEqual(finePoly);
+  }, 15000);
+
+  it('keeps the coarse polygon when the refinement pass fails', async () => {
+    const fn = mockFetchSeq([[lakeItem], [lakeItem]], [true, false]);
+    const b = await fetchRegionBoundary({ name: 'Hồ Hoàn Kiếm', country: 'Vietnam', lng: 0, lat: 0, zoom: 15, osmType: 'relation', osmId: 198437 });
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(b!.geojson.features[0].geometry).toEqual(coarsePoly);
+  }, 15000);
+
+  it('does not refetch city-sized features (coarse pass is already fine enough)', async () => {
+    const cityItem = { ...hcmcSearchItem, geojson: coarsePoly };
+    const fn = mockFetch([cityItem]);
+    const b = await fetchRegionBoundary({ name: 'HCMC', country: 'Vietnam', lng: 0, lat: 0, zoom: 12, osmType: 'relation', osmId: 1973756 });
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(b).not.toBeNull();
   });
 });

@@ -102,29 +102,41 @@ describe('region highlight', () => {
 
   it('adds no highlight layers when disabled', () => {
     const style = buildMapStyle({ ...baseArgs, highlight: { enabled: false, regions: [], color: null, fill: true, dim: false } });
-    expect(layer(style, 'highlight-outline')).toBeUndefined();
+    expect(layer(style, 'highlight-soft-edge')).toBeUndefined();
     expect(style.sources.highlight).toBeUndefined();
   });
 
-  it('adds outline + fill layers for one region, defaulting to theme accent', () => {
+  it('adds soft-edge + fill layers for one region, defaulting to theme accent', () => {
     const style = buildMapStyle({
       ...baseArgs,
       highlight: { enabled: true, regions: [{ geojson: polygonFC(square), color: null }], color: null, fill: true, dim: false },
     });
-    expect(layer(style, 'highlight-outline')).toBeTruthy();
+    expect(layer(style, 'highlight-soft-edge')).toBeTruthy();
     expect(layer(style, 'highlight-fill')).toBeTruthy();
     // per-feature color property resolves to the theme accent
     const feat = style.sources.highlight.data.features[0];
     expect(feat.properties.color).toBe(theme.colors.accent);
   });
 
-  it('omits the fill layer when fill is off but keeps the outline', () => {
+  it('omits the fill layer when fill is off but keeps the soft edge', () => {
     const style = buildMapStyle({
       ...baseArgs,
       highlight: { enabled: true, regions: [{ geojson: polygonFC(square), color: null }], color: null, fill: false, dim: false },
     });
     expect(layer(style, 'highlight-fill')).toBeUndefined();
-    expect(layer(style, 'highlight-outline')).toBeTruthy();
+    expect(layer(style, 'highlight-soft-edge')).toBeTruthy();
+  });
+
+  it('never draws a crisp boundary line — the edge is fully feathered', () => {
+    const style = buildMapStyle({
+      ...baseArgs,
+      highlight: { enabled: true, regions: [{ geojson: polygonFC(square), color: null }], color: null, fill: true, dim: false },
+    });
+    expect(layer(style, 'highlight-outline')).toBeUndefined();
+    const edge = layer(style, 'highlight-soft-edge');
+    // blur stops mirror width stops → no solid core anywhere in the zoom range
+    expect(edge.paint['line-blur']).toEqual(edge.paint['line-width']);
+    expect(edge.paint['line-opacity']).toBeLessThan(0.6);
   });
 
   it('builds a spotlight mask (world polygon with region holes) when dim is on', () => {
@@ -135,9 +147,22 @@ describe('region highlight', () => {
     expect(layer(style, 'highlight-dim')).toBeTruthy();
     const mask = style.sources['highlight-mask'].data.features[0].geometry;
     expect(mask.type).toBe('Polygon');
-    // ring[0] = world bounds, ring[1] = the region hole
+    // ring[0] = world bounds, ring[1] = the region hole — the hole must match
+    // the (smoothed) outline geometry exactly or the spotlight leaks
     expect(mask.coordinates.length).toBe(2);
-    expect(mask.coordinates[1]).toEqual(square);
+    expect(mask.coordinates[1]).toEqual(style.sources.highlight.data.features[0].geometry.coordinates[0]);
+  });
+
+  it('smooths region rings and layers the soft edge above the fill', () => {
+    const style = buildMapStyle({
+      ...baseArgs,
+      highlight: { enabled: true, regions: [{ geojson: polygonFC(square), color: null }], color: null, fill: true, dim: false },
+    });
+    const ring = style.sources.highlight.data.features[0].geometry.coordinates[0];
+    expect(ring.length).toBeGreaterThan(square.length); // Chaikin multiplied the points
+    expect(ring[0]).toEqual(ring[ring.length - 1]); // still a closed ring
+    const ids = style.layers.map((l: { id: string }) => l.id);
+    expect(ids.indexOf('highlight-fill')).toBeLessThan(ids.indexOf('highlight-soft-edge'));
   });
 
   it('combines multiple regions with per-region colors', () => {

@@ -1,4 +1,5 @@
 import type { LayerState, RouteItem, Theme } from '../types';
+import { smoothGeometry } from './smoothGeojson';
 
 // OpenFreeMap planet vector tiles (OpenMapTiles schema, no API key required).
 export const OPENFREEMAP_TILEJSON = 'https://tiles.openfreemap.org/planet';
@@ -260,7 +261,7 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
     for (const region of highlight.regions) {
       const rc = region.color || globalColor;
       for (const f of region.geojson?.features ?? []) {
-        if (f?.geometry) feats.push({ type: 'Feature', properties: { color: rc }, geometry: f.geometry });
+        if (f?.geometry) feats.push({ type: 'Feature', properties: { color: rc }, geometry: smoothGeometry(f.geometry) });
       }
     }
 
@@ -284,18 +285,24 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
           id: 'highlight-fill',
           type: 'fill',
           source: 'highlight',
-          paint: { 'fill-color': colorExpr, 'fill-opacity': 0.16 },
+          paint: { 'fill-color': colorExpr, 'fill-opacity': 0.26 },
         });
       }
+      // No crisp outline, by design: a hard line asserts "THIS is the exact
+      // boundary", which invites arguments the poster doesn't need (and the
+      // geocoded polygon, however good, is still an approximation). A fully
+      // feathered edge — blur ≈ width leaves the line no solid core — reads as
+      // "this area", not "this border", while keeping the region recognisable.
       hlLayers.push({
-        id: 'highlight-outline',
+        id: 'highlight-soft-edge',
         type: 'line',
         source: 'highlight',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': colorExpr,
-          'line-opacity': 0.95,
-          'line-width': zoomWidth([[3, 1.2], [8, 2.2], [12, 3.2], [16, 5]], 1),
+          'line-opacity': 0.45,
+          'line-blur': zoomWidth([[3, 6], [12, 14], [16, 22]], 1),
+          'line-width': zoomWidth([[3, 6], [12, 14], [16, 22]], 1),
         },
       });
 

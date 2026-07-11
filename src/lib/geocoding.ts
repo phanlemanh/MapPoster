@@ -88,29 +88,84 @@ function toBoundary(item: any): RegionBoundary | null {
 
 const OSM_PREFIX: Record<string, string> = { node: 'N', way: 'W', relation: 'R' };
 
+/** Douglas-Peucker tolerance (degrees) for the FIRST boundary fetch. ~165 m —
+ * harmless for a province, but see refineThreshold for what it does to a lake. */
+const COARSE_THRESHOLD = 0.0015;
+
+/** Nominatim's absolute usage floor is 1 request/second. */
+const REFINE_DELAY_MS = 1100;
+
+/**
+ * The fixed COARSE_THRESHOLD exists to bound the payload of country-sized
+ * polygons — but it is measured in degrees, not in feature sizes. Hoàn Kiếm
+ * Lake spans 0.0057°, so simplifying it with a 0.0015° tolerance collapses its
+ * 172-point shoreline to 13 points: the poster draws a pentagon visibly offset
+ * from the water the basemap renders. Scale the tolerance to the feature
+ * instead (~200 segments across its bbox) and refetch when that is meaningfully
+ * finer than the coarse pass. Small feature ⇒ small payload, so the refetch
+ * cannot reintroduce the megabyte problem the threshold was guarding against.
+ *
+ * Returns the finer tolerance, or null when the coarse pass is already fine
+ * enough (large features) or the bbox is unusable.
+ */
+export function refineThreshold(bbox?: string[]): number | null {
+  if (!bbox || bbox.length < 4) return null;
+  const span = Math.max(Math.abs(parseFloat(bbox[1]) - parseFloat(bbox[0])), Math.abs(parseFloat(bbox[3]) - parseFloat(bbox[2])));
+  if (!isFinite(span) || span <= 0) return null;
+  const thr = span / 200;
+  return thr < COARSE_THRESHOLD ? Math.max(thr, 1e-6) : null;
+}
+
+function boundaryParams(threshold: number): string {
+  return `polygon_geojson=1&polygon_threshold=${threshold}&${langParam}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function lookupBoundaryItem(osmRef: string, threshold: number, signal?: AbortSignal): Promise<any | null> {
+  const url = `${NOMINATIM}/lookup?format=jsonv2&osm_ids=${osmRef}&${boundaryParams(threshold)}`;
+  const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
+  // Same rule as the search branch below: a transient failure is not an answer.
+  // Falling through to the name search on a 429 would quietly swap the exact
+  // entity we asked for with whatever Nominatim ranks first for its name.
+  if (!res.ok) throw new Error(`Boundary lookup failed: ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data[0] : null;
+}
+
+/** Refetch the same entity at feature-scaled tolerance when the coarse pass
+ * over-simplified it. Best-effort: any refinement failure keeps the coarse
+ * polygon rather than failing a render that already has a usable answer. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function refineBoundary(item: any, coarse: RegionBoundary, signal?: AbortSignal): Promise<RegionBoundary> {
+  const thr = refineThreshold(item?.boundingbox);
+  const osmRef = item?.osm_type && item?.osm_id && OSM_PREFIX[item.osm_type] ? `${OSM_PREFIX[item.osm_type]}${item.osm_id}` : null;
+  if (thr === null || !osmRef) return coarse;
+  await new Promise((r) => setTimeout(r, REFINE_DELAY_MS));
+  try {
+    const fine = toBoundary(await lookupBoundaryItem(osmRef, thr, signal));
+    return fine ?? coarse;
+  } catch {
+    return coarse;
+  }
+}
+
 /**
  * Fetch the administrative boundary polygon of a location. Tries a precise OSM
  * lookup first (exact same entity), then falls back to a name search. Nominatim
- * simplifies the polygon via `polygon_threshold` to keep the payload small.
+ * simplifies the polygon via `polygon_threshold` to keep the payload small; a
+ * second feature-scaled pass restores detail for small features (see
+ * refineThreshold).
  */
 export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSignal): Promise<RegionBoundary | null> {
-  const common = `polygon_geojson=1&polygon_threshold=0.0015&${langParam}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
-
   if (loc.osmType && loc.osmId && OSM_PREFIX[loc.osmType]) {
-    const url = `${NOMINATIM}/lookup?format=jsonv2&osm_ids=${OSM_PREFIX[loc.osmType]}${loc.osmId}&${common}`;
-    const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
-    // Same rule as the search branch below: a transient failure is not an answer.
-    // Falling through to the name search on a 429 would quietly swap the exact
-    // entity we asked for with whatever Nominatim ranks first for its name.
-    if (!res.ok) throw new Error(`Boundary lookup failed: ${res.status}`);
-    const data = await res.json();
-    const b = Array.isArray(data) ? toBoundary(data[0]) : null;
-    if (b) return b; // a non-area entity (Point) falls through to the name search
+    const item = await lookupBoundaryItem(`${OSM_PREFIX[loc.osmType]}${loc.osmId}`, COARSE_THRESHOLD, signal);
+    const b = toBoundary(item);
+    if (b) return refineBoundary(item, b, signal); // a non-area entity (Point) falls through to the name search
   }
 
   const q = [loc.name, loc.country].filter(Boolean).join(', ');
   if (!q) return null;
-  const url = `${NOMINATIM}/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}&${common}`;
+  const url = `${NOMINATIM}/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}&${boundaryParams(COARSE_THRESHOLD)}`;
   const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
   // A transient upstream failure (429/503/403) is NOT the same as "this place has
   // no polygon". Throw so callers can retry; returning null here would let the
@@ -118,7 +173,9 @@ export async function fetchRegionBoundary(loc: LocationInfo, signal?: AbortSigna
   // (Mirrors searchPlaces, which already throws on !res.ok.)
   if (!res.ok) throw new Error(`Boundary lookup failed: ${res.status}`);
   const data = await res.json();
-  return Array.isArray(data) && data[0] ? toBoundary(data[0]) : null;
+  const item = Array.isArray(data) && data[0] ? data[0] : null;
+  const b = toBoundary(item);
+  return b ? refineBoundary(item, b, signal) : null;
 }
 
 /**

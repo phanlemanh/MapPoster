@@ -3,7 +3,8 @@ import { pathToFileURL } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
-import { DEFAULT_MAX_BODY_BYTES, envNumber } from '../config';
+import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
+import { ensureDist } from './ensureDist';
 import type { ToolDeps } from './tools';
 
 export interface HttpServer {
@@ -182,6 +183,12 @@ export async function startHttpServer(
 
 const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
+  try {
+    ensureDist(loadServerConfig());
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : e);
+    process.exit(1);
+  }
   startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }))
     .then((s) => console.error(`MapPoster MCP (HTTP) listening at ${s.url}`))
     .catch((e) => {

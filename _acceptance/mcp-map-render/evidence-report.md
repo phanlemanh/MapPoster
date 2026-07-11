@@ -7,13 +7,13 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9e51736a2a4e94deb4391f8d84984af049c5d39b
-human_signoff: manh (2026-07-10) — verdict given in session; commit authored by Claude on manh's instruction
+verified_commit: 6c3d36b7ffb3d241516883b6f998514e482a25f3
+human_signoff: manh (2026-07-11) — verdict given in session; commit authored by Claude on manh's instruction
 ---
 
 # Evidence Report: mcp-map-render
 
-_Round 11 — verified 2026-07-10T21:40:00Z (UTC) at commit `9e51736` on `feature/mcp-map-render`._
+_Round 14 — verified 2026-07-11T02:35:00Z (UTC) at commit `6c3d36b` on `feature/easy-setup`._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -30,331 +30,280 @@ _Round 11 — verified 2026-07-10T21:40:00Z (UTC) at commit `9e51736` on `featur
 | E11 | AC-11 | test | PASS |
 | E12 | AC-12 | judgment | PASS (panel) — awaits mandatory human_override (T3) |
 
-> **PENDING-JUDGMENT — every eval is green; this round exists because Round 10 finished all its own work
-> (fixes + a fresh review) but crashed before writing any evidence, and it closes out Round 9's HIGH.**
-> All 12 evals are green: E1–E9 and E11 via `npm test` (now **198 passed | 3 skipped**, up from 179 | 2 in
-> Round 9), E10 via a dedicated `ui-check` run (independently byte-decoded PNG IHDR, exact 1080×1920), and
-> E12's judge panel again proposes PASS (3/3 lenses) against the unchanged `evidence/E12-example.png`. The
-> verdict is PENDING-JUDGMENT rather than PASS for the same structural reason as every round since Round 1:
-> `risk_tier: T3` mandates a direct human verdict on **every** judgment item regardless of the panel's
-> proposal (hook-enforced), and no `human_override` has been supplied for the commit this round pins
-> (`9e51736`) — Round 8's signoff (`manh`, PASS) was tied to the now long-superseded `8fbdbfa`. Separately,
-> and not the reason for the verdict: Round 9's HIGH finding (region-highlight config shipped in a URL query
-> param, capped at Node's default 16 KB header limit) is now CLOSED — Round 10 replaced the URL-embedded
-> config with an in-process `configStore` plus a same-origin `/__config/<id>` route, closing the HIGH, the
-> Round-9 MEDIUM (unguarded `Number(env)` yielding NaN), the Round-9 LOW (`memoizeSuccess.reset()`), and the
-> Round-8 carryover LOW (unbounded inline GeoJSON) all in one pass. Round 10's own review pass then found and
-> immediately fixed 2 more items (camera bearing/pitch silently discarded on headless render; a
-> self-inflicted `gen-example.ts` regression missed because `scripts/` was never typechecked) before
-> crashing pre-scribe, so neither reached Gate 2 as open risk either. **This round's own fresh adversarial
-> pass surfaced 3 NEW findings — 2 MEDIUM, 1 LOW, zero HIGH** (an unbounded `render_variants` array; unbounded
-> `highlight.regions`/`points` name arrays; `formatSize` matching `Object.prototype` members) — see
-> `review-findings.md` and the Iterations entry below.
+> **PENDING-JUDGMENT — every machine eval is green; this round closes the two open findings Round 13's own
+> adversarial pass found on Round 13's own new test code, and adds zero new findings.** Round 13
+> (`5487f68`) fixed the stdio-transport stdout leak (Round 12's HIGH) but its own fresh review then found 3
+> issues in the fix's test surface: 1 MEDIUM already knowingly accepted as risk (`ensureDist.ts`'s build is
+> synchronous and now blocks the `initialize` handshake instead of corrupting it), 1 MEDIUM (`test:mcp` ran
+> `renderFrame.test.ts` and `stdioChannel.test.ts` in the same Vitest invocation with no serialization, so
+> both raced over the same on-disk `dist/` — able to spuriously fail one or silently false-pass the other),
+> and 1 LOW (the integration test's destructive `renameSync` of the real `dist/`, restored only in
+> `finally`, could strand a `dist.__stdiotest_bak` if the worker was killed mid-run). The human (manh) chose
+> to fix the two closable ones and accept the synchronous-build MEDIUM as a deliberate tradeoff
+> (`decisions.jsonl` `d-20260711T023000Z-63001` through `-63003`). This round's commit `6c3d36b`
+> ("run the integration files serially and stop the stdio test false-passing") closes both: `package.json`'s
+> `test:mcp` script now runs `vitest run --fileParallelism=false ...`, forcing the two integration files
+> to execute one after another instead of concurrently, so neither can rename/rebuild `dist/` out from under
+> the other; `stdioChannel.test.ts` now additionally asserts `!existsSync(dist)` immediately before spawning
+> the server (failing loudly instead of silently skipping the build path if `dist/` was ever recreated
+> underneath it) and asserts the spawned server's stderr contains `"render harness not built yet"`
+> (confirming the real build branch actually ran, not just that stdout stayed clean); `.gitignore` gained
+> `/dist.__stdiotest_bak` so a killed-mid-run backup can no longer leave an untracked artifact staged for
+> commit. `git diff 5487f68 6c3d36b --stat` shows the source-level change is narrowly scoped to exactly
+> those three files (`.gitignore`, `mcp-server/src/stdioChannel.test.ts`, `package.json`) plus the usual
+> `_acceptance/` report/evidence/decision/run-log files — nothing under `resolveConfig.ts`, `tools.ts`,
+> `renderFrame.ts`, `geocode.ts`, `browserPool.ts`, `deps.ts`, `ensureDist.ts` itself, or `src/render/**`
+> changed. All 12 evals are green: E1–E9 and E11 via `npm test` (**203 passed | 4 skipped (207)**, unchanged
+> from Round 13 — this round strengthens existing assertions inside `stdioChannel.test.ts` rather than
+> adding new test cases, so the count does not move), E10 via a dedicated `ui-check` run (independently
+> byte-decoded PNG IHDR, exact 1080×1920, plus the full `npm run test:e2e` 11/11), and `npm run test:mcp`
+> (now running its two files serially) is **4 passed**, independently re-run this round and confirmed
+> genuinely serial (`Test Files 2 passed (2)`, `Duration 11.14s`). E12's judge panel again proposes PASS
+> (3/3 lenses) against the unchanged `evidence/E12-example.png`. The verdict is PENDING-JUDGMENT rather than
+> PASS for the same structural reason as every round since Round 1: `risk_tier: T3` mandates a direct human
+> verdict on **every** judgment item regardless of the panel's proposal (hook-enforced), and no
+> `human_override` has been supplied for the commit this round pins (`6c3d36b`) — Round 11's signoff
+> (`manh`, PASS, `dc45942`) was tied to the long-superseded `9e51736`, and neither Round 12 nor Round 13 ever
+> reached Gate 2 (Round 12 blocked on its own HIGH; Round 13 moved straight into this round's scoped fix
+> instead of pausing for signoff on an evidence pin it already knew would move).
+> **Separately, and not the reason for the verdict: this round's own fresh adversarial pass surfaced ZERO
+> new findings** — the first fully clean review pass in this feature's history. Both closable Round-13
+> findings are confirmed fixed (verified against the diff above); the one Round-13 MEDIUM the human
+> deliberately chose not to fix (synchronous `vite build` blocking the `initialize` handshake) is carried
+> forward as a previously-reviewed, knowingly-accepted risk — see `review-findings.md` and the Iterations
+> entry below.
 
 ## Evidence
 
-_This round is a complete, fresh S4 verify against the HEAD that Round 9's HIGH-fix and Round 10's own
-self-found fixes left behind — no evidence report had yet been written for any of that work, because
-Round 10 crashed before its scribe step (`decisions.jsonl` d-20260710T213500Z-59001). `git diff bc7aba2
-9e51736 --stat` touches 19 source files (`mcp-server/config.{ts,test.ts}` new;
-`mcp-server/src/configStore.{ts,test.ts}` new; `mcp-server/src/{appServer,browserPool,deps,geocode,http,
-renderFrame,resolveConfig}.{ts,test.ts}`; `mcp-server/scripts/gen-example.ts`; `mcp-server/tsconfig.json`;
-`src/render/{applyRenderConfig,main}.{ts,tsx}` (+ a new `applyRenderConfig.test.ts`)) plus `evals.yaml`
-(E2/E4 strengthened), `README.md`, and the usual `_acceptance/` report/evidence/decision files — the exact
-Round-9/Round-10 fix set, nothing else._
+_This round closes the two open findings Round 13's own adversarial pass found on Round 13's own new test
+code (the fix that closed Round 12's HIGH). `git diff 5487f68 6c3d36b --stat` shows the source-level change
+is narrowly scoped: `.gitignore`, `mcp-server/src/stdioChannel.test.ts`, and `package.json` (its `test:mcp`
+script) — plus the usual `_acceptance/` report/evidence/decision/run-log files. None of this round's diff
+touches the resolve/geocode/render/highlight core (`resolveConfig.ts`, `tools.ts`, `renderFrame.ts`,
+`geocode.ts`, `browserPool.ts`, `deps.ts`, `src/render/**`) or even `ensureDist.ts` itself, so E1–E5, E7–E9,
+E11 are regression re-confirmations this round via the full `npm test` run; E6 (server startup/transport,
+where Round 12's HIGH and Round 13's fix both live) is where this round's actual closure lands, corroborated
+by an independently re-run `npm run test:mcp`._
 
 - eval: E1
-  run_id: minted-mcp-map-render-E1-r11
+  run_id: minted-mcp-map-render-E1-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    Fresh verify at HEAD `9e51736` — Rounds 9-10's config-delivery fix is now baked into this pinned tree.
-    Same core it() refs as prior rounds, now re-run against the post-fix source:
-    mcp-server/src/resolveConfig.test.ts:147 "geocodes the location and picks the format size (AC-1)";
-    mcp-server/src/tools.test.ts:59 "renders and echoes resolved center/place (AC-1)";
-    mcp-server/src/renderFrame.test.ts:42 "renders a resolved config to an exact-size PNG (AC-1, AC-10)" —
-    this test now exercises the post-fix config-delivery path (`?configId=<id>` fetched from the app
-    server's `/__config/<id>` route, backed by `configStore`) rather than the URL-embedded config Round 9
-    flagged as a HIGH.
+    AC-1's own resolve/render path (`resolveConfig.ts`, `tools.ts`, `renderFrame.ts`) is untouched by this
+    round's diff — regression re-confirmation, unchanged since Round 12.
     `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
-    Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  3 passed (3)
-       Start at  21:33:40
-       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
+    Corroborating (integration depth, real build + real headless browser, now run serially) —
+    `npm run test:mcp`:
+          Tests  4 passed (4)
+       Start at  08:33:18
+       Duration  11.14s (transform 25ms, setup 0ms, import 382ms, tests 10.22s, environment 426ms)
 
 - eval: E2
-  run_id: minted-mcp-map-render-E2-r11
+  run_id: minted-mcp-map-render-E2-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    This round's E2 is materially strengthened over Round 9, per `decisions.jsonl` d-20260710T210000Z-58001
-    ("bắt buộc render được vùng có polygon >16 KB"), closing the exact gap that let Round 9's HIGH survive
-    9 rounds unnoticed (every prior eval only ever exercised "Quận 3", 876 bytes). it() refs:
-    mcp-server/src/renderFrame.test.ts:59 "renders a config far larger than a URL could carry (>16 KB)" —
-    builds a 2,000-vertex ring so the config JSON exceeds 16 KB (comment cites the Round-9 measurement:
-    "Ho Chi Minh City"'s boundary encodes to 20,698 bytes, and the old URL-embedded config got a 431 and
-    hung the renderer's full 20 s timeout), then asserts the PNG still renders at the requested 600×600 AND
-    `configStore.size()` returns to 0 afterward (the parked entry is released, not leaked);
-    mcp-server/src/appServer.test.ts:76 "serves a parked config and 404s an id it never minted" — a 40 KB
-    config (far past the old 16 KB URL ceiling) round-trips through the new `/__config/<id>` GET route; an
-    unknown id 404s, and a path-traversal attempt (`../../package.json`) also 404s rather than falling
-    through to the static handler; :98 "404s every config id when no store is wired in";
-    mcp-server/src/resolveConfig.test.ts:128 "bounds inline region GeoJSON — the one boundary field that
-    accepted anything" and :138 "refuses a GeoJSON payload past the size limit" — closes the Round-8
-    carryover LOW (inline `geojson` used to be `z.any()`, size-unbounded);
-    mcp-server/src/resolveConfig.test.ts:37,52,59,71,78 (country-anchor tests, unchanged since Round 4-5);
-    :164 "region highlight → boundary geojson + fitted camera (AC-2)"; :188 "throws when a requested region
-    has no boundary — never silently drops it (F2)";
-    mcp-server/src/tools.test.ts:116 "region with no boundary → structured error, not a silently
-    unhighlighted poster (F2 / AC-2)";
-    mcp-server/src/geocode.test.ts:166,180,214,242,264,281,290 (VN region-resolution + country-anchor
-    caching, unchanged since Round 5).
-    NOTE for Gate 2: this round's fresh adversarial pass found a new MEDIUM adjacent to this eval's own
-    area — `highlight.regions`/`highlight.points` (tools.ts:115-116) accept unbounded name arrays, and each
-    name serializes an upstream Nominatim call behind the >=1 req/s throttle, so a request naming many
-    places pins the process issuing geocodes for hours; none of this eval's tests send more than a couple
-    of names, so the gap is real and untested, not a contradiction of the green result above (see
-    review-findings.md).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    Region-highlight path (`resolveConfig.ts`'s `resolveBoundary`, `mapStyle`'s highlight layers, the
+    >16 KB / GeoJSON-bound behaviour from Round 10) is untouched by this round's diff — regression
+    re-confirmation, unchanged since Round 11.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E3
-  run_id: minted-mcp-map-render-E3-r11
+  run_id: minted-mcp-map-render-E3-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    This round's E3 is strengthened over Round 9 to explicitly cover the bearing/pitch regression Round 10
-    found in its OWN review pass and fixed the same round (`decisions.jsonl` d-20260710T213500Z-59002):
-    `camera.bearing`/`camera.pitch` were accepted by the Zod boundary and then silently discarded by the
-    renderer, because the headless map's interaction effect called `setBearing(0)`/`setPitch(0)`
-    unconditionally on load whenever rotation was off. Live probe cited in the finding: bearing=0/45 +
-    pitch=0/50 produced a byte-identical PNG (sha256 `242ad5be0a6ec471`) before the fix; three DIFFERENT
-    sha256s after. it() refs:
-    mcp-server/src/resolveConfig.test.ts:156 "point highlight → marker + street-level zoom 14–17 (AC-3)";
-    :178 "explicit camera zoom overrides auto-framing";
-    src/render/applyRenderConfig.test.ts:21 "locks the map so bearing and pitch survive" (new this round —
-    asserts `usePosterStore.getState().lockMap === true`, `view.bearing === 45`, `view.pitch === 50` for an
-    explicit camera override) and :40 "defaults a missing bearing/pitch to zero".
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    Point-highlight / auto-zoom / camera-override (`lockMap`) path is untouched by this round's diff —
+    regression re-confirmation, unchanged since Round 10.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E4
-  run_id: minted-mcp-map-render-E4-r11
+  run_id: minted-mcp-map-render-E4-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    it() refs: mcp-server/src/geocode.test.ts:21,96,126,299,317 (unchanged since Round 8);
-    mcp-server/config.test.ts (new this round, whole new file) — describe('envNumber') :7 "falls back when
-    the variable is unset or empty", :12 "refuses a non-numeric value instead of yielding NaN" (directly
-    regression-tests the Round-9 MEDIUM: `Number(env)` silently disabling the body-size/pool-size caps on a
-    garbage value), :19 "refuses values outside the declared range", :25 "accepts a value inside the
-    range"; describe('loadServerConfig') :31 "defaults to a loopback app host and the 8 MiB body cap", :38
-    "allows port 0 (ephemeral) but refuses a garbage pool size" — asserts `MAPPOSTER_POOL: 'two'` and
-    `MAPPOSTER_HTTP_MAX_BODY: 'lots'` both throw at startup, closing the exact gap the Round-9 finding named
-    (`poolSize` → NaN previously made the pool deadlock every render with no signal).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    `geocode.ts` (Nominatim memoization/rate-limit/bounded-LRU) and `config.ts`'s `envNumber` startup
+    validation are untouched by this round's diff — regression re-confirmation, unchanged since Round 10.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E5
-  run_id: minted-mcp-map-render-E5-r11
+  run_id: minted-mcp-map-render-E5-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    it() refs: mcp-server/src/tools.test.ts:126 "renders one image per variant (AC-5)"; :132 "a variant
-    cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)" (both unchanged since Round 5/8);
-    mcp-server/src/renderFrame.test.ts:87 "a reused pooled page renders each config fresh, never a stale
-    frame (F1 / AC-5)" (unchanged); mcp-server/src/browserPool.test.ts's discard/health suite (unchanged
-    since Round 8) plus :152 "never puts the payload in the URL — that capped every render at 16 KB" (this
-    round's browserPool-level regression guard for the Round-9 HIGH);
-    mcp-server/src/deps.test.ts:53 "reset(attempt) evicts only that attempt, never a rebuild someone else
-    is using" — new this round, regression-tests the Round-9 LOW: `memoizeSuccess.reset()` used to clear
-    the memo unconditionally, so a concurrent render that had already rebuilt a healthy runtime could have
-    it yanked out from under it; :90 "rebuilds the runtime once the browser has died"; :117 "keeps the
-    runtime while the browser is alive" (both unchanged since Round 8).
-    NOTE for Gate 2: this round's fresh adversarial pass found a new MEDIUM on this exact tool —
-    `render_variants`'s `variants: z.array(...)` (tools.ts:149) carries no `.max()`, so a single
-    within-body-cap request can enqueue an unbounded number of sequential headless renders and monopolize
-    the shared browser pool; none of this eval's tests send more than 3 variants, so the gap is real and
-    untested, not a contradiction of the green result above (see review-findings.md).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
-    Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  3 passed (3)
-       Start at  21:33:40
-       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
+    `browserPool.ts` / `deps.ts` (pool discard/health, `memoizeSuccess.reset(attempt)`) are untouched by
+    this round's diff — regression re-confirmation, unchanged since Round 8/10.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E6
-  run_id: minted-mcp-map-render-E6-r11
+  run_id: minted-mcp-map-render-E6-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    it() refs: mcp-server/src/appServer.test.ts:30 "defaults to loopback", :34 "is not reachable from the
-    LAN by default", :51 "can be opened deliberately" (unchanged since Round 6, line numbers shifted by the
-    new config-route describe added below them), plus :76 "serves a parked config and 404s an id it never
-    minted" and :98 "404s every config id when no store is wired in" (new this round — the config-in-URL
-    HIGH's closure is exercised at the HTTP-transport layer here too, not just in renderFrame.test.ts);
-    mcp-server/src/http.test.ts:9,15,20,71,89,105,110,115,122,136 (Host/Origin guard + body cap +
-    multibyte-chunk handling, unchanged since Round 6-7 — file not touched this round);
-    mcp-server/src/transports.test.ts:9 describe("transports expose the same tool set (AC-6)") — "lists
-    all tools over stdio" at :10, "lists all tools over HTTP" at :23 (unchanged).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    This round's actual closure lands squarely in AC-6's territory: it fixes the two remaining findings
+    against Round 13's own fix for Round 12's HIGH. `package.json`'s `test:mcp` script is now
+    `MCP_INTEGRATION=1 vitest run --fileParallelism=false mcp-server/src/renderFrame.test.ts
+    mcp-server/src/stdioChannel.test.ts` — the added `--fileParallelism=false` forces the two integration
+    files to run one after another instead of Vitest 4's default concurrent-file execution, closing Round
+    13's MEDIUM (they previously raced over the same on-disk `dist/`: `renderFrame.test.ts` builds and
+    serves out of it for the whole test while `stdioChannel.test.ts` destructively renames it away to force
+    the build path, rebuilds it, then deletes and restores it — concurrently, either could spuriously fail
+    the other or make `stdioChannel.test.ts` silently skip the build path it exists to test).
+    `stdioChannel.test.ts` itself gained two hardening changes on top of the serialization fix: (1) an
+    explicit `expect(existsSync(dist), 'dist/ must be absent so ensureDist actually builds').toBe(false)`
+    immediately before spawning the server — so if `dist/` is ever recreated underneath this test by some
+    future regression in the serialization guarantee, the test fails loudly instead of silently
+    false-passing without ever exercising the build path; (2) the spawned child's stderr is now captured
+    (`stdio: ['pipe','pipe','pipe']` instead of `['pipe','pipe','ignore']`) and asserted to contain
+    `"render harness not built yet"` (the exact log line `ensureDist.ts:53` emits on the real build branch),
+    positively confirming the build path was actually taken rather than merely inferring it from a clean
+    stdout. `.gitignore` gained `/dist.__stdiotest_bak` — closing Round 13's LOW: if the test worker is now
+    ever killed between the destructive rename and its `finally` restore, the stray backup directory can no
+    longer be accidentally staged/committed.
+    None of this round's diff touches `server.ts`, `tools.ts`, `appServer.ts`'s routing, or `ensureDist.ts`
+    itself (Round 12/13's `BUILD_STDIO` fix is unchanged) — `listTools` / Host-Origin / body-cap /
+    parked-config-by-id coverage remains green for the same reason it was in Round 13.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
+    Corroborating (integration depth, real stdio process, real `vite build`, real JSON-RPC handshake, now
+    genuinely serial) — independently re-run this round, `npm run test:mcp`:
+      Test Files  2 passed (2)
+           Tests  4 passed (4)
+        Start at  08:33:18
+        Duration  11.14s (transform 25ms, setup 0ms, import 382ms, tests 10.22s, environment 426ms)
+    This "4 passed" result is now trustworthy as a guaranteed-clean exercise of the real build path on every
+    run — Round 13's own caveat ("should not yet be trusted... until the race is closed") no longer applies.
 
 - eval: E7
-  run_id: minted-mcp-map-render-E7-r11
+  run_id: minted-mcp-map-render-E7-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/delivery.test.ts did not change this round. Same it() ref:
-    :24 "mode=both writes a file and returns path + base64 + dims (AC-7)".
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    Delivery (base64 + path, sink-dir file existence, PNG decode) path is untouched by this round's diff —
+    regression re-confirmation, unchanged since Round 1.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E8
-  run_id: minted-mcp-map-render-E8-r11
+  run_id: minted-mcp-map-render-E8-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    it() refs: mcp-server/src/resolveConfig.test.ts:19 "resolves tiktok to 1080×1920 and passes custom
-    dims through"; :28 "rejects non-positive, non-integer and oversized custom dims (F4)"; :195 "enforces
-    coordinate/zoom bounds at runtime, not only in Zod (R2-MEDIUM)" (line shifted from :176 in Round 9 by
-    this round's new GeoJSON-bound tests inserted earlier in the file); mcp-server/src/tools.test.ts:88
-    "custom format dims flow through (AC-8)"; :167 "list_formats includes tiktok 1080×1920 (AC-8)"; :132
-    "a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)" (shared with E5).
-    NOTE for Gate 2: this round's fresh adversarial pass found a new LOW in the format-resolution path this
-    eval exercises — `formatSize`'s named-format lookup (`if (FORMATS[format]) return FORMATS[format]`,
-    resolveConfig.ts:65) also matches inherited `Object.prototype` members (verified:
-    `FORMATS['constructor']` → the `Object` function; `FORMATS['__proto__']` → `Object.prototype`), so a
-    pathological format string skips the intended "Unknown format" error and instead surfaces a confusing
-    downstream TypeError; none of this eval's tests send such a string (see review-findings.md).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    `list_formats` / custom-dims / boundary-rejection path is untouched by this round's diff — regression
+    re-confirmation, unchanged since Round 1.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E9
-  run_id: minted-mcp-map-render-E9-r11
+  run_id: minted-mcp-map-render-E9-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    it() refs: mcp-server/src/resolveConfig.test.ts:183 "chrome defaults to clean, poster is honored
-    (AC-9)" (line shifted from :164 in Round 9 by this round's new GeoJSON-bound tests); :87 "rejects an
-    unknown theme instead of silently rendering the default"; :95 "summarizes each resolved region so the
-    caller can tell which one it got"; :105 "refuses a highlight colour that is not a hex colour"; :116
-    "accepts the hex forms a caller would actually use"; :121 "rejects a bad colour BEFORE spending a
-    geocoding request"; mcp-server/src/tools.test.ts:94 "chrome defaults clean, poster honored (AC-9)";
-    :143 "placeName overrides the geocoder-derived poster label"; :149 "without placeName the geocoder
-    label is used"; :81 "returns a structured error for an unknown theme rather than a default-themed
-    poster"; :68 "echoes the resolved theme and highlights, per the tool contract" (tools.test.ts unchanged
-    this round).
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    `chrome`/theme/highlight-color validation and `resolved` echo path is untouched by this round's diff —
+    regression re-confirmation, unchanged since Round 5/8.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E10
-  run_id: run-20260710T143716Z-aa721ffe
+  run_id: run-20260711T012831Z-339746393
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.e2e
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   screenshot: evidence/E10-step1.png
   observed: |
-    E10-step1.png (1200x900 browser viewport, taken ~300ms after render.html load with the resolved tiktok
-    config in the URL): NO onboarding modal/card is visible anywhere in the frame — the page shows only the
-    portrait poster-frame (midnight-blue theme, orange roads, dark-blue water/river, "© OpenStreetMap
-    contributors · OpenMapTiles · OpenFreeMap · MapLibre" attribution strip at the bottom). The poster is
-    still mid-render: a plain dark band across the top and a blank wedge in the lower-right are visible
-    where map tiles hadn't streamed in yet at that instant. This matches Expected for step1 (no onboarding,
-    poster frame visible).
+    Đọc trực tiếp cả 3 frame vừa lưu bằng Read (ảnh thật, không suy từ lệnh hay từ mô tả có sẵn):
 
-    E10-step2.png (same viewport, taken immediately after `await window.__mapposter.ready; await
-    window.__mapposter.renderFrame()` resolved in-page): the poster frame is now fully tiled edge-to-edge —
-    the top band and the lower-right wedge that were blank in step1 are filled in with roads/water,
-    confirming renderFrame() only returned after the map view had actually finished drawing. Still no
-    onboarding modal.
+    E10-step1.png: nền đen toàn khung (viewport landscape rộng hơn khung poster dọc nên có viền đen 2 bên),
+    khung poster-frame tỉ lệ dọc (tiktok 1080:1920) căn giữa. Bên trong khung là nền xanh navy đậm đặc trưng
+    theme midnight-blue, nhưng HOÀN TOÀN CHƯA có đường/tile nào được vẽ — đúng vì đây là frame chụp TRƯỚC
+    khi gọi ready/renderFrame(). Có dòng attribution "© OpenStreetMap contributors · OpenMapTiles ·
+    OpenFreeMap · MapLibre" ở đáy khung. KHÔNG có modal onboarding, KHÔNG có sidebar/search bar/nút bấm nào
+    che phủ — khớp chính xác Expected "no onboarding".
 
-    E10-step3.png: pixel-identical composition to step2 (expected — step3 is the same page state, just
-    after the dimension assertion ran against the returned PNG rather than a new UI transition). No
-    onboarding modal, poster fully rendered.
+    E10-step2.png: cùng khung poster-frame, nay bản đồ đã vẽ đầy đủ — rõ ràng là khu vực TP.HCM: sông Sài
+    Gòn uốn khúc đặc trưng bên phải khung, một khu vực dạng đường băng sân bay ở góc trên-trái khớp Tân Sơn
+    Nhất, lưới đường dày đặc màu vàng/cam nổi bật trên nền navy ở trung tâm thành phố, không có tiêu đề/text
+    overlay tên thành phố nào (đúng chrome=clean). Vẫn không có onboarding — khớp "render thành công sau
+    ready + renderFrame()".
 
-    Independent machine assertions (not just the page's self-report) against the actual object returned by
-    renderFrame():
-    - result.width === 1080 → true
-    - result.height === 1920 → true
-    - dataUrl starts with "data:image/png" → true
-    - PNG bytes decoded independently: signature magic bytes valid; IHDR chunk width=1080, height=1920
-      (byte-level decode, not trusting the page's reported w/h)
-    - dataUrl length 2,932,130 chars (>2000 threshold)
-    All 9 assertions PASS — no contradiction with Expected. This round's E10 additionally exercises the
-    post-fix config-delivery path end to end (the render-mode page fetches its config from
-    `/__config/<id>` rather than reading it out of the URL), since that is now the only path
-    render-mode.spec.ts and this ui-check exercise.
+    E10-step3.png: trang bằng chứng tự dựng (nền đen), tiêu đề "E10 step3 — decoded PNG IHDR dimensions",
+    dòng chữ MÀU XANH LÁ "measured: 1080x1920 — expected: 1080x1920 — MATCH" ngay bên dưới, kèm ảnh PNG
+    THẬT đã giải mã hiển thị full-bleed (cùng nội dung bản đồ TP.HCM giống step2, không có viền đen letterbox
+    vì đây là kích thước gốc 1080×1920 chứ không phải screenshot viewport), và dòng chú thích
+    "run_id=run-20260711T012831Z-339746393 bytes=2199080" — bytes khớp chính xác kích thước file thật của
+    `evidence/E10-rendered-output.png` (2199080 byte, đã kiểm bằng `ls -la` độc lập).
+
+    Không có mâu thuẫn nào giữa 3 frame và Expected trong bất kỳ chi tiết nào.
   output: |
-    run_id minted at 2026-07-10T14:37:16Z, i.e. AFTER this invocation started (2026-07-10T14:35:22Z) — not
-    a replay of a prior round's run_id.
+    Cùng probe HCMC / tiktok / midnight-blue như Round 12-13, vì diff của round này chỉ nằm ở tầng test
+    infra/build tooling (`package.json`'s `test:mcp`, `.gitignore`, `stdioChannel.test.ts`'s assertion siết
+    chặt hơn), không chạm trang render hay đường resolve-location.
+    git status sau khi xong: chỉ 3 file step1/2/3.png + run-log.jsonl modified (nội dung ảnh mới nhưng cùng
+    nội dung bản đồ TP.HCM — render xác định-ổn định với cùng config). Không sửa file nguồn nào của app.
+    Corroborating — full `npm run test:e2e` run, tail:
+      ✓  11 [chromium] › e2e/render-mode.spec.ts:15:1 › render mode: headless renderFrame yields exact
+    target dims, no onboarding (AC-10) (2.3s)
 
-    Final state: git status shows only the 3 evidence PNGs modified (no other working-tree changes, no
-    leftover temp scripts, no stray processes started/stopped by this verifier). exitCode=0 because every
-    assertion above passed.
+      11 passed (36.2s)
 
-    Corroborating: `npm run test:e2e`:
-          ✓  11 [chromium] › e2e/render-mode.spec.ts:15:1 › render mode: headless renderFrame yields
-             exact target dims, no onboarding (AC-10) (1.8s)
-
-      11 passed (40.5s)
-    Corroborating (integration depth, real build + real headless browser): `npm run test:mcp`:
-          Tests  3 passed (3)
-       Start at  21:33:40
-       Duration  10.62s (transform 23ms, setup 0ms, import 391ms, tests 9.95s, environment 220ms)
+    exit_code tổng hợp = 0 (script verify 9/9 assertion pass, test:e2e 11/11 pass).
 
 - eval: E11
-  run_id: minted-mcp-map-render-E11-r11
+  run_id: minted-mcp-map-render-E11-r14
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-07-10T21:40:00Z
+  verified_at: 2026-07-11T02:35:00Z
   output: |
-    Unchanged since Round 8 — mcp-server/src/tools.test.ts did not change this round. Same it() refs:
-    :101 "ungeocodable input → structured error, no throw (AC-11)"; :107 "invalid custom dims →
-    structured error, never renders a blank PNG (F4 / AC-11)".
-    `npm test` (vitest) aggregate tail:
-          Tests  198 passed | 3 skipped (201)
-       Start at  21:33:41
-       Duration  2.18s (transform 827ms, setup 0ms, import 5.24s, tests 1.02s, environment 10.55s)
+    Ungeocodable-location / invalid-dims structured-error path is untouched by this round's diff —
+    regression re-confirmation, unchanged since Round 1.
+    `npm test` aggregate tail (shared run):
+          Tests  203 passed | 4 skipped (207)
+       Start at  08:25:51
+       Duration  1.94s (transform 660ms, setup 0ms, import 4.21s, tests 1.04s, environment 9.71s)
 
 - eval: E12
   human_override: PASS
@@ -363,64 +312,66 @@ Round-9/Round-10 fix set, nothing else._
   verdict: PASS
   rationale: |
     Panel proposal: PASS (3/3 lenses concur), re-run this round against the unchanged
-    `evidence/E12-example.png` (untouched since commit `433e7ea`, Round 3 — this round's fixes touched
-    config delivery, env validation, camera locking, and pool/memo internals, not poster compositing or
-    point-highlight rendering; confirmed via `git diff bc7aba2 9e51736 -- evidence/E12-example.png`,
-    empty).
+    `evidence/E12-example.png` (untouched since commit `433e7ea`, Round 3 — this round's diff touched only
+    test-infra/build-tooling around the stdio integration test, not poster compositing or point-highlight
+    rendering).
     Individual votes:
-    - domain-correctness: PASS — Ảnh đúng kích thước tiktok 1080×1920; marker (đầu nhọn pin) nằm tại tọa
-      độ pixel (~541, ~958) trùng khớp tâm khung hình (540, 960), tức điểm highlight được canh giữa đúng
-      chuẩn. Highlight là pin trắng có chấm tối, tương phản rõ trên nền xanh midnight-blue nên dễ đọc;
-      lưới đường màu vàng cam và khối nhà liền mạch, không thấy vỡ tile, đứt gãy hay khoảng trắng — ảnh
-      dùng được làm B-roll.
-    - operational-feasibility: PASS — Ảnh đúng kích thước tiktok 1080×1920; đo pixel cho thấy đầu nhọn
-      của pin (điểm neo tọa độ) nằm gần như chính giữa khung (x≈541/540, y≈958/960) nên vị trí được canh
-      giữa đúng như AC-12 yêu cầu. Marker trắng tương phản mạnh với nền navy, dễ đọc (legible); lưới đường
-      màu cam và footprint tòa nhà phủ kín toàn khung, không có ô tile trống/gãy hay artefact — đủ điều
-      kiện dùng làm B-roll video.
-    - spec-alignment: PASS — The image is 1080×1920 (tiktok format), rendered in a coherent midnight-blue
-      palette (navy fill, amber road lines) with no missing tiles, broken geometry, or rendering artifacts
-      across roads, buildings, and the roundabout. The white pin highlight sits near the visual center of
-      the frame with high contrast and is unambiguously legible, and the road network is fully connected
-      around it with no breakage — this is usable as B-roll.
+    - domain-correctness: PASS — Evidence PNG is 1080×1920 (tiktok format) rendered in a dark navy
+      "midnight-blue" palette; a high-contrast white point marker sits close to the visual center (~50%
+      horizontal, ~47% vertical) and is clearly legible against the background. The road/tile grid covers
+      the full frame edge-to-edge with no gaps, missing tiles, or rendering artifacts, and the on-image
+      coordinates (10.7759°N, 106.6894°E) are consistent with Võ Văn Tần, Quận 3, HCMC — so all three
+      sub-checks (centered, legible highlight, clean tiles/roads) are satisfied for B-roll use.
+    - operational-feasibility: PASS — Ảnh 1080x1920 (đúng định dạng tiktok), pin trắng được đặt gần tâm ảnh
+      (ngang và dọc), tương phản rõ trên nền navy midnight-blue nên highlight dễ nhìn. Lưới đường (màu vàng
+      cam) và khối nhà liền mạch, không có ô trống/rách vỡ/tile vỡ, kể cả vòng xuyến (giống Hồ Con Rùa) gần
+      điểm đánh dấu khớp với khu vực Quận 3 gần Võ Văn Tần — bố cục sạch, dùng được ngay làm B-roll.
+    - spec-alignment: PASS — Pixel analysis of E12-example.png confirms the marker tip sits at (540, 959)
+      against an image center of (540, 960) — the location is centered to within 1px, and the 1080×1920
+      canvas matches the tiktok format. The white pin gives strong contrast against the midnight-blue
+      basemap so the highlight is clearly legible, and a tile-block variance scan plus visual inspection
+      show a continuous gold road/building grid with no blank, seamed, or missing-tile patches — consistent
+      with AC-12's "usable as B-roll" bar.
   human_override:
   # ^ Required before this item can become a direct human PASS — and, since overall verdict is
   # PENDING-JUDGMENT, before overall PASS. This contract's risk_tier T3 mandates a direct human verdict
-  # on EVERY judgment eval, regardless of the panel's proposal. Round 8's human_override (manh, PASS) was
-  # tied to commit `8fbdbfa`; this round re-pins verified_commit to `9e51736` (Rounds 9-10's
-  # config-delivery/env-validation/camera-lock/pool-memo fixes), so per decisions.jsonl
-  # d-20260710T180500Z-54002 ("chữ ký phải áp lại sau khi verify xong") the signature must be reapplied
-  # against this fresh pin.
+  # on EVERY judgment eval, regardless of the panel's proposal. Round 11's human_override (manh, PASS,
+  # `dc45942`) was tied to commit `9e51736`; neither Round 12 (blocked on its own HIGH) nor Round 13
+  # (moved straight into this round's scoped fix) ever reached Gate 2; this round re-pins verified_commit
+  # to `6c3d36b` (the serialized-integration-tests fix), so per the same rule applied every round since
+  # Round 8 ("chữ ký phải áp lại sau khi verify xong") the signature must be reapplied against this fresh
+  # pin.
 
 ## Analyst
 
-Eval ids green-on-both (HEAD `9e51736` AND the pre-feature `diffBase` tree), via the shared `npm test`
+Eval ids green-on-both (HEAD `6c3d36b` AND the pre-feature `diffBase` tree), via the shared `npm test`
 command — non-discriminating this round:
 
 - E1, E2, E3, E4, E5, E6, E7, E8, E9, E11
 
-Likely cause (unchanged since Round 1): all these assertions live in `mcp-server/src/*.test.ts` /
-`mcp-server/config.test.ts` (plus `src/render/applyRenderConfig.test.ts`), and the entire `mcp-server/`
-package — along with the render-mode additions under `src/render/` — is net-new code introduced by this
-feature branch: on the `diffBase` tree those files/directories do not exist at all, so `npm test` there
-collects nothing under them, a vacuous pass rather than a genuine behavior-equivalence pass. This round
-DOES change files inside `mcp-server/` (Round 10's fixes: `configStore.ts`, `config.ts`'s `envNumber`,
-`appServer.ts`'s config route, `deps.ts`'s `reset(attempt)` guard, `resolveConfig.ts`'s GeoJSON bound,
-plus `src/render/applyRenderConfig.ts`'s `lockMap`) — but that does not change the non-discriminating
-verdict, because the reason is architectural (the whole package is absent on `diffBase`), not about which
-lines changed within it. Gate 2 human should confirm the `diffBase` used for this A/B run actually
-predates `mcp-server/` (expected) rather than a mis-resolved base that happens to already contain this
-code — the same confirmation asked of Rounds 1–10.
+Same structural cause as every prior round (unchanged since Round 1): all these assertions live under
+`mcp-server/` (plus `src/render/applyRenderConfig.test.ts`), and the entire `mcp-server/` package is
+net-new code introduced by this feature branch — on the `diffBase` tree those files/directories don't exist
+at all, so `npm test` there collects nothing under them, a vacuous pass rather than a genuine
+behavior-equivalence pass. This round's own diff touches `mcp-server/src/stdioChannel.test.ts` and
+`package.json`'s `test:mcp` script — both still inside the absent-on-`diffBase` package, so the
+non-discriminating verdict holds for the same architectural reason as Rounds 1–13, not because of which
+lines changed within it. Gate 2 human should again confirm the `diffBase` used for this A/B run actually
+predates `mcp-server/` (expected) rather than a mis-resolved base that happens to already contain this code
+— the same confirmation asked of every round so far.
 
 `npm run test:e2e` and `npm run test:mcp` are not listed here: neither is assigned to any eval in this
-round's machine-results map (`evals: []` for both), so they are outside this section's scope by
-definition — they appear only as corroborating text inside the E1/E5/E10 blocks above.
+round's machine-results map (`evals: []` for both) — they appear only as corroborating text inside the
+E1/E6/E10 blocks above.
 
 ## Variance
 
 none — every eval this round is deterministic, single run (1/1); no flaky/racy variance observed across
 the captured commands (`npm test`, `npm run test:e2e`, `npm run test:mcp`, `ui-check:E10` each exited 0 on
-their one recorded run this round).
+their one recorded run this round). Notably, `npm run test:mcp` is the command this round's own fix was
+about — closing a genuine race between two integration test files — and it too shows 0/N variance (its
+one recorded run this round passed 4/4); the fix's correctness is evidenced by the code-level diff and the
+new assertions inside `stdioChannel.test.ts`, not by repeated re-runs.
 
 ## Iterations
 
@@ -844,27 +795,192 @@ their one recorded run this round).
   — this is the third round in a row with a clean MEDIUM/LOW-only review outcome (Round 9 was the
   exception with its HIGH; Round 10 self-fixed its own findings before Gate 2), so this round advances to
   Gate 2 pending only E12's human_override.
+- Round 12 (verified 2026-07-11T00:20:00Z, commit `62b02e8`): Triggered by 4 new commits landing after
+  Round 11's Gate 2 signoff (`dc45942`, `human_signoff: manh (2026-07-10)`, tied to `9e51736`) — a merge
+  (`34de000`), a new CI workflow wiring typecheck (both `tsconfig`s), `npm test`, `npm run test:e2e`,
+  `npm run test:mcp`, and `bash scripts/pre-merge-check.sh` into GitHub Actions on every push/PR
+  (`3d0b008`, closing the exact gap Round 9 found — this gate had never actually run in CI before), a
+  staleness-check glob tweak excluding `.github/**` (`2a5f670`), and this round's actual feature,
+  `62b02e8` "one-command setup and a self-healing render harness": a new `npm run setup`
+  (`npm install && vite build && playwright install chromium`) plus a new `ensureDist()`
+  (`mcp-server/src/ensureDist.ts`) that both `stdio.ts` and `http.ts` now call before starting their
+  transport — auto-building the default `dist/` once if missing (refusing to auto-build a CUSTOM
+  `MAPPOSTER_DIST`, since `vite build` always writes to `./dist`), so a fresh clone's first render no
+  longer dies on a 20s timeout against a missing render harness. `git diff 9e51736 62b02e8 --stat`: 7
+  files changed, 183 insertions(+), 6 deletions(-) — `.github/workflows/ci.yml` (new), `README.md`,
+  `mcp-server/src/ensureDist.{ts,test.ts}` (new), `mcp-server/src/http.ts`, `mcp-server/src/stdio.ts`,
+  `package.json`. All 12 evals pass: `npm test` is now **202 passed | 3 skipped (205)** (up 4 from 198 | 3
+  in Round 11 — exactly the 4 new `ensureDist.test.ts` cases); `npm run test:e2e` unchanged at **11/11**;
+  `npm run test:mcp` unchanged at **3 passed**, since none of this round's diff touches the app render
+  path or `e2e/` (confirmed: `git diff 9e51736 62b02e8 -- e2e/ src/` empty). E10's dedicated ui-check
+  re-confirms exact 1080×1920 output and no onboarding against a fresh HCMC / tiktok / midnight-blue
+  probe, captured via a small ad-hoc Playwright driver script (no `capture.ui` executor is configured in
+  `_acceptance/config.yaml`, and the session's browser MCP only returns inline images, not files) rather
+  than the `.html` fallback, since `page.screenshot({path})` writes real files directly; the working copy
+  was deleted after the run so it does not pollute the tracked tree. E12's judge panel re-affirms PASS
+  (3/3 lenses) against the still-unchanged `evidence/E12-example.png` (last regenerated Round 3, commit
+  `433e7ea` — this round's change touched startup/build plumbing, not poster compositing or
+  point-highlight rendering). Overall verdict remains PENDING-JUDGMENT — `risk_tier: T3` still mandates a
+  direct human `human_override` on E12 for THIS round's freshly-pinned `62b02e8`; Round 11's override does
+  not carry forward.
+  **A fresh adversarial pass this round surfaced the first HIGH since Round 9, on code this round's own
+  feature introduces**: `ensureDist()`'s default build path runs
+  `execSync('npx vite build', { stdio: 'inherit', cwd })` (`mcp-server/src/ensureDist.ts:42`) — on the
+  stdio transport, `stdio.ts` calls `ensureDist(loadServerConfig())` before `runStdio()` connects the
+  `StdioServerTransport`, and `stdio: 'inherit'` makes the child's stdout share the parent's fd 1, which
+  on that transport IS the JSON-RPC protocol channel. A live probe of `npx vite build` with streams split
+  confirmed its progress/summary (~11 lines: `vite v8.1.4 building client environment for
+  production...`, per-chunk size table, `✓ built in 236ms`) go to stdout, not stderr — only the
+  chunk-size warning goes to stderr. So the exact fresh-clone first-stdio-render scenario this feature
+  was built to rescue instead corrupts the client's `initialize` handshake with non-JSON bytes on its
+  protocol channel. Every other log line in the server (including `ensureDist`'s own default `log`)
+  correctly goes to stderr via `console.error` — a repo-wide grep for stdout/console.log/stdio across
+  `mcp-server/` source returns exactly this one hit — making it the one stdout leak in an otherwise
+  disciplined codebase. All 4 new `ensureDist.test.ts` cases inject a fake `build`, so the real
+  `execSync`/`stdio:'inherit'` path is untested; `http.ts` is unaffected (stdout is not its protocol
+  channel there). This is not a machine-eval regression (all 12 evals above are independently green; E6's
+  transport tests inject doubles and never spawn a real `vite build`), but it is a functional break in the
+  stdio transport's real-world happy path, and per the human's Round-6 termination rule
+  (`d-20260710T110500Z-47001`, "only a confirmed HIGH would reopen the loop") is exactly the class of
+  finding meant to reopen the loop rather than ride to Gate 2 as accepted risk — that decision belongs to
+  the human, not this verify pass. See `review-findings.md` for the full write-up: the same root cause
+  and the same fix direction (`stdio: ['ignore', 2, 'inherit']`, keeping build progress on stderr) was
+  independently reported twice, by both the `conventions` and `bugs` review lenses. **Round 12 never
+  reached Gate 2**: the human's own termination rule reserves reopening the loop for a confirmed HIGH, and
+  this round had one, on the feature's own new code — so no `human_override` was sought for `62b02e8` and
+  the loop continued into Round 13 to fix it.
+- Round 13 (verified 2026-07-11T01:00:00Z, commit `5487f68`): Triggered directly by Round 12's HIGH — the
+  stdio-transport stdout leak in `ensureDist()`'s default `vite build` — under the human's Round-6
+  termination rule ("only a confirmed HIGH would reopen the loop"). Fixed in commit `40ecc5d` ("keep the
+  build subprocess off the stdio JSON-RPC channel"): the build subprocess's stdout is now routed to fd 2
+  via a named `BUILD_STDIO: StdioOptions = ['ignore', 2, 'inherit']` constant in `ensureDist.ts`, instead
+  of the previous bare `stdio: 'inherit'`. The commit message is candid about why the earlier "end to end
+  proof" (referenced in Round 12's own review) missed the bug: the probe that "proved" the stdio channel
+  clean parsed stdout with a lenient `try { JSON.parse } catch {}`, which silently swallowed the ~14 bad
+  lines instead of failing on them — a strict MCP client would not have been so forgiving. Two new
+  regression layers, both independently verified to fail on the pre-fix source: a unit test in
+  `ensureDist.test.ts` that pins `BUILD_STDIO` itself (asserts slot 1 is neither `1` nor `'inherit'`, and
+  is exactly `2`); and a new gated integration test, `mcp-server/src/stdioChannel.test.ts`
+  (`MCP_INTEGRATION=1`, wired into `npm run test:mcp`), which spawns the REAL stdio server with `dist/`
+  hidden to force the real `execSync` build path, drives a real `initialize` handshake over its actual
+  stdin/stdout, and asserts every line the child ever wrote to stdout parses as JSON — this is the layer
+  that would have caught Round 12's bug, since all 4 pre-existing `ensureDist.test.ts` cases inject a fake
+  `build` and never exercise the real subprocess. `npm test` is now **203 passed | 4 skipped (207)** (up
+  from 202 | 3 in Round 12 — +1 pass is the new `BUILD_STDIO` unit assertion, +1 skip is
+  `stdioChannel.test.ts`'s single case showing as skipped under plain `npm test` since it is gated behind
+  `MCP_INTEGRATION=1`); `npm run test:e2e` unchanged at **11/11**; `npm run test:mcp` is now **4 passed**
+  (up from 3 — the widened script now also runs `stdioChannel.test.ts`). E10's dedicated ui-check
+  re-confirms exact 1080×1920 output and no onboarding (same HCMC / tiktok / midnight-blue probe as Round
+  12 — this round's fix is entirely in server startup/build plumbing, not the render page itself). E12's
+  judge panel re-affirms PASS (3/3 lenses) against the still-unchanged `evidence/E12-example.png` (last
+  regenerated Round 3, commit `433e7ea`). Overall verdict remains PENDING-JUDGMENT — `risk_tier: T3` still
+  mandates a direct human `human_override` on E12 for THIS round's freshly-pinned `5487f68`; Round 11's
+  override does not carry forward, and Round 12 never reached Gate 2 to begin with.
+  **A process note, for completeness rather than because it changed any verdict**: mid-round, a decision
+  was logged (`decisions.jsonl` `d-20260711T015500Z-62001`) declaring "Round 13 died mid-run (infra)" based
+  on a `pgrep` check that doesn't actually match how this subagent runs plus an empty output snapshot taken
+  while the round was simply still executing — the same over-eager staleness pattern this report's own
+  history has caught and retracted before (Round 9's UTC-offset misreading of E10's `run_id`, corrected in
+  `d-20260710T220000Z-60001`). It was retracted five minutes later (`d-20260711T020000Z-62002`) once the
+  workflow tool itself refused to resume with "still running, stop it first" — the round was left to finish
+  on its own rather than stopped. No source or evidence was touched between the false alarm and its
+  retraction; this report is the product of the round actually completing.
+  **A fresh adversarial pass this round surfaced 3 NEW findings, all on the fix/test code this round itself
+  introduces, zero HIGH — tracked in full in `review-findings.md`**: MEDIUM (`ensureDist.ts:54`) — the
+  build is still fully synchronous (`execSync`), and it runs in the `isMain` block of both `stdio.ts` and
+  `http.ts` BEFORE the transport connects; on the stdio path this means the MCP client's `initialize`
+  handshake cannot be answered until a cold `vite build` finishes, which can exceed the README's stated
+  "~10s" and could trip a client with a strict init-timeout — the stdout corruption Round 12 found is
+  fixed, but the underlying "worst first run blocks something the client is waiting on" tension has moved
+  from render-time to handshake-time rather than been fully eliminated. LOW (`stdioChannel.test.ts:25`) —
+  the new integration test forces the build path by `renameSync`-ing the repo's real, gitignored `dist/`
+  out of the way and restoring it only in a `finally`; if the test worker is killed between those points
+  (timeout, SIGKILL, CI cancellation, OOM) the workspace is left with `dist/` gone and stashed under a
+  non-gitignored `dist.__stdiotest_bak` name — low blast radius (a rebuildable directory, and the whole
+  suite is opt-in behind `MCP_INTEGRATION=1`) but a real deviation from the rest of the suite's
+  isolated-temp-dir convention. MEDIUM (`package.json:15`) — the widened `test:mcp` script now runs
+  `renderFrame.test.ts` and `stdioChannel.test.ts` in the SAME vitest invocation, and Vitest 4 (pinned in
+  this repo) runs test files in parallel by default with no `fileParallelism`/`singleFork` override set in
+  `vitest.config.ts`; both files mutate the same on-disk `dist/` concurrently with no synchronization
+  between them (`renderFrame.test.ts` builds and serves out of it for the whole test; `stdioChannel.test.ts`
+  renames it away, rebuilds it, then deletes and restores it), which can spuriously fail
+  `renderFrame.test.ts` mid-render, or worse, silently skip exercising the real build path in
+  `stdioChannel.test.ts` if `renderFrame.test.ts`'s build wins the race and leaves `dist/` present before
+  `stdioChannel.test.ts` checks for it — a false pass that would have hidden exactly Round 12's bug. None
+  of the 3 is a machine-eval regression (all 12 evals above are independently green — the "4 passed" result
+  for `test:mcp` this round is genuine, exit 0, but per the MEDIUM above should not yet be trusted as a
+  guaranteed-clean gate on every future run until the race is closed), and per the human's Round-6
+  termination rule none is itself a HIGH, so none by itself reopens the loop — but the third finding in
+  particular is worth flagging prominently at Gate 2 since it bears on how much confidence to place in this
+  very round's own regression proof for the HIGH just fixed.
+- Round 14 (verified 2026-07-11T02:35:00Z, commit `6c3d36b`): Triggered directly by Round 13's own review
+  findings on its own fix. Round 13 reached PENDING-JUDGMENT with 12/12 evals green and 3 findings (2
+  MEDIUM, 1 LOW), zero HIGH: (1) MEDIUM — `ensureDist()`'s build is synchronous and now blocks the
+  `initialize` handshake instead of corrupting it; (2) MEDIUM — the widened `test:mcp` script raced
+  `renderFrame.test.ts` and `stdioChannel.test.ts` over the same on-disk `dist/` with no synchronization,
+  able to spuriously fail one or silently false-pass the other; (3) LOW — the new integration test
+  destructively renamed the real workspace `dist/`, restored only in `finally`, risking a stray
+  `dist.__stdiotest_bak` if the worker were killed mid-run. The human (manh) decided (`decisions.jsonl`
+  `d-20260711T023000Z-63001` through `-63003`) to fix findings #2 and #3, and to knowingly accept #1 as a
+  deliberate tradeoff (build-before-serve; Claude Code's own init timeout is generous, and the alternative
+  — a lazy build on first render — only relocates the blocking window rather than removing it). Commit
+  `6c3d36b` ("run the integration files serially and stop the stdio test false-passing") closes both: (a)
+  `package.json`'s `test:mcp` script gained `--fileParallelism=false`, forcing the two integration files to
+  run sequentially instead of Vitest 4's default concurrent-file execution, eliminating the race over
+  `dist/` at its root; (b) `stdioChannel.test.ts` gained a pre-spawn assertion (`expect(existsSync(dist),
+  ...).toBe(false)`) so that if `dist/` were ever recreated underneath it by a future regression in the
+  serialization guarantee, the test fails loudly instead of silently skipping the build path it exists to
+  exercise — closing exactly the "false pass" failure mode finding #2 named; the test now also captures the
+  spawned server's stderr and asserts it contains `"render harness not built yet"` (`ensureDist.ts:53`'s
+  own log line), positively confirming the real build branch ran rather than merely inferring it from clean
+  stdout; (c) `.gitignore` gained `/dist.__stdiotest_bak`, closing finding #3 — a stray backup from a
+  killed-mid-run worker can no longer be accidentally staged. `git diff 5487f68 6c3d36b --stat` confirms the
+  source-level change is scoped to exactly `.gitignore`, `mcp-server/src/stdioChannel.test.ts`, and
+  `package.json` — nothing under `resolveConfig.ts`, `tools.ts`, `renderFrame.ts`, `geocode.ts`,
+  `browserPool.ts`, `deps.ts`, `ensureDist.ts` itself, or `src/render/**` changed. `npm test` is unchanged
+  at **203 passed | 4 skipped (207)** (this round strengthens existing assertions inside
+  `stdioChannel.test.ts` rather than adding new test cases, so the count does not move); `npm run test:e2e`
+  unchanged at **11/11**; `npm run test:mcp` is unchanged in count (**4 passed**) but is now genuinely
+  serial — independently re-run this round (`Test Files 2 passed (2)`, `Duration 11.14s`), confirming the
+  fix and lifting Round 13's own caveat that its "4 passed" result should not yet be trusted as a
+  guaranteed-clean exercise of the real build path. E10's dedicated ui-check re-confirms exact 1080×1920
+  output and no onboarding (same HCMC / tiktok / midnight-blue probe as Rounds 12-13 — this round's fix is
+  confined to test-infra/build-tooling, not the render page or location-resolution path); all 3 saved
+  frames were independently re-opened and read this round rather than trusted from a prior description.
+  E12's judge panel re-affirms PASS (3/3 lenses) against the still-unchanged `evidence/E12-example.png`
+  (last regenerated Round 3, commit `433e7ea`). Overall verdict remains PENDING-JUDGMENT — `risk_tier: T3`
+  still mandates a direct human `human_override` on E12 for THIS round's freshly-pinned `6c3d36b`; neither
+  Round 12 (blocked on its own HIGH) nor Round 13 (moved straight into this round's scoped fix) ever reached
+  Gate 2, and Round 11's override (tied to `9e51736`) does not carry forward.
+  **A fresh adversarial pass this round surfaced ZERO new findings — the first fully clean review in this
+  feature's 14-round history.** Both closable Round-13 findings are confirmed fixed against the diff above;
+  the one Round-13 MEDIUM the human chose not to fix (synchronous `vite build` blocking the `initialize`
+  handshake, `ensureDist.ts:54`) is carried forward into `review-findings.md` as context — a previously
+  reviewed, adversarially-verified, and knowingly-accepted risk (`d-20260711T023000Z-63003`), not a new
+  Round-14 finding requiring its own fresh adversarial-verify pass. See `review-findings.md` for the full
+  writeup.
 
 ## Gate 2 checklist (human)
 
-- [ ] Read the table + spot-check 1-2 evidence blocks (E10's 3-frame slideshow — evidence/E10-step1.png
-      → step2.png → step3.png — is a good one to open; independently re-verified this round with a
-      byte-level PNG IHDR decode, not just the page's self-reported dims)
+- [ ] Read the table + spot-check 1-2 evidence blocks (E10's 3-frame slideshow —
+      `evidence/E10-step1.png` → `step2.png` → `step3.png` — is a good one to open; independently
+      re-verified this round with a byte-level PNG IHDR decode, not just the page's self-reported dims)
 - [ ] Personally verify judgment item **E12** (AC-12) — the panel proposes PASS (3/3 lenses) against
       `evidence/E12-example.png` (unchanged since Round 3, commit `433e7ea`), then fill its
-      `human_override: <name> <date>` line. Round 8's signoff (manh, PASS) was tied to commit `8fbdbfa`
-      and does not carry over automatically: this round pins `verified_commit` to `9e51736` (Rounds
-      9-10's config-delivery/env-validation/camera-lock/pool-memo fixes), so the T3 mandate for a direct
+      `human_override: <name> <date>` line. Round 11's signoff (`manh`, PASS, commit `dc45942`) was tied
+      to commit `9e51736` and does not carry over automatically: neither Round 12 (blocked by its own HIGH)
+      nor Round 13 (moved straight into this round's scoped fix) ever reached Gate 2, and this round pins
+      `verified_commit` to `6c3d36b` (the serialized-integration-tests fix), so the T3 mandate for a direct
       human verdict on EVERY judgment item applies fresh here too
-- [ ] Review the 3 items in `review-findings.md` — 2 MEDIUM (an unbounded `render_variants` array can
-      monopolize the shared browser pool from one within-cap request; unbounded `highlight.regions`/
-      `highlight.points` name arrays can pin the process issuing serialized Nominatim calls for hours) and
-      1 LOW (`formatSize`'s named-format lookup also matches `Object.prototype` members, e.g.
-      `format:'constructor'`, producing a confusing TypeError instead of the intended "Unknown format"
-      error). Zero HIGH this round — per the human's Round-6 termination rule these do not by themselves
-      require another round, but Gate 2 should decide whether to accept them as risk or ticket a
-      fast-follow (a `.max()` on `variants`/`regions`/`points` and an `Object.hasOwn` guard on
-      `formatSize` would close all 3)
+- [ ] Confirm Round 13's two closable findings are actually closed: `package.json`'s `test:mcp` now runs
+      `vitest run --fileParallelism=false ...` (two integration files serialized, no more race over
+      `dist/`), and `stdioChannel.test.ts` now asserts `dist/` is absent before spawning AND that the
+      spawned server's stderr proves the real build path ran
+- [ ] **Decide whether to accept the one remaining carryover risk** (informational, not blocking under the
+      Round-6 termination rule — same MEDIUM Round 13 already reviewed and the human already chose not to
+      fix): `ensureDist.ts`'s build subprocess is synchronous and runs before either transport connects, so
+      a slow cold `vite build` could still trip a strict MCP client's `initialize` timeout. This round's own
+      fresh adversarial pass found nothing new on top of it.
 - [ ] Once E12's `human_override` is filled: upgrade `verdict` to `PASS` (this write is when the hook
       re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in `contract.md` only once the

@@ -24,14 +24,23 @@ suite('stdio transport keeps stdout clean while ensureDist builds', () => {
     const hadDist = existsSync(dist);
     if (hadDist) renameSync(dist, distHidden); // force the build path
 
+    // The whole point is to exercise the build path. If dist/ is present now, the
+    // server would SKIP the build and this test would pass without testing
+    // anything — a false pass. `test:mcp` runs the integration files serially
+    // (--fileParallelism=false) so nothing recreates dist/ concurrently; assert it
+    // regardless, so a regression in that setup fails loudly instead of silently.
+    expect(existsSync(dist), 'dist/ must be absent so ensureDist actually builds').toBe(false);
+
     const child = spawn('npx', ['-y', 'tsx', 'mcp-server/src/stdio.ts'], {
       cwd: repoRoot,
       env: { ...process.env, MAPPOSTER_APP_PORT: '0', MAPPOSTER_POOL: '1' },
-      stdio: ['pipe', 'pipe', 'ignore'], // stderr dropped; only stdout is under test
+      stdio: ['pipe', 'pipe', 'pipe'], // capture stderr to confirm the build ran
     });
 
     let stdout = '';
+    let stderr = '';
     child.stdout.on('data', (d) => (stdout += d));
+    child.stderr.on('data', (d) => (stderr += d));
 
     try {
       // Drive the handshake — this is the window the build output used to corrupt.
@@ -41,6 +50,10 @@ suite('stdio transport keeps stdout clean while ensureDist builds', () => {
       // Give ensureDist time to build (~10s) and the server to answer.
       const gotResponse = await waitFor(() => stdout.includes('"id":1'), 60_000);
       expect(gotResponse, `no JSON-RPC response seen; stdout was:\n${stdout.slice(0, 500)}`).toBe(true);
+
+      // Confirm the build path was actually taken (not a no-op that trivially
+      // keeps stdout clean) — the build log goes to stderr, by design.
+      expect(stderr, 'ensureDist should have built the harness').toContain('render harness not built yet');
 
       const badLines = stdout.split('\n').filter(Boolean).filter((line) => !isJson(line));
       expect(badLines, `non-JSON leaked onto the protocol channel:\n${badLines.slice(0, 5).join('\n')}`).toEqual([]);

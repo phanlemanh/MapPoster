@@ -32,3 +32,6 @@ coverage
 
 # Render output sink
 /_render-out
+
+# transient backup from stdioChannel.test.ts (if a test worker is killed mid-run)
+/dist.__stdiotest_bak

@@ -6,6 +6,8 @@ import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
 import type { ToolDeps } from './tools';
+import { resolveConfig, type RenderMapParams } from './resolveConfig';
+import { deliver } from './delivery';
 
 export interface HttpServer {
   url: string;
@@ -134,6 +136,37 @@ export async function startHttpServer(
     }
     if (!isAllowedRequest(req.headers, { allowedOrigins: policy.allowedOrigins, allowedHosts })) {
       res.writeHead(403).end('forbidden');
+      return;
+    }
+    // Plain-REST sibling to the MCP transport below, for callers (e.g. OneHub)
+    // that just want a PNG and don't speak JSON-RPC. Same origin guard above;
+    // an optional bearer token gates it separately since, unlike /mcp, nothing
+    // here requires a client library that could carry MCP auth.
+    if (req.url === '/render') {
+      const token = process.env.MAPPOSTER_TOKEN;
+      if (token && req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401).end('unauthorized');
+        return;
+      }
+      void (async () => {
+        try {
+          const body = (await readJsonBody(req, maxBodyBytes)) as RenderMapParams | undefined;
+          if (!body || typeof body !== 'object' || !('location' in body)) {
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: 'body cần {location, ...RenderMapParams}' }));
+            return;
+          }
+          const cfg = await resolveConfig(body);
+          const png = await deps.render(cfg);
+          const image = await deliver(png, `rest-${Date.now()}`, 'inline', { sinkDir: deps.sinkDir });
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, base64: image.base64, width: image.width, height: image.height, place: cfg.place.name }));
+        } catch (e) {
+          const status = e instanceof PayloadTooLargeError ? 413 : 200;
+          res.writeHead(status, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+        }
+      })();
       return;
     }
     // Refuse an oversized body before reading a byte of it. A chunked request

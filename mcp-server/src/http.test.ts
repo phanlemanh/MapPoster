@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
-import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError } from './http';
+import { tmpdir } from 'node:os';
+import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError, type HttpServer } from './http';
+import type { ToolDeps } from './tools';
 
 describe('isAllowedRequest (DNS-rebinding guard)', () => {
   const loopback = { allowedHosts: ['127.0.0.1', 'localhost', '[::1]'], allowedOrigins: [] as string[] };
@@ -148,5 +150,64 @@ describe('readJsonBody', () => {
 
   it('resolves undefined for an empty body', async () => {
     await expect(readJsonBody(Readable.from([]))).resolves.toBeUndefined();
+  });
+});
+
+// 1×1 PNG hợp lệ (deliver đọc IHDR để lấy width/height)
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+function fakeDeps(): ToolDeps {
+  return { render: async () => PNG_1x1, sinkDir: tmpdir(), defaultDelivery: 'inline' };
+}
+
+describe('POST /render (REST)', () => {
+  let srv: HttpServer | undefined;
+  afterEach(async () => { await srv?.close(); delete process.env.MAPPOSTER_TOKEN; });
+
+  // srv.url is the MCP transport endpoint (".../mcp"); /render is a sibling
+  // path on the same server, so build off the origin rather than srv.url itself.
+  function renderUrl(server: HttpServer): string {
+    return `${new URL(server.url).origin}/render`;
+  }
+
+  it('renders a map from JSON params and returns inline base64', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78, zoom: 13 }, format: 'tiktok' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; base64?: string; width?: number; height?: number };
+    expect(body.ok).toBe(true);
+    expect(body.base64).toBe(PNG_1x1.toString('base64'));
+    expect(body.width).toBe(1);
+  });
+
+  it('returns ok:false on resolve error (unknown theme) instead of throwing', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, theme: 'khong-ton-tai' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/theme/i);
+  });
+
+  it('rejects when MAPPOSTER_TOKEN set and bearer missing/wrong', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer sai' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 } }),
+    });
+    expect(res.status).toBe(401);
   });
 });

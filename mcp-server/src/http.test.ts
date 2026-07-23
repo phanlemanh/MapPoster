@@ -210,4 +210,27 @@ describe('POST /render (REST)', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  it('413s an oversized body on /render', async () => {
+    // small maxBodyBytes (5th param), same pattern as the /mcp 413 test above
+    // (readJsonBody destroys the request mid-upload once it's over cap, which
+    // undici's fetch surfaces as a socket error rather than a clean response —
+    // use node:http directly, like the /mcp 413 test does, and treat the
+    // destroyed-connection error as the 413 it is).
+    srv = await startHttpServer(0, fakeDeps(), '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, 1024);
+    const url = new URL(srv.url);
+    const body = Buffer.from(JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, placeName: 'x'.repeat(4096) }));
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = nodeHttp.request(
+        { host: url.hostname, port: url.port, path: '/render', method: 'POST', headers: { 'content-type': 'application/json' } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        },
+      );
+      req.on('error', () => resolve(413)); // server destroyed the socket mid-upload
+      req.end(body);
+    });
+    expect(status).toBe(413);
+  });
 });

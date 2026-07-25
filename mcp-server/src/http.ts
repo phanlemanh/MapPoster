@@ -1,12 +1,13 @@
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
+import { z } from 'zod';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
-import type { ToolDeps } from './tools';
-import { resolveConfig, type RenderMapParams } from './resolveConfig';
+import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
+import { resolveConfig } from './resolveConfig';
 import { deliver } from './delivery';
 
 export interface HttpServer {
@@ -150,21 +151,33 @@ export async function startHttpServer(
       }
       void (async () => {
         try {
-          const body = (await readJsonBody(req, maxBodyBytes)) as RenderMapParams | undefined;
-          if (!body || typeof body !== 'object' || !('location' in body)) {
-            res.writeHead(200, { 'content-type': 'application/json' });
-            res.end(JSON.stringify({ ok: false, error: 'body cần {location, ...RenderMapParams}' }));
-            return;
-          }
-          const cfg = await resolveConfig(body);
+          const body = await readJsonBody(req, maxBodyBytes);
+          // Same contract render_map registers on the MCP transport — parsed
+          // here rather than trusted as-is, and never a second hand-rolled
+          // schema that could drift from it.
+          const params = renderMapSchema.parse(body);
+          const cfg = await resolveConfig(params);
           const png = await deps.render(cfg);
           const image = await deliver(png, `rest-${Date.now()}`, 'inline', { sinkDir: deps.sinkDir });
           res.writeHead(200, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, base64: image.base64, width: image.width, height: image.height, place: cfg.place.name }));
+          res.end(
+            JSON.stringify({
+              ok: true,
+              base64: image.base64,
+              width: image.width,
+              height: image.height,
+              place: cfg.place.name,
+              resolved: resolvedOf(cfg),
+            }),
+          );
         } catch (e) {
           const status = e instanceof PayloadTooLargeError ? 413 : 200;
+          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
+          // gives the same one-line human-readable clarity every other guard in
+          // this codebase already throws (assertTheme, assertLngLat, ...).
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
           res.writeHead(status, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+          res.end(JSON.stringify({ ok: false, error: message }));
         }
       })();
       return;

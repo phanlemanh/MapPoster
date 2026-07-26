@@ -1,0 +1,48 @@
+# Blueprint Render.com cho MapPoster HTTP — nguồn bản đồ của cảnh-bản-đồ OneHub
+# (video plugin W1, cờ VIDEO_MAP_SCENE). Cùng nếp `onehub-render-service/render.yaml`.
+services:
+  - type: web
+    name: onehub-mapposter
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore          # gần VN + gần render-service; đổi region = tạo lại service.
+    plan: standard             # 2GB/1CPU. Chromium + swiftshader (WebGL bằng phần mềm) là
+                               # phần ngốn RAM; starter 512MB có rủi ro OOM đúng lúc render.
+                               # ĐÂY LÀ QUYẾT ĐỊNH TIỀN — hạ xuống starter được, nhưng phải
+                               # đo lại peak RSS trước khi hạ.
+
+    # KHÔNG khai healthCheckPath — CÓ CHỦ Ý, không phải bỏ sót:
+    # http.ts từ chối mọi method khác POST bằng 405 (`req.method !== 'POST'`),
+    # nên GET /healthz của Render sẽ đỏ VĨNH VIỄN → Render restart vòng lặp.
+    # Bỏ trống ⇒ Render dùng TCP-check (port mở = healthy). Cùng bài học đã ghi
+    # ở onehub-render-service (health check ghì CPU → restart giữa lúc render).
+
+    envVars:
+      # Render route traffic vào port này; app đọc MCP_HTTP_PORT (http.ts:238,
+      # default 4181) nên khai CẢ HAI cho khớp — lệch nhau = 502.
+      - key: PORT
+        value: "4181"
+      - key: MCP_HTTP_PORT
+        value: "4181"
+
+      # Bind mọi interface (Dockerfile đã ENV sẵn; khai lại ở đây để đọc
+      # render.yaml là thấy, không phải mở Dockerfile mới biết).
+      - key: MAPPOSTER_HTTP_HOST
+        value: "0.0.0.0"
+
+      # BẮT BUỘC: fail-closed theo Host header (http.ts:106,131). Thiếu key này
+      # ⇒ allowedHosts rơi về LOOPBACK ⇒ MỌI request từ OneHub → 403 (và log chỉ
+      # nói "forbidden", rất dễ tưởng là lỗi token). Giá trị = hostname công khai
+      # của service; sửa nếu đổi `name` ở trên.
+      - key: MAPPOSTER_HTTP_ALLOWED_HOSTS
+        value: "onehub-mapposter.onrender.com"
+
+      # Bearer gate cho /render (http.ts:147). OneHub gửi qua MAPPOSTER_TOKEN
+      # (apps/web/lib/deps.ts:52). Giá trị tự sinh, KHÔNG phải credential bên
+      # thứ ba — phải TRÙNG KHỚP hai đầu, nếu không /render trả 401.
+      - key: MAPPOSTER_TOKEN
+        sync: false            # set bằng `render env set` / dashboard
+
+      # KHÔNG set MAPPOSTER_HTTP_ALLOWED_ORIGINS: OneHub gọi server-side nên
+      # không có header Origin, và guard chỉ chặn khi Origin CÓ mà không khớp
+      # (http.ts:100). Chỉ cần khi có caller từ browser.

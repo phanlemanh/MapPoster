@@ -1,11 +1,14 @@
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
+import { z } from 'zod';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
-import type { ToolDeps } from './tools';
+import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
+import { resolveConfig } from './resolveConfig';
+import { deliver } from './delivery';
 
 export interface HttpServer {
   url: string;
@@ -134,6 +137,49 @@ export async function startHttpServer(
     }
     if (!isAllowedRequest(req.headers, { allowedOrigins: policy.allowedOrigins, allowedHosts })) {
       res.writeHead(403).end('forbidden');
+      return;
+    }
+    // Plain-REST sibling to the MCP transport below, for callers (e.g. OneHub)
+    // that just want a PNG and don't speak JSON-RPC. Same origin guard above;
+    // an optional bearer token gates it separately since, unlike /mcp, nothing
+    // here requires a client library that could carry MCP auth.
+    if (req.url === '/render') {
+      const token = process.env.MAPPOSTER_TOKEN;
+      if (token && req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401).end('unauthorized');
+        return;
+      }
+      void (async () => {
+        try {
+          const body = await readJsonBody(req, maxBodyBytes);
+          // Same contract render_map registers on the MCP transport — parsed
+          // here rather than trusted as-is, and never a second hand-rolled
+          // schema that could drift from it.
+          const params = renderMapSchema.parse(body);
+          const cfg = await resolveConfig(params);
+          const png = await deps.render(cfg);
+          const image = await deliver(png, `rest-${Date.now()}`, 'inline', { sinkDir: deps.sinkDir });
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              ok: true,
+              base64: image.base64,
+              width: image.width,
+              height: image.height,
+              place: cfg.place.name,
+              resolved: resolvedOf(cfg),
+            }),
+          );
+        } catch (e) {
+          const status = e instanceof PayloadTooLargeError ? 413 : 200;
+          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
+          // gives the same one-line human-readable clarity every other guard in
+          // this codebase already throws (assertTheme, assertLngLat, ...).
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(status, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+        }
+      })();
       return;
     }
     // Refuse an oversized body before reading a byte of it. A chunked request

@@ -40,6 +40,19 @@ function fileNameFor(cfg: RenderConfig): string {
   return `mapposter-${slugify(cfg.place.name || 'map')}-${cfg.size.width}x${cfg.size.height}-${counter++}`;
 }
 
+/**
+ * The `resolved` block of the tool contract: what the server chose on the
+ * caller's behalf. Exported so the REST `/render` handler (http.ts) echoes the
+ * identical shape instead of hand-rolling a second one that could drift.
+ */
+export const resolvedOf = (cfg: RenderConfig) => ({
+  center: cfg.camera.center,
+  zoom: cfg.camera.zoom,
+  place: cfg.place,
+  theme: cfg.theme,
+  highlights: summarizeHighlights(cfg),
+});
+
 export function makeTools(deps: ToolDeps) {
   const mode = (d?: DeliveryMode): DeliveryMode => d ?? deps.defaultDelivery ?? 'both';
 
@@ -49,15 +62,6 @@ export function makeTools(deps: ToolDeps) {
     const image = await deliver(png, fileNameFor(cfg), mode(delivery), { sinkDir: deps.sinkDir });
     return { cfg, image };
   }
-
-  /** The `resolved` block of the tool contract: what the server chose on the caller's behalf. */
-  const resolvedOf = (cfg: RenderConfig) => ({
-    center: cfg.camera.center,
-    zoom: cfg.camera.zoom,
-    place: cfg.place,
-    theme: cfg.theme,
-    highlights: summarizeHighlights(cfg),
-  });
 
   return {
     async render_map(params: RenderMapParams & { delivery?: DeliveryMode }): Promise<ToolResult> {
@@ -190,6 +194,14 @@ const renderMapShape = {
   labels: z.boolean().optional(),
   delivery: deliverySchema,
 };
+
+/**
+ * `render_map`'s input contract as an actual ZodObject. `registerTool` below wants
+ * the raw shape record, but a non-MCP caller (the REST `/render` handler in
+ * http.ts) needs something it can `.parse()` — reusing this rather than
+ * hand-writing a second schema that would drift from the real tool contract.
+ */
+export const renderMapSchema = z.object(renderMapShape);
 
 // Bounded: frames×fps beyond this buys nothing visually and ties up the pooled
 // page for the whole capture loop.

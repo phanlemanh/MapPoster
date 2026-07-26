@@ -1,7 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
-import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError } from './http';
+import { tmpdir } from 'node:os';
+
+// resolveConfig (used by every /render test) reaches into ./geocode for anything
+// that isn't a bare {lng,lat} — mocked so a region highlight resolved *by name*
+// (the whole point of Task 1) doesn't need a real Nominatim round trip.
+vi.mock('./geocode', () => ({
+  resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
+    if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
+    return typeof input === 'string'
+      ? { center: [106.7, 10.78], zoom: 12, place: { name: 'HCMC', country: 'Vietnam', lat: 10.78, lng: 106.7 } }
+      : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
+  }),
+  searchCandidates: vi.fn(async () => []),
+  resolveBoundary: vi.fn(async () => ({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+  })),
+  resolveCountryAt: vi.fn(async () => 'Vietnam'),
+}));
+
+import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError, type HttpServer } from './http';
+import type { ToolDeps } from './tools';
+import type { RenderConfig } from '../../src/render/renderConfig';
 
 describe('isAllowedRequest (DNS-rebinding guard)', () => {
   const loopback = { allowedHosts: ['127.0.0.1', 'localhost', '[::1]'], allowedOrigins: [] as string[] };
@@ -148,5 +170,127 @@ describe('readJsonBody', () => {
 
   it('resolves undefined for an empty body', async () => {
     await expect(readJsonBody(Readable.from([]))).resolves.toBeUndefined();
+  });
+});
+
+// 1×1 PNG hợp lệ (deliver đọc IHDR để lấy width/height)
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+// set by fakeDeps().render on every call, so a test can inspect what resolveConfig
+// actually produced (e.g. did `labels: true` reach `cfg.layers.roadLabels`).
+let lastCfg: RenderConfig | undefined;
+function fakeDeps(): ToolDeps {
+  return {
+    render: async (cfg) => {
+      lastCfg = cfg;
+      return PNG_1x1;
+    },
+    sinkDir: tmpdir(),
+    defaultDelivery: 'inline',
+  };
+}
+
+describe('POST /render (REST)', () => {
+  let srv: HttpServer | undefined;
+  afterEach(async () => {
+    await srv?.close();
+    delete process.env.MAPPOSTER_TOKEN;
+    lastCfg = undefined;
+  });
+
+  // srv.url is the MCP transport endpoint (".../mcp"); /render is a sibling
+  // path on the same server, so build off the origin rather than srv.url itself.
+  function renderUrl(server: HttpServer): string {
+    return `${new URL(server.url).origin}/render`;
+  }
+
+  it('renders a map from JSON params and returns inline base64', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78, zoom: 13 }, format: 'tiktok' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; base64?: string; width?: number; height?: number };
+    expect(body.ok).toBe(true);
+    expect(body.base64).toBe(PNG_1x1.toString('base64'));
+    expect(body.width).toBe(1);
+  });
+
+  it('returns ok:false on resolve error (unknown theme) instead of throwing', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, theme: 'khong-ton-tai' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/theme/i);
+  });
+
+  it('rejects when MAPPOSTER_TOKEN set and bearer missing/wrong', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer sai' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 } }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('413s an oversized body on /render', async () => {
+    // small maxBodyBytes (5th param), same pattern as the /mcp 413 test above
+    // (readJsonBody destroys the request mid-upload once it's over cap, which
+    // undici's fetch surfaces as a socket error rather than a clean response —
+    // use node:http directly, like the /mcp 413 test does, and treat the
+    // destroyed-connection error as the 413 it is).
+    srv = await startHttpServer(0, fakeDeps(), '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, 1024);
+    const url = new URL(srv.url);
+    const body = Buffer.from(JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, placeName: 'x'.repeat(4096) }));
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = nodeHttp.request(
+        { host: url.hostname, port: url.port, path: '/render', method: 'POST', headers: { 'content-type': 'application/json' } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        },
+      );
+      req.on('error', () => resolve(413)); // server destroyed the socket mid-upload
+      req.end(body);
+    });
+    expect(status).toBe(413);
+  });
+
+  it('chuyển tiếp regions dạng tên + labels, và trả resolved', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        location: 'Vinhomes Grand Park, TP Thủ Đức, TP.HCM',
+        theme: 'midnight-blue',
+        format: 'tiktok',
+        highlight: { regions: ['TP Thủ Đức'] },
+        labels: true,
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      ok: boolean;
+      resolved?: { place: { name: string }; highlights: { regions: { bbox: [number, number, number, number] | null }[] } };
+    };
+    expect(body.ok).toBe(true);
+    expect(body.resolved).toBeDefined();
+    const resolved = body.resolved!;
+    expect(resolved.place.name).toEqual(expect.any(String));
+    expect(resolved.highlights.regions[0].bbox).toHaveLength(4);
+    expect(lastCfg?.layers?.roadLabels).toBe(true); // labels: true forwarded through
   });
 });

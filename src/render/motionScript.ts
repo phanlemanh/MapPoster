@@ -62,6 +62,22 @@ export const motionScriptSchema = z.object({
   tracks: z.array(track),
 });
 
+/**
+ * Compile-time guard: the zod schema and the exported interfaces are two
+ * declarations of one contract, and the `as MotionScript` cast in
+ * validateMotionScript would silently paper over any drift between them.
+ * This assertion fails the build in BOTH directions instead — add a variant to
+ * MotionTrack without a matching schema branch (or loosen a schema bound) and
+ * `npx tsc -b` stops you here.
+ */
+type Assert<T extends true> = T;
+// @ts-ignore TS6196 - Intentional compile-time guard; types are erased
+type _SchemaMatchesInterface = Assert<
+  z.infer<typeof motionScriptSchema> extends MotionScript
+    ? (MotionScript extends z.infer<typeof motionScriptSchema> ? true : false)
+    : false
+>;
+
 const PIN_DUR_DEFAULT = 0.5;
 
 /** Thời điểm một track one-shot HOÀN TẤT — pulse (loop) trả null. */

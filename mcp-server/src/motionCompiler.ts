@@ -48,6 +48,29 @@ function wrapLng(lng: number): number {
   return ((((lng - LNG_MIN) % LNG_RANGE) + LNG_RANGE) % LNG_RANGE) + LNG_MIN;
 }
 
+// A fly-in preset (approach, pushIn) starts wide of its target zoom and moves
+// in. Below this delta the start/target keyframes round to visually the same
+// zoom — a smaller change is not perceptible as motion, so the clip reads as
+// frozen even though it "validates" as a two-keyframe script.
+const MIN_ZOOM_DELTA = 0.5;
+
+/**
+ * Fly-in presets subtract a fixed offset from the resolved target zoom to get
+ * their start zoom, then clampZoom floors that at 0 (Finding: legal resolved
+ * zoom can be 0 — a whole-earth view, see resolveConfig.ts assertZoom). When
+ * the target zoom is itself smaller than the offset, clamping silently
+ * collapses start toward (or onto) the target instead of failing, producing
+ * a motionless "fly-in" or, for pushIn, a globe-spanning longitude jump that
+ * still passes schema validation. Fail loudly instead of manufacturing a
+ * degenerate clip or silently altering the caller's target framing.
+ */
+function assertFlyInHeadroom(preset: 'approach' | 'pushIn', startZoom: number, targetZoom: number): void {
+  const delta = targetZoom - startZoom;
+  if (delta < MIN_ZOOM_DELTA) {
+    throw new Error(`preset ${preset} needs a target zoom of at least ${MIN_ZOOM_DELTA} to fly in from — got ${targetZoom}`);
+  }
+}
+
 const FPS_MIN = 12;
 const FPS_MAX = 30;
 const DURATION_MIN = 2;
@@ -80,16 +103,20 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
     const k = (o?.durationSec ?? APPROACH.dur) / APPROACH.dur;
     const tracks: MotionTrack[] = [{ kind: 'regionReveal', t0: APPROACH.reveal0 * k, t1: APPROACH.reveal1 * k }];
     if (hasPoint) tracks.push({ kind: 'pinDrop', at: APPROACH.pin * k, dur: APPROACH.pinDur * k });
+    // Clamped (not floored at MIN_START_ZOOM): a floor above 0 can exceed the
+    // target zoom for wide country/continent views, making "approach" start
+    // past where it ends (Finding 5) — clamping only at the true schema
+    // bounds guarantees start ≤ target for every legal zoom. assertFlyInHeadroom
+    // then rejects the case where that clamp collapses the flight into no
+    // perceptible motion instead of silently emitting a frozen clip.
+    const startZoom = clampZoom(zoom - APPROACH.zoomOut);
+    assertFlyInHeadroom('approach', startZoom, zoom);
     return {
       fps,
       durationSec: APPROACH.dur * k,
       restAtSec: APPROACH.rest * k,
       camera: [
-        // Clamped (not floored at MIN_START_ZOOM): a floor above 0 can exceed
-        // the target zoom for wide country/continent views, making "approach"
-        // start past where it ends (Finding 5) — clamping only at the true
-        // schema bounds guarantees start ≤ target for every legal zoom.
-        { t: 0, center: [...center], zoom: clampZoom(zoom - APPROACH.zoomOut) },
+        { t: 0, center: [...center], zoom: startZoom },
         { t: APPROACH.arrive * k, center: [...center], zoom, ease: 'easeInOut' },
       ],
       tracks,
@@ -101,12 +128,14 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
     const k = (o?.durationSec ?? PUSH_IN.dur) / PUSH_IN.dur;
     // Lệch tâm mở đầu ~15% bề ngang khung nhìn ở zoom đích (360° / 2^z, chuẩn tile 512px).
     const lngSpan = (360 / Math.pow(2, zoom)) * (cfg.size.width / 512);
+    const startZoom = clampZoom(zoom - PUSH_IN.zoomIn);
+    assertFlyInHeadroom('pushIn', startZoom, zoom);
     return {
       fps,
       durationSec: PUSH_IN.dur * k,
       restAtSec: PUSH_IN.rest * k,
       camera: [
-        { t: 0, center: [wrapLng(center[0] - lngSpan * 0.15), center[1]], zoom: clampZoom(zoom - PUSH_IN.zoomIn) },
+        { t: 0, center: [wrapLng(center[0] - lngSpan * 0.15), center[1]], zoom: startZoom },
         { t: PUSH_IN.arrive * k, center: [...center], zoom, ease: 'easeOut' },
       ],
       tracks: [

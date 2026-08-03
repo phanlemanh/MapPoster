@@ -78,7 +78,13 @@ describe('compileMotion', () => {
   // The suite above only ever exercises zoom 14.5 / lng 106.7, which is why
   // none of the arithmetic overflows below were caught before.
 
-  it.each([0, 22])('pushIn clamps its start zoom into [0,22] at camera.zoom = %d', (zoom) => {
+  // zoom=0 used to be the fixture here, but pushIn's zoomIn offset (1.8) means
+  // a target zoom of 0 no longer compiles — it fails the fly-in headroom
+  // guard below (delta 0 < MIN_ZOOM_DELTA). 1.0 still exercises the same
+  // clamp-at-zero branch (1.0 - 1.8 = -0.8, clamped to 0) while leaving a
+  // legal 1.0 delta, so the clamping behaviour is still covered without
+  // relying on the degenerate zero-motion case.
+  it.each([1, 22])('pushIn clamps its start zoom into [0,22] at camera.zoom = %d', (zoom) => {
     const c = cfg({ camera: { center: [106.7, 10.78], zoom } });
     const s = compileMotion('pushIn', c);
     expect(s.camera[0].zoom).toBeGreaterThanOrEqual(0);
@@ -103,17 +109,44 @@ describe('compileMotion', () => {
     expect(start).toBeLessThanOrEqual(target); // equality only allowed when clamped at 0
   });
 
+  // Only negative-longitude cases can ever regress here: the offset is always
+  // SUBTRACTED from the centre (`center[0] - lngSpan * 0.15`), so the result
+  // only ever moves further negative — it can never overflow past +180. The
+  // two 179.5 cases this replaced could not fail under any implementation and
+  // were dropped in favour of more negative/low-zoom combinations, which is
+  // where lngSpan is largest and the wrap actually has to do work.
   it.each([
     [-179.5, 5],
     [-179.5, 14.5],
-    [179.5, 5],
-    [179.5, 14.5],
+    [-179.99, 1],
+    [-179.999, 3],
   ])('pushIn wraps the start centre longitude near the antimeridian (lng=%d, zoom=%d)', (lng, zoom) => {
     const c = cfg({ camera: { center: [lng, 10.78], zoom } });
     expect(() => compileMotion('pushIn', c)).not.toThrow();
     const s = compileMotion('pushIn', c);
     expect(s.camera[0].center[0]).toBeGreaterThanOrEqual(-180);
     expect(s.camera[0].center[0]).toBeLessThanOrEqual(180);
+  });
+
+  // --- Fly-in headroom guard (approach/pushIn must not silently emit a frozen clip) ---
+
+  it.each([0, 0.4])('approach at camera.zoom = %d throws — not enough headroom to fly in from', (zoom) => {
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom } });
+    expect(() => compileMotion('approach', c)).toThrow(/approach needs a target zoom of at least 0\.5 to fly in from — got/);
+  });
+
+  it('approach at camera.zoom = 0.5 succeeds with a start zoom strictly less than target', () => {
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom: 0.5 } });
+    const s = compileMotion('approach', c);
+    const start = s.camera[0].zoom;
+    const target = s.camera[s.camera.length - 1].zoom;
+    expect(target).toBe(0.5);
+    expect(start).toBeLessThan(target);
+  });
+
+  it('pushIn at a zoom too low for its fly-in delta throws the same class of error', () => {
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom: 0 } });
+    expect(() => compileMotion('pushIn', c)).toThrow(/pushIn needs a target zoom of at least 0\.5 to fly in from — got 0/);
   });
 
   it('out-of-range durationSec override throws a clear, field-named error (not a raw ZodError)', () => {

@@ -18,6 +18,34 @@ describe('lerpAngle', () => {
   it('interpolates plainly when no wrap is involved', () => {
     expect(lerpAngle(10, 30, 0.5)).toBeCloseTo(20, 6);
   });
+
+  // Regression: result must stay in [0, 360) — Task 4 consumes this directly
+  // as a map bearing, so a stray negative value or a 360 would be a real bug,
+  // not just a cosmetic one. `((result % 360) + 360) % 360` is the fix under
+  // test; a naive `a + d * k` without normalization would fail this.
+  it('stays within [0, 360) across a sweep of inputs, including negative angles and seam crossings', () => {
+    const cases: Array<[number, number]> = [
+      [350, 160], // seam crossing: shortest arc goes 350→360/0→160
+      [10, -20], // negative target
+      [-45, 45], // negative start
+      [0, 359],
+      [-370, 10], // start well outside [0,360)
+      [180, -180],
+    ];
+    for (const [a, b] of cases) {
+      for (let k = 0; k <= 1; k += 0.1) {
+        const result = lerpAngle(a, b, k);
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThan(360);
+      }
+    }
+  });
+
+  it('lands exactly on the normalized target angle at k=1', () => {
+    expect(lerpAngle(10, -20, 1)).toBeCloseTo(340, 6); // -20 normalized → 340
+    expect(lerpAngle(350, 160, 1)).toBeCloseTo(160, 6);
+    expect(lerpAngle(-45, 45, 1)).toBeCloseTo(45, 6);
+  });
 });
 
 describe('cameraAt', () => {
@@ -78,5 +106,42 @@ describe('pulsePhase', () => {
     expect(pulsePhase(2, 2, 1.8)).toBeCloseTo(0, 6);
     expect(pulsePhase(2.9, 2, 1.8)).toBeCloseTo(0.5, 6);
     expect(pulsePhase(3.8, 2, 1.8)).toBeCloseTo(0, 6);
+  });
+
+  // Regression: several exact whole-cycle times that are inexact in binary
+  // (e.g. 3.8 - 2 === 1.7999999999999998, and 0.3 * 7 === 2.1000000000000005…)
+  // must read as phase 0 (fresh ring at centre), never ~1 (ring at max radius
+  // about to vanish) — those are visually OPPOSITE states for a sawtooth ripple.
+  it('returns 0 (not ~1) at whole-cycle boundaries that are inexact in binary', () => {
+    expect(pulsePhase(3.8, 2, 1.8)).toBe(0); // 3.8 - 2 = 1.7999999999999998 (1 cycle)
+    expect(pulsePhase(0.3 * 7, 0, 0.3)).toBe(0); // 0.3*7 lands one FP ulp past 7 cycles
+    expect(pulsePhase(1.8 * 5, 0, 1.8)).toBe(0); // 5 cycles
+    expect(pulsePhase(1.8 * 10, 0, 1.8)).toBe(0); // 10 cycles
+  });
+
+  // Regression: the whole point of a RELATIVE tolerance. With a small periodSec
+  // (the schema has no minimum), a phase can be legitimately at 0.99999999995 —
+  // a hair before completing a cycle — without that being floating-point noise.
+  // A fixed 1e-10 epsilon can't tell the two apart and would wrongly snap this
+  // to 0, drawing a fresh ring instead of one at (near) maximum radius.
+  it('does NOT collapse a legitimately near-complete phase to 0 for a small periodSec', () => {
+    const periodSec = 0.001;
+    const from = 0;
+    // cycles = 4.99999999995 — i.e. 5e-11 short of 5 whole cycles.
+    const t = periodSec * 4.99999999995;
+
+    const phase = pulsePhase(t, from, periodSec)!;
+
+    // The relative tolerance here is EPSILON*8*max(1, cycles) ≈ 8.9e-15 for
+    // cycles≈5 — far tighter than the 5e-11 gap, so this must NOT clamp to 0.
+    expect(phase).not.toBe(0);
+    expect(phase).toBeGreaterThan(0.999);
+    expect(phase).toBeCloseTo(0.99999999995, 9);
+
+    // Sanity check against the old, rejected approach: a fixed 1e-10 epsilon
+    // WOULD have swallowed this legitimate near-complete phase into 0 — proof
+    // that the fix must be relative, not a bigger/smaller fixed constant.
+    const fixedEpsilonPhase = ((t - from) % periodSec) / periodSec;
+    expect(Math.abs(1 - fixedEpsilonPhase)).toBeLessThan(1e-10);
   });
 });

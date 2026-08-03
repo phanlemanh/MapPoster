@@ -12,7 +12,11 @@ export const EASINGS: Record<EaseId, (t: number) => number> = {
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, k: number): number => a + (b - a) * k;
 
-/** Cung ngắn nhất giữa hai góc độ — 359°→1° đi qua 0°, không quay 358° ngược. */
+/**
+ * Cung ngắn nhất giữa hai góc độ — 359°→1° đi qua 0°, không quay 358° ngược.
+ * Kết quả LUÔN được chuẩn hoá về [0, 360) — Task 4 evaluator dùng giá trị này
+ * trực tiếp làm map bearing nên không được trả về số âm hay ≥360.
+ */
 export function lerpAngle(a: number, b: number, k: number): number {
   const d = ((b - a + 540) % 360) - 180;
   const result = a + d * k;
@@ -82,7 +86,15 @@ export function sliceRing(ring: [number, number][], p: number): [number, number]
 /** Pha pulse ∈ [0,1) tại t — null trước `from`. Export: phase = t (tất định). */
 export function pulsePhase(t: number, from: number, periodSec = 1.8): number | null {
   if (t < from) return null;
-  const phase = ((t - from) % periodSec) / periodSec;
-  // Clamp to [0, 1) to handle floating-point precision at period boundaries
-  return Math.abs(1 - phase) < 1e-10 ? 0 : phase;
+  const cycles = (t - from) / periodSec;
+  const nearest = Math.round(cycles);
+  // A whole number of cycles IS phase 0 — but (t - from) rarely divides exactly
+  // in binary (3.8 - 2 === 1.7999999999999998), so it reads as 0.999…, which for
+  // a sawtooth ripple draws a ring at MAXIMUM radius instead of a fresh one.
+  // Tolerance scales with `cycles` because that is where the error accumulates;
+  // a fixed absolute epsilon would be far too loose for a small periodSec and
+  // could zero out a legitimately near-complete phase (periodSec has no
+  // schema-enforced minimum).
+  if (Math.abs(cycles - nearest) <= Number.EPSILON * 8 * Math.max(1, Math.abs(cycles))) return 0;
+  return cycles - Math.floor(cycles);
 }

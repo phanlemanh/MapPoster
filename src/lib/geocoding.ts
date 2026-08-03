@@ -13,12 +13,43 @@ const NOMINATIM_HEADERS = {
   'User-Agent': 'MapPoster/1.0 (+hello@mapposter.app)',
 };
 
-// Pin the response language explicitly. Without it Nominatim answers in the
-// caller's language: a browser sends Accept-Language and gets "Vietnam", while
-// Node sends none and gets "Việt Nam" — the same place resolving to two
-// different names depending on who asked.
-const LANG = 'en';
-const langParam = `accept-language=${LANG}`;
+/**
+ * The response language MUST be pinned explicitly. Without it Nominatim answers
+ * in the caller's language: a browser sends Accept-Language and gets "Vietnam",
+ * while Node sends none and gets "Việt Nam" — the same place resolving to two
+ * different names depending on who asked.
+ *
+ * Which language is a product choice, not an invariant, so it is configurable.
+ * The default asks for Vietnamese and falls back to English, because a single
+ * name per feature is what makes de-duplication possible at all: under `en`,
+ * Nominatim returns the eight ways of one bridge as a mix of "Cầu Thủ Thiêm"
+ * and "Thủ Thiêm Bridge", and no name-keyed merge can see them as one thing.
+ */
+export const DEFAULT_GEOCODE_LANG = 'vi,en';
+let geocodeLang: string = DEFAULT_GEOCODE_LANG;
+
+/**
+ * Set the `accept-language` sent to Nominatim. Blank input restores the default.
+ *
+ * PROCESS-WIDE, startup-only configuration (same contract as __setRateLimitMs in
+ * mcp-server/src/geocode.ts). The HTTP transport serves concurrent requests off
+ * this one module instance, so wiring this to a per-request value would race —
+ * if per-request language is ever needed, thread it as a parameter instead.
+ */
+export function setGeocodeLanguage(lang: string): void {
+  geocodeLang = lang.trim() || DEFAULT_GEOCODE_LANG;
+}
+
+export function getGeocodeLanguage(): string {
+  return geocodeLang;
+}
+
+function langParam(): string {
+  return `accept-language=${encodeURIComponent(geocodeLang)}`;
+}
+
+/** Nominatim's `boundingbox`, parsed. Same order the API uses. */
+export type Bbox = [south: number, north: number, west: number, east: number];
 
 export interface GeoResult extends LocationInfo {
   id: string;
@@ -26,15 +57,22 @@ export interface GeoResult extends LocationInfo {
   importance?: number;
   /** Nominatim granularity (city ~16, road ~26, POI ~30). */
   placeRank?: number;
+  /** Parsed extent, kept so duplicate segments can be merged into one frame. */
+  bbox?: Bbox;
 }
 
-/** Estimate a reasonable map zoom from a Nominatim bounding box. */
-function zoomFromBbox(bbox?: string[]): number {
-  if (!bbox || bbox.length < 4) return 12;
-  const south = parseFloat(bbox[0]);
-  const north = parseFloat(bbox[1]);
-  const west = parseFloat(bbox[2]);
-  const east = parseFloat(bbox[3]);
+function parseBbox(raw?: string[]): Bbox | undefined {
+  if (!raw || raw.length < 4) return undefined;
+  // Number('') === 0 is finite — a malformed empty coordinate would silently
+  // become a bogus (0,0,0,0) "null island" bbox, so reject blanks explicitly.
+  const n = raw.slice(0, 4).map((s) => (typeof s === 'string' && s.trim() !== '' ? Number(s) : NaN)) as Bbox;
+  return n.every((v) => isFinite(v)) ? n : undefined;
+}
+
+/** Estimate a reasonable map zoom from a bounding box. */
+function zoomFromBbox(bbox?: Bbox): number {
+  if (!bbox) return 12;
+  const [south, north, west, east] = bbox;
   const span = Math.max(Math.abs(north - south), Math.abs(east - west));
   if (!isFinite(span) || span <= 0) return 12;
   const zoom = Math.log2(360 / span) + 0.2;
@@ -55,6 +93,7 @@ function toResult(item: any, preferFeatureName = false): GeoResult {
   const feature = item.name || a.road;
   const name =
     (preferFeatureName ? feature || admin : admin || feature) || String(item.display_name || '').split(',')[0];
+  const bbox = parseBbox(item.boundingbox);
   return {
     id: String(item.place_id),
     importance: typeof item.importance === 'number' ? item.importance : 0,
@@ -63,7 +102,8 @@ function toResult(item: any, preferFeatureName = false): GeoResult {
     country: a.country || '',
     lat: parseFloat(item.lat),
     lng: parseFloat(item.lon),
-    zoom: zoomFromBbox(item.boundingbox),
+    zoom: zoomFromBbox(bbox),
+    bbox,
     displayName: item.display_name,
     osmType: item.osm_type,
     osmId: item.osm_id,
@@ -117,7 +157,7 @@ export function refineThreshold(bbox?: string[]): number | null {
 }
 
 function boundaryParams(threshold: number): string {
-  return `polygon_geojson=1&polygon_threshold=${threshold}&${langParam}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
+  return `polygon_geojson=1&polygon_threshold=${threshold}&${langParam()}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,12 +243,105 @@ function rankThenImportance(results: GeoResult[]): GeoResult[] {
   return [...buckets.values()].flatMap((b) => b.sort((a, z) => (z.importance ?? 0) - (a.importance ?? 0)));
 }
 
+/**
+ * Two bboxes are the same feature's neighbours when they overlap or nearly do.
+ * ~110 m of slack: measured, the eight ways Nominatim returns for "cầu Thủ Thiêm"
+ * chain end-to-end with no gap, so this only has to tolerate rounding — widening
+ * it further would start swallowing genuinely distinct same-named streets.
+ */
+const MERGE_GAP_DEG = 0.001;
+
+function crossesAntimeridian(b: Bbox): boolean {
+  return b[2] > b[3]; // Nominatim emits west > east for Fiji/Chukotka/Aleutian features
+}
+
+function overlaps(a: Bbox, b: Bbox): boolean {
+  // An antimeridian-crossing bbox never merges: naive min/max union would span
+  // most of the globe instead of the true sliver at the dateline, and the zoom
+  // computed from it would frame the whole planet. Opting those rare features
+  // out of merging keeps them listed as-is rather than framed wrongly.
+  if (crossesAntimeridian(a) || crossesAntimeridian(b)) return false;
+  return a[0] - MERGE_GAP_DEG <= b[1] && b[0] - MERGE_GAP_DEG <= a[1] && a[2] - MERGE_GAP_DEG <= b[3] && b[2] - MERGE_GAP_DEG <= a[3];
+}
+
+function unionBbox(a: Bbox, b: Bbox): Bbox {
+  return [Math.min(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.max(a[3], b[3])];
+}
+
+// NFC first: Vietnamese diacritics arriving in mixed normalization forms (NFC vs
+// NFD) would otherwise compare unequal for the exact names this merge exists for.
+const nameKey = (name: string): string => name.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * Only ways/relations take part in merging. OSM splits ROADS AND BRIDGES (ways)
+ * into identically-named segments — that is the duplication being repaired. Two
+ * same-named NODES within the merge gap are usually two real places (branches of
+ * one chain store on a street); collapsing them would silently delete a result.
+ */
+const canMerge = (r: GeoResult): boolean => Boolean(r.bbox) && (r.osmType === 'way' || r.osmType === 'relation');
+
+/**
+ * Collapse the rows that are one real-world feature.
+ *
+ * OSM splits a long way wherever its tags change, so a single bridge or street
+ * comes back as many identically-named hits. Measured: "cầu Thủ Thiêm" fills the
+ * whole result list with eight slivers of the same bridge, and picking any one of
+ * them frames the poster on a ~20 m fragment instead of the bridge.
+ *
+ * Identity is `same name AND touching extents` — NOT distance between centres.
+ * Segments of one road chain end-to-end (so the growing union absorbs a whole
+ * chain even when its two ends never touch each other), while the two Nguyễn Huệ
+ * streets that this file works hard to keep apart sit 48 km away and never merge.
+ *
+ * A group of one is returned untouched: Nominatim's point for a lone POI is often
+ * deliberate (an entrance, not a centroid) and re-centring it would lose that.
+ */
+function mergePass(results: GeoResult[]): GeoResult[] {
+  const groups: { rep: GeoResult; key: string; mergeable: boolean; bbox?: Bbox; members: number }[] = [];
+  for (const r of results) {
+    const mergeable = canMerge(r);
+    const g = mergeable && groups.find((g) => g.mergeable && g.key === nameKey(r.name) && overlaps(g.bbox as Bbox, r.bbox as Bbox));
+    if (!g) {
+      groups.push({ rep: r, key: nameKey(r.name), mergeable, bbox: r.bbox, members: 1 });
+      continue;
+    }
+    g.bbox = unionBbox(g.bbox as Bbox, r.bbox as Bbox);
+    g.members += 1;
+  }
+  // `bbox!` is safe by construction: members only exceeds 1 on the merge branch
+  // above, which requires canMerge (bbox present) for both group and member.
+  return groups.map(({ rep, bbox, members }) =>
+    members === 1
+      ? rep
+      : { ...rep, bbox, lat: (bbox![0] + bbox![1]) / 2, lng: (bbox![2] + bbox![3]) / 2, zoom: zoomFromBbox(bbox) },
+  );
+}
+
+export function mergeDuplicates(results: GeoResult[]): GeoResult[] {
+  // Fixpoint, not a single pass: one greedy pass is ORDER-DEPENDENT. With input
+  // [A, C, B] where B bridges two ends that never touch each other, A and C open
+  // separate groups before B arrives, B joins A, and the A∪B union that now
+  // reaches C cannot absorb it — two rows for one street. Each pass either
+  // strictly shrinks the list or the loop exits, so termination is guaranteed;
+  // with n ≤ UPSTREAM_LIMIT (12) the worst case is trivially cheap either way.
+  let out = mergePass(results);
+  for (let prev = results.length; out.length < prev; ) {
+    prev = out.length;
+    out = mergePass(out);
+  }
+  return out;
+}
+
+/** Ask upstream for more than we show — merging collapses rows, often many-to-one. */
+const UPSTREAM_LIMIT = 12;
+const MAX_RESULTS = 8;
+
 /** Autocomplete search. Pass an AbortSignal so stale requests can be cancelled. */
 export async function searchPlaces(query: string, signal?: AbortSignal): Promise<GeoResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
   const url =
-    `${NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=6&${langParam}` +
+    `${NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=${UPSTREAM_LIMIT}&${langParam()}` +
     `&q=${encodeURIComponent(q)}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
   const res = await fetch(url, {
     signal,
@@ -226,13 +359,15 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
   // Re-ordering globally by importance instead would let a city (high importance)
   // outrank the district you asked for — measured: "Q.7, TP.HCM" then resolved to
   // all of Ho Chi Minh City.
-  return rankThenImportance(data.map((item) => toResult(item, true)));
+  // Merge AFTER ranking, so the survivor of each group is its best-ranked member
+  // and the list keeps the cross-granularity order rankThenImportance preserved.
+  return mergeDuplicates(rankThenImportance(data.map((item) => toResult(item, true)))).slice(0, MAX_RESULTS);
 }
 
 /** Reverse-geocode a coordinate into a place name / country. */
 export async function reverseGeocode(lng: number, lat: number, signal?: AbortSignal): Promise<GeoResult | null> {
   const url =
-    `${NOMINATIM}/reverse?format=jsonv2&addressdetails=1&zoom=12&${langParam}` +
+    `${NOMINATIM}/reverse?format=jsonv2&addressdetails=1&zoom=12&${langParam()}` +
     `&lat=${lat}&lon=${lng}&email=${encodeURIComponent(CONTACT_EMAIL)}`;
   const res = await fetch(url, { signal, headers: NOMINATIM_HEADERS });
   if (!res.ok) return null;

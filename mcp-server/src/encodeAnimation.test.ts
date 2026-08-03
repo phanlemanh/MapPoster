@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeArgs, ffmpegBin } from './encodeAnimation';
+import { encodeArgs, ffmpegBin, checkFfmpegAvailable } from './encodeAnimation';
 
 describe('encodeArgs', () => {
   it('GIF: scales, palettegen/paletteuse in one graph, loops forever', () => {
@@ -36,5 +36,17 @@ describe('ffmpegBin', () => {
     if (prev === undefined) delete process.env.MAPPOSTER_FFMPEG;
     else process.env.MAPPOSTER_FFMPEG = prev;
     expect(ffmpegBin()).toBe(prev === undefined ? 'ffmpeg' : prev);
+  });
+});
+
+describe('checkFfmpegAvailable (startup probe, Finding A)', () => {
+  it('resolves false for a binary that does not exist, without throwing', async () => {
+    await expect(checkFfmpegAvailable('/definitely/not/a/real/binary-xyz-mapposter')).resolves.toBe(false);
+  });
+
+  it('resolves true for a resolvable binary', async () => {
+    // Stand in for ffmpeg with the current Node binary — this test must not
+    // depend on ffmpeg actually being installed on the machine running it.
+    await expect(checkFfmpegAvailable(process.execPath, ['--version'])).resolves.toBe(true);
   });
 });

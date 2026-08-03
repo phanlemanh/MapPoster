@@ -19,7 +19,14 @@ suite('renderClipFrames (integration)', () => {
   let configStore: ConfigStore;
 
   beforeAll(async () => {
-    execSync('npx vite build', { stdio: 'inherit' }); // produce dist/ incl render.html
+    // --mode production + explicit NODE_ENV override (Finding H): pinned so
+    // this integration build behaves the same as the real deployment path
+    // regardless of vitest's own NODE_ENV=test — measured, `--mode` ALONE is
+    // not enough on this Vite version (8.1.4): an inherited NODE_ENV wins for
+    // import.meta.env.DEV/PROD, which would otherwise leave the test-only
+    // fault-injection hook (src/render/main.tsx) in a dist meant to exercise
+    // the production path.
+    execSync('npx vite build --mode production', { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'production' } }); // produce dist/ incl render.html
     const cfg = loadServerConfig({ ...process.env, MAPPOSTER_APP_PORT: '0' } as NodeJS.ProcessEnv);
     configStore = createConfigStore();
     app = await startAppServer(cfg, configStore);

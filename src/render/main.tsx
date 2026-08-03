@@ -13,7 +13,7 @@ import { formatCoords } from '../lib/format';
 import { cameraAt, trackProgress, sliceRing, pulsePhase } from './motionMath';
 import type { GeoJSONFeatureCollection } from '../types';
 
-interface MapPosterApi {
+export interface MapPosterApi {
   /** the exact base64url config string this document was loaded with */
   configKey: string;
   ready: Promise<void>;
@@ -29,6 +29,18 @@ interface MapPosterApi {
   renderMotionFrame(tSec: number, opts?: { pulsePhase?: number }): Promise<{ dataUrl: string; width: number; height: number }>;
   /** Fly through the camera keyframes to warm the tile cache before real capture — best-effort. */
   prefetchMotion(): Promise<void>;
+  /**
+   * TEST-ONLY. Simulates the exact corruption class `verifyAndReapplyGeoAt`
+   * guards against — MapView's post-load `setStyle({diff:true})` reverting
+   * the `highlight` source's data to the full, un-revealed geometry — by
+   * writing `highlightBaseData` straight to the source, bypassing
+   * `applyGeoAt`'s progress cache. Lets e2e tests reproduce the race
+   * deterministically instead of depending on real timing. Not reachable
+   * from `renderFrame`, `renderAnimationFrame`, or the normal
+   * `renderMotionFrame` path — has no effect on their behaviour. Returns
+   * `false` if there is no `highlight` source or no captured base data.
+   */
+  simulateHighlightRevertForTest(): boolean;
 }
 
 declare global {
@@ -72,11 +84,20 @@ const RESTYLE_SETTLE_MS = 150;
 
 /** Resolve once `event` fires on `map` — used to race the restyle settle
  * window below so the common case (effect dispatches quickly) doesn't pay the
- * full fixed timeout. */
-function onceEvent(map: MlMap, event: string): Promise<void> {
-  return new Promise((resolve) => {
-    map.once(event, () => resolve());
+ * full fixed timeout. Returns a `dispose()` alongside the promise so a caller
+ * that raced this against something else (e.g. `Promise.race` with `delay`)
+ * can unregister the listener when this promise turns out to be the loser —
+ * `map.off()` on an already-fired `once()` listener is a harmless no-op
+ * (maplibre's `Evented.fire` already removes one-time listeners before
+ * invoking them), so calling `dispose()` unconditionally after the race is
+ * always safe. */
+function onceEvent(map: MlMap, event: string): { promise: Promise<void>; dispose: () => void } {
+  let handler: () => void = () => {};
+  const promise = new Promise<void>((resolve) => {
+    handler = () => resolve();
+    map.once(event, handler);
   });
+  return { promise, dispose: () => map.off(event, handler) };
 }
 
 function delay(ms: number): Promise<void> {
@@ -194,6 +215,18 @@ let highlightFillOpacity: number | null = null;
  * identical rendered data, we just don't redundantly rewrite it. */
 let lastAppliedRevealProgress: number | null = null;
 
+/** The exact FeatureCollection object last passed to the `highlight` source's
+ * `setData()` by `applyGeoAt` — what `verifyAndReapplyGeoAt` reads the map
+ * back against (see `AppliedGeoState.sourceData` doc). `null` until the first
+ * write. MapLibre's `GeoJSONSource.serialize()` returns the exact object
+ * reference last passed to `setData()` (verified experimentally — see
+ * `highlightBaseData`'s doc comment above), so a restyle's
+ * `setStyle({diff:true})` — which rebuilds the source data from scratch via
+ * `buildMapStyle()` — always sets a NEW object, never this one. Reference
+ * inequality is therefore a reliable "something else touched this source"
+ * signal, independent of whether the `highlight-fill` layer exists at all. */
+let lastAppliedHighlightData: GeoJSONFeatureCollection | null = null;
+
 const ready = (async () => {
   cfg = await load();
   applyRenderConfig(cfg);
@@ -211,7 +244,9 @@ const ready = (async () => {
   // setStyle() well within the window via 'styledata'), with the fixed timeout
   // as an upper bound since the effect firing at all is not guaranteed. This is
   // a head start only — `verifyAndReapplyGeoAt` is the actual correctness net.
-  await Promise.race([onceEvent(map, 'styledata'), delay(RESTYLE_SETTLE_MS)]);
+  const settle = onceEvent(map, 'styledata');
+  await Promise.race([settle.promise, delay(RESTYLE_SETTLE_MS)]);
+  settle.dispose();
   await idleOnce(map);
   await (document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
 
@@ -345,6 +380,11 @@ function waitSourceLoaded(map: MlMap, sourceId: string, ms = IDLE_TIMEOUT_MS): P
 interface AppliedGeoState {
   /** intended `highlight-fill` fill-opacity, or `null` if there's no such layer */
   fillOpacityTarget: number | null;
+  /** the exact object `applyGeoAt` intended (or last knew) to be written to
+   * the `highlight` source — `null` only when no `regionReveal` track is
+   * active this call (nothing to verify). Present regardless of
+   * `highlight.fill`, unlike `fillOpacityTarget`. */
+  sourceData: GeoJSONFeatureCollection | null;
 }
 
 /**
@@ -366,12 +406,12 @@ function computeRevealData(regions: RenderHighlightRegion[], regionIndex: number
  * not suppress the necessary rewrite. */
 async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<AppliedGeoState> {
   const motion = cfg.motion;
-  if (!motion) return { fillOpacityTarget: null };
+  if (!motion) return { fillOpacityTarget: null, sourceData: null };
   const reveal = motion.tracks.find((t) => t.kind === 'regionReveal');
   const regions = cfg.highlight?.regions;
-  if (!reveal || reveal.kind !== 'regionReveal' || !regions?.length) return { fillOpacityTarget: null };
+  if (!reveal || reveal.kind !== 'regionReveal' || !regions?.length) return { fillOpacityTarget: null, sourceData: null };
   const src = map.getSource('highlight') as { setData(d: unknown): void } | undefined;
-  if (!src) return { fillOpacityTarget: null };
+  if (!src) return { fillOpacityTarget: null, sourceData: null };
 
   const regionIndex = reveal.regionIndex ?? 0;
   const rawFull = regions[regionIndex]?.geojson;
@@ -384,7 +424,9 @@ async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<
   // IDENTICAL data, paying a full worker re-tile + sourcedata wait each time.
   // Skip the write entirely when the progress is identical to what's already
   // on the map — keyed on the applied value (p), not on t, so purity holds.
-  if (!force && lastAppliedRevealProgress === p) return { fillOpacityTarget };
+  // `lastAppliedHighlightData` (the object that write left in place) is what
+  // we hand back here — verifyAndReapplyGeoAt still checks it stuck.
+  if (!force && lastAppliedRevealProgress === p) return { fillOpacityTarget, sourceData: lastAppliedHighlightData };
 
   const dataToApply = computeRevealData(regions, regionIndex, rawFull, p);
   // Finding 7: build the wait promise AFTER the mutations that precede it, not
@@ -395,8 +437,9 @@ async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<
   src.setData(dataToApply);
   if (hasFillLayer) map.setPaintProperty('highlight-fill', 'fill-opacity', fillOpacityTarget ?? 0);
   lastAppliedRevealProgress = p;
+  lastAppliedHighlightData = dataToApply;
   await waitSourceLoaded(map, 'highlight');
-  return { fillOpacityTarget };
+  return { fillOpacityTarget, sourceData: dataToApply };
 }
 
 /**
@@ -404,18 +447,39 @@ async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<
  * slow enough machine MapView's post-load `setStyle(..., {diff:true})` could
  * still land between `applyGeoAt`'s writes and here, reverting them (it
  * diffs+rebuilds the WHOLE style, so both the source data and the paint
- * property can be reverted together, not just the one property we cheaply
- * read back). Read back `highlight-fill`'s fill-opacity; if it doesn't match
- * what `applyGeoAt` intended, force a full re-apply (bypassing the Finding 5
- * cache, since the map's real state no longer matches what the cache
- * believes) and re-wait ONCE. Corrupt-pixel failure mode this closes: a
- * region shown filled while its outline is still mid-draw, cached into
- * `restBase` and inherited by every later tail frame.
+ * property can be reverted together). This guard verifies the SOURCE DATA
+ * itself — read back via `map.getStyle().sources.highlight.data`, the same
+ * accessor already used to capture `highlightBaseData` — by reference against
+ * `applied.sourceData`, independent of whether a `highlight-fill` layer
+ * exists at all. That closes the gap left by relying solely on
+ * `fill-opacity`: `highlight.fill: false` (no fill layer ever created — see
+ * mapStyle.ts's `if (highlight.fill)`) previously left the whole guard
+ * unreachable, since `fillOpacityTarget` is `null` whenever there's no fill
+ * layer to target.
+ *
+ * The `fill-opacity` read-back is kept as an ADDITIONAL, independent check —
+ * not replaced — when a fill layer does exist: a restyle could in principle
+ * revert only the paint property (or only the source) depending on how
+ * MapLibre's style diff batches its ops, so neither check alone subsumes the
+ * other.
+ *
+ * On any mismatch, force a full re-apply (bypassing the Finding 5 cache,
+ * since the map's real state no longer matches what the cache believes) and
+ * re-wait ONCE. Corrupt-pixel failure mode this closes: a region shown
+ * reverted to its full/un-revealed geometry (or filled while its outline is
+ * still mid-draw), cached into `restBase` and inherited by every later tail
+ * frame.
  */
 async function verifyAndReapplyGeoAt(map: MlMap, tClamped: number, applied: AppliedGeoState): Promise<AppliedGeoState> {
-  if (applied.fillOpacityTarget === null || !map.getLayer('highlight-fill')) return applied;
-  const current = map.getPaintProperty('highlight-fill', 'fill-opacity');
-  if (current === applied.fillOpacityTarget) return applied;
+  if (applied.sourceData === null) return applied; // no regionReveal active this call — nothing to verify
+  const sources = map.getStyle().sources as Record<string, { data?: unknown } | undefined>;
+  const currentSourceData = sources.highlight?.data;
+  const sourceReverted = currentSourceData !== applied.sourceData;
+
+  const hasFillLayer = Boolean(map.getLayer('highlight-fill'));
+  const fillReverted = applied.fillOpacityTarget !== null && hasFillLayer && map.getPaintProperty('highlight-fill', 'fill-opacity') !== applied.fillOpacityTarget;
+
+  if (!sourceReverted && !fillReverted) return applied;
   const reapplied = await applyGeoAt(map, tClamped, true);
   await idleOnce(map);
   return reapplied;
@@ -499,6 +563,7 @@ window.__mapposter = {
     // could otherwise read stale.
     restBase = null;
     lastAppliedRevealProgress = null;
+    lastAppliedHighlightData = null;
     await idleOnce(map);
   },
   async renderMotionFrame(tSec, opts) {
@@ -531,5 +596,16 @@ window.__mapposter = {
       map.jumpTo({ center: kf.center, zoom: kf.zoom, bearing: kf.bearing ?? 0 });
       await idleOnce(map).catch(() => {}); // best-effort — a prefetch failure is not a render failure
     }
+  },
+  simulateHighlightRevertForTest() {
+    const map = getMapInstance();
+    if (!map || !highlightBaseData) return false;
+    const src = map.getSource('highlight') as { setData(d: unknown): void } | undefined;
+    if (!src) return false;
+    // Same shape a real restyle would set: buildMapStyle() has no notion of
+    // reveal progress, so MapView's setStyle({diff:true}) always writes the
+    // FULL combined FeatureCollection — exactly what highlightBaseData is.
+    src.setData(highlightBaseData);
+    return true;
   },
 };

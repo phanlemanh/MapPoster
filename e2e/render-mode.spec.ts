@@ -1,4 +1,12 @@
 import { test, expect, type Page } from '@playwright/test';
+import type { MapPosterApi } from '../src/render/main';
+
+/** `window.__mapposter` typed via the now-exported `MapPosterApi`, instead of
+ * the `any` cast this spec used before. Inlined at each `page.evaluate` call
+ * site (not hoisted into a shared helper) because Playwright serializes each
+ * evaluate callback independently — a helper defined outside it would not
+ * exist in the browser context the callback actually runs in. */
+type MapPosterWindow = { __mapposter: MapPosterApi };
 
 function b64url(obj: unknown): string {
   return Buffer.from(JSON.stringify(obj)).toString('base64url');
@@ -46,6 +54,34 @@ async function countDominantBluePixels(page: Page, dataUrl: string): Promise<num
   }, dataUrl);
 }
 
+/** One square highlight region, offset from the shared center by `lngOffset`
+ * degrees and tagged with `color` — shared by the sibling-region tests below
+ * so two regions can sit side by side, each independently identifiable. */
+function region(lngOffset: number, color: string) {
+  return {
+    geojson: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[
+              [106.7 + lngOffset - 0.01, 10.78 - 0.01],
+              [106.7 + lngOffset + 0.01, 10.78 - 0.01],
+              [106.7 + lngOffset + 0.01, 10.78 + 0.01],
+              [106.7 + lngOffset - 0.01, 10.78 + 0.01],
+              [106.7 + lngOffset - 0.01, 10.78 - 0.01],
+            ]],
+          },
+        },
+      ],
+    },
+    color,
+  };
+}
+
 const tiktokConfig = {
   camera: { center: [106.7, 10.78], zoom: 12 },
   size: { width: 1080, height: 1920 },
@@ -64,8 +100,7 @@ test('render mode: headless renderFrame yields exact target dims, no onboarding 
   await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
 
   const result = await page.evaluate(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const api = (window as any).__mapposter;
+    const api = (window as unknown as MapPosterWindow).__mapposter;
     await api.ready;
     const r = await api.renderFrame();
     return { w: r.width, h: r.height, isPng: r.dataUrl.startsWith('data:image/png'), len: r.dataUrl.length };
@@ -105,8 +140,7 @@ test('motion: renderMotionFrame is a pure function of t — same t twice = same 
   await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
 
   const [a, b, rest] = await page.evaluate(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const api = (window as any).__mapposter;
+    const api = (window as unknown as MapPosterWindow).__mapposter;
     await api.ready;
     const f0a = await api.renderMotionFrame(0.5);
     const f0b = await api.renderMotionFrame(0.5);
@@ -123,28 +157,6 @@ test('motion: regionReveal keeps a sibling region visible, in its own colour, mi
   // bug this guards against: applyGeoAt used to replace the ENTIRE highlight
   // source with just region 0's sliced-so-far geometry, so region 1 (and its
   // own colour) vanished for the whole reveal instead of staying visible.
-  const region = (lngOffset: number, color: string) => ({
-    geojson: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [106.7 + lngOffset - 0.01, 10.78 - 0.01],
-              [106.7 + lngOffset + 0.01, 10.78 - 0.01],
-              [106.7 + lngOffset + 0.01, 10.78 + 0.01],
-              [106.7 + lngOffset - 0.01, 10.78 + 0.01],
-              [106.7 + lngOffset - 0.01, 10.78 - 0.01],
-            ]],
-          },
-        },
-      ],
-    },
-    color,
-  });
   const config = {
     camera: { center: [106.7, 10.78], zoom: 12.3 },
     size: { width: 320, height: 568 },
@@ -166,8 +178,7 @@ test('motion: regionReveal keeps a sibling region visible, in its own colour, mi
   await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
 
   const midDataUrl = await page.evaluate(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const api = (window as any).__mapposter;
+    const api = (window as unknown as MapPosterWindow).__mapposter;
     await api.ready;
     // t0=0.2, t1=1.2 ⇒ progress at t=0.7 is 0.5 — mid-reveal, region 0's ring
     // is half-drawn and unfilled; region 1 should be fully present throughout.
@@ -180,4 +191,60 @@ test('motion: regionReveal keeps a sibling region visible, in its own colour, mi
   // by temporarily reverting applyGeoAt to the pre-fix single-region setData) —
   // 50 is a conservative floor that tolerates basemap/tile variance.
   expect(blueCount).toBeGreaterThan(50); // region 1 (blue, untouched by the reveal) must still be drawn
+});
+
+test('motion: verifyAndReapplyGeoAt guards a reverted highlight source even when highlight.fill is false (Finding 1)', async ({ page }) => {
+  // `fill: false` ⇒ mapStyle.ts never creates the `highlight-fill` layer (see
+  // its `if (highlight.fill)` gate) — the exact configuration the PRE-FIX
+  // guard could not protect at all: `verifyAndReapplyGeoAt` short-circuited on
+  // `applied.fillOpacityTarget === null || !map.getLayer('highlight-fill')`,
+  // both of which are true whenever there's no fill layer, so it returned
+  // immediately without reading anything back. `highlight-soft-edge` (the
+  // line layer that actually draws the reveal) is added unconditionally
+  // whenever any region exists, so the reveal is still fully live here.
+  const config = {
+    camera: { center: [106.7, 10.78], zoom: 12.3 },
+    size: { width: 320, height: 568 },
+    theme: 'midnight-blue',
+    chrome: 'clean',
+    place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+    highlight: {
+      regions: [region(-0.025, '#ff0000'), region(0.025, '#0000ff')],
+      color: null, fill: false, dim: false,
+    },
+    markers: [],
+    motion: {
+      fps: 12, durationSec: 2, restAtSec: 1.4,
+      camera: [{ t: 0, center: [106.7, 10.78], zoom: 12.3 }],
+      tracks: [{ kind: 'regionReveal', t0: 0.2, t1: 1.2, regionIndex: 0 }],
+    },
+  };
+  await page.goto('/render.html?config=' + b64url(config));
+  await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
+
+  const { baselineUrl, repeatUrl, healedUrl } = await page.evaluate(async () => {
+    const api = (window as unknown as MapPosterWindow).__mapposter;
+    await api.ready;
+    // t0=0.2, t1=1.2 ⇒ progress at t=0.7 is 0.5 — mid-reveal.
+    const baseline = await api.renderMotionFrame(0.7);
+    const repeat = await api.renderMotionFrame(0.7); // same t twice ⇒ must be byte-identical
+
+    // Deterministically reproduce the exact corruption `verifyAndReapplyGeoAt`
+    // guards against (MapView's setStyle({diff:true}) reverting the
+    // `highlight` source to its full/un-revealed geometry) instead of
+    // depending on real race timing. Requesting the SAME t again afterwards
+    // means applyGeoAt's own progress cache (keyed on p, unchanged here) will
+    // skip rewriting the source itself — catching and repairing this
+    // corruption is verifyAndReapplyGeoAt's job alone.
+    api.simulateHighlightRevertForTest();
+    const healed = await api.renderMotionFrame(0.7);
+
+    return { baselineUrl: baseline.dataUrl, repeatUrl: repeat.dataUrl, healedUrl: healed.dataUrl };
+  });
+
+  expect(repeatUrl).toBe(baselineUrl); // pure function of t
+  expect(healedUrl).toBe(baselineUrl); // guard detected + repaired the simulated revert, fill:false notwithstanding
+
+  const blueCount = await countDominantBluePixels(page, baselineUrl);
+  expect(blueCount).toBeGreaterThan(50); // the soft-edge reveal is drawn even with fill:false
 });

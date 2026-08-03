@@ -55,6 +55,16 @@ describe('buildMapStyle base', () => {
     expect(label.paint['text-color']).toBe(theme.colors.text);
     expect(label.paint['text-halo-color']).toBe(theme.colors.background);
   });
+
+  it('AC-9: the ONLY symbol/text layer that can ever exist is road-label-major (opt-in)', () => {
+    const off = buildMapStyle({ theme, layers: { ...allLayers, roadLabels: false }, detail: 0.6, routes: [] });
+    expect(off.layers.filter((l: { type: string }) => l.type === 'symbol')).toHaveLength(0);
+
+    const on = buildMapStyle({ theme, layers: { ...allLayers, roadLabels: true }, detail: 0.6, routes: [] });
+    expect(on.layers.filter((l: { type: string }) => l.type === 'symbol').map((l: { id: string }) => l.id)).toEqual([
+      'road-label-major',
+    ]);
+  });
 });
 
 describe('layer toggles', () => {

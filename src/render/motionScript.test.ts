@@ -81,6 +81,26 @@ describe('validateMotionScript', () => {
     expect(() => validateMotionScript(base, { ...CTX, pointCount: 0 })).toThrow(/^I:/);
   });
 
+  it('O: rejects a second track of the same one-shot kind — main.tsx would silently drop it via tracks.find()', () => {
+    const dupPinDrop = [...base.tracks, { kind: 'pinDrop' as const, at: 0.2, dur: 0.3 }];
+    expect(() => validateMotionScript({ ...base, tracks: dupPinDrop }, CTX)).toThrow(/^O:/);
+
+    const dupRegionReveal = [...base.tracks, { kind: 'regionReveal' as const, t0: 0.1, t1: 0.3 }];
+    expect(() => validateMotionScript({ ...base, tracks: dupRegionReveal }, CTX)).toThrow(/^O:/);
+
+    const dupRouteDraw = [
+      { kind: 'routeDraw' as const, t0: 0.1, t1: 0.3 },
+      { kind: 'routeDraw' as const, t0: 1.0, t1: 1.1 },
+    ];
+    expect(() => validateMotionScript({ ...base, tracks: dupRouteDraw }, CTX)).toThrow(/^O:/);
+  });
+
+  it('O: a single instance of each one-shot kind still passes — and pulse (a loop track) is exempt and may repeat', () => {
+    expect(() => validateMotionScript(base, CTX)).not.toThrow(); // base already carries one of each one-shot kind
+    const withTwoPulses = [...base.tracks, { kind: 'pulse' as const, from: 3.0, periodSec: 1.0 }];
+    expect(() => validateMotionScript({ ...base, tracks: withTwoPulses }, CTX)).not.toThrow();
+  });
+
   it('rejects malformed input (zod layer): fps/duration out of range, empty camera', () => {
     expect(() => validateMotionScript({ ...base, fps: 8 }, CTX)).toThrow();
     expect(() => validateMotionScript({ ...base, durationSec: 1 }, CTX)).toThrow();

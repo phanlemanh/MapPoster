@@ -126,6 +126,24 @@ export function validateMotionScript(value: unknown, ctx: MotionContext): Motion
     }
   }
 
+  // The schema allows `tracks: z.array(track)` with no cardinality limit, but
+  // the render page (main.tsx) picks a one-shot track via `tracks.find(t =>
+  // t.kind === '...')` — a second track of the same one-shot kind is silently
+  // discarded there with no error. `oneShotEnd(t) !== null` is exactly the set
+  // of kinds main.tsx treats this way (regionReveal, routeDraw, pinDrop);
+  // `pulse` is a loop track (oneShotEnd returns null) and is deliberately
+  // exempt — nothing about repeating a ripple is order-dependent the same way.
+  const oneShotCounts = new Map<MotionTrack['kind'], number>();
+  for (const t of s.tracks) {
+    if (oneShotEnd(t) === null) continue;
+    oneShotCounts.set(t.kind, (oneShotCounts.get(t.kind) ?? 0) + 1);
+  }
+  for (const [kind, count] of oneShotCounts) {
+    if (count > 1) {
+      throw new Error(`O: only one ${kind} track is allowed per script (got ${count}) — main.tsx's tracks.find() would silently drop the rest`);
+    }
+  }
+
   const frames = Math.round(s.fps * s.durationSec);
   const maxFrames = ctx.maxFrames ?? DEFAULT_MAX_CLIP_FRAMES;
   if (frames > maxFrames) throw new Error(`B: ${frames} frames (fps×duration) exceeds the budget of ${maxFrames}`);

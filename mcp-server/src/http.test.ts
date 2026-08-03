@@ -381,11 +381,39 @@ describe('POST /render-clip', () => {
     expect(badBody.error).toMatch(/^R:/);
   });
 
-  it('degrade: encode hỏng → ok:true + settle + clipError, KHÔNG có clip', async () => {
+  it('422: script vỡ schema (raw ZodError) → error vẫn là string dễ đọc, không phải JSON issues dump', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    // fps: 999 fails motionScriptSchema's z.number().int().min(12).max(30) —
+    // motionScriptSchema.parse() throws a raw z.ZodError here, BEFORE any of
+    // the R/O/L/B/I invariant checks (which throw plain Error with a prefix).
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 1, lat: 1, zoom: 14 },
+      motion: {
+        script: { fps: 999, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [1, 1], zoom: 10 }], tracks: [] },
+      },
+    });
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(typeof body.error).toBe('string');
+    expect(body.error?.length).toBeGreaterThan(0);
+    // A raw ZodError serialized via String(e) / e.message would be a `[ { ... } ]`
+    // issues array containing entries like `"code":"invalid_type"` — prettifyError
+    // must turn that into readable prose instead.
+    expect(body.error?.startsWith('[')).toBe(false);
+    expect(body.error).not.toContain('"code":"invalid_type"');
+  });
+
+  it('degrade: encode hỏng → ok:true + settle + clipError, KHÔNG có clip; file mp4 tạm không bị rò rỉ', async () => {
+    // Mimic a real encoder crashing mid-write (e.g. ffmpeg killed partway
+    // through): the temp file exists on disk BEFORE the throw, so an
+    // implementation that only cleans up on the success path would leak it.
+    let leakedPath: string | undefined;
     srv = await startHttpServer(
       0,
       fakeClipDeps({
-        encodeAnimation: async () => {
+        encodeAnimation: async (_frames, opts) => {
+          leakedPath = opts.outPath;
+          await fsp.writeFile(opts.outPath, Buffer.from('partial mp4 bytes from a crashed encoder'));
           throw new Error('ffmpeg encode boom');
         },
       }),
@@ -401,6 +429,9 @@ describe('POST /render-clip', () => {
     expect(body.clip).toBeUndefined();
     expect(body.settle?.base64).toBeTruthy();
     expect(body.clipError).toMatch(/encode/i);
+
+    expect(leakedPath).toBeDefined();
+    await expect(fsp.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in tmpdir
   });
 
   it('422 khi mp4 vượt MAPPOSTER_CLIP_MAX_BYTES', async () => {
@@ -422,12 +453,23 @@ describe('POST /render-clip', () => {
     expect(res.status).toBe(422);
   });
 
-  it('401 khi MAPPOSTER_TOKEN đặt mà thiếu bearer (dùng lại khuôn test /render)', async () => {
+  it('401 khi MAPPOSTER_TOKEN đặt mà bearer sai', async () => {
     process.env.MAPPOSTER_TOKEN = 's3cret';
     srv = await startHttpServer(0, fakeClipDeps());
     const res = await fetch(clipUrl(srv), {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Bearer sai' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('401 khi MAPPOSTER_TOKEN đặt mà KHÔNG có Authorization header', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await fetch(clipUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
     });
     expect(res.status).toBe(401);

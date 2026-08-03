@@ -255,11 +255,19 @@ export async function startHttpServer(
           const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
           const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
 
+          const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
           try {
-            const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
-            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
-            const mp4 = await fs.readFile(outPath);
-            await fs.rm(outPath, { force: true });
+            let mp4: Buffer;
+            try {
+              await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+              mp4 = await fs.readFile(outPath);
+            } finally {
+              // Cleanup must run on EVERY path — clean success, an encoder crash
+              // mid-write (real ffmpeg leaves a partial file behind), or a read
+              // failure — so nothing is ever orphaned in os.tmpdir(). Swallow any
+              // rm error itself: cleanup must never mask the original failure.
+              await fs.rm(outPath, { force: true }).catch(() => {});
+            }
 
             const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
             if (mp4.length > cap) {
@@ -294,7 +302,8 @@ export async function startHttpServer(
           } catch (e) {
             // Frames were already captured — an encoder failure (missing ffmpeg,
             // a corrupt frame) must never throw away the settle still that
-            // already exists (degrade path, spec §5).
+            // already exists (degrade path, spec §5). The temp file at outPath
+            // has already been swept up by the `finally` above either way.
             res.writeHead(200, { 'content-type': 'application/json' });
             res.end(
               JSON.stringify({

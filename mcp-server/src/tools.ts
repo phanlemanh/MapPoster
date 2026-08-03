@@ -5,13 +5,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
-import { resolveMotion } from './motionCompiler';
-import { envNumber } from '../config';
+import { prepareClipRender, MotionParamError, motionParamSchema, type ClipPreparation } from './motionCompiler';
+import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipFrames } from './renderFrame';
-import { DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
@@ -39,8 +38,16 @@ function ok(payload: unknown, images: { base64?: string }[] = []): ToolResult {
   content.push({ type: 'text', text: JSON.stringify(payload) });
   return { content };
 }
-function fail(message: string): ToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify({ ok: false, error: message }) }], isError: true };
+/**
+ * `extra` (Finding G): an isError result is not always "nothing else
+ * happened" — an oversized clip (MAPPOSTER_CLIP_MAX_BYTES) still has a settle
+ * still that already rendered successfully, and the degrade contract ("a
+ * settle still that already exists must never be thrown away") applies to a
+ * rejection just as much as to the ok:true encode-failure degrade below.
+ * Defaults to {} so every other `fail()` call site is unaffected.
+ */
+function fail(message: string, extra: Record<string, unknown> = {}): ToolResult {
+  return { content: [{ type: 'text', text: JSON.stringify({ ok: false, error: message, ...extra }) }], isError: true };
 }
 
 let counter = 0;
@@ -147,34 +154,19 @@ export function makeTools(deps: ToolDeps) {
       try {
         if (!deps.renderClip || !deps.encodeAnimation) return fail('clip rendering is not available on this server build');
 
-        const motionParam = motionParamSchema.safeParse(params.motion);
-        if (!motionParam.success) {
-          return fail('motion is required: { preset: "approach"|"pushIn"|"drift", fps?, durationSec? } or { script }');
-        }
-
-        const base = await resolveConfig(params);
-        // AC-9: clips are text-free — force clean chrome, never the caller's
-        // choice (built as a NEW object, no `cfg.chrome = ...` mutation).
-        const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
-        const maxFrames = envNumber(process.env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
-
-        let preset: string | undefined;
-        let motion: MotionScript;
+        // Finding C: config resolution + AC-9's chrome:'clean' force + the
+        // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
+        // live in ONE shared helper now (motionCompiler.ts's
+        // prepareClipRender) instead of being reimplemented here and again in
+        // http.ts's /render-clip.
+        let prep: ClipPreparation;
         try {
-          const resolved = resolveMotion(motionParam.data, resolvedBase, maxFrames);
-          motion = resolved.motion;
-          preset = resolved.preset;
+          prep = await prepareClipRender(params, params.motion);
         } catch (e) {
-          // Same shape as REST /render-clip: a raw ZodError from
-          // validateMotionScript's own schema.parse() has no R:/O:/L:/B:/I:
-          // prefix and dumps as a verbose issues array — prettify it. An
-          // invariant violation is already a plain Error with that prefix;
-          // forward its message verbatim so the caller can find the rule.
-          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
-          return fail(message);
+          if (!(e instanceof MotionParamError)) throw e;
+          return fail(e.message);
         }
-
-        const cfg: RenderConfig = { ...resolvedBase, motion };
+        const { cfg, motion, preset } = prep;
         const { frames, settle: settlePng } = await deps.renderClip(cfg);
 
         // The clip is written to a FILE under sinkDir and never inlined as
@@ -206,6 +198,30 @@ export function makeTools(deps: ToolDeps) {
             motion: motionOut,
             resolved: resolvedOf(cfg),
             clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+          });
+        }
+
+        // Finding C (drift): MAPPOSTER_CLIP_MAX_BYTES used to be enforced only
+        // in REST /render-clip — the README documents it as applying to
+        // "both REST /render-clip and the MCP render_clip tool", which was
+        // false. This surface has MORE reason to enforce it, not less: it
+        // writes straight into the PERSISTENT sinkDir (REST only ever holds
+        // an oversized clip in os.tmpdir() before discarding it), so an
+        // unenforced cap here means an oversized MP4 accumulates on disk
+        // forever instead of just failing one in-flight request.
+        const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+        if (bytes > cap) {
+          await fs.rm(outPath, { force: true }).catch(() => {});
+          const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+          // Finding G: still an error (isError:true, same as REST's 422) —
+          // nothing technically failed, the clip just violates the size
+          // policy and the caller can fix it (lower fps/durationSec/size) —
+          // but the settle still that already rendered successfully is never
+          // thrown away, matching the degrade contract.
+          return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
+            settle,
+            motion: motionOut,
+            resolved: resolvedOf(cfg),
           });
         }
 
@@ -290,22 +306,10 @@ const renderMapShape = {
  */
 export const renderMapSchema = z.object(renderMapShape);
 
-/**
- * `motion` param shared by REST `/render-clip` and the future MCP `render_clip`
- * tool (Task 7) — ONE source of the preset-vs-script split so the two surfaces
- * cannot drift. The `script` branch stays `z.unknown()` on purpose: its real
- * shape is enforced by `validateMotionScript` (motionScript.ts), which is the
- * single source of the R/O/L/B/I invariants — duplicating those bounds here
- * would just create a second contract to keep in sync.
- */
-export const motionParamSchema = z.union([
-  z.object({
-    preset: z.enum(['approach', 'pushIn', 'drift']),
-    fps: z.number().int().min(12).max(30).optional(),
-    durationSec: z.number().min(2).max(12).optional(),
-  }),
-  z.object({ script: z.unknown() }),
-]);
+// `motionParamSchema` (the `preset`-or-`script` shape shared by REST
+// `/render-clip` and this file's `render_clip`) now lives in
+// motionCompiler.ts, alongside `parseMotionParam`/`prepareClipRender` which
+// actually enforce it (Finding C) — imported above instead of redefined here.
 
 // Bounded: frames×fps beyond this buys nothing visually and ties up the pooled
 // page for the whole capture loop.

@@ -9,12 +9,11 @@ import { createServer } from './server';
 import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
-import { renderMapSchema, resolvedOf, motionParamSchema, type ToolDeps } from './tools';
+import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import { deliver } from './delivery';
-import { resolveMotion } from './motionCompiler';
-import { DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
-import type { RenderConfig } from '../../src/render/renderConfig';
+import { prepareClipRender, MotionParamError, type ClipPreparation } from './motionCompiler';
+import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
 
 export interface HttpServer {
   url: string;
@@ -201,46 +200,26 @@ export async function startHttpServer(
       void (async () => {
         try {
           const body = (await readJsonBody(req, maxBodyBytes)) as Record<string, unknown> | undefined;
-
-          const motionParam = motionParamSchema.safeParse(body?.motion);
-          if (!motionParam.success) {
-            res.writeHead(422, { 'content-type': 'application/json' });
-            res.end(
-              JSON.stringify({
-                ok: false,
-                error: 'motion is required: { preset: "approach"|"pushIn"|"drift", fps?, durationSec? } or { script }',
-              }),
-            );
-            return;
-          }
-
           const params = renderMapSchema.parse(body);
-          const base = await resolveConfig(params);
-          const maxFrames = envNumber(process.env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
-          // AC-9: clips are text-free — force clean chrome, never the caller's choice.
-          // Built as a NEW object (no `cfg.chrome = ...` mutation) per this repo's
-          // immutability rule.
-          const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
 
-          let preset: string | undefined;
-          let motion: MotionScript;
+          // Finding C: config resolution + AC-9's chrome:'clean' force + the
+          // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
+          // live in ONE shared helper now (motionCompiler.ts's
+          // prepareClipRender) instead of being reimplemented here and again
+          // in tools.ts's render_clip. MotionParamError is the one thing this
+          // surface maps to 422 — a resolveConfig failure inside the same
+          // call throws a plain Error and falls through to the outer catch
+          // below, unchanged from before this refactor.
+          let prep: ClipPreparation;
           try {
-            const resolved = resolveMotion(motionParam.data, resolvedBase, maxFrames);
-            motion = resolved.motion;
-            preset = resolved.preset;
+            prep = await prepareClipRender(params, body?.motion);
           } catch (e) {
-            // A raw ZodError from validateMotionScript's own schema.parse() (bad
-            // fps, empty camera, ...) has no R:/O:/L:/B:/I: prefix and dumps as a
-            // verbose issues array — prettify it so 422 is always a readable
-            // string. An invariant violation is already a plain Error with that
-            // prefix; forward its message VERBATIM so the caller can find the rule.
-            const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+            if (!(e instanceof MotionParamError)) throw e;
             res.writeHead(422, { 'content-type': 'application/json' });
-            res.end(JSON.stringify({ ok: false, error: message }));
+            res.end(JSON.stringify({ ok: false, error: e.message }));
             return;
           }
-
-          const cfg: RenderConfig = { ...resolvedBase, motion };
+          const { cfg, motion, preset } = prep;
 
           if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
           const { frames, settle } = await deps.renderClip(cfg);
@@ -263,11 +242,24 @@ export async function startHttpServer(
 
             const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
             if (mp4.length > cap) {
+              // Finding G: this used to return 422 with NOTHING else, while the
+              // encode-failure branch below returns the settle — inconsistent
+              // with the spec's degrade contract ("a settle still that already
+              // exists must never be thrown away"). Kept as 422 rather than
+              // folded into the ok:true degrade below: unlike an encoder crash,
+              // nothing actually failed here — the clip encoded fine, it is
+              // just over the caller-fixable size policy — so it stays a
+              // rejection of THIS request (still actionable: lower
+              // fps/durationSec/size), just one that no longer discards the
+              // settle still that already rendered successfully.
               res.writeHead(422, { 'content-type': 'application/json' });
               res.end(
                 JSON.stringify({
                   ok: false,
                   error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
+                  settle: settleOut,
+                  motion: motionOut,
+                  resolved: resolvedOf(cfg),
                 }),
               );
               return;
@@ -369,6 +361,8 @@ if (isMain) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   }
+  applyStartupEnv();
+  probeFfmpegAtStartup();
   startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }))
     .then((s) => console.error(`MapPoster MCP (HTTP) listening at ${s.url}`))
     .catch((e) => {

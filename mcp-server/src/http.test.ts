@@ -381,6 +381,17 @@ describe('POST /render-clip', () => {
     expect(badBody.error).toMatch(/^R:/);
   });
 
+  it('422: preset hợp lệ nhưng override sai phạm vi → thông điệp range của assertValidOverrides lọt tới caller, không phải "motion is required" (Finding F)', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      motion: { preset: 'drift', fps: 999 },
+    });
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.error).toMatch(/fps=999 is out of range/);
+  });
+
   it('422: script vỡ schema (raw ZodError) → error vẫn là string dễ đọc, không phải JSON issues dump', async () => {
     srv = await startHttpServer(0, fakeClipDeps());
     // fps: 999 fails motionScriptSchema's z.number().int().min(12).max(30) —
@@ -434,7 +445,7 @@ describe('POST /render-clip', () => {
     await expect(fsp.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in tmpdir
   });
 
-  it('422 khi mp4 vượt MAPPOSTER_CLIP_MAX_BYTES', async () => {
+  it('422 khi mp4 vượt MAPPOSTER_CLIP_MAX_BYTES — nhưng settle/motion/resolved vẫn có trong body (Finding G)', async () => {
     process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
     srv = await startHttpServer(
       0,
@@ -451,6 +462,15 @@ describe('POST /render-clip', () => {
       motion: { preset: 'pushIn' },
     });
     expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+    // Finding G: the degrade contract ("a settle still that already exists
+    // must never be thrown away") applies to oversize too, not only to an
+    // encode-failure — this used to return 422 with NOTHING else.
+    expect(body.settle?.base64).toBeTruthy();
+    expect(body.motion?.preset).toBe('pushIn');
+    expect(body.resolved?.center).toBeDefined();
   });
 
   it('401 khi MAPPOSTER_TOKEN đặt mà bearer sai', async () => {

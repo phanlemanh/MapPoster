@@ -284,6 +284,19 @@ describe('render_clip', () => {
     expect(renderClip).not.toHaveBeenCalled();
   });
 
+  it('a valid preset with an out-of-range override surfaces assertValidOverrides\'s range message, not the generic "motion is required" (Finding F)', async () => {
+    // fps: 999 used to fail motionParamSchema's OWN z.number().max(30) bound
+    // as part of the preset-vs-script union, so the whole union failed and
+    // this surfaced the generic "motion is required: ..." message even
+    // though a preset object WAS supplied — burying
+    // assertValidOverrides's specific, field-named range message
+    // (motionCompiler.ts) entirely.
+    const res = await clipTools().render_clip({ location: 'HCMC', motion: { preset: 'drift', fps: 999 } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/fps=999 is out of range/);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
   it('approach preset without highlight.regions → isError with an "approach needs" message', async () => {
     const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'approach' } });
     expect(res.isError).toBe(true);
@@ -320,6 +333,34 @@ describe('render_clip', () => {
 
     expect(leakedPath).toBeDefined();
     await expect(fs.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in sinkDir
+  });
+
+  it('rejects an oversized clip (MAPPOSTER_CLIP_MAX_BYTES) — same drift-guard as REST, settle still delivered, tmp file not left behind (Finding C drift + Finding G)', async () => {
+    const prevCap = process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    let writtenPath: string | undefined;
+    const bigEncode = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+      writtenPath = opts.outPath;
+      await fs.writeFile(opts.outPath, Buffer.alloc(4096, 0x61));
+      return opts.outPath;
+    });
+    const oversizeTools = () => makeTools({ render, renderClip, encodeAnimation: bigEncode, sinkDir, defaultDelivery: 'both' });
+
+    try {
+      const res = await oversizeTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+      expect(res.isError).toBe(true); // rejected — not the ok:true encode-failure degrade
+      const j = textJson(res);
+      expect(j.ok).toBe(false);
+      expect(j.error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      expect('clip' in j).toBe(false);
+      expect(typeof j.settle?.path).toBe('string'); // settle still preserved, not thrown away (Finding G)
+
+      expect(writtenPath).toBeDefined();
+      await expect(fs.access(writtenPath!)).rejects.toThrow(); // ENOENT — not orphaned in sinkDir
+    } finally {
+      if (prevCap === undefined) delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+      else process.env.MAPPOSTER_CLIP_MAX_BYTES = prevCap;
+    }
   });
 
   it('a frame-capture failure (renderClip itself throws) still returns an error result — the degrade did not widen', async () => {

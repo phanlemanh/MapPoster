@@ -1,7 +1,10 @@
 // Biên dịch preset → MotionScript từ hình học ĐÃ resolve (spec §4). Compiler sống
 // phía server vì keyframe cần toạ độ thật — thứ chỉ có sau resolveConfig.
-import { validateMotionScript, type MotionContext, type MotionScript, type MotionTrack } from '../../src/render/motionScript';
+import { z } from 'zod';
+import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionContext, type MotionScript, type MotionTrack } from '../../src/render/motionScript';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import { resolveConfig, type RenderMapParams } from './resolveConfig';
+import { envNumber } from '../config';
 
 export type MotionPreset = 'approach' | 'pushIn' | 'drift';
 export interface PresetOverrides {
@@ -196,4 +199,121 @@ export function resolveMotion(
     };
   }
   return { motion: validateMotionScript(motionParam.script, motionContextOf(cfg, maxFrames)) };
+}
+
+// --- Shared `motion` param parsing + clip-pipeline preparation (Findings C, F) ---
+//
+// Before this, both public surfaces (REST /render-clip in http.ts, MCP
+// render_clip in tools.ts) independently: parsed `motion`'s shape, forced
+// chrome:'clean' (AC-9), read MAPPOSTER_MAX_CLIP_FRAMES, and shaped
+// ZodError-vs-invariant errors — and had already drifted (MAPPOSTER_CLIP_MAX_BYTES
+// was enforced only in REST; fixed alongside this in both files). One
+// implementation now backs both; each surface keeps only its own delivery
+// (REST inline base64 vs MCP file-under-sinkDir) and its own encode-failure
+// degrade.
+
+export const MOTION_REQUIRED_MSG = 'motion is required: { preset: "approach"|"pushIn"|"drift", fps?, durationSec? } or { script }';
+
+/**
+ * `fps`/`durationSec` are intentionally NOT range-bounded here — only type
+ * checked. The range lives in ONE place, `assertValidOverrides` above, so its
+ * carefully worded message ("preset X override fps=999 is out of range...")
+ * is what a caller actually sees.
+ *
+ * Finding F: when this schema (or the REST/MCP copies that used to exist
+ * separately) ALSO bounded fps/durationSec to [FPS_MIN,FPS_MAX] /
+ * [DURATION_MIN,DURATION_MAX], a well-typed-but-out-of-range override
+ * (`{ preset: 'approach', fps: 999 }`) failed the schema here, and both
+ * surfaces reported the generic MOTION_REQUIRED_MSG instead — true even
+ * though a preset object WAS supplied — making assertValidOverrides's message
+ * unreachable from either public surface.
+ */
+const presetMotionParamSchema = z.object({
+  preset: z.enum(['approach', 'pushIn', 'drift']),
+  fps: z.number().int().optional(),
+  durationSec: z.number().optional(),
+});
+const scriptMotionParamSchema = z.object({ script: z.unknown() });
+
+export type MotionParam = z.infer<typeof presetMotionParamSchema> | z.infer<typeof scriptMotionParamSchema>;
+
+/**
+ * The `motion` param's declared shape — used as the MCP `render_clip` tool's
+ * registered inputSchema (tools.ts), so a real MCP client's introspected
+ * contract and this file's actual runtime acceptance (parseMotionParam,
+ * below) never drift apart.
+ */
+export const motionParamSchema = z.union([presetMotionParamSchema, scriptMotionParamSchema]);
+
+/**
+ * Branch on `'preset' in motion` BEFORE parsing (Finding F) instead of
+ * z.union's own "both branches failed, blend into one error" behaviour:
+ * picking the ONE schema that matches the input's shape keeps a parse
+ * failure specific to that branch, so a well-typed-but-out-of-range preset
+ * override reaches `resolveMotion` → `assertValidOverrides` instead of being
+ * swallowed into MOTION_REQUIRED_MSG.
+ */
+export function parseMotionParam(input: unknown): { success: true; data: MotionParam } | { success: false; error: string } {
+  if (!input || typeof input !== 'object') return { success: false, error: MOTION_REQUIRED_MSG };
+  if ('preset' in input) {
+    const r = presetMotionParamSchema.safeParse(input);
+    return r.success ? { success: true, data: r.data } : { success: false, error: z.prettifyError(r.error) };
+  }
+  if ('script' in input) {
+    const r = scriptMotionParamSchema.safeParse(input);
+    return r.success ? { success: true, data: r.data } : { success: false, error: z.prettifyError(r.error) };
+  }
+  return { success: false, error: MOTION_REQUIRED_MSG };
+}
+
+/**
+ * Thrown by `prepareClipRender` for motion-parameter problems specifically —
+ * a bad `motion` shape, or a `compileMotion`/`validateMotionScript` invariant
+ * violation. Callers map this ONE type to their surface's error shape (REST:
+ * 422; MCP: `fail()`). A `resolveConfig` failure on the same call is a
+ * distinct, pre-existing kind of error and is deliberately NOT wrapped in
+ * this — it keeps propagating exactly as it did before this refactor (REST:
+ * falls through to the outer catch; MCP: caught by render_clip's own
+ * catch-all, same as always).
+ */
+export class MotionParamError extends Error {}
+
+export interface ClipPreparation {
+  cfg: RenderConfig;
+  motion: MotionScript;
+  preset?: MotionPreset;
+}
+
+/**
+ * Shared clip-pipeline preparation (Finding C). Resolves `params` into a
+ * `RenderConfig`, forces `chrome: 'clean'` (AC-9 — built as a NEW object, no
+ * `cfg.chrome = ...` mutation, per this repo's immutability rule), reads the
+ * `MAPPOSTER_MAX_CLIP_FRAMES` budget, and turns `motionInput` into a
+ * validated `MotionScript`. Both REST `/render-clip` (http.ts) and the MCP
+ * `render_clip` tool (tools.ts) call this instead of each reimplementing it.
+ */
+export async function prepareClipRender(
+  params: RenderMapParams,
+  motionInput: unknown,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<ClipPreparation> {
+  const parsed = parseMotionParam(motionInput);
+  if (!parsed.success) throw new MotionParamError(parsed.error);
+
+  const base = await resolveConfig(params);
+  const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
+  const maxFrames = envNumber(env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
+
+  try {
+    const resolved = resolveMotion(parsed.data, resolvedBase, maxFrames);
+    return { cfg: { ...resolvedBase, motion: resolved.motion }, motion: resolved.motion, preset: resolved.preset };
+  } catch (e) {
+    // Same shape both surfaces already forwarded before this refactor: a raw
+    // ZodError from validateMotionScript's own schema.parse() has no
+    // R:/O:/L:/B:/I: prefix and dumps as a verbose issues array — prettify
+    // it. An invariant violation is already a plain Error with that prefix;
+    // forward its message verbatim so the caller can find the rule.
+    const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+    throw new MotionParamError(message);
+  }
 }

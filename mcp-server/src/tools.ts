@@ -182,14 +182,39 @@ export function makeTools(deps: ToolDeps) {
         // channel MCP runs over. `delivery` applies only to the settle
         // still, exactly as it does for the other image tools.
         const name = fileNameFor(cfg);
-        const outPath = await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath: path.join(deps.sinkDir, `${name}.mp4`) });
-        const { size: bytes } = await fs.stat(outPath);
+        const outPath = path.join(deps.sinkDir, `${name}.mp4`);
+        const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+
+        let bytes: number;
+        try {
+          await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+          ({ size: bytes } = await fs.stat(outPath));
+        } catch (e) {
+          // Same degrade as REST /render-clip (spec §5): frames were already
+          // captured, so an encoder failure (missing ffmpeg, corrupt frame)
+          // must never throw away the settle still that already rendered
+          // successfully. Unlike REST — which encodes to os.tmpdir() and
+          // reads the result into memory — this tool writes straight into
+          // the PERSISTENT sinkDir, so a partial/corrupt file left behind by
+          // a mid-write ffmpeg crash would never be traced or cleaned unless
+          // we remove it here ourselves. Cleanup must never mask the
+          // original error.
+          await fs.rm(outPath, { force: true }).catch(() => {});
+          const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+          return ok({
+            settle,
+            motion: motionOut,
+            resolved: resolvedOf(cfg),
+            clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+          });
+        }
+
         const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
 
         return ok({
           clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
           settle,
-          motion: { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec },
+          motion: motionOut,
           resolved: resolvedOf(cfg),
         });
       } catch (e) {

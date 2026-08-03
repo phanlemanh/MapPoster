@@ -295,4 +295,66 @@ describe('render_clip', () => {
     const res = await tools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
     expect(res.isError).toBe(true);
   });
+
+  it('degrade: encode failure → ok(...) with settle + clipError and no clip key; the partial mp4 is not left behind (Finding 1)', async () => {
+    // Mimic a real encoder crashing mid-write (ffmpeg killed partway through):
+    // the file exists on disk BEFORE the throw, so an implementation that
+    // only cleans up on the success path would leak a partial/corrupt file
+    // into the PERSISTENT sinkDir forever.
+    let leakedPath: string | undefined;
+    const crashingEncode = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+      leakedPath = opts.outPath;
+      await fs.writeFile(opts.outPath, Buffer.from('partial mp4 bytes from a crashed encoder'));
+      throw new Error('ffmpeg encode boom');
+    });
+    const degradeTools = () => makeTools({ render, renderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' });
+
+    const res = await degradeTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+
+    expect(res.isError).toBeUndefined(); // degrade, not a failure — same as REST
+    const j = textJson(res);
+    expect('clip' in j).toBe(false);
+    expect(typeof j.settle?.path).toBe('string'); // the settle still was still delivered
+    expect(typeof j.clipError).toBe('string');
+    expect(j.clipError).toMatch(/encode/i);
+
+    expect(leakedPath).toBeDefined();
+    await expect(fs.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in sinkDir
+  });
+
+  it('a frame-capture failure (renderClip itself throws) still returns an error result — the degrade did not widen', async () => {
+    const throwingRenderClip = vi.fn(async () => {
+      throw new Error('capture crashed');
+    });
+    const failTools = () => makeTools({ render, renderClip: throwingRenderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+    const res = await failTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).ok).toBe(false);
+    expect(encodeAnimation).not.toHaveBeenCalled();
+  });
+
+  it('a structurally invalid raw script motion produces a readable error string, not a serialized ZodError dump (Finding 2)', async () => {
+    // fps: 999 fails motionScriptSchema's z.number().int().min(12).max(30) —
+    // validateMotionScript's own schema.parse() throws a RAW z.ZodError here,
+    // before any of the R/O/L/B/I invariant checks (which throw a plain Error
+    // with a prefix instead). Proven only via the REST test until now.
+    const res = await clipTools().render_clip({
+      location: 'HCMC',
+      ...point,
+      motion: {
+        script: { fps: 999, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [106.7, 10.78], zoom: 10 }], tracks: [] },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+    });
+    expect(res.isError).toBe(true);
+    const { error } = textJson(res);
+    expect(typeof error).toBe('string');
+    expect(error.length).toBeGreaterThan(0);
+    // A raw ZodError serialized via String(e) / e.message would be a `[ { ... } ]`
+    // issues array containing entries like `"code":"invalid_type"` —
+    // prettifyError must turn that into readable prose instead.
+    expect(error.startsWith('[')).toBe(false);
+    expect(error).not.toContain('"code":"invalid_type"');
+  });
 });

@@ -76,6 +76,88 @@ export async function renderAnimationFrames(
   }
 }
 
+export interface ClipFrames {
+  frames: Buffer[];
+  settle: Buffer;
+}
+
+const PNG_DATA_URL_PREFIX = /^data:image\/png;base64,/;
+
+/**
+ * Capture a whole MotionScript clip from ONE page load: prefetch tiles along
+ * the flight path (best-effort), then each frame is renderMotionFrame(i/fps) —
+ * a pure function of t (Task 4). The settle still is captured at restAtSec
+ * with pulsePhase 0 (the pulse ring at its minimum — spec §3).
+ *
+ * NO retry of a partial clip: if the page dies mid-sequence we fail the whole
+ * request (spec §9) rather than re-running the tail. A second page load would
+ * warm a different tile cache than the first, so splicing frames from two
+ * runs would mix two different tile-cache states and destroy determinism —
+ * the one property this function exists to guarantee.
+ */
+export async function renderClipFrames(config: RenderConfig, deps: RenderDeps): Promise<ClipFrames> {
+  const motion = config.motion;
+  if (!motion) {
+    throw new Error('renderClipFrames: config has no motion script');
+  }
+
+  const page = await deps.pool.acquire();
+  const key = deps.configStore.put(JSON.stringify(config));
+  let broken = false;
+  try {
+    await page.goto(`${deps.appUrl}/render.html?configId=${key}`, { waitUntil: 'load' });
+    await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, {
+      timeout: 20_000,
+    });
+
+    const loadedKey = await page.evaluate(() => (window as unknown as { __mapposter: { configKey: string } }).__mapposter.configKey);
+    if (loadedKey !== key) {
+      throw new Error('render mode: page did not reload with the requested config (stale page)');
+    }
+
+    // Best-effort: a prefetch failure must not fail the render — the frames
+    // below still resolve correctly, just possibly slower on cache misses.
+    await page
+      .evaluate(async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (window as any).__mapposter;
+        await api.ready;
+        await api.prefetchMotion();
+      })
+      .catch(() => {});
+
+    const total = Math.round(motion.fps * motion.durationSec);
+    const frames: Buffer[] = [];
+    for (let i = 0; i < total; i++) {
+      const dataUrl: string = await page.evaluate(async (t: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = (window as any).__mapposter;
+        await api.ready;
+        const r = await api.renderMotionFrame(t);
+        return r.dataUrl as string;
+      }, i / motion.fps);
+      frames.push(Buffer.from(dataUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64'));
+    }
+
+    const settleUrl: string = await page.evaluate(async (t: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (window as any).__mapposter;
+      await api.ready;
+      const r = await api.renderMotionFrame(t, { pulsePhase: 0 });
+      return r.dataUrl as string;
+    }, motion.restAtSec);
+
+    return { frames, settle: Buffer.from(settleUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64') };
+  } catch (e) {
+    broken = true;
+    deps.pool.discard(page);
+    throw e;
+  } finally {
+    deps.configStore.drop(key);
+    if (!broken) deps.pool.release(page);
+  }
+}
+
 export async function renderFrame(config: RenderConfig, deps: RenderDeps): Promise<Buffer> {
   const page = await deps.pool.acquire();
   // The config travels out-of-band. Putting it in the URL capped the whole render

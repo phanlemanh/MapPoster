@@ -3,7 +3,7 @@ import type { Map as MlMap } from 'maplibre-gl';
 import '../index.css';
 import RenderApp from './RenderApp';
 import { applyRenderConfig } from './applyRenderConfig';
-import type { RenderConfig, RenderCamera } from './renderConfig';
+import type { RenderConfig, RenderCamera, RenderHighlightRegion } from './renderConfig';
 import { usePosterStore } from '../store/usePosterStore';
 import { getMapInstance } from '../lib/mapRef';
 import { composePoster, composeOverlays, snapshotMap, type PulseOpts } from '../lib/export';
@@ -39,6 +39,11 @@ declare global {
 
 const MAP_INIT_TIMEOUT_MS = 8_000;
 const IDLE_TIMEOUT_MS = 20_000;
+/** Fallback for the `highlight-fill` layer's opacity, used ONLY if the ready-time
+ * capture below finds no `highlight-fill` layer to read from (see
+ * `highlightFillOpacity`). Mirrors `src/lib/mapStyle.ts`'s literal default —
+ * kept as a last resort, not the source of truth. */
+const DEFAULT_HIGHLIGHT_FILL_OPACITY = 0.26;
 /**
  * MapView (shared with the interactive app) has a `useEffect` keyed on
  * `ready` that re-applies `map.setStyle(buildMapStyle(...), {diff:true})` the
@@ -54,8 +59,29 @@ const IDLE_TIMEOUT_MS = 20_000;
  * not a WebGL/network flake. This margin gives the effect time to dispatch and
  * land before the second `idleOnce` below waits out whatever re-tiling it
  * triggers; it only costs time once, at page startup.
+ *
+ * IMPORTANT: this timer is a cheap head start, not the correctness guarantee —
+ * a reviewer measured the first 'idle' firing ~0.1ms after 'load', so 150ms had
+ * been carrying the ENTIRE guarantee with zero incidental cushion. The real
+ * guarantee is `verifyAndReapplyGeoAt` in `renderMotionFrame`, which reads back
+ * the applied state after every frame and reapplies if this window wasn't
+ * enough (e.g. a slow CI machine). Kept as an upper bound and to avoid paying
+ * a reapply-and-rewait tax on every clip's first frame.
  */
 const RESTYLE_SETTLE_MS = 150;
+
+/** Resolve once `event` fires on `map` — used to race the restyle settle
+ * window below so the common case (effect dispatches quickly) doesn't pay the
+ * full fixed timeout. */
+function onceEvent(map: MlMap, event: string): Promise<void> {
+  return new Promise((resolve) => {
+    map.once(event, () => resolve());
+  });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function decodeConfig(b64: string): RenderConfig {
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
@@ -155,6 +181,19 @@ let restBase: HTMLCanvasElement | null = null;
  * not a fresh reconstruction. */
 let highlightBaseData: GeoJSONFeatureCollection | null = null;
 
+/** The `highlight-fill` layer's real configured opacity, captured once at
+ * ready time (see below) instead of hardcoding mapStyle.ts's literal —
+ * `DEFAULT_HIGHLIGHT_FILL_OPACITY` is only a last-resort fallback if the
+ * capture finds no such layer. */
+let highlightFillOpacity: number | null = null;
+
+/** Progress last actually WRITTEN to the highlight source/paint property by
+ * `applyGeoAt` (see Finding 5 in that function) — `null` means nothing has
+ * been applied yet, or `setCamera` reset it. Keyed on the applied value, not
+ * on `t`, so purity holds: any `t` mapping to the same progress still yields
+ * identical rendered data, we just don't redundantly rewrite it. */
+let lastAppliedRevealProgress: number | null = null;
+
 const ready = (async () => {
   cfg = await load();
   applyRenderConfig(cfg);
@@ -167,8 +206,12 @@ const ready = (async () => {
   const map = getMapInstance();
   if (!map) throw new Error('render mode: map never initialized');
   await idleOnce(map);
-  // See RESTYLE_SETTLE_MS doc comment — absorbs MapView's post-'load' style-rebuild effect.
-  await new Promise((r) => setTimeout(r, RESTYLE_SETTLE_MS));
+  // See RESTYLE_SETTLE_MS doc comment — absorbs MapView's post-'load' style-rebuild
+  // effect. Event-driven in the common case (the effect usually dispatches its
+  // setStyle() well within the window via 'styledata'), with the fixed timeout
+  // as an upper bound since the effect firing at all is not guaranteed. This is
+  // a head start only — `verifyAndReapplyGeoAt` is the actual correctness net.
+  await Promise.race([onceEvent(map, 'styledata'), delay(RESTYLE_SETTLE_MS)]);
   await idleOnce(map);
   await (document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
 
@@ -176,23 +219,87 @@ const ready = (async () => {
   // page-ready time — see highlightBaseData doc comment above.
   const highlightSrc = (map.getStyle().sources as Record<string, { data?: unknown } | undefined>).highlight;
   if (highlightSrc && highlightSrc.data) highlightBaseData = highlightSrc.data as GeoJSONFeatureCollection;
+
+  // Capture the highlight-fill layer's real configured opacity — see
+  // highlightFillOpacity doc comment above (Finding 3: stop duplicating
+  // mapStyle.ts's literal).
+  if (map.getLayer('highlight-fill')) {
+    const opacity = map.getPaintProperty('highlight-fill', 'fill-opacity');
+    if (typeof opacity === 'number') highlightFillOpacity = opacity;
+  }
 })();
 // keep the rejection from surfacing as an unhandled error; callers still see it via `await ready`
 ready.catch(() => {});
 
-/** FeatureCollection ranh giới đã cắt theo tiến độ reveal — LineString khi đang
- * vẽ dở (fill layer không tô được đường hở, đúng ý), polygon gốc khi khép vòng. */
-function revealFC(full: GeoJSONFeatureCollection, p: number): GeoJSONFeatureCollection {
+/** Slice one ring-bearing feature's geometry into the in-progress LineString
+ * shape, preserving its `properties` (carries the resolved `color` tag when
+ * the feature comes from `highlightBaseData`). Returns `[]` when nothing has
+ * been drawn yet (p<=0) or the feature has no polygon geometry. */
+function sliceFeatureForReveal(f: GeoJSONFeatureCollection['features'][number], p: number): GeoJSONFeatureCollection['features'] {
+  if (!f.geometry) return [];
+  const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
+  const out: GeoJSONFeatureCollection['features'] = [];
+  for (const poly of polys) {
+    const sliced = sliceRing(poly[0] as [number, number][], p);
+    if (sliced) out.push({ type: 'Feature', properties: f.properties ?? {}, geometry: { type: 'LineString', coordinates: sliced } });
+  }
+  return out;
+}
+
+/**
+ * Fallback path used ONLY if the `highlightBaseData` capture (see its doc
+ * comment) came back empty — e.g. no highlight source existed at ready time.
+ * Reveals the RAW single-region config geometry: unsmoothed, untagged (no
+ * `color` property), and blind to sibling regions. This is strictly worse than
+ * the primary path below (see Finding 2) but keeps `regionReveal` from
+ * crashing when there is nothing better to read state back from.
+ */
+function revealRawFallback(full: GeoJSONFeatureCollection, p: number): GeoJSONFeatureCollection {
   if (p >= 1) return full;
   const feats: GeoJSONFeatureCollection['features'] = [];
-  for (const f of full.features) {
-    if (!f.geometry) continue;
-    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
-    for (const poly of polys) {
-      const sliced = sliceRing(poly[0] as [number, number][], p);
-      if (sliced) feats.push({ type: 'Feature', properties: f.properties ?? {}, geometry: { type: 'LineString', coordinates: sliced } });
+  for (const f of full.features) feats.push(...sliceFeatureForReveal(f, p));
+  return { type: 'FeatureCollection', features: feats };
+}
+
+/**
+ * Index range `[start, end)` that `regionIndex`'s features occupy inside
+ * `highlightBaseData.features` — a flat concatenation of every region's
+ * geometry-bearing features, IN REGION ORDER (mirrors mapStyle.ts's `feats`
+ * loop: `for (const region of highlight.regions) for (const f of
+ * region.geojson.features) if (f?.geometry) feats.push(...)`). Counting each
+ * earlier region's geometry-bearing features gives this region's offset.
+ */
+function regionFeatureRange(regions: RenderHighlightRegion[], regionIndex: number): [number, number] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const geometryCount = (r: RenderHighlightRegion | undefined) => (r?.geojson?.features ?? []).filter((f: any) => f?.geometry).length;
+  let start = 0;
+  for (let i = 0; i < regionIndex; i++) start += geometryCount(regions[i]);
+  return [start, start + geometryCount(regions[regionIndex])];
+}
+
+/**
+ * Reveal built from `highlightBaseData` (the combined, smoothed, colour-tagged
+ * FeatureCollection mapStyle actually built) instead of the raw config
+ * geojson — fixes Finding 2's three visual pops:
+ *  - shape pop: the outline now follows the SAME smoothed ring throughout,
+ *    not an unsmoothed one that snaps to smoothed at completion;
+ *  - colour pop: each sliced feature keeps its source `properties.color`, so
+ *    `['coalesce', ['get','color'], globalColor]` in mapStyle.ts resolves the
+ *    region's own colour for the whole reveal, not just at p=1;
+ *  - sibling pop: features OUTSIDE `range` (other regions) are passed through
+ *    unsliced so they stay visible for the whole reveal instead of vanishing.
+ */
+function revealFromBase(baseFeatures: GeoJSONFeatureCollection['features'], range: [number, number], p: number): GeoJSONFeatureCollection {
+  const [start, end] = range;
+  const feats: GeoJSONFeatureCollection['features'] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  baseFeatures.forEach((f: any, i: number) => {
+    if (i < start || i >= end) {
+      feats.push(f); // sibling region — untouched, visible for the whole reveal
+      return;
     }
-  }
+    feats.push(...sliceFeatureForReveal(f, p));
+  });
   return { type: 'FeatureCollection', features: feats };
 }
 
@@ -233,24 +340,85 @@ function waitSourceLoaded(map: MlMap, sourceId: string, ms = IDLE_TIMEOUT_MS): P
   });
 }
 
-/** Áp trạng thái địa lý tại tClamped vào map (nguồn highlight + opacity fill). */
-async function applyGeoAt(map: MlMap, tClamped: number): Promise<void> {
+/** Result of `applyGeoAt` — what it intended the map's geo state to be, so
+ * `verifyAndReapplyGeoAt` can read the map back and confirm it stuck. */
+interface AppliedGeoState {
+  /** intended `highlight-fill` fill-opacity, or `null` if there's no such layer */
+  fillOpacityTarget: number | null;
+}
+
+/**
+ * Compute the reveal FeatureCollection for progress `p` — from
+ * `highlightBaseData` when available (Finding 2's fixed path), falling back
+ * to the raw config geojson only if that capture came back empty.
+ */
+function computeRevealData(regions: RenderHighlightRegion[], regionIndex: number, rawFull: GeoJSONFeatureCollection | undefined, p: number): GeoJSONFeatureCollection {
+  if (p >= 1) return highlightBaseData ?? rawFull ?? { type: 'FeatureCollection', features: [] };
+  if (highlightBaseData) return revealFromBase(highlightBaseData.features, regionFeatureRange(regions, regionIndex), p);
+  return rawFull ? revealRawFallback(rawFull, p) : { type: 'FeatureCollection', features: [] };
+}
+
+/** Áp trạng thái địa lý tại tClamped vào map (nguồn highlight + opacity fill).
+ *
+ * `force`, when true, bypasses the Finding 5 skip-if-unchanged cache — used by
+ * `verifyAndReapplyGeoAt` when the map's actual state no longer matches what
+ * the cache believes (a restyle raced in and reverted it), so the cache must
+ * not suppress the necessary rewrite. */
+async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<AppliedGeoState> {
   const motion = cfg.motion;
-  if (!motion) return;
+  if (!motion) return { fillOpacityTarget: null };
   const reveal = motion.tracks.find((t) => t.kind === 'regionReveal');
-  if (!reveal || reveal.kind !== 'regionReveal' || !cfg.highlight?.regions.length) return;
+  const regions = cfg.highlight?.regions;
+  if (!reveal || reveal.kind !== 'regionReveal' || !regions?.length) return { fillOpacityTarget: null };
   const src = map.getSource('highlight') as { setData(d: unknown): void } | undefined;
-  if (!src) return;
-  const full = cfg.highlight.regions[reveal.regionIndex ?? 0].geojson;
+  if (!src) return { fillOpacityTarget: null };
+
+  const regionIndex = reveal.regionIndex ?? 0;
+  const rawFull = regions[regionIndex]?.geojson;
   const p = trackProgress(tClamped, reveal.t0, reveal.t1, reveal.ease);
-  const loaded = waitSourceLoaded(map, 'highlight');
-  // p>=1: restore the REAL combined+smoothed data captured at ready time, not
-  // the raw single-region config geojson — only fall back to it if the capture
-  // came back empty (e.g. no highlight source at all).
-  src.setData(p >= 1 ? (highlightBaseData ?? full) : revealFC(full, p));
+  const hasFillLayer = Boolean(map.getLayer('highlight-fill'));
   // fill only appears once the ring has closed (spec §4: "vòng khép, fill mờ vào")
-  if (map.getLayer('highlight-fill')) map.setPaintProperty('highlight-fill', 'fill-opacity', p >= 1 ? 0.26 : 0);
-  await loaded;
+  const fillOpacityTarget = hasFillLayer ? (p >= 1 ? (highlightFillOpacity ?? DEFAULT_HIGHLIGHT_FILL_OPACITY) : 0) : null;
+
+  // Finding 5: once p>=1 every remaining tail frame recomputed and re-wrote
+  // IDENTICAL data, paying a full worker re-tile + sourcedata wait each time.
+  // Skip the write entirely when the progress is identical to what's already
+  // on the map — keyed on the applied value (p), not on t, so purity holds.
+  if (!force && lastAppliedRevealProgress === p) return { fillOpacityTarget };
+
+  const dataToApply = computeRevealData(regions, regionIndex, rawFull, p);
+  // Finding 7: build the wait promise AFTER the mutations that precede it, not
+  // before — if setData/setPaintProperty throws, the promise (and its 20s
+  // timer) is simply never created, instead of being left to reject unheeded
+  // later. Safe to register after: setData()'s worker round-trip cannot fire
+  // 'sourcedata' before this synchronous block finishes.
+  src.setData(dataToApply);
+  if (hasFillLayer) map.setPaintProperty('highlight-fill', 'fill-opacity', fillOpacityTarget ?? 0);
+  lastAppliedRevealProgress = p;
+  await waitSourceLoaded(map, 'highlight');
+  return { fillOpacityTarget };
+}
+
+/**
+ * Finding 1: `RESTYLE_SETTLE_MS` is a cheap head start, not a guarantee — on a
+ * slow enough machine MapView's post-load `setStyle(..., {diff:true})` could
+ * still land between `applyGeoAt`'s writes and here, reverting them (it
+ * diffs+rebuilds the WHOLE style, so both the source data and the paint
+ * property can be reverted together, not just the one property we cheaply
+ * read back). Read back `highlight-fill`'s fill-opacity; if it doesn't match
+ * what `applyGeoAt` intended, force a full re-apply (bypassing the Finding 5
+ * cache, since the map's real state no longer matches what the cache
+ * believes) and re-wait ONCE. Corrupt-pixel failure mode this closes: a
+ * region shown filled while its outline is still mid-draw, cached into
+ * `restBase` and inherited by every later tail frame.
+ */
+async function verifyAndReapplyGeoAt(map: MlMap, tClamped: number, applied: AppliedGeoState): Promise<AppliedGeoState> {
+  if (applied.fillOpacityTarget === null || !map.getLayer('highlight-fill')) return applied;
+  const current = map.getPaintProperty('highlight-fill', 'fill-opacity');
+  if (current === applied.fillOpacityTarget) return applied;
+  const reapplied = await applyGeoAt(map, tClamped, true);
+  await idleOnce(map);
+  return reapplied;
 }
 
 /** Composite pinDrop scale-in + pulse (phase = t, deterministic) over a base snapshot. */
@@ -260,13 +428,18 @@ async function composeMotionOverlay(
   motion: NonNullable<RenderConfig['motion']>,
   tSec: number,
   opts?: { pulsePhase?: number },
-) {
+): Promise<{ dataUrl: string; width: number; height: number }> {
   const pin = motion.tracks.find((t) => t.kind === 'pinDrop');
   const pulse = motion.tracks.find((t) => t.kind === 'pulse');
+  // Finding 6: pointIndex declares WHICH marker the pin-drop addresses
+  // (validator range-checks it against pointCount, defaulting to 0 when
+  // omitted — see motionScript.ts's `t.pointIndex ?? 0` range check). Only
+  // that marker animates; the rest stay at full size the whole clip.
+  const pinTargetIndex = pin && pin.kind === 'pinDrop' ? (pin.pointIndex ?? 0) : -1;
   const markers = usePosterStore
     .getState()
-    .markers.map((m) => {
-      if (!pin || pin.kind !== 'pinDrop') return m;
+    .markers.map((m, i) => {
+      if (!pin || pin.kind !== 'pinDrop' || i !== pinTargetIndex) return m;
       const k = trackProgress(tSec, pin.at, pin.at + (pin.dur ?? 0.5), 'expoOut');
       return { ...m, size: m.size * k };
     })
@@ -320,6 +493,12 @@ window.__mapposter = {
     if (!map) throw new Error('render mode: no map');
     map.jumpTo(cam);
     animBase = null; // camera moved — the cached snapshot no longer matches
+    // Finding 4: not reachable from today's callers, but nulling one cache and
+    // not the other is exactly the latent order-dependency this task exists to
+    // rule out — reset every piece of state a subsequent renderMotionFrame call
+    // could otherwise read stale.
+    restBase = null;
+    lastAppliedRevealProgress = null;
     await idleOnce(map);
   },
   async renderMotionFrame(tSec, opts) {
@@ -332,8 +511,10 @@ window.__mapposter = {
     const atRest = tSec >= motion.restAtSec;
     if (!atRest || !restBase) {
       map.jumpTo(cameraAt(motion.camera, tClamped));
-      await applyGeoAt(map, tClamped);
+      const applied = await applyGeoAt(map, tClamped);
       await idleOnce(map);
+      // Finding 1: idempotent restyle guard — see verifyAndReapplyGeoAt doc.
+      await verifyAndReapplyGeoAt(map, tClamped, applied);
       const snap = await snapshotMap(map, cfg.size.width, cfg.size.height);
       if (atRest) restBase = snap; // tail of the clip: camera settled, only the pulse changes → reuse
       else restBase = null;

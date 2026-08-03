@@ -1,4 +1,5 @@
 import type { FontKey, GeoJSONFeatureCollection, LayerState, MarkerIconKey } from '../types';
+import type { MotionScript } from './motionScript';
 
 /** A fully-resolved render request. Produced in Node (mcp-server), consumed by
  * the headless render mode. Everything is concrete (coords + GeoJSON) — no
@@ -42,4 +43,6 @@ export interface RenderConfig {
     dim: boolean;
   };
   markers?: RenderMarker[];
+  /** Motion clip script — the static renderFrame() path ignores this field. */
+  motion?: MotionScript;
 }

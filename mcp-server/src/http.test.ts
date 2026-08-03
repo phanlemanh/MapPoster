@@ -364,7 +364,7 @@ describe('POST /render-clip', () => {
     expect(body.motion?.restAtSec).toBeCloseTo(3.9, 3);
     expect(body.resolved?.center).toBeDefined();
     expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
-    expect(seenClipConfig?.motion?.fps).toBe(24);
+    expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
   });
 
   it('422: preset lạ, thiếu motion, và script vỡ bất biến R — message nêu tên luật', async () => {

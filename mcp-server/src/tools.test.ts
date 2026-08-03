@@ -257,7 +257,7 @@ describe('render_clip', () => {
     const written = await fs.readFile(j.clip.path);
     expect(written.toString()).toBe('mp4!');
     expect(j.clip.bytes).toBe(written.length);
-    expect(j.clip.fps).toBe(24);
+    expect(j.clip.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
     expect(typeof j.clip.durationSec).toBe('number');
     expect(j.clip.width).toBe(1080);
     expect(j.clip.height).toBe(1920);

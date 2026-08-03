@@ -71,7 +71,7 @@ server to pick it up, rebuild explicitly — a stale `dist/` is served silently:
 npx vite build
 ```
 
-Tools: `render_map`, `render_variants`, `geocode_place`, `list_themes`, `list_formats`. Example call:
+Tools: `render_map`, `render_variants`, `render_clip`, `geocode_place`, `list_themes`, `list_formats`. Example call:
 
 ```jsonc
 render_map({
@@ -85,6 +85,37 @@ render_map({
 //     resolved: { center, zoom, place, theme, highlights: { regions:[{bbox,center}], points:[{lng,lat}] } } }
 ```
 
+`render_clip` renders the same place/highlight contract as `render_map`, plus a
+`motion` param, as a short **text-free** MP4 camera-motion clip (AC-9: `chrome`
+is always forced to `'clean'`, no matter what the caller asks for — the only
+text a clip may ever show is OpenStreetMap's own road labels, and only when
+`layers.roadLabels` opts in). `motion` is either a named preset (`approach` —
+flies in and reveals a region boundary; `pushIn` — pushes into and pulses
+around a point; `drift` — a slow pan/zoom) with optional `fps`/`durationSec`
+overrides, or a raw MotionScript `{ script }`. Example call:
+
+```jsonc
+render_clip({
+  "location": "Hoàn Kiếm Lake, Hanoi",
+  "highlight": { "points": ["Hoàn Kiếm Lake, Hanoi"] },
+  "format": "tiktok",
+  "motion": { "preset": "pushIn" }
+})
+// → { clip: { path, bytes, durationSec, fps, width: 1080, height: 1920 },
+//     settle: { path, base64, format: 'png', width, height },
+//     motion: { preset: 'pushIn', restAtSec },
+//     resolved: { center, zoom, place, theme, highlights: {...} } }
+```
+
+Unlike every other tool here, the clip itself is **written to a file** under
+`MAPPOSTER_SINK` and returned as `clip.path` rather than inlined as base64 —
+a multi-megabyte MP4 would bloat the JSON-RPC stdio channel MCP runs over.
+`delivery` (inline/file/both) still applies to the `settle` still, same as the
+other image tools. If the MP4 encoder fails (missing ffmpeg, a corrupt frame),
+the tool never throws the whole call away: the frames were already captured,
+so it degrades to `{ settle, motion, resolved, clipError }` — the settle still
+always exists.
+
 `highlight.color` must be a hex colour (`#e8b04b`) — it is interpolated into the marker SVG's `fill` and reaches `innerHTML` in the render page, so anything else is refused at the boundary.
 
 The render config never travels in the URL. It is parked in-process and the page fetches it by id — a query param would put the whole payload in the request head, which Node caps at 16 KB, and a single city boundary encodes to ~20 KB. The id still changes every render, which is what forces the real document reload the stale-frame guard depends on. Inline `highlight.regions[].geojson` is shape-checked and capped at 2 MiB.
@@ -96,6 +127,52 @@ A render that fails discards its browser page rather than returning it to the po
 `resolved` echoes every choice the server made on your behalf — the camera it framed, the theme it used, and the extent of each region it resolved by name, so a caller can tell *which* "District 1" it got. An unknown `theme` is refused rather than quietly replaced with the default.
 
 Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_APP_HOST` (default `127.0.0.1`), `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`), `MAPPOSTER_GEO_CACHE_MAX` (LRU entries per geocode cache, default 500). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+
+Clip-only env vars (both REST `/render-clip` and the MCP `render_clip` tool):
+
+| Env var | Default | What it guards |
+|---|---|---|
+| `MAPPOSTER_CLIP_MAX_BYTES` | 12 MiB (`12 * 1024 * 1024`) | Encoded MP4 size cap. A clip over this is refused with **422** — before it is ever base64-encoded — so lower `fps`/`durationSec`/size instead of shipping a multi-ten-megabyte inline blob. |
+| `MAPPOSTER_MAX_CLIP_FRAMES` | 288 | The `fps × durationSec` frame budget. A preset or raw script that would render more frames than this is refused at validation, before any browser page is touched. |
+
+### REST endpoints
+
+Alongside the MCP transport, the same HTTP server exposes two plain-REST
+endpoints for callers that just want JSON in, image/video out, and don't speak
+JSON-RPC — same `Host`/`Origin` guard and optional bearer token
+(`MAPPOSTER_TOKEN`) as everything else on this server.
+
+**`POST /render`** — the REST sibling of `render_map`: same input schema, PNG
+returned inline as base64.
+
+```jsonc
+// POST /render  { "location": "Hoàn Kiếm Lake, Hanoi", "format": "tiktok" }
+// → { ok: true, base64, width: 1080, height: 1920, place, resolved }
+```
+
+**`POST /render-clip`** — the REST sibling of `render_clip`: same `render_map`
+schema plus `motion`, `chrome` forced to `'clean'` (AC-9), same text-free
+guarantee.
+
+```jsonc
+// POST /render-clip
+// { "location": "Hoàn Kiếm Lake, Hanoi", "highlight": { "points": [...] },
+//   "format": "tiktok", "motion": { "preset": "pushIn" } }
+// → { ok: true,
+//     clip: { base64, format: 'mp4', width: 1080, height: 1920, durationSec, fps, bytes },
+//     settle: { base64, format: 'png', width, height },
+//     motion: { preset: 'pushIn', restAtSec },
+//     resolved: {...} }
+```
+
+Unlike the MCP tool, REST returns the clip **inline as base64** rather than a
+file path — a REST caller has no shared filesystem with the server to read a
+path back from, so the whole point of a REST response is that it is
+self-contained; the MCP tool writes to `MAPPOSTER_SINK` instead precisely to
+avoid bloating the JSON-RPC stdio channel with that same blob. If the encoder
+fails after frames were already captured, `/render-clip` degrades the same way
+the MCP tool does: `200 { ok: true, settle, motion, resolved, clipError }`,
+never discarding a settle still that already rendered successfully.
 
 The HTTP transport is unauthenticated, so it refuses any request whose `Host` it does not answer to, and any request carrying an `Origin` at all — a server-to-server MCP client sends none, a web page always does. Loopback binding alone would not stop DNS rebinding. A hosted deployment must therefore declare `MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal` (and `MAPPOSTER_HTTP_ALLOWED_ORIGINS=https://studio.internal` if a browser calls it); otherwise only loopback `Host` headers are accepted and the server says so on startup. Request bodies are capped at 8 MiB (`MAPPOSTER_HTTP_MAX_BODY`) and refused with `413` — `Host` and `Origin` are trivially forged by exactly the non-browser clients the guard admits, so an unbounded body would OOM the process and take the shared browser pool with it.
 

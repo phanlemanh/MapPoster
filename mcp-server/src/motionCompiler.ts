@@ -18,7 +18,14 @@ export function motionContextOf(cfg: RenderConfig, maxFrames?: number): MotionCo
   };
 }
 
-const FPS_DEFAULT = 24;
+// Measured, not guessed (spec §3): Task 5 clocked ~902ms/frame cold / ~400ms/frame
+// warm at a small 320×568 test canvas and flagged that a real poster size would
+// be slower. Task 9 re-measured at the actual TikTok production size (1080×1920,
+// 12-frame clip, same M4 Max dev machine): ~1108ms/frame cold, ~644ms/frame warm.
+// Cold is the number that matters — it's what every process's first clip pays,
+// and it is worse than the ~0.7s/frame threshold the plan sets, so the default
+// drops from 24 to 18 to keep total render wall-time down for a given duration.
+const FPS_DEFAULT = 18;
 
 /** Mốc thời gian chuẩn của mỗi preset (spec §4 storyboard) — scale theo durationSec override. */
 const APPROACH = { dur: 6, rest: 4.2, arrive: 2.6, reveal0: 1.8, reveal1: 3.2, pin: 3.5, pinDur: 0.5, zoomOut: 3.5 };

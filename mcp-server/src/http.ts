@@ -1,14 +1,20 @@
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
-import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
+import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
-import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
+import { renderMapSchema, resolvedOf, motionParamSchema, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import { deliver } from './delivery';
+import { compileMotion, motionContextOf } from './motionCompiler';
+import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
+import type { RenderConfig } from '../../src/render/renderConfig';
 
 export interface HttpServer {
   url: string;
@@ -175,6 +181,133 @@ export async function startHttpServer(
           // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
           // gives the same one-line human-readable clarity every other guard in
           // this codebase already throws (assertTheme, assertLngLat, ...).
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(status, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+        }
+      })();
+      return;
+    }
+    // Text-free animated clip: caller supplies `motion` (preset OR a raw
+    // MotionScript) on top of the same render_map contract; chrome is forced
+    // to 'clean' regardless of what's asked for (AC-9 — no text ever enters
+    // a clip frame). Same bearer/body-cap guards as /render above.
+    if (req.url === '/render-clip') {
+      const token = process.env.MAPPOSTER_TOKEN;
+      if (token && req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401).end('unauthorized');
+        return;
+      }
+      void (async () => {
+        try {
+          const body = (await readJsonBody(req, maxBodyBytes)) as Record<string, unknown> | undefined;
+
+          const motionParam = motionParamSchema.safeParse(body?.motion);
+          if (!motionParam.success) {
+            res.writeHead(422, { 'content-type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                ok: false,
+                error: 'motion is required: { preset: "approach"|"pushIn"|"drift", fps?, durationSec? } or { script }',
+              }),
+            );
+            return;
+          }
+
+          const params = renderMapSchema.parse(body);
+          const base = await resolveConfig(params);
+          const maxFrames = envNumber(process.env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
+          // AC-9: clips are text-free — force clean chrome, never the caller's choice.
+          // Built as a NEW object (no `cfg.chrome = ...` mutation) per this repo's
+          // immutability rule.
+          const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
+
+          let preset: string | undefined;
+          let motion: MotionScript;
+          try {
+            if ('preset' in motionParam.data) {
+              preset = motionParam.data.preset;
+              motion = compileMotion(
+                motionParam.data.preset,
+                resolvedBase,
+                { fps: motionParam.data.fps, durationSec: motionParam.data.durationSec },
+                maxFrames,
+              );
+            } else {
+              motion = validateMotionScript(motionParam.data.script, motionContextOf(resolvedBase, maxFrames));
+            }
+          } catch (e) {
+            // A raw ZodError from validateMotionScript's own schema.parse() (bad
+            // fps, empty camera, ...) has no R:/O:/L:/B:/I: prefix and dumps as a
+            // verbose issues array — prettify it so 422 is always a readable
+            // string. An invariant violation is already a plain Error with that
+            // prefix; forward its message VERBATIM so the caller can find the rule.
+            const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+            res.writeHead(422, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: message }));
+            return;
+          }
+
+          const cfg: RenderConfig = { ...resolvedBase, motion };
+
+          if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
+          const { frames, settle } = await deps.renderClip(cfg);
+          const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
+          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+
+          try {
+            const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+            const mp4 = await fs.readFile(outPath);
+            await fs.rm(outPath, { force: true });
+
+            const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+            if (mp4.length > cap) {
+              res.writeHead(422, { 'content-type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  ok: false,
+                  error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
+                }),
+              );
+              return;
+            }
+
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                ok: true,
+                clip: {
+                  base64: mp4.toString('base64'),
+                  format: 'mp4',
+                  width: cfg.size.width,
+                  height: cfg.size.height,
+                  durationSec: motion.durationSec,
+                  fps: motion.fps,
+                  bytes: mp4.length,
+                },
+                settle: settleOut,
+                motion: motionOut,
+                resolved: resolvedOf(cfg),
+              }),
+            );
+          } catch (e) {
+            // Frames were already captured — an encoder failure (missing ffmpeg,
+            // a corrupt frame) must never throw away the settle still that
+            // already exists (degrade path, spec §5).
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                ok: true,
+                settle: settleOut,
+                motion: motionOut,
+                resolved: resolvedOf(cfg),
+                clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+              }),
+            );
+          }
+        } catch (e) {
+          const status = e instanceof PayloadTooLargeError ? 413 : 200;
           const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
           res.writeHead(status, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: message }));

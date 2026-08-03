@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
 import { tmpdir } from 'node:os';
+import { promises as fsp } from 'node:fs';
 
 // resolveConfig (used by every /render test) reaches into ./geocode for anything
 // that isn't a bare {lng,lat} — mocked so a region highlight resolved *by name*
@@ -292,5 +293,143 @@ describe('POST /render (REST)', () => {
     expect(resolved.place.name).toEqual(expect.any(String));
     expect(resolved.highlights.regions[0].bbox).toHaveLength(4);
     expect(lastCfg?.layers?.roadLabels).toBe(true); // labels: true forwarded through
+  });
+});
+
+// --- POST /render-clip (Task 6) ---
+
+// set by fakeClipDeps().renderClip on every call, so a test can inspect the
+// exact config renderClipFrames would have received (chrome forced clean, motion attached)
+let seenClipConfig: RenderConfig | undefined;
+
+function fakeClipDeps(overrides: Partial<ToolDeps> = {}): ToolDeps {
+  return {
+    render: async () => PNG_1x1,
+    renderClip: async (cfg) => {
+      seenClipConfig = cfg;
+      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+    },
+    encodeAnimation: async (_frames, opts) => {
+      await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+      return opts.outPath;
+    },
+    sinkDir: tmpdir(),
+    defaultDelivery: 'inline',
+    ...overrides,
+  };
+}
+
+interface ClipResBody {
+  ok: boolean;
+  error?: string;
+  clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
+  settle?: { base64: string; format: string; width: number; height: number };
+  motion?: { preset?: string; restAtSec: number };
+  resolved?: { center: [number, number] };
+  clipError?: string;
+}
+
+describe('POST /render-clip', () => {
+  let srv: HttpServer | undefined;
+  afterEach(async () => {
+    await srv?.close();
+    delete process.env.MAPPOSTER_TOKEN;
+    delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    seenClipConfig = undefined;
+  });
+
+  function clipUrl(server: HttpServer): string {
+    return `${new URL(server.url).origin}/render-clip`;
+  }
+
+  function postJson(url: string, body: unknown) {
+    return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  }
+
+  it('200: đủ khối clip/settle/motion/resolved; chrome bị ép clean', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      chrome: 'poster',
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(true);
+    expect(body.clip?.format).toBe('mp4');
+    expect(body.clip?.base64).toBe(Buffer.from('mp4!').toString('base64'));
+    expect(body.settle?.format).toBe('png');
+    expect(body.motion?.preset).toBe('pushIn');
+    expect(body.motion?.restAtSec).toBeCloseTo(3.9, 3);
+    expect(body.resolved?.center).toBeDefined();
+    expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
+    expect(seenClipConfig?.motion?.fps).toBe(24);
+  });
+
+  it('422: preset lạ, thiếu motion, và script vỡ bất biến R — message nêu tên luật', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const url = clipUrl(srv);
+    expect((await postJson(url, { location: { lng: 1, lat: 1 }, motion: { preset: 'spin' } })).status).toBe(422);
+    expect((await postJson(url, { location: { lng: 1, lat: 1 } })).status).toBe(422);
+    const bad = await postJson(url, {
+      location: { lng: 1, lat: 1, zoom: 14 },
+      motion: { script: { fps: 24, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [1, 1], zoom: 10 }], tracks: [] } },
+    });
+    expect(bad.status).toBe(422);
+    const badBody = (await bad.json()) as ClipResBody;
+    expect(badBody.error).toMatch(/^R:/);
+  });
+
+  it('degrade: encode hỏng → ok:true + settle + clipError, KHÔNG có clip', async () => {
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async () => {
+          throw new Error('ffmpeg encode boom');
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    const body = (await res.json()) as ClipResBody;
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.clip).toBeUndefined();
+    expect(body.settle?.base64).toBeTruthy();
+    expect(body.clipError).toMatch(/encode/i);
+  });
+
+  it('422 khi mp4 vượt MAPPOSTER_CLIP_MAX_BYTES', async () => {
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async (_frames, opts) => {
+          await fsp.writeFile(opts.outPath, Buffer.alloc(4096, 0x61));
+          return opts.outPath;
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it('401 khi MAPPOSTER_TOKEN đặt mà thiếu bearer (dùng lại khuôn test /render)', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await fetch(clipUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer sai' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
+    });
+    expect(res.status).toBe(401);
   });
 });

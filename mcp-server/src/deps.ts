@@ -2,7 +2,7 @@ import { loadServerConfig, type ServerConfig } from '../config';
 import { startAppServer } from './appServer';
 import { createPool, type Pool } from './browserPool';
 import { createConfigStore, type ConfigStore } from './configStore';
-import { renderFrame, renderAnimationFrames, type AnimationPulse } from './renderFrame';
+import { renderFrame, renderAnimationFrames, renderClipFrames, type AnimationPulse } from './renderFrame';
 import { encodeAnimation } from './encodeAnimation';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -102,6 +102,19 @@ export function makeRenderDeps(
         return await renderAnimationFrames(config, opts, { appUrl: rt.appUrl, pool: rt.pool, configStore: rt.configStore });
       } finally {
         // same corpse-runtime rule as render above
+        if (!rt.pool.healthy()) {
+          ensure.reset(attempt);
+          void rt.close();
+        }
+      }
+    },
+    renderClip: async (config: RenderConfig) => {
+      const attempt = ensure();
+      const rt = await attempt;
+      try {
+        return await renderClipFrames(config, { appUrl: rt.appUrl, pool: rt.pool, configStore: rt.configStore });
+      } finally {
+        // same corpse-runtime rule as render/renderAnimation above
         if (!rt.pool.healthy()) {
           ensure.reset(attempt);
           void rt.close();

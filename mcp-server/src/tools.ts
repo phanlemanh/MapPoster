@@ -6,12 +6,15 @@ import { deliver, type DeliveryMode } from './delivery';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipFrames } from './renderFrame';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
   render: (config: RenderConfig) => Promise<Buffer>;
   /** Injected animation primitive (real = renderAnimationFrames bound to the pool). */
   renderAnimation?: (config: RenderConfig, opts: { frames: number; pulse?: { rings?: number; radiusScale?: number; color?: string } }) => Promise<Buffer[]>;
+  /** Injected clip primitive (real = renderClipFrames bound to the pool). */
+  renderClip?: (config: RenderConfig) => Promise<ClipFrames>;
   /** Injected encoder (real = encodeAnimation / ffmpeg). */
   encodeAnimation?: (frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => Promise<string>;
   sinkDir: string;
@@ -202,6 +205,23 @@ const renderMapShape = {
  * hand-writing a second schema that would drift from the real tool contract.
  */
 export const renderMapSchema = z.object(renderMapShape);
+
+/**
+ * `motion` param shared by REST `/render-clip` and the future MCP `render_clip`
+ * tool (Task 7) — ONE source of the preset-vs-script split so the two surfaces
+ * cannot drift. The `script` branch stays `z.unknown()` on purpose: its real
+ * shape is enforced by `validateMotionScript` (motionScript.ts), which is the
+ * single source of the R/O/L/B/I invariants — duplicating those bounds here
+ * would just create a second contract to keep in sync.
+ */
+export const motionParamSchema = z.union([
+  z.object({
+    preset: z.enum(['approach', 'pushIn', 'drift']),
+    fps: z.number().int().min(12).max(30).optional(),
+    durationSec: z.number().min(2).max(12).optional(),
+  }),
+  z.object({ script: z.unknown() }),
+]);
 
 // Bounded: frames×fps beyond this buys nothing visually and ties up the pooled
 // page for the whole capture loop.

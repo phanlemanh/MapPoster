@@ -24,6 +24,9 @@ export interface ServerConfig {
 /** 8 MiB: comfortably above an inline GeoJSON region, far below "OOM the pool". */
 export const DEFAULT_MAX_BODY_BYTES = 8 * 1024 * 1024;
 
+/** 12 MiB: a several-second MP4 clip at poster resolution, capped before it hits the wire as base64. */
+export const DEFAULT_CLIP_MAX_BYTES = 12 * 1024 * 1024;
+
 /**
  * Parse a numeric env var, or refuse to start.
  *

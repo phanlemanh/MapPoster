@@ -12,8 +12,8 @@ import { ensureDist } from './ensureDist';
 import { renderMapSchema, resolvedOf, motionParamSchema, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import { deliver } from './delivery';
-import { compileMotion, motionContextOf } from './motionCompiler';
-import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
+import { resolveMotion } from './motionCompiler';
+import { DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
 import type { RenderConfig } from '../../src/render/renderConfig';
 
 export interface HttpServer {
@@ -225,17 +225,9 @@ export async function startHttpServer(
           let preset: string | undefined;
           let motion: MotionScript;
           try {
-            if ('preset' in motionParam.data) {
-              preset = motionParam.data.preset;
-              motion = compileMotion(
-                motionParam.data.preset,
-                resolvedBase,
-                { fps: motionParam.data.fps, durationSec: motionParam.data.durationSec },
-                maxFrames,
-              );
-            } else {
-              motion = validateMotionScript(motionParam.data.script, motionContextOf(resolvedBase, maxFrames));
-            }
+            const resolved = resolveMotion(motionParam.data, resolvedBase, maxFrames);
+            motion = resolved.motion;
+            preset = resolved.preset;
           } catch (e) {
             // A raw ZodError from validateMotionScript's own schema.parse() (bad
             // fps, empty camera, ...) has no R:/O:/L:/B:/I: prefix and dumps as a

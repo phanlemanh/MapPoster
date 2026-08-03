@@ -164,3 +164,29 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
 export function compileMotion(preset: MotionPreset, cfg: RenderConfig, overrides?: PresetOverrides, maxFrames?: number): MotionScript {
   return validateMotionScript(compile(preset, cfg, overrides), motionContextOf(cfg, maxFrames));
 }
+
+export interface ResolvedMotion {
+  motion: MotionScript;
+  preset?: MotionPreset;
+}
+
+/**
+ * The `motion` param's compile-or-validate branch: REST `/render-clip`
+ * (http.ts) and the MCP `render_clip` tool (tools.ts) both make EXACTLY this
+ * decision — a preset compiles through compileMotion, a raw script goes
+ * straight through validateMotionScript — so it lives here ONCE. Duplicating
+ * this branch in both surfaces would let them silently drift.
+ */
+export function resolveMotion(
+  motionParam: { preset: MotionPreset; fps?: number; durationSec?: number } | { script: unknown },
+  cfg: RenderConfig,
+  maxFrames?: number,
+): ResolvedMotion {
+  if ('preset' in motionParam) {
+    return {
+      preset: motionParam.preset,
+      motion: compileMotion(motionParam.preset, cfg, { fps: motionParam.fps, durationSec: motionParam.durationSec }, maxFrames),
+    };
+  }
+  return { motion: validateMotionScript(motionParam.script, motionContextOf(cfg, maxFrames)) };
+}

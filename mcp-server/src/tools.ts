@@ -1,12 +1,17 @@
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
+import { resolveMotion } from './motionCompiler';
+import { envNumber } from '../config';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipFrames } from './renderFrame';
+import { DEFAULT_MAX_CLIP_FRAMES, type MotionScript } from '../../src/render/motionScript';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
@@ -138,6 +143,60 @@ export function makeTools(deps: ToolDeps) {
       }
     },
 
+    async render_clip(params: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }): Promise<ToolResult> {
+      try {
+        if (!deps.renderClip || !deps.encodeAnimation) return fail('clip rendering is not available on this server build');
+
+        const motionParam = motionParamSchema.safeParse(params.motion);
+        if (!motionParam.success) {
+          return fail('motion is required: { preset: "approach"|"pushIn"|"drift", fps?, durationSec? } or { script }');
+        }
+
+        const base = await resolveConfig(params);
+        // AC-9: clips are text-free — force clean chrome, never the caller's
+        // choice (built as a NEW object, no `cfg.chrome = ...` mutation).
+        const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
+        const maxFrames = envNumber(process.env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
+
+        let preset: string | undefined;
+        let motion: MotionScript;
+        try {
+          const resolved = resolveMotion(motionParam.data, resolvedBase, maxFrames);
+          motion = resolved.motion;
+          preset = resolved.preset;
+        } catch (e) {
+          // Same shape as REST /render-clip: a raw ZodError from
+          // validateMotionScript's own schema.parse() has no R:/O:/L:/B:/I:
+          // prefix and dumps as a verbose issues array — prettify it. An
+          // invariant violation is already a plain Error with that prefix;
+          // forward its message verbatim so the caller can find the rule.
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          return fail(message);
+        }
+
+        const cfg: RenderConfig = { ...resolvedBase, motion };
+        const { frames, settle: settlePng } = await deps.renderClip(cfg);
+
+        // The clip is written to a FILE under sinkDir and never inlined as
+        // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
+        // channel MCP runs over. `delivery` applies only to the settle
+        // still, exactly as it does for the other image tools.
+        const name = fileNameFor(cfg);
+        const outPath = await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath: path.join(deps.sinkDir, `${name}.mp4`) });
+        const { size: bytes } = await fs.stat(outPath);
+        const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+
+        return ok({
+          clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
+          settle,
+          motion: { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec },
+          resolved: resolvedOf(cfg),
+        });
+      } catch (e) {
+        return fail((e as Error).message ?? String(e));
+      }
+    },
+
     async geocode_place(params: { query: string; limit?: number }): Promise<ToolResult> {
       try {
         const candidates = await searchCandidates(params.query, params.limit ?? 5);
@@ -256,6 +315,14 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     },
     (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string } }) =>
       t.render_animation(a),
+  );
+  s.registerTool(
+    'render_clip',
+    {
+      description: 'Render a short text-free camera-motion map clip (MP4) + a rest-state settle still. motion: {preset: approach|pushIn|drift} or {script}.',
+      inputSchema: { ...renderMapShape, motion: motionParamSchema },
+    },
+    (a: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }) => t.render_clip(a),
   );
   s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());

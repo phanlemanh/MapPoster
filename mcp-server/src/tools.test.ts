@@ -225,3 +225,74 @@ describe('render_animation', () => {
     expect(res.isError).toBe(true);
   });
 });
+
+describe('render_clip', () => {
+  const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
+  const region = { highlight: { regions: ['District 1'] } };
+
+  const renderClip = vi.fn(async (cfg: RenderConfig) => {
+    lastCfg = cfg;
+    return {
+      frames: [fakePng(cfg.size.width, cfg.size.height), fakePng(cfg.size.width, cfg.size.height)],
+      settle: fakePng(cfg.size.width, cfg.size.height),
+    };
+  });
+  const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+  const clipTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+  beforeEach(() => {
+    renderClip.mockClear();
+    encodeAnimation.mockClear();
+  });
+
+  it('writes a real MP4 file at clip.path with the expected bytes and a settle file exists on disk', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(res.isError).toBeUndefined();
+    const j = textJson(res);
+
+    expect(typeof j.clip.path).toBe('string');
+    const written = await fs.readFile(j.clip.path);
+    expect(written.toString()).toBe('mp4!');
+    expect(j.clip.bytes).toBe(written.length);
+    expect(j.clip.fps).toBe(24);
+    expect(typeof j.clip.durationSec).toBe('number');
+    expect(j.clip.width).toBe(1080);
+    expect(j.clip.height).toBe(1920);
+
+    expect(typeof j.settle.path).toBe('string');
+    await expect(fs.access(j.settle.path)).resolves.toBeUndefined();
+  });
+
+  it('motion.restAtSec is 3.9 for pushIn', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(textJson(res).motion.preset).toBe('pushIn');
+    expect(textJson(res).motion.restAtSec).toBeCloseTo(3.9, 3);
+  });
+
+  it('forces chrome clean on the config handed to renderClip even when the caller asks for poster (AC-9)', async () => {
+    await clipTools().render_clip({ location: 'HCMC', chrome: 'poster', ...point, motion: { preset: 'pushIn' } });
+    expect(lastCfg?.chrome).toBe('clean');
+  });
+
+  it('neither preset nor script given → isError', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: {} as any });
+    expect(res.isError).toBe(true);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
+  it('approach preset without highlight.regions → isError with an "approach needs" message', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'approach' } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/approach needs/);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
+  it('is unavailable (structured error) when the server build has no clip deps', async () => {
+    const res = await tools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
+    expect(res.isError).toBe(true);
+  });
+});

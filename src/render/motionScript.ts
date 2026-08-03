@@ -71,8 +71,11 @@ export const motionScriptSchema = z.object({
  * `npx tsc -b` stops you here.
  */
 type Assert<T extends true> = T;
-// @ts-ignore TS6196 - Intentional compile-time guard; types are erased
-type _SchemaMatchesInterface = Assert<
+// Exported (not @ts-ignore'd) on purpose: an export is never "unused", and a
+// blanket @ts-ignore here would swallow the very TS2344 this guard exists to
+// raise — it only failed to today because tsc happens to report that error on
+// the type-argument line rather than the declaration line.
+export type SchemaMatchesInterface = Assert<
   z.infer<typeof motionScriptSchema> extends MotionScript
     ? (MotionScript extends z.infer<typeof motionScriptSchema> ? true : false)
     : false

@@ -39,8 +39,18 @@ export interface MapPosterApi {
    * from `renderFrame`, `renderAnimationFrame`, or the normal
    * `renderMotionFrame` path — has no effect on their behaviour. Returns
    * `false` if there is no `highlight` source or no captured base data.
+   *
+   * DEV-ONLY (Finding H): only attached when `import.meta.env.DEV` — Vite
+   * dead-code-eliminates the whole branch out of a production build (`vite
+   * build`, what the Dockerfile / mcp-server serve), so a fault-injection
+   * hook never ships in the bundle anyone statically hosting `dist/` would
+   * publish. e2e (`npm run test:e2e` / `playwright test`) runs against `vite`
+   * the DEV server (see playwright.config.ts), where DEV is always true, so
+   * the hook stays available there. Optional so a production build — where
+   * it is genuinely absent from the object, not just a no-op — still
+   * satisfies this interface.
    */
-  simulateHighlightRevertForTest(): boolean;
+  simulateHighlightRevertForTest?(): boolean;
 }
 
 declare global {
@@ -275,8 +285,15 @@ function sliceFeatureForReveal(f: GeoJSONFeatureCollection['features'][number], 
   const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
   const out: GeoJSONFeatureCollection['features'] = [];
   for (const poly of polys) {
-    const sliced = sliceRing(poly[0] as [number, number][], p);
-    if (sliced) out.push({ type: 'Feature', properties: f.properties ?? {}, geometry: { type: 'LineString', coordinates: sliced } });
+    // Every ring, not just poly[0] (the outer boundary) — poly[1+] are
+    // interior holes. Slicing only the outer ring made a hole's boundary
+    // vanish for the whole reveal and pop back in at p>=1 (Finding E);
+    // drawing every ring's own in-progress slice at the SAME p keeps holes
+    // present (as their own partial outline) throughout.
+    for (const ring of poly) {
+      const sliced = sliceRing(ring as [number, number][], p);
+      if (sliced) out.push({ type: 'Feature', properties: f.properties ?? {}, geometry: { type: 'LineString', coordinates: sliced } });
+    }
   }
   return out;
 }
@@ -417,8 +434,20 @@ async function applyGeoAt(map: MlMap, tClamped: number, force = false): Promise<
   const rawFull = regions[regionIndex]?.geojson;
   const p = trackProgress(tClamped, reveal.t0, reveal.t1, reveal.ease);
   const hasFillLayer = Boolean(map.getLayer('highlight-fill'));
-  // fill only appears once the ring has closed (spec §4: "vòng khép, fill mờ vào")
-  const fillOpacityTarget = hasFillLayer ? (p >= 1 ? (highlightFillOpacity ?? DEFAULT_HIGHLIGHT_FILL_OPACITY) : 0) : null;
+  // Finding E (sibling fill): this used to force fill-opacity to 0 for the
+  // WHOLE `highlight-fill` layer whenever p<1, then back up once the active
+  // region's ring closed (spec §4: "vòng khép, fill mờ vào" / "fill fades in
+  // once the ring closes"). That's a LAYER-WIDE toggle, so it also blanked
+  // every SIBLING region's fill for the whole reveal — Finding 2 already
+  // fixed the sibling *outline* (revealFromBase passes sibling features
+  // through untouched) but missed the fill. It isn't needed for the active
+  // region either: sliceFeatureForReveal turns it into a LineString while
+  // p<1, and a `fill`-type layer only ever draws Polygon/MultiPolygon
+  // geometry, so the active region's own fill is already suppressed by
+  // geometry alone — the "fades in once closed" behaviour falls out for free
+  // once its real Polygon data returns at p>=1. Keep fill-opacity steady at
+  // its configured value throughout instead of toggling the whole layer.
+  const fillOpacityTarget = hasFillLayer ? (highlightFillOpacity ?? DEFAULT_HIGHLIGHT_FILL_OPACITY) : null;
 
   // Finding 5: once p>=1 every remaining tail frame recomputed and re-wrote
   // IDENTICAL data, paying a full worker re-tile + sourcedata wait each time.
@@ -576,6 +605,15 @@ window.__mapposter = {
     const atRest = tSec >= motion.restAtSec;
     if (!atRest || !restBase) {
       map.jumpTo(cameraAt(motion.camera, tClamped));
+      // Finding 4 (D): symmetric with setCamera's reset below — jumpTo moves
+      // the camera, so any snapshot taken before this call no longer matches
+      // what the map shows. Not reachable from today's drivers (one page load
+      // per operation, renderMotionFrame never interleaves with
+      // renderAnimationFrame), but leaving animBase stale here is the exact
+      // latent cross-API order-dependency setCamera's own reset exists to
+      // rule out — a later renderAnimationFrame call would otherwise composite
+      // over a pre-motion snapshot.
+      animBase = null;
       const applied = await applyGeoAt(map, tClamped);
       await idleOnce(map);
       // Finding 1: idempotent restyle guard — see verifyAndReapplyGeoAt doc.
@@ -597,15 +635,23 @@ window.__mapposter = {
       await idleOnce(map).catch(() => {}); // best-effort — a prefetch failure is not a render failure
     }
   },
-  simulateHighlightRevertForTest() {
-    const map = getMapInstance();
-    if (!map || !highlightBaseData) return false;
-    const src = map.getSource('highlight') as { setData(d: unknown): void } | undefined;
-    if (!src) return false;
-    // Same shape a real restyle would set: buildMapStyle() has no notion of
-    // reveal progress, so MapView's setStyle({diff:true}) always writes the
-    // FULL combined FeatureCollection — exactly what highlightBaseData is.
-    src.setData(highlightBaseData);
-    return true;
-  },
+  // Finding H: DEV-only — see the interface's doc comment above. `import.meta.env.DEV`
+  // is a compile-time constant Vite inlines and dead-code-eliminates, so this
+  // whole property (and the closure it captures) is stripped from a
+  // production `vite build` output, not merely disabled at runtime.
+  ...(import.meta.env.DEV
+    ? {
+        simulateHighlightRevertForTest() {
+          const map = getMapInstance();
+          if (!map || !highlightBaseData) return false;
+          const src = map.getSource('highlight') as { setData(d: unknown): void } | undefined;
+          if (!src) return false;
+          // Same shape a real restyle would set: buildMapStyle() has no notion of
+          // reveal progress, so MapView's setStyle({diff:true}) always writes the
+          // FULL combined FeatureCollection — exactly what highlightBaseData is.
+          src.setData(highlightBaseData);
+          return true;
+        },
+      }
+    : {}),
 };

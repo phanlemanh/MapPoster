@@ -191,6 +191,17 @@ test('motion: regionReveal keeps a sibling region visible, in its own colour, mi
   // by temporarily reverting applyGeoAt to the pre-fix single-region setData) —
   // 50 is a conservative floor that tolerates basemap/tile variance.
   expect(blueCount).toBeGreaterThan(50); // region 1 (blue, untouched by the reveal) must still be drawn
+
+  // Finding E (sibling fill): the assertion above only proves region 1's thin
+  // blurred OUTLINE (highlight-soft-edge, line-opacity 0.45) survives the
+  // reveal — it cannot see whether region 1's FILL (highlight-fill,
+  // fill-opacity 0.26) also stayed up, because applyGeoAt used to zero
+  // fill-opacity for the WHOLE highlight-fill layer any time ANY region's
+  // reveal hadn't finished, which the outline-only pixel count is blind to.
+  // A filled ~140×140px square's INTERIOR alone dwarfs its own perimeter, so
+  // a count this much higher than the outline-only floor above can only be
+  // explained by the interior fill actually being drawn, not just the edge.
+  expect(blueCount).toBeGreaterThan(2000); // region 1's FILL, not just its outline, must still be drawn mid-reveal
 });
 
 test('motion: verifyAndReapplyGeoAt guards a reverted highlight source even when highlight.fill is false (Finding 1)', async ({ page }) => {
@@ -236,7 +247,11 @@ test('motion: verifyAndReapplyGeoAt guards a reverted highlight source even when
     // means applyGeoAt's own progress cache (keyed on p, unchanged here) will
     // skip rewriting the source itself — catching and repairing this
     // corruption is verifyAndReapplyGeoAt's job alone.
-    api.simulateHighlightRevertForTest();
+    // Finding H: DEV-only on main.tsx's side (stripped from a production
+    // `vite build`) — optional chaining here since e2e always runs against
+    // the Vite DEV server (playwright.config.ts), where it is always present;
+    // the `?.` just keeps this file's types honest about that contract.
+    api.simulateHighlightRevertForTest?.();
     const healed = await api.renderMotionFrame(0.7);
 
     return { baselineUrl: baseline.dataUrl, repeatUrl: repeat.dataUrl, healedUrl: healed.dataUrl };

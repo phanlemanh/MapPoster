@@ -399,3 +399,49 @@ describe('render_clip', () => {
     expect(error).not.toContain('"code":"invalid_type"');
   });
 });
+
+describe('render_clip concurrency gate (Decision 2)', () => {
+  const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
+  const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+
+  afterEach(() => {
+    delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
+  });
+
+  it('MAPPOSTER_CLIP_CONCURRENCY=1: a second render_clip call while one is still in flight is rejected, not queued', async () => {
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+
+    // Held open until the test explicitly lets it finish, so the FIRST call
+    // is provably still "in flight" (past prepareClipRender, mid-render)
+    // when the SECOND call is issued.
+    let releaseFirst!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const renderClip = vi.fn(async (cfg: RenderConfig) => {
+      await gate;
+      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height) };
+    });
+    const gatedTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+    const first = gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    // let the first call actually reach (and hold) its renderClip call before firing the second
+    await vi.waitFor(() => expect(renderClip).toHaveBeenCalledTimes(1));
+
+    const second = await gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(second.isError).toBe(true);
+    expect(textJson(second).error).toMatch(/Too many concurrent clip renders/);
+    expect(renderClip).toHaveBeenCalledTimes(1); // the second call never reached the render step
+
+    releaseFirst();
+    const firstResult = await first;
+    expect(firstResult.isError).toBeUndefined();
+
+    // slot freed after the first call finished — a third call now succeeds
+    const third = await gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(third.isError).toBeUndefined();
+  });
+});

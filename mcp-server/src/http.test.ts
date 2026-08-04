@@ -335,6 +335,7 @@ describe('POST /render-clip', () => {
     await srv?.close();
     delete process.env.MAPPOSTER_TOKEN;
     delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
     seenClipConfig = undefined;
   });
 
@@ -493,5 +494,50 @@ describe('POST /render-clip', () => {
       body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
     });
     expect(res.status).toBe(401);
+  });
+
+  it('429: MAPPOSTER_CLIP_CONCURRENCY=1 — a second /render-clip while one is still in flight is rejected (Decision 2), shared with MCP render_clip', async () => {
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+    let releaseFirst!: () => void;
+    let firstCallStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      firstCallStarted = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          firstCallStarted();
+          await gate;
+          return { frames: [PNG_1x1], settle: PNG_1x1 };
+        },
+      }),
+    );
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    const first = postJson(clipUrl(srv), body);
+    await started; // first request is provably mid-render before firing the second
+
+    const second = await postJson(clipUrl(srv), body);
+    expect(second.status).toBe(429);
+    const secondBody = (await second.json()) as ClipResBody;
+    expect(secondBody.ok).toBe(false);
+    expect(secondBody.error).toMatch(/Too many concurrent clip renders/);
+
+    releaseFirst();
+    const firstRes = await first;
+    expect(firstRes.status).toBe(200);
+
+    // slot freed after the first request finished — a third now succeeds
+    const third = await postJson(clipUrl(srv), body);
+    expect(third.status).toBe(200);
   });
 });

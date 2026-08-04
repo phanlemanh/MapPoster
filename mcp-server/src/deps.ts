@@ -54,7 +54,7 @@ export interface Runtime {
 const startReal = async (c: ServerConfig): Promise<Runtime> => {
   const configStore = createConfigStore();
   const app = await startAppServer(c, configStore);
-  const pool = await createPool(c.poolSize);
+  const pool = await createPool(c.poolSize, { acquireTimeoutMs: c.poolAcquireTimeoutMs });
   return {
     appUrl: app.url,
     pool,

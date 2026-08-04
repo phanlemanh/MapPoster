@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionContext, type MotionScript, type MotionTrack } from '../../src/render/motionScript';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
-import { envNumber } from '../config';
+import { envNumber, DEFAULT_CLIP_CONCURRENCY } from '../config';
 
 export type MotionPreset = 'approach' | 'pushIn' | 'drift';
 export interface PresetOverrides {
@@ -278,10 +278,61 @@ export function parseMotionParam(input: unknown): { success: true; data: MotionP
  */
 export class MotionParamError extends Error {}
 
+// --- Shared clip-render concurrency gate (owner decision, 2026-08-04) ---
+//
+// A clip render is the expensive path — ~1108ms/frame measured cold at
+// 1080×1920 (spec §3), so a 6s/18fps clip runs ~2 minutes end to end. A full
+// async job queue is explicitly deferred to a later package; for now the gate
+// is a simple in-process counter, ONE instance shared by both public surfaces
+// (REST `/render-clip` in http.ts, MCP `render_clip` in tools.ts) so neither
+// can independently saturate the browser pool out from under the other.
+// Colocated with `prepareClipRender` below — the helper both surfaces already
+// call — so a third surface calling it inherits the same gate automatically.
+
+export class ClipConcurrencyError extends Error {
+  constructor(limit: number) {
+    super(
+      `Too many concurrent clip renders (limit ${limit}, MAPPOSTER_CLIP_CONCURRENCY). ` +
+        `/render-clip and render_clip are synchronous and can take minutes at production sizes — retry shortly.`,
+    );
+    this.name = 'ClipConcurrencyError';
+  }
+}
+
+let clipsInFlight = 0;
+
+/**
+ * Reserve one of the shared clip slots, or throw `ClipConcurrencyError`
+ * immediately — no internal queueing. Queueing here too would just hide the
+ * caller-actionable 429/error result behind an even longer hang, on top of
+ * the browser-pool queue that already exists downstream. Returns a release
+ * function the caller MUST invoke exactly once, in a `finally`, once the
+ * render + encode this slot was reserved for has fully finished.
+ */
+export function acquireClipSlot(env: NodeJS.ProcessEnv = process.env): () => void {
+  const limit = envNumber(env, 'MAPPOSTER_CLIP_CONCURRENCY', DEFAULT_CLIP_CONCURRENCY, { min: 1 });
+  if (clipsInFlight >= limit) throw new ClipConcurrencyError(limit);
+  clipsInFlight++;
+  let released = false;
+  return () => {
+    if (released) return; // idempotent — a caller may release on multiple exit paths
+    released = true;
+    clipsInFlight--;
+  };
+}
+
 export interface ClipPreparation {
   cfg: RenderConfig;
   motion: MotionScript;
   preset?: MotionPreset;
+  /**
+   * Releases this call's clip-concurrency slot (see `acquireClipSlot` above).
+   * The caller MUST invoke this exactly once, in a `finally`, after the
+   * render + encode this preparation was for has finished (success or
+   * failure) — the gate guards the FULL clip lifecycle, not just this cheap
+   * preparation step.
+   */
+  releaseClipSlot: () => void;
 }
 
 /**
@@ -291,29 +342,43 @@ export interface ClipPreparation {
  * `MAPPOSTER_MAX_CLIP_FRAMES` budget, and turns `motionInput` into a
  * validated `MotionScript`. Both REST `/render-clip` (http.ts) and the MCP
  * `render_clip` tool (tools.ts) call this instead of each reimplementing it.
+ *
+ * Also reserves the shared clip-concurrency slot (above) for the WHOLE call.
+ * `ClipConcurrencyError` is thrown as-is (never wrapped in `MotionParamError`)
+ * so callers can tell "over capacity" (429-worthy) apart from "bad motion
+ * param" (422-worthy). If anything after the slot is reserved fails — a bad
+ * `motion`, or `resolveConfig` itself — the slot is released immediately,
+ * since the caller never receives a `ClipPreparation` to release it from.
  */
 export async function prepareClipRender(
   params: RenderMapParams,
   motionInput: unknown,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<ClipPreparation> {
-  const parsed = parseMotionParam(motionInput);
-  if (!parsed.success) throw new MotionParamError(parsed.error);
-
-  const base = await resolveConfig(params);
-  const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
-  const maxFrames = envNumber(env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
-
+  const releaseClipSlot = acquireClipSlot(env);
   try {
-    const resolved = resolveMotion(parsed.data, resolvedBase, maxFrames);
-    return { cfg: { ...resolvedBase, motion: resolved.motion }, motion: resolved.motion, preset: resolved.preset };
+    const parsed = parseMotionParam(motionInput);
+    if (!parsed.success) throw new MotionParamError(parsed.error);
+
+    const base = await resolveConfig(params);
+    const resolvedBase: RenderConfig = { ...base, chrome: 'clean' };
+    const maxFrames = envNumber(env, 'MAPPOSTER_MAX_CLIP_FRAMES', DEFAULT_MAX_CLIP_FRAMES, { min: 24 });
+
+    let resolved: ResolvedMotion;
+    try {
+      resolved = resolveMotion(parsed.data, resolvedBase, maxFrames);
+    } catch (e) {
+      // Same shape both surfaces already forwarded before this refactor: a raw
+      // ZodError from validateMotionScript's own schema.parse() has no
+      // R:/O:/L:/B:/I: prefix and dumps as a verbose issues array — prettify
+      // it. An invariant violation is already a plain Error with that prefix;
+      // forward its message verbatim so the caller can find the rule.
+      const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+      throw new MotionParamError(message);
+    }
+    return { cfg: { ...resolvedBase, motion: resolved.motion }, motion: resolved.motion, preset: resolved.preset, releaseClipSlot };
   } catch (e) {
-    // Same shape both surfaces already forwarded before this refactor: a raw
-    // ZodError from validateMotionScript's own schema.parse() has no
-    // R:/O:/L:/B:/I: prefix and dumps as a verbose issues array — prettify
-    // it. An invariant violation is already a plain Error with that prefix;
-    // forward its message verbatim so the caller can find the rule.
-    const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
-    throw new MotionParamError(message);
+    releaseClipSlot();
+    throw e;
   }
 }

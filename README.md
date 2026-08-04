@@ -124,6 +124,30 @@ the tool never throws the whole call away: the frames were already captured,
 so it degrades to `{ settle, motion, resolved, clipError }` — the settle still
 always exists.
 
+**`render_clip` / `POST /render-clip` are synchronous and can take minutes at
+production sizes** (measured: ~1.1s/frame cold at 1080×1920 — spec §3 — so a
+6s/18fps clip is roughly two minutes; the frame budget defaults to
+`MAPPOSTER_MAX_CLIP_FRAMES=288`, i.e. worst case ~5 minutes). A full async job
+queue is a later package, not this one — for now, treat both as **trusted
+internal callers only**, and size timeouts accordingly:
+
+- The MCP SDK's default client request timeout is **60s** — well under a
+  clip's own runtime — so an MCP caller MUST raise its request timeout before
+  calling `render_clip`, or call `/render-clip` over REST instead (no MCP
+  transport timeout in the way).
+- Two protections keep one slow clip from starving every OTHER request on
+  this server (owner decision, 2026-08-04): `pool.acquire()` now fails with a
+  clear error after `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS` (default 10 minutes)
+  instead of hanging forever — previously, two concurrent clips could pin
+  every page in `MAPPOSTER_POOL` (default 2) for their whole runtime and
+  every ordinary `/render` behind them would simply never resolve. And clip
+  renders themselves are capped at `MAPPOSTER_CLIP_CONCURRENCY` (default
+  **1** — clips are the expensive path; serializing them is the point)
+  concurrently in flight, shared by REST `/render-clip` and MCP `render_clip`
+  alike so neither surface can independently saturate the pool. Over the
+  limit: REST answers **429**, and `render_clip` returns its normal
+  `isError:true` result — both carry the same message.
+
 `highlight.color` must be a hex colour (`#e8b04b`) — it is interpolated into the marker SVG's `fill` and reaches `innerHTML` in the render page, so anything else is refused at the boundary.
 
 The render config never travels in the URL. It is parked in-process and the page fetches it by id — a query param would put the whole payload in the request head, which Node caps at 16 KB, and a single city boundary encodes to ~20 KB. The id still changes every render, which is what forces the real document reload the stale-frame guard depends on. Inline `highlight.regions[].geojson` is shape-checked and capped at 2 MiB.
@@ -134,7 +158,7 @@ A render that fails discards its browser page rather than returning it to the po
 
 `resolved` echoes every choice the server made on your behalf — the camera it framed, the theme it used, and the extent of each region it resolved by name, so a caller can tell *which* "District 1" it got. An unknown `theme` is refused rather than quietly replaced with the default.
 
-Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_APP_HOST` (default `127.0.0.1`), `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`), `MAPPOSTER_GEO_CACHE_MAX` (LRU entries per geocode cache, default 500), `MAPPOSTER_GEOCODE_LANG` (Nominatim `accept-language`, default `vi,en` — see [Vietnamese addresses](#vietnamese-addresses) for why a single pinned language matters), `MAPPOSTER_FFMPEG` (path to the `ffmpeg` binary clip encoding shells out to, default: `ffmpeg` on `PATH` — the server logs a startup warning, but still serves `render_map`/`/render`, if it can't be resolved). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
+Config via env: `MAPPOSTER_DIST` (default `dist`), `MAPPOSTER_APP_PORT`, `MAPPOSTER_APP_HOST` (default `127.0.0.1`), `MAPPOSTER_POOL` (pages, default 2), `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS` (default 10 minutes — how long `pool.acquire()` queues for a free page before failing loudly instead of hanging), `MAPPOSTER_SINK` (output dir, default `_render-out`), `MAPPOSTER_HTTP_HOST` (default `127.0.0.1` — these tools drive a browser and write files, so hosted deployments must opt in with `0.0.0.0`), `MAPPOSTER_GEO_CACHE_MAX` (LRU entries per geocode cache, default 500), `MAPPOSTER_GEOCODE_LANG` (Nominatim `accept-language`, default `vi,en` — see [Vietnamese addresses](#vietnamese-addresses) for why a single pinned language matters), `MAPPOSTER_FFMPEG` (path to the `ffmpeg` binary clip encoding shells out to, default: `ffmpeg` on `PATH` — the server logs a startup warning, but still serves `render_map`/`/render`, if it can't be resolved). Design: `docs/superpowers/specs/2026-07-09-mcp-map-render-design.md`.
 
 Clip-only env vars (both REST `/render-clip` and the MCP `render_clip` tool):
 
@@ -142,6 +166,8 @@ Clip-only env vars (both REST `/render-clip` and the MCP `render_clip` tool):
 |---|---|---|
 | `MAPPOSTER_CLIP_MAX_BYTES` | 12 MiB (`12 * 1024 * 1024`) | Encoded MP4 size cap. A clip over this is refused with **422** — before it is ever base64-encoded — so lower `fps`/`durationSec`/size instead of shipping a multi-ten-megabyte inline blob. |
 | `MAPPOSTER_MAX_CLIP_FRAMES` | 288 | The `fps × durationSec` frame budget. A preset or raw script that would render more frames than this is refused at validation, before any browser page is touched. |
+| `MAPPOSTER_CLIP_CONCURRENCY` | 1 | Max clip renders in flight at once, shared by REST `/render-clip` and MCP `render_clip`. Over the limit: REST **429**, `render_clip` its normal error result — same message either way. |
+| `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS` | 10 minutes | How long `pool.acquire()` (browser pages, `MAPPOSTER_POOL`) queues for a free slot before failing with a clear error instead of hanging — see the synchronous-endpoint note above. |
 
 ### REST endpoints
 

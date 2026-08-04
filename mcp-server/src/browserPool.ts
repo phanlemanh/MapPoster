@@ -20,6 +20,21 @@ interface Waiter<T> {
 }
 
 /**
+ * Thrown by `acquire()` when a caller waits longer than `acquireTimeoutMs`
+ * for a free pool slot. Without a bound, two concurrent clip renders (each
+ * pinning a page for up to a few minutes — spec §3) queue every OTHER
+ * request behind them indefinitely: an ordinary `/render` never times out,
+ * it just hangs until a slot frees. Failing loudly here turns that hang into
+ * a clear, catchable server-side error instead.
+ */
+export class PoolAcquireTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`Timed out waiting ${timeoutMs}ms for a free browser-pool slot (MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS) — the pool is saturated`);
+    this.name = 'PoolAcquireTimeoutError';
+  }
+}
+
+/**
  * Generic bounded pool. The factory is injected so the queueing/capping logic
  * is unit-testable without launching a browser.
  *
@@ -31,7 +46,7 @@ export function createResourcePool<T>(
   size: number,
   factory: () => Promise<T>,
   destroy: () => Promise<void> = async () => {},
-  opts: { destroyItem?: (item: T) => Promise<void>; healthy?: () => boolean } = {},
+  opts: { destroyItem?: (item: T) => Promise<void>; healthy?: () => boolean; acquireTimeoutMs?: number } = {},
 ): Pool<T> {
   const idle: T[] = [];
   const waiters: Waiter<T>[] = [];
@@ -50,7 +65,35 @@ export function createResourcePool<T>(
           throw e;
         }
       }
-      return new Promise<T>((resolve, reject) => waiters.push({ resolve, reject }));
+      return new Promise<T>((resolve, reject) => {
+        // Wrapped so EVERY settlement path (release, discard's mint, close,
+        // or the timeout below) clears the pending timer — an un-cleared
+        // timer would fire against an already-settled promise (harmless) but
+        // keep the event loop alive and, if the waiter had already been
+        // spliced out for another reason, double-remove a no-longer-present
+        // entry (guarded by the `indexOf` check below either way).
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const waiter: Waiter<T> = {
+          resolve: (item) => {
+            if (timer) clearTimeout(timer);
+            resolve(item);
+          },
+          reject: (err) => {
+            if (timer) clearTimeout(timer);
+            reject(err);
+          },
+        };
+        waiters.push(waiter);
+        const timeoutMs = opts.acquireTimeoutMs;
+        if (timeoutMs !== undefined && timeoutMs > 0) {
+          timer = setTimeout(() => {
+            const idx = waiters.indexOf(waiter);
+            if (idx !== -1) waiters.splice(idx, 1);
+            waiter.reject(new PoolAcquireTimeoutError(timeoutMs));
+          }, timeoutMs);
+          timer.unref?.();
+        }
+      });
     },
     release(item) {
       const waiter = waiters.shift();
@@ -84,7 +127,7 @@ export function createResourcePool<T>(
 }
 
 /** A pool of headless pages. Each render navigates fresh via goto. */
-export async function createPool(size: number): Promise<Pool<Page>> {
+export async function createPool(size: number, opts: { acquireTimeoutMs?: number } = {}): Promise<Pool<Page>> {
   const browser: Browser = await chromium.launch({ args: LAUNCH_ARGS });
   return createResourcePool<Page>(
     size,
@@ -96,6 +139,7 @@ export async function createPool(size: number): Promise<Pool<Page>> {
     {
       destroyItem: (page) => page.context().close(),
       healthy: () => browser.isConnected(),
+      acquireTimeoutMs: opts.acquireTimeoutMs,
     },
   );
 }

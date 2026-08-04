@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createResourcePool } from './browserPool';
+import { createResourcePool, PoolAcquireTimeoutError } from './browserPool';
 
 describe('createResourcePool: discarding a broken resource', () => {
   const seq = () => {
@@ -124,6 +124,41 @@ describe('createResourcePool', () => {
     pool.release(first);
     await expect(queued).resolves.toBe(first);
     expect(factory).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createResourcePool: acquire timeout', () => {
+  it('rejects a queued waiter with a clear error instead of hanging forever, and frees its slot', async () => {
+    vi.useFakeTimers();
+    try {
+      const factory = vi.fn(async () => ({ id: 1 }));
+      const pool = createResourcePool(1, factory, undefined, { acquireTimeoutMs: 1000 });
+
+      const held = await pool.acquire();
+      const queued = pool.acquire();
+      const assertion = expect(queued).rejects.toThrow(PoolAcquireTimeoutError);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await assertion;
+
+      // the timed-out waiter must be gone from the queue — releasing the held
+      // item now should NOT resolve the already-rejected promise; it goes to idle
+      // and a brand new acquire gets it straight back out.
+      pool.release(held);
+      await expect(pool.acquire()).resolves.toBe(held);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never times out when no acquireTimeoutMs is configured (default, backward compatible)', async () => {
+    const pool = createResourcePool(1, vi.fn(async () => ({ id: 1 })));
+    const held = await pool.acquire();
+    const queued = pool.acquire();
+    // give the event loop a few turns — nothing should reject
+    await new Promise((r) => setTimeout(r, 10));
+    pool.release(held);
+    await expect(queued).resolves.toBe(held);
   });
 });
 

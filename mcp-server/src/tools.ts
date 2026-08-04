@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
-import { prepareClipRender, MotionParamError, motionParamSchema, type ClipPreparation } from './motionCompiler';
+import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
@@ -163,76 +163,88 @@ export function makeTools(deps: ToolDeps) {
         try {
           prep = await prepareClipRender(params, params.motion);
         } catch (e) {
+          // Decision 2: over the shared clip-concurrency limit — same message
+          // REST answers with 429, surfaced here as this tool's normal error
+          // result (isError:true) rather than a distinct status code, since
+          // MCP has no HTTP layer to carry one.
+          if (e instanceof ClipConcurrencyError) return fail(e.message);
           if (!(e instanceof MotionParamError)) throw e;
           return fail(e.message);
         }
-        const { cfg, motion, preset } = prep;
-        const { frames, settle: settlePng } = await deps.renderClip(cfg);
-
-        // The clip is written to a FILE under sinkDir and never inlined as
-        // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
-        // channel MCP runs over. `delivery` applies only to the settle
-        // still, exactly as it does for the other image tools.
-        const name = fileNameFor(cfg);
-        const outPath = path.join(deps.sinkDir, `${name}.mp4`);
-        const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
-
-        let bytes: number;
+        const { cfg, motion, preset, releaseClipSlot } = prep;
         try {
-          await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
-          ({ size: bytes } = await fs.stat(outPath));
-        } catch (e) {
-          // Same degrade as REST /render-clip (spec §5): frames were already
-          // captured, so an encoder failure (missing ffmpeg, corrupt frame)
-          // must never throw away the settle still that already rendered
-          // successfully. Unlike REST — which encodes to os.tmpdir() and
-          // reads the result into memory — this tool writes straight into
-          // the PERSISTENT sinkDir, so a partial/corrupt file left behind by
-          // a mid-write ffmpeg crash would never be traced or cleaned unless
-          // we remove it here ourselves. Cleanup must never mask the
-          // original error.
-          await fs.rm(outPath, { force: true }).catch(() => {});
+          const { frames, settle: settlePng } = await deps.renderClip(cfg);
+
+          // The clip is written to a FILE under sinkDir and never inlined as
+          // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
+          // channel MCP runs over. `delivery` applies only to the settle
+          // still, exactly as it does for the other image tools.
+          const name = fileNameFor(cfg);
+          const outPath = path.join(deps.sinkDir, `${name}.mp4`);
+          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+
+          let bytes: number;
+          try {
+            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+            ({ size: bytes } = await fs.stat(outPath));
+          } catch (e) {
+            // Same degrade as REST /render-clip (spec §5): frames were already
+            // captured, so an encoder failure (missing ffmpeg, corrupt frame)
+            // must never throw away the settle still that already rendered
+            // successfully. Unlike REST — which encodes to os.tmpdir() and
+            // reads the result into memory — this tool writes straight into
+            // the PERSISTENT sinkDir, so a partial/corrupt file left behind by
+            // a mid-write ffmpeg crash would never be traced or cleaned unless
+            // we remove it here ourselves. Cleanup must never mask the
+            // original error.
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+            return ok({
+              settle,
+              motion: motionOut,
+              resolved: resolvedOf(cfg),
+              clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+            });
+          }
+
+          // Finding C (drift): MAPPOSTER_CLIP_MAX_BYTES used to be enforced only
+          // in REST /render-clip — the README documents it as applying to
+          // "both REST /render-clip and the MCP render_clip tool", which was
+          // false. This surface has MORE reason to enforce it, not less: it
+          // writes straight into the PERSISTENT sinkDir (REST only ever holds
+          // an oversized clip in os.tmpdir() before discarding it), so an
+          // unenforced cap here means an oversized MP4 accumulates on disk
+          // forever instead of just failing one in-flight request.
+          const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+          if (bytes > cap) {
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+            // Finding G: still an error (isError:true, same as REST's 422) —
+            // nothing technically failed, the clip just violates the size
+            // policy and the caller can fix it (lower fps/durationSec/size) —
+            // but the settle still that already rendered successfully is never
+            // thrown away, matching the degrade contract.
+            return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
+              settle,
+              motion: motionOut,
+              resolved: resolvedOf(cfg),
+            });
+          }
+
           const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+
           return ok({
-            settle,
-            motion: motionOut,
-            resolved: resolvedOf(cfg),
-            clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
-          });
-        }
-
-        // Finding C (drift): MAPPOSTER_CLIP_MAX_BYTES used to be enforced only
-        // in REST /render-clip — the README documents it as applying to
-        // "both REST /render-clip and the MCP render_clip tool", which was
-        // false. This surface has MORE reason to enforce it, not less: it
-        // writes straight into the PERSISTENT sinkDir (REST only ever holds
-        // an oversized clip in os.tmpdir() before discarding it), so an
-        // unenforced cap here means an oversized MP4 accumulates on disk
-        // forever instead of just failing one in-flight request.
-        const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
-        if (bytes > cap) {
-          await fs.rm(outPath, { force: true }).catch(() => {});
-          const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
-          // Finding G: still an error (isError:true, same as REST's 422) —
-          // nothing technically failed, the clip just violates the size
-          // policy and the caller can fix it (lower fps/durationSec/size) —
-          // but the settle still that already rendered successfully is never
-          // thrown away, matching the degrade contract.
-          return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
+            clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
             settle,
             motion: motionOut,
             resolved: resolvedOf(cfg),
           });
+        } finally {
+          // Decision 2: free the shared clip slot regardless of how this call
+          // ends (success, degrade, oversize rejection, or an unexpected
+          // throw caught by the outer try below).
+          releaseClipSlot();
         }
-
-        const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
-
-        return ok({
-          clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
-          settle,
-          motion: motionOut,
-          resolved: resolvedOf(cfg),
-        });
       } catch (e) {
         return fail((e as Error).message ?? String(e));
       }

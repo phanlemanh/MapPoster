@@ -12,7 +12,7 @@ import { ensureDist } from './ensureDist';
 import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import { deliver } from './delivery';
-import { prepareClipRender, MotionParamError, type ClipPreparation } from './motionCompiler';
+import { prepareClipRender, MotionParamError, ClipConcurrencyError, type ClipPreparation } from './motionCompiler';
 import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
 
 export interface HttpServer {
@@ -214,90 +214,104 @@ export async function startHttpServer(
           try {
             prep = await prepareClipRender(params, body?.motion);
           } catch (e) {
+            // Decision 2: over the shared clip-concurrency limit (both this
+            // endpoint and MCP render_clip share ONE counter — see
+            // motionCompiler.ts's acquireClipSlot).
+            if (e instanceof ClipConcurrencyError) {
+              res.writeHead(429, { 'content-type': 'application/json' });
+              res.end(JSON.stringify({ ok: false, error: e.message }));
+              return;
+            }
             if (!(e instanceof MotionParamError)) throw e;
             res.writeHead(422, { 'content-type': 'application/json' });
             res.end(JSON.stringify({ ok: false, error: e.message }));
             return;
           }
-          const { cfg, motion, preset } = prep;
-
-          if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
-          const { frames, settle } = await deps.renderClip(cfg);
-          const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
-          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
-
-          const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+          const { cfg, motion, preset, releaseClipSlot } = prep;
           try {
-            let mp4: Buffer;
-            try {
-              await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
-              mp4 = await fs.readFile(outPath);
-            } finally {
-              // Cleanup must run on EVERY path — clean success, an encoder crash
-              // mid-write (real ffmpeg leaves a partial file behind), or a read
-              // failure — so nothing is ever orphaned in os.tmpdir(). Swallow any
-              // rm error itself: cleanup must never mask the original failure.
-              await fs.rm(outPath, { force: true }).catch(() => {});
-            }
+            if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
+            const { frames, settle } = await deps.renderClip(cfg);
+            const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
+            const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
 
-            const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
-            if (mp4.length > cap) {
-              // Finding G: this used to return 422 with NOTHING else, while the
-              // encode-failure branch below returns the settle — inconsistent
-              // with the spec's degrade contract ("a settle still that already
-              // exists must never be thrown away"). Kept as 422 rather than
-              // folded into the ok:true degrade below: unlike an encoder crash,
-              // nothing actually failed here — the clip encoded fine, it is
-              // just over the caller-fixable size policy — so it stays a
-              // rejection of THIS request (still actionable: lower
-              // fps/durationSec/size), just one that no longer discards the
-              // settle still that already rendered successfully.
-              res.writeHead(422, { 'content-type': 'application/json' });
+            const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+            try {
+              let mp4: Buffer;
+              try {
+                await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+                mp4 = await fs.readFile(outPath);
+              } finally {
+                // Cleanup must run on EVERY path — clean success, an encoder crash
+                // mid-write (real ffmpeg leaves a partial file behind), or a read
+                // failure — so nothing is ever orphaned in os.tmpdir(). Swallow any
+                // rm error itself: cleanup must never mask the original failure.
+                await fs.rm(outPath, { force: true }).catch(() => {});
+              }
+
+              const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+              if (mp4.length > cap) {
+                // Finding G: this used to return 422 with NOTHING else, while the
+                // encode-failure branch below returns the settle — inconsistent
+                // with the spec's degrade contract ("a settle still that already
+                // exists must never be thrown away"). Kept as 422 rather than
+                // folded into the ok:true degrade below: unlike an encoder crash,
+                // nothing actually failed here — the clip encoded fine, it is
+                // just over the caller-fixable size policy — so it stays a
+                // rejection of THIS request (still actionable: lower
+                // fps/durationSec/size), just one that no longer discards the
+                // settle still that already rendered successfully.
+                res.writeHead(422, { 'content-type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    ok: false,
+                    error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
+                    settle: settleOut,
+                    motion: motionOut,
+                    resolved: resolvedOf(cfg),
+                  }),
+                );
+                return;
+              }
+
+              res.writeHead(200, { 'content-type': 'application/json' });
               res.end(
                 JSON.stringify({
-                  ok: false,
-                  error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
+                  ok: true,
+                  clip: {
+                    base64: mp4.toString('base64'),
+                    format: 'mp4',
+                    width: cfg.size.width,
+                    height: cfg.size.height,
+                    durationSec: motion.durationSec,
+                    fps: motion.fps,
+                    bytes: mp4.length,
+                  },
                   settle: settleOut,
                   motion: motionOut,
                   resolved: resolvedOf(cfg),
                 }),
               );
-              return;
+            } catch (e) {
+              // Frames were already captured — an encoder failure (missing ffmpeg,
+              // a corrupt frame) must never throw away the settle still that
+              // already exists (degrade path, spec §5). The temp file at outPath
+              // has already been swept up by the `finally` above either way.
+              res.writeHead(200, { 'content-type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  ok: true,
+                  settle: settleOut,
+                  motion: motionOut,
+                  resolved: resolvedOf(cfg),
+                  clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+                }),
+              );
             }
-
-            res.writeHead(200, { 'content-type': 'application/json' });
-            res.end(
-              JSON.stringify({
-                ok: true,
-                clip: {
-                  base64: mp4.toString('base64'),
-                  format: 'mp4',
-                  width: cfg.size.width,
-                  height: cfg.size.height,
-                  durationSec: motion.durationSec,
-                  fps: motion.fps,
-                  bytes: mp4.length,
-                },
-                settle: settleOut,
-                motion: motionOut,
-                resolved: resolvedOf(cfg),
-              }),
-            );
-          } catch (e) {
-            // Frames were already captured — an encoder failure (missing ffmpeg,
-            // a corrupt frame) must never throw away the settle still that
-            // already exists (degrade path, spec §5). The temp file at outPath
-            // has already been swept up by the `finally` above either way.
-            res.writeHead(200, { 'content-type': 'application/json' });
-            res.end(
-              JSON.stringify({
-                ok: true,
-                settle: settleOut,
-                motion: motionOut,
-                resolved: resolvedOf(cfg),
-                clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
-              }),
-            );
+          } finally {
+            // Decision 2: free the shared clip slot no matter how this call
+            // ends — success, degrade, oversize rejection, or a re-thrown
+            // infra error caught by the outer catch below.
+            releaseClipSlot();
           }
         } catch (e) {
           const status = e instanceof PayloadTooLargeError ? 413 : 200;

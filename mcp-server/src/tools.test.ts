@@ -225,3 +225,223 @@ describe('render_animation', () => {
     expect(res.isError).toBe(true);
   });
 });
+
+describe('render_clip', () => {
+  const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
+  const region = { highlight: { regions: ['District 1'] } };
+
+  const renderClip = vi.fn(async (cfg: RenderConfig) => {
+    lastCfg = cfg;
+    return {
+      frames: [fakePng(cfg.size.width, cfg.size.height), fakePng(cfg.size.width, cfg.size.height)],
+      settle: fakePng(cfg.size.width, cfg.size.height),
+    };
+  });
+  const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+  const clipTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+  beforeEach(() => {
+    renderClip.mockClear();
+    encodeAnimation.mockClear();
+  });
+
+  it('writes a real MP4 file at clip.path with the expected bytes and a settle file exists on disk', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(res.isError).toBeUndefined();
+    const j = textJson(res);
+
+    expect(typeof j.clip.path).toBe('string');
+    const written = await fs.readFile(j.clip.path);
+    expect(written.toString()).toBe('mp4!');
+    expect(j.clip.bytes).toBe(written.length);
+    expect(j.clip.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
+    expect(typeof j.clip.durationSec).toBe('number');
+    expect(j.clip.width).toBe(1080);
+    expect(j.clip.height).toBe(1920);
+
+    expect(typeof j.settle.path).toBe('string');
+    await expect(fs.access(j.settle.path)).resolves.toBeUndefined();
+  });
+
+  it('motion.restAtSec is 3.9 for pushIn', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(textJson(res).motion.preset).toBe('pushIn');
+    expect(textJson(res).motion.restAtSec).toBeCloseTo(3.9, 3);
+  });
+
+  it('forces chrome clean on the config handed to renderClip even when the caller asks for poster (AC-9)', async () => {
+    await clipTools().render_clip({ location: 'HCMC', chrome: 'poster', ...point, motion: { preset: 'pushIn' } });
+    expect(lastCfg?.chrome).toBe('clean');
+  });
+
+  it('neither preset nor script given → isError', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: {} as any });
+    expect(res.isError).toBe(true);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
+  it('a valid preset with an out-of-range override surfaces assertValidOverrides\'s range message, not the generic "motion is required" (Finding F)', async () => {
+    // fps: 999 used to fail motionParamSchema's OWN z.number().max(30) bound
+    // as part of the preset-vs-script union, so the whole union failed and
+    // this surfaced the generic "motion is required: ..." message even
+    // though a preset object WAS supplied — burying
+    // assertValidOverrides's specific, field-named range message
+    // (motionCompiler.ts) entirely.
+    const res = await clipTools().render_clip({ location: 'HCMC', motion: { preset: 'drift', fps: 999 } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/fps=999 is out of range/);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
+  it('approach preset without highlight.regions → isError with an "approach needs" message', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'approach' } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/approach needs/);
+    expect(renderClip).not.toHaveBeenCalled();
+  });
+
+  it('is unavailable (structured error) when the server build has no clip deps', async () => {
+    const res = await tools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
+    expect(res.isError).toBe(true);
+  });
+
+  it('degrade: encode failure → ok(...) with settle + clipError and no clip key; the partial mp4 is not left behind (Finding 1)', async () => {
+    // Mimic a real encoder crashing mid-write (ffmpeg killed partway through):
+    // the file exists on disk BEFORE the throw, so an implementation that
+    // only cleans up on the success path would leak a partial/corrupt file
+    // into the PERSISTENT sinkDir forever.
+    let leakedPath: string | undefined;
+    const crashingEncode = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+      leakedPath = opts.outPath;
+      await fs.writeFile(opts.outPath, Buffer.from('partial mp4 bytes from a crashed encoder'));
+      throw new Error('ffmpeg encode boom');
+    });
+    const degradeTools = () => makeTools({ render, renderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' });
+
+    const res = await degradeTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+
+    expect(res.isError).toBeUndefined(); // degrade, not a failure — same as REST
+    const j = textJson(res);
+    expect('clip' in j).toBe(false);
+    expect(typeof j.settle?.path).toBe('string'); // the settle still was still delivered
+    expect(typeof j.clipError).toBe('string');
+    expect(j.clipError).toMatch(/encode/i);
+
+    expect(leakedPath).toBeDefined();
+    await expect(fs.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in sinkDir
+  });
+
+  it('rejects an oversized clip (MAPPOSTER_CLIP_MAX_BYTES) — same drift-guard as REST, settle still delivered, tmp file not left behind (Finding C drift + Finding G)', async () => {
+    const prevCap = process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    let writtenPath: string | undefined;
+    const bigEncode = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+      writtenPath = opts.outPath;
+      await fs.writeFile(opts.outPath, Buffer.alloc(4096, 0x61));
+      return opts.outPath;
+    });
+    const oversizeTools = () => makeTools({ render, renderClip, encodeAnimation: bigEncode, sinkDir, defaultDelivery: 'both' });
+
+    try {
+      const res = await oversizeTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+      expect(res.isError).toBe(true); // rejected — not the ok:true encode-failure degrade
+      const j = textJson(res);
+      expect(j.ok).toBe(false);
+      expect(j.error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      expect('clip' in j).toBe(false);
+      expect(typeof j.settle?.path).toBe('string'); // settle still preserved, not thrown away (Finding G)
+
+      expect(writtenPath).toBeDefined();
+      await expect(fs.access(writtenPath!)).rejects.toThrow(); // ENOENT — not orphaned in sinkDir
+    } finally {
+      if (prevCap === undefined) delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+      else process.env.MAPPOSTER_CLIP_MAX_BYTES = prevCap;
+    }
+  });
+
+  it('a frame-capture failure (renderClip itself throws) still returns an error result — the degrade did not widen', async () => {
+    const throwingRenderClip = vi.fn(async () => {
+      throw new Error('capture crashed');
+    });
+    const failTools = () => makeTools({ render, renderClip: throwingRenderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+    const res = await failTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).ok).toBe(false);
+    expect(encodeAnimation).not.toHaveBeenCalled();
+  });
+
+  it('a structurally invalid raw script motion produces a readable error string, not a serialized ZodError dump (Finding 2)', async () => {
+    // fps: 999 fails motionScriptSchema's z.number().int().min(12).max(30) —
+    // validateMotionScript's own schema.parse() throws a RAW z.ZodError here,
+    // before any of the R/O/L/B/I invariant checks (which throw a plain Error
+    // with a prefix instead). Proven only via the REST test until now.
+    const res = await clipTools().render_clip({
+      location: 'HCMC',
+      ...point,
+      motion: {
+        script: { fps: 999, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [106.7, 10.78], zoom: 10 }], tracks: [] },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+    });
+    expect(res.isError).toBe(true);
+    const { error } = textJson(res);
+    expect(typeof error).toBe('string');
+    expect(error.length).toBeGreaterThan(0);
+    // A raw ZodError serialized via String(e) / e.message would be a `[ { ... } ]`
+    // issues array containing entries like `"code":"invalid_type"` —
+    // prettifyError must turn that into readable prose instead.
+    expect(error.startsWith('[')).toBe(false);
+    expect(error).not.toContain('"code":"invalid_type"');
+  });
+});
+
+describe('render_clip concurrency gate (Decision 2)', () => {
+  const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
+  const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+
+  afterEach(() => {
+    delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
+  });
+
+  it('MAPPOSTER_CLIP_CONCURRENCY=1: a second render_clip call while one is still in flight is rejected, not queued', async () => {
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+
+    // Held open until the test explicitly lets it finish, so the FIRST call
+    // is provably still "in flight" (past prepareClipRender, mid-render)
+    // when the SECOND call is issued.
+    let releaseFirst!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const renderClip = vi.fn(async (cfg: RenderConfig) => {
+      await gate;
+      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height) };
+    });
+    const gatedTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
+
+    const first = gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    // let the first call actually reach (and hold) its renderClip call before firing the second
+    await vi.waitFor(() => expect(renderClip).toHaveBeenCalledTimes(1));
+
+    const second = await gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(second.isError).toBe(true);
+    expect(textJson(second).error).toMatch(/Too many concurrent clip renders/);
+    expect(renderClip).toHaveBeenCalledTimes(1); // the second call never reached the render step
+
+    releaseFirst();
+    const firstResult = await first;
+    expect(firstResult.isError).toBeUndefined();
+
+    // slot freed after the first call finished — a third call now succeeds
+    const third = await gatedTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    expect(third.isError).toBeUndefined();
+  });
+});

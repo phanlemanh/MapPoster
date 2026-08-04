@@ -1,17 +1,24 @@
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
+import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
+import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipFrames } from './renderFrame';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
   render: (config: RenderConfig) => Promise<Buffer>;
   /** Injected animation primitive (real = renderAnimationFrames bound to the pool). */
   renderAnimation?: (config: RenderConfig, opts: { frames: number; pulse?: { rings?: number; radiusScale?: number; color?: string } }) => Promise<Buffer[]>;
+  /** Injected clip primitive (real = renderClipFrames bound to the pool). */
+  renderClip?: (config: RenderConfig) => Promise<ClipFrames>;
   /** Injected encoder (real = encodeAnimation / ffmpeg). */
   encodeAnimation?: (frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => Promise<string>;
   sinkDir: string;
@@ -31,8 +38,16 @@ function ok(payload: unknown, images: { base64?: string }[] = []): ToolResult {
   content.push({ type: 'text', text: JSON.stringify(payload) });
   return { content };
 }
-function fail(message: string): ToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify({ ok: false, error: message }) }], isError: true };
+/**
+ * `extra` (Finding G): an isError result is not always "nothing else
+ * happened" — an oversized clip (MAPPOSTER_CLIP_MAX_BYTES) still has a settle
+ * still that already rendered successfully, and the degrade contract ("a
+ * settle still that already exists must never be thrown away") applies to a
+ * rejection just as much as to the ok:true encode-failure degrade below.
+ * Defaults to {} so every other `fail()` call site is unaffected.
+ */
+function fail(message: string, extra: Record<string, unknown> = {}): ToolResult {
+  return { content: [{ type: 'text', text: JSON.stringify({ ok: false, error: message, ...extra }) }], isError: true };
 }
 
 let counter = 0;
@@ -135,6 +150,106 @@ export function makeTools(deps: ToolDeps) {
       }
     },
 
+    async render_clip(params: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }): Promise<ToolResult> {
+      try {
+        if (!deps.renderClip || !deps.encodeAnimation) return fail('clip rendering is not available on this server build');
+
+        // Finding C: config resolution + AC-9's chrome:'clean' force + the
+        // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
+        // live in ONE shared helper now (motionCompiler.ts's
+        // prepareClipRender) instead of being reimplemented here and again in
+        // http.ts's /render-clip.
+        let prep: ClipPreparation;
+        try {
+          prep = await prepareClipRender(params, params.motion);
+        } catch (e) {
+          // Decision 2: over the shared clip-concurrency limit — same message
+          // REST answers with 429, surfaced here as this tool's normal error
+          // result (isError:true) rather than a distinct status code, since
+          // MCP has no HTTP layer to carry one.
+          if (e instanceof ClipConcurrencyError) return fail(e.message);
+          if (!(e instanceof MotionParamError)) throw e;
+          return fail(e.message);
+        }
+        const { cfg, motion, preset, releaseClipSlot } = prep;
+        try {
+          const { frames, settle: settlePng } = await deps.renderClip(cfg);
+
+          // The clip is written to a FILE under sinkDir and never inlined as
+          // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
+          // channel MCP runs over. `delivery` applies only to the settle
+          // still, exactly as it does for the other image tools.
+          const name = fileNameFor(cfg);
+          const outPath = path.join(deps.sinkDir, `${name}.mp4`);
+          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+
+          let bytes: number;
+          try {
+            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+            ({ size: bytes } = await fs.stat(outPath));
+          } catch (e) {
+            // Same degrade as REST /render-clip (spec §5): frames were already
+            // captured, so an encoder failure (missing ffmpeg, corrupt frame)
+            // must never throw away the settle still that already rendered
+            // successfully. Unlike REST — which encodes to os.tmpdir() and
+            // reads the result into memory — this tool writes straight into
+            // the PERSISTENT sinkDir, so a partial/corrupt file left behind by
+            // a mid-write ffmpeg crash would never be traced or cleaned unless
+            // we remove it here ourselves. Cleanup must never mask the
+            // original error.
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+            return ok({
+              settle,
+              motion: motionOut,
+              resolved: resolvedOf(cfg),
+              clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+            });
+          }
+
+          // Finding C (drift): MAPPOSTER_CLIP_MAX_BYTES used to be enforced only
+          // in REST /render-clip — the README documents it as applying to
+          // "both REST /render-clip and the MCP render_clip tool", which was
+          // false. This surface has MORE reason to enforce it, not less: it
+          // writes straight into the PERSISTENT sinkDir (REST only ever holds
+          // an oversized clip in os.tmpdir() before discarding it), so an
+          // unenforced cap here means an oversized MP4 accumulates on disk
+          // forever instead of just failing one in-flight request.
+          const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+          if (bytes > cap) {
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+            // Finding G: still an error (isError:true, same as REST's 422) —
+            // nothing technically failed, the clip just violates the size
+            // policy and the caller can fix it (lower fps/durationSec/size) —
+            // but the settle still that already rendered successfully is never
+            // thrown away, matching the degrade contract.
+            return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
+              settle,
+              motion: motionOut,
+              resolved: resolvedOf(cfg),
+            });
+          }
+
+          const settle = await deliver(settlePng, `${name}-settle`, mode(params.delivery), { sinkDir: deps.sinkDir });
+
+          return ok({
+            clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
+            settle,
+            motion: motionOut,
+            resolved: resolvedOf(cfg),
+          });
+        } finally {
+          // Decision 2: free the shared clip slot regardless of how this call
+          // ends (success, degrade, oversize rejection, or an unexpected
+          // throw caught by the outer try below).
+          releaseClipSlot();
+        }
+      } catch (e) {
+        return fail((e as Error).message ?? String(e));
+      }
+    },
+
     async geocode_place(params: { query: string; limit?: number }): Promise<ToolResult> {
       try {
         const candidates = await searchCandidates(params.query, params.limit ?? 5);
@@ -203,6 +318,11 @@ const renderMapShape = {
  */
 export const renderMapSchema = z.object(renderMapShape);
 
+// `motionParamSchema` (the `preset`-or-`script` shape shared by REST
+// `/render-clip` and this file's `render_clip`) now lives in
+// motionCompiler.ts, alongside `parseMotionParam`/`prepareClipRender` which
+// actually enforce it (Finding C) — imported above instead of redefined here.
+
 // Bounded: frames×fps beyond this buys nothing visually and ties up the pooled
 // page for the whole capture loop.
 const animationSchema = z
@@ -236,6 +356,14 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     },
     (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string } }) =>
       t.render_animation(a),
+  );
+  s.registerTool(
+    'render_clip',
+    {
+      description: 'Render a short text-free camera-motion map clip (MP4) + a rest-state settle still. motion: {preset: approach|pushIn|drift} or {script}.',
+      inputSchema: { ...renderMapShape, motion: motionParamSchema },
+    },
+    (a: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }) => t.render_clip(a),
   );
   s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());

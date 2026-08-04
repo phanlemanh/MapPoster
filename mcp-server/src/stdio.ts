@@ -4,6 +4,7 @@ import { createServer } from './server';
 import { makeRenderDeps } from './deps';
 import { ensureDist } from './ensureDist';
 import { loadServerConfig } from '../config';
+import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
 
 export async function runStdio(): Promise<void> {
   const server = createServer(makeRenderDeps());
@@ -20,6 +21,8 @@ if (isMain) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   }
+  applyStartupEnv();
+  probeFfmpegAtStartup();
   runStdio().catch((e) => {
     console.error(e);
     process.exit(1);

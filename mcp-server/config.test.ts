@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { envNumber, loadServerConfig, DEFAULT_MAX_BODY_BYTES } from './config';
+import { envNumber, loadServerConfig, DEFAULT_MAX_BODY_BYTES, DEFAULT_POOL_ACQUIRE_TIMEOUT_MS } from './config';
 
 describe('envNumber', () => {
   const env = (v?: string) => ({ X: v }) as unknown as NodeJS.ProcessEnv;
@@ -41,5 +41,13 @@ describe('loadServerConfig', () => {
     // page and every render deadlocks. Fail at startup instead.
     expect(() => loadServerConfig({ MAPPOSTER_POOL: 'two' } as NodeJS.ProcessEnv)).toThrow(/MAPPOSTER_POOL/);
     expect(() => loadServerConfig({ MAPPOSTER_HTTP_MAX_BODY: 'lots' } as NodeJS.ProcessEnv)).toThrow(/MAPPOSTER_HTTP_MAX_BODY/);
+  });
+
+  it('defaults the pool-acquire timeout and refuses a garbage override', () => {
+    expect(loadServerConfig({} as NodeJS.ProcessEnv).poolAcquireTimeoutMs).toBe(DEFAULT_POOL_ACQUIRE_TIMEOUT_MS);
+    expect(loadServerConfig({ MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS: '5000' } as NodeJS.ProcessEnv).poolAcquireTimeoutMs).toBe(5000);
+    expect(() => loadServerConfig({ MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS: 'forever' } as NodeJS.ProcessEnv)).toThrow(
+      /MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS/,
+    );
   });
 });

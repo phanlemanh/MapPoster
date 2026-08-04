@@ -19,6 +19,20 @@ export function ffmpegBin(): string {
   return process.env.MAPPOSTER_FFMPEG || 'ffmpeg';
 }
 
+/**
+ * Startup probe (Finding A): resolve whether the configured ffmpeg actually
+ * runs, WITHOUT throwing — a missing encoder must never crash the server
+ * (image rendering via `render_map`/`/render` doesn't touch ffmpeg at all),
+ * but it should be loud at boot rather than discovered per-request via a
+ * silent settle-only degrade on the first `/render-clip` call. Callers log a
+ * warning when this resolves `false`; see http.ts's/stdio.ts's startup block.
+ */
+export function checkFfmpegAvailable(bin: string = ffmpegBin(), probeArgs: string[] = ['-version']): Promise<boolean> {
+  return new Promise((resolve) => {
+    execFile(bin, probeArgs, { timeout: 5_000 }, (err) => resolve(!err));
+  });
+}
+
 function run(bin: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile(bin, args, { maxBuffer: 64 * 1024 * 1024 }, (err, _stdout, stderr) => {

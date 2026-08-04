@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
 import { tmpdir } from 'node:os';
+import { promises as fsp } from 'node:fs';
 
 // resolveConfig (used by every /render test) reaches into ./geocode for anything
 // that isn't a bare {lng,lat} — mocked so a region highlight resolved *by name*
@@ -221,17 +222,54 @@ describe('POST /render (REST)', () => {
     expect(body.width).toBe(1);
   });
 
-  it('returns ok:false on resolve error (unknown theme) instead of throwing', async () => {
+  it('returns 400 + ok:false on a resolve-phase error (unknown theme) instead of throwing or answering 200 (Decision 3)', async () => {
     srv = await startHttpServer(0, fakeDeps());
     const res = await fetch(renderUrl(srv), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, theme: 'khong-ton-tai' }),
     });
-    expect(res.status).toBe(200);
+    // A bad theme is the CALLER's fault — 400, not 200. The body shape
+    // ({ ok:false, error }) is unchanged; this is backward compatible with a
+    // consumer that only checks `body.ok`, per Decision 3's stated contract.
+    expect(res.status).toBe(400);
     const body = (await res.json()) as { ok: boolean; error?: string };
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/theme/i);
+  });
+
+  it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: 'zzz-nowhere-on-earth' }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    // {ok:false, error} is unchanged in a 4xx body — Decision 3 only changes
+    // the HTTP status, never the response shape.
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/no geocoding result/i);
+  });
+
+  it('500: a failure while actually rendering (not resolving) is OUR fault, not the caller\'s (Decision 3)', async () => {
+    srv = await startHttpServer(0, {
+      render: async () => {
+        throw new Error('page crashed mid-render');
+      },
+      sinkDir: tmpdir(),
+      defaultDelivery: 'inline',
+    });
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 } }),
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/page crashed mid-render/);
   });
 
   it('rejects when MAPPOSTER_TOKEN set and bearer missing/wrong', async () => {
@@ -292,5 +330,285 @@ describe('POST /render (REST)', () => {
     expect(resolved.place.name).toEqual(expect.any(String));
     expect(resolved.highlights.regions[0].bbox).toHaveLength(4);
     expect(lastCfg?.layers?.roadLabels).toBe(true); // labels: true forwarded through
+  });
+});
+
+// --- POST /render-clip (Task 6) ---
+
+// set by fakeClipDeps().renderClip on every call, so a test can inspect the
+// exact config renderClipFrames would have received (chrome forced clean, motion attached)
+let seenClipConfig: RenderConfig | undefined;
+
+function fakeClipDeps(overrides: Partial<ToolDeps> = {}): ToolDeps {
+  return {
+    render: async () => PNG_1x1,
+    renderClip: async (cfg) => {
+      seenClipConfig = cfg;
+      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+    },
+    encodeAnimation: async (_frames, opts) => {
+      await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+      return opts.outPath;
+    },
+    sinkDir: tmpdir(),
+    defaultDelivery: 'inline',
+    ...overrides,
+  };
+}
+
+interface ClipResBody {
+  ok: boolean;
+  error?: string;
+  clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
+  settle?: { base64: string; format: string; width: number; height: number };
+  motion?: { preset?: string; restAtSec: number };
+  resolved?: { center: [number, number] };
+  clipError?: string;
+}
+
+describe('POST /render-clip', () => {
+  let srv: HttpServer | undefined;
+  afterEach(async () => {
+    await srv?.close();
+    delete process.env.MAPPOSTER_TOKEN;
+    delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
+    seenClipConfig = undefined;
+  });
+
+  function clipUrl(server: HttpServer): string {
+    return `${new URL(server.url).origin}/render-clip`;
+  }
+
+  function postJson(url: string, body: unknown) {
+    return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  }
+
+  it('200: đủ khối clip/settle/motion/resolved; chrome bị ép clean', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      chrome: 'poster',
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(true);
+    expect(body.clip?.format).toBe('mp4');
+    expect(body.clip?.base64).toBe(Buffer.from('mp4!').toString('base64'));
+    expect(body.settle?.format).toBe('png');
+    expect(body.motion?.preset).toBe('pushIn');
+    expect(body.motion?.restAtSec).toBeCloseTo(3.9, 3);
+    expect(body.resolved?.center).toBeDefined();
+    expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
+    expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
+  });
+
+  it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: 'zzz-nowhere-on-earth',
+      motion: { preset: 'drift' },
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as ClipResBody;
+    // {ok:false, error} is unchanged in a 4xx body — Decision 3 only changes
+    // the HTTP status, never the response shape.
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/no geocoding result/i);
+  });
+
+  it('500: a failure while actually rendering the clip (not resolving) is OUR fault — distinct from the encode-failure degrade, which stays 200 (Decision 3)', async () => {
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async () => {
+          throw new Error('page crashed mid-capture');
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/page crashed mid-capture/);
+  });
+
+  it('422: preset lạ, thiếu motion, và script vỡ bất biến R — message nêu tên luật', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const url = clipUrl(srv);
+    expect((await postJson(url, { location: { lng: 1, lat: 1 }, motion: { preset: 'spin' } })).status).toBe(422);
+    expect((await postJson(url, { location: { lng: 1, lat: 1 } })).status).toBe(422);
+    const bad = await postJson(url, {
+      location: { lng: 1, lat: 1, zoom: 14 },
+      motion: { script: { fps: 24, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [1, 1], zoom: 10 }], tracks: [] } },
+    });
+    expect(bad.status).toBe(422);
+    const badBody = (await bad.json()) as ClipResBody;
+    expect(badBody.error).toMatch(/^R:/);
+  });
+
+  it('422: preset hợp lệ nhưng override sai phạm vi → thông điệp range của assertValidOverrides lọt tới caller, không phải "motion is required" (Finding F)', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      motion: { preset: 'drift', fps: 999 },
+    });
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.error).toMatch(/fps=999 is out of range/);
+  });
+
+  it('422: script vỡ schema (raw ZodError) → error vẫn là string dễ đọc, không phải JSON issues dump', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    // fps: 999 fails motionScriptSchema's z.number().int().min(12).max(30) —
+    // motionScriptSchema.parse() throws a raw z.ZodError here, BEFORE any of
+    // the R/O/L/B/I invariant checks (which throw plain Error with a prefix).
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 1, lat: 1, zoom: 14 },
+      motion: {
+        script: { fps: 999, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [1, 1], zoom: 10 }], tracks: [] },
+      },
+    });
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(typeof body.error).toBe('string');
+    expect(body.error?.length).toBeGreaterThan(0);
+    // A raw ZodError serialized via String(e) / e.message would be a `[ { ... } ]`
+    // issues array containing entries like `"code":"invalid_type"` — prettifyError
+    // must turn that into readable prose instead.
+    expect(body.error?.startsWith('[')).toBe(false);
+    expect(body.error).not.toContain('"code":"invalid_type"');
+  });
+
+  it('degrade: encode hỏng → ok:true + settle + clipError, KHÔNG có clip; file mp4 tạm không bị rò rỉ', async () => {
+    // Mimic a real encoder crashing mid-write (e.g. ffmpeg killed partway
+    // through): the temp file exists on disk BEFORE the throw, so an
+    // implementation that only cleans up on the success path would leak it.
+    let leakedPath: string | undefined;
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async (_frames, opts) => {
+          leakedPath = opts.outPath;
+          await fsp.writeFile(opts.outPath, Buffer.from('partial mp4 bytes from a crashed encoder'));
+          throw new Error('ffmpeg encode boom');
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    const body = (await res.json()) as ClipResBody;
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.clip).toBeUndefined();
+    expect(body.settle?.base64).toBeTruthy();
+    expect(body.clipError).toMatch(/encode/i);
+
+    expect(leakedPath).toBeDefined();
+    await expect(fsp.access(leakedPath!)).rejects.toThrow(); // ENOENT — cleaned up, not orphaned in tmpdir
+  });
+
+  it('422 khi mp4 vượt MAPPOSTER_CLIP_MAX_BYTES — nhưng settle/motion/resolved vẫn có trong body (Finding G)', async () => {
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async (_frames, opts) => {
+          await fsp.writeFile(opts.outPath, Buffer.alloc(4096, 0x61));
+          return opts.outPath;
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+    // Finding G: the degrade contract ("a settle still that already exists
+    // must never be thrown away") applies to oversize too, not only to an
+    // encode-failure — this used to return 422 with NOTHING else.
+    expect(body.settle?.base64).toBeTruthy();
+    expect(body.motion?.preset).toBe('pushIn');
+    expect(body.resolved?.center).toBeDefined();
+  });
+
+  it('401 khi MAPPOSTER_TOKEN đặt mà bearer sai', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await fetch(clipUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer sai' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('401 khi MAPPOSTER_TOKEN đặt mà KHÔNG có Authorization header', async () => {
+    process.env.MAPPOSTER_TOKEN = 's3cret';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await fetch(clipUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, motion: { preset: 'drift' } }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('429: MAPPOSTER_CLIP_CONCURRENCY=1 — a second /render-clip while one is still in flight is rejected (Decision 2), shared with MCP render_clip', async () => {
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+    let releaseFirst!: () => void;
+    let firstCallStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      firstCallStarted = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          firstCallStarted();
+          await gate;
+          return { frames: [PNG_1x1], settle: PNG_1x1 };
+        },
+      }),
+    );
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    const first = postJson(clipUrl(srv), body);
+    await started; // first request is provably mid-render before firing the second
+
+    const second = await postJson(clipUrl(srv), body);
+    expect(second.status).toBe(429);
+    const secondBody = (await second.json()) as ClipResBody;
+    expect(secondBody.ok).toBe(false);
+    expect(secondBody.error).toMatch(/Too many concurrent clip renders/);
+
+    releaseFirst();
+    const firstRes = await first;
+    expect(firstRes.status).toBe(200);
+
+    // slot freed after the first request finished — a third now succeeds
+    const third = await postJson(clipUrl(srv), body);
+    expect(third.status).toBe(200);
   });
 });

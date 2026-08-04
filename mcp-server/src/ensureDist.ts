@@ -51,7 +51,18 @@ export function ensureDist(
   }
 
   log('[mapposter] render harness not built yet — running `vite build` once (~10s)…');
-  const build = deps.build ?? (() => execSync('npx vite build', { stdio: BUILD_STDIO, cwd }));
+  // `--mode production` AND an explicit `NODE_ENV: 'production'` in the
+  // child's env (Finding H): `vite build`'s default mode is production, but
+  // measured on this Vite version (8.1.4), an inherited `NODE_ENV` (e.g.
+  // "test", from a parent vitest process — exactly the case when this runs
+  // nested inside the mcp-server integration tests) wins over `--mode` for
+  // `import.meta.env.DEV`/`PROD`, silently producing a DEV-flagged bundle
+  // despite `--mode production` on the command line. import.meta.env.DEV in
+  // src/render/main.tsx gates a TEST-ONLY fault-injection hook out of the
+  // bundle specifically because it must not ship in anything statically
+  // hosted — belt-and-suspenders both knobs so that holds regardless of what
+  // NODE_ENV this process happened to inherit.
+  const build = deps.build ?? (() => execSync('npx vite build --mode production', { stdio: BUILD_STDIO, cwd, env: { ...process.env, NODE_ENV: 'production' } }));
   build();
 
   if (!exists(harness)) {

@@ -81,6 +81,36 @@ describe('resolveLocation', () => {
     await expect(resolveLocation('123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh')).rejects.toThrow(/no geocoding result/i);
   });
 
+  it('accepts a Vietnamese-language display_name (the default accept-language is vi,en)', async () => {
+    // Measured live under `accept-language=vi,en`, Nominatim answers
+    // "…, Thành phố Hồ Chí Minh, Việt Nam" — NOT "Ho Chi Minh City". The guard
+    // only survives that because it compares through normalizeVnQuery. Anyone
+    // simplifying the guard to a raw substring test breaks every VN render, so
+    // pin the behaviour on the real string rather than an anglicised fixture.
+    const viHit = {
+      ...searchItem,
+      lat: '10.7748',
+      lon: '106.7038',
+      display_name: 'Nguyễn Huệ, Khu phố 9, Phường Sài Gòn, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, 71006, Việt Nam',
+      address: { road: 'Nguyễn Huệ', city: 'Thành phố Hồ Chí Minh', country: 'Việt Nam' },
+    };
+    mockFetch([viHit]);
+    const r = await resolveLocation('Nguyễn Huệ, Quận 1, TP.HCM');
+    expect(r.center[0]).toBeCloseTo(106.7038, 3);
+  });
+
+  it('still rejects a Vietnamese-language hit from the wrong province', async () => {
+    const viWrong = {
+      ...searchItem,
+      lat: '10.5790',
+      lon: '107.0713',
+      display_name: 'Nguyễn Huệ, Khu phố Phước Liên, Phường Bà Rịa, Tỉnh Bà Rịa – Vũng Tàu, Việt Nam',
+      address: { road: 'Nguyễn Huệ', country: 'Việt Nam' },
+    };
+    mockFetch([viWrong]);
+    await expect(resolveLocation('Nguyễn Huệ, Quận 1, TP.HCM')).rejects.toThrow(/no geocoding result/i);
+  });
+
   it('applies no city guard when the query names no city', async () => {
     mockFetch([searchItem]); // display_name: 'Hanoi, Vietnam'
     const r = await resolveLocation('Some Unnamed Street');

@@ -1,14 +1,20 @@
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server';
 import { makeRenderDeps } from './deps';
-import { DEFAULT_MAX_BODY_BYTES, envNumber, loadServerConfig } from '../config';
+import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
 import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
+import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
+import { prepareClipRender, MotionParamError, ClipConcurrencyError, type ClipPreparation } from './motionCompiler';
+import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
 
 export interface HttpServer {
   url: string;
@@ -150,13 +156,41 @@ export async function startHttpServer(
         return;
       }
       void (async () => {
+        // --- Resolve phase: parsing/validating/geocoding the CALLER's own
+        // input. Anything thrown here is the caller's fault (Decision 3) —
+        // a malformed body, a schema violation, an unresolvable location, a
+        // bad theme/colour/geojson, an out-of-range zoom/format. `ok:false`
+        // is unchanged; only the HTTP status now tells them which kind of
+        // failure it was instead of always answering 200.
+        let cfg: RenderConfig;
         try {
           const body = await readJsonBody(req, maxBodyBytes);
           // Same contract render_map registers on the MCP transport — parsed
           // here rather than trusted as-is, and never a second hand-rolled
           // schema that could drift from it.
           const params = renderMapSchema.parse(body);
-          const cfg = await resolveConfig(params);
+          cfg = await resolveConfig(params);
+        } catch (e) {
+          if (e instanceof PayloadTooLargeError) {
+            res.writeHead(413, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
+          // gives the same one-line human-readable clarity every other guard in
+          // this codebase already throws (assertTheme, assertLngLat, ...). Also
+          // covers a malformed JSON body — readJsonBody's own JSON.parse throws
+          // a plain SyntaxError, which falls through to this same 400 branch.
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(400, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+          return;
+        }
+
+        // --- Render phase: OUR infrastructure (browser pool, page render,
+        // delivery to sinkDir). A failure here is our fault, not the
+        // caller's — 500, not 400.
+        try {
           const png = await deps.render(cfg);
           const image = await deliver(png, `rest-${Date.now()}`, 'inline', { sinkDir: deps.sinkDir });
           res.writeHead(200, { 'content-type': 'application/json' });
@@ -171,13 +205,172 @@ export async function startHttpServer(
             }),
           );
         } catch (e) {
-          const status = e instanceof PayloadTooLargeError ? 413 : 200;
-          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
-          // gives the same one-line human-readable clarity every other guard in
-          // this codebase already throws (assertTheme, assertLngLat, ...).
+          res.writeHead(500, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+        }
+      })();
+      return;
+    }
+    // Text-free animated clip: caller supplies `motion` (preset OR a raw
+    // MotionScript) on top of the same render_map contract; chrome is forced
+    // to 'clean' regardless of what's asked for (AC-9 — no text ever enters
+    // a clip frame). Same bearer/body-cap guards as /render above.
+    if (req.url === '/render-clip') {
+      const token = process.env.MAPPOSTER_TOKEN;
+      if (token && req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401).end('unauthorized');
+        return;
+      }
+      void (async () => {
+        // --- Resolve phase: parsing/validating/geocoding/compiling motion —
+        // all the CALLER's own input. Anything thrown here is the caller's
+        // fault EXCEPT the two conditions that already have their own,
+        // more specific status: over the body cap (413) and over the shared
+        // clip-concurrency limit (429, Decision 2). A well-formed-but-
+        // semantically-rejected `motion` (bad preset, invariant violation)
+        // stays 422, exactly as before Decision 3. Everything else here —
+        // malformed JSON, a schema violation, an unresolvable location, a bad
+        // theme/colour/geojson, an out-of-range zoom/format — is new: 400
+        // instead of always 200.
+        //
+        // Finding C: config resolution + AC-9's chrome:'clean' force + the
+        // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
+        // live in ONE shared helper (motionCompiler.ts's prepareClipRender)
+        // instead of being reimplemented here and again in tools.ts's
+        // render_clip. A resolveConfig failure inside that same call throws
+        // a plain Error, unwrapped by prepareClipRender on purpose — it
+        // falls through to the generic 400 branch below, same as any other
+        // resolve-phase failure.
+        let prep: ClipPreparation;
+        try {
+          const body = (await readJsonBody(req, maxBodyBytes)) as Record<string, unknown> | undefined;
+          const params = renderMapSchema.parse(body);
+          prep = await prepareClipRender(params, body?.motion);
+        } catch (e) {
+          if (e instanceof PayloadTooLargeError) {
+            res.writeHead(413, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          // Decision 2: over the shared clip-concurrency limit (both this
+          // endpoint and MCP render_clip share ONE counter — see
+          // motionCompiler.ts's acquireClipSlot).
+          if (e instanceof ClipConcurrencyError) {
+            res.writeHead(429, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          if (e instanceof MotionParamError) {
+            res.writeHead(422, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
           const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
-          res.writeHead(status, { 'content-type': 'application/json' });
+          res.writeHead(400, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: message }));
+          return;
+        }
+
+        // --- Render/encode phase: OUR infrastructure. `renderClip`/`deps`
+        // wiring and frame capture failing here is our fault (500) — but the
+        // two explicit outcomes below (encode-failure degrade, oversize
+        // rejection) are NOT failures in that sense; they keep their
+        // existing status codes untouched (spec §5 / Finding G).
+        const { cfg, motion, preset, releaseClipSlot } = prep;
+        try {
+          try {
+            if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
+            const { frames, settle } = await deps.renderClip(cfg);
+            const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
+            const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+
+            const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+            try {
+              let mp4: Buffer;
+              try {
+                await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+                mp4 = await fs.readFile(outPath);
+              } finally {
+                // Cleanup must run on EVERY path — clean success, an encoder crash
+                // mid-write (real ffmpeg leaves a partial file behind), or a read
+                // failure — so nothing is ever orphaned in os.tmpdir(). Swallow any
+                // rm error itself: cleanup must never mask the original failure.
+                await fs.rm(outPath, { force: true }).catch(() => {});
+              }
+
+              const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+              if (mp4.length > cap) {
+                // Finding G: this used to return 422 with NOTHING else, while the
+                // encode-failure branch below returns the settle — inconsistent
+                // with the spec's degrade contract ("a settle still that already
+                // exists must never be thrown away"). Kept as 422 rather than
+                // folded into the ok:true degrade below: unlike an encoder crash,
+                // nothing actually failed here — the clip encoded fine, it is
+                // just over the caller-fixable size policy — so it stays a
+                // rejection of THIS request (still actionable: lower
+                // fps/durationSec/size), just one that no longer discards the
+                // settle still that already rendered successfully.
+                res.writeHead(422, { 'content-type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    ok: false,
+                    error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
+                    settle: settleOut,
+                    motion: motionOut,
+                    resolved: resolvedOf(cfg),
+                  }),
+                );
+                return;
+              }
+
+              res.writeHead(200, { 'content-type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  ok: true,
+                  clip: {
+                    base64: mp4.toString('base64'),
+                    format: 'mp4',
+                    width: cfg.size.width,
+                    height: cfg.size.height,
+                    durationSec: motion.durationSec,
+                    fps: motion.fps,
+                    bytes: mp4.length,
+                  },
+                  settle: settleOut,
+                  motion: motionOut,
+                  resolved: resolvedOf(cfg),
+                }),
+              );
+            } catch (e) {
+              // Frames were already captured — an encoder failure (missing ffmpeg,
+              // a corrupt frame) must never throw away the settle still that
+              // already exists (degrade path, spec §5). The temp file at outPath
+              // has already been swept up by the `finally` above either way.
+              res.writeHead(200, { 'content-type': 'application/json' });
+              res.end(
+                JSON.stringify({
+                  ok: true,
+                  settle: settleOut,
+                  motion: motionOut,
+                  resolved: resolvedOf(cfg),
+                  clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
+                }),
+              );
+            }
+          } catch (e) {
+            // Decision 3: anything that reaches here — `deps.renderClip`
+            // itself throwing (a page crash mid-capture), or the clip deps
+            // simply not being wired — is OUR infrastructure failing, not
+            // the caller's input. The encode-failure degrade (200) and the
+            // oversize rejection (422) above both `return` before this catch
+            // is ever reached, so neither is reclassified by it.
+            res.writeHead(500, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+          }
+        } finally {
+          // Decision 2: free the shared clip slot no matter how this call
+          // ends — success, degrade, oversize rejection, or the 500 above.
+          releaseClipSlot();
         }
       })();
       return;
@@ -235,6 +428,8 @@ if (isMain) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   }
+  applyStartupEnv();
+  probeFfmpegAtStartup();
   startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }))
     .then((s) => console.error(`MapPoster MCP (HTTP) listening at ${s.url}`))
     .catch((e) => {

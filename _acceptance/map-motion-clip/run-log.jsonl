@@ -1,0 +1,15 @@
+{"ts":"2026-08-04T06:22:07Z","round":1,"evalId":"E1","run_id":"map-motion-clip-E1-20260804-062201","exit_code":0,"cmd":"npx vitest run src/render/motionScript.test.ts"}
+{"ts":"2026-08-04T06:22:07Z","round":1,"evalId":"E2","run_id":"map-motion-clip-E2-20260804-062201","exit_code":0,"cmd":"npx vitest run src/render/motionScript.test.ts"}
+{"ts":"2026-08-04T06:22:07Z","round":1,"evalId":"E3","run_id":"map-motion-clip-E3-20260804-062201","exit_code":0,"cmd":"npx vitest run src/render/motionScript.test.ts"}
+{"ts":"2026-08-04T06:22:20Z","round":1,"evalId":"E4","run_id":"map-motion-clip-sweep-local","exit_code":0,"cmd":"npx tsx _acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts"}
+{"ts":"2026-08-04T06:22:36Z","round":1,"evalId":"E5","run_id":"map-motion-clip-E5-20260804-062228","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-04T06:22:36Z","round":1,"evalId":"E6","run_id":"map-motion-clip-E6-20260804-062232","exit_code":0,"cmd":"npx vitest run src/render/motionMath.test.ts"}
+{"ts":"2026-08-04T06:23:38Z","round":1,"evalId":"E7","run_id":"map-motion-clip-E7-20260804-062246","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E8","run_id":"map-motion-clip-E8-20260804-062344","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E9","run_id":"map-motion-clip-E9-20260804-062344","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E10","run_id":"map-motion-clip-E10-20260804-062344","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E13","run_id":"map-motion-clip-E13-20260804-062344","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E15","run_id":"map-motion-clip-E15-20260804-062344","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E11","run_id":"map-motion-clip-E11-20260804-062349","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E14","run_id":"map-motion-clip-E14-20260804-062349","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-04T06:24:05Z","round":1,"evalId":"E12","run_id":"map-motion-clip-E12-20260804-062357","exit_code":0,"cmd":"npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}

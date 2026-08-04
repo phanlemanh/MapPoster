@@ -2,7 +2,7 @@ import { loadServerConfig, type ServerConfig } from '../config';
 import { startAppServer } from './appServer';
 import { createPool, type Pool } from './browserPool';
 import { createConfigStore, type ConfigStore } from './configStore';
-import { renderFrame, renderAnimationFrames, type AnimationPulse } from './renderFrame';
+import { renderFrame, renderAnimationFrames, renderClipFrames, type AnimationPulse } from './renderFrame';
 import { encodeAnimation } from './encodeAnimation';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -54,7 +54,7 @@ export interface Runtime {
 const startReal = async (c: ServerConfig): Promise<Runtime> => {
   const configStore = createConfigStore();
   const app = await startAppServer(c, configStore);
-  const pool = await createPool(c.poolSize);
+  const pool = await createPool(c.poolSize, { acquireTimeoutMs: c.poolAcquireTimeoutMs });
   return {
     appUrl: app.url,
     pool,
@@ -102,6 +102,19 @@ export function makeRenderDeps(
         return await renderAnimationFrames(config, opts, { appUrl: rt.appUrl, pool: rt.pool, configStore: rt.configStore });
       } finally {
         // same corpse-runtime rule as render above
+        if (!rt.pool.healthy()) {
+          ensure.reset(attempt);
+          void rt.close();
+        }
+      }
+    },
+    renderClip: async (config: RenderConfig) => {
+      const attempt = ensure();
+      const rt = await attempt;
+      try {
+        return await renderClipFrames(config, { appUrl: rt.appUrl, pool: rt.pool, configStore: rt.configStore });
+      } finally {
+        // same corpse-runtime rule as render/renderAnimation above
         if (!rt.pool.healthy()) {
           ensure.reset(attempt);
           void rt.close();

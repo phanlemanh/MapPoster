@@ -208,6 +208,31 @@ fails after frames were already captured, `/render-clip` degrades the same way
 the MCP tool does: `200 { ok: true, settle, motion, resolved, clipError }`,
 never discarding a settle still that already rendered successfully.
 
+**HTTP status codes** (owner decision, 2026-08-04). Both endpoints answer with
+a real status code now, but the response **body shape is unchanged** —
+`{ ok: false, error }` on every failure, exactly as before. This is
+deliberately backward compatible: a consumer that does
+`if (!res.ok) return null;` before even looking at the body, then
+`if (!body.ok) return null;`, gets the identical outcome either way, whether
+it reads the status or not.
+
+| Status | Meaning | Cause |
+|---|---|---|
+| 200 | success (`ok: true`), or the clip encode-failure degrade (`ok: true, settle, clipError` — a settle still genuinely exists) | |
+| 400 | caller's fault — invalid or unresolvable input | malformed JSON body, a schema violation, geocoding found nothing, an unknown theme, an invalid colour/GeoJSON, an out-of-range zoom/format |
+| 401 | auth | `MAPPOSTER_TOKEN` set and the bearer is missing/wrong |
+| 405 | wrong method | anything but `POST` |
+| 413 | payload too large | body over `MAPPOSTER_HTTP_MAX_BODY` |
+| 422 | well-formed but semantically rejected | a MotionScript invariant violation, an unknown preset, missing `motion`, or the encoded clip over `MAPPOSTER_CLIP_MAX_BYTES` (unchanged from before this decision) |
+| 429 | over the shared clip-concurrency limit | `MAPPOSTER_CLIP_CONCURRENCY` (see above) |
+| 500 | our fault — infrastructure | a browser-pool failure, a page crash, or any other render/encode error that isn't the encode degrade above |
+
+The practical boundary in the code: failures thrown while **resolving**
+params (parsing the body, geocoding, compiling `motion`) are 4xx; failures
+thrown while actually **rendering or encoding** are 5xx. Each handler makes
+that boundary an explicit two-phase `try`/`catch` rather than inferring it
+from an error's message text.
+
 The HTTP transport is unauthenticated, so it refuses any request whose `Host` it does not answer to, and any request carrying an `Origin` at all — a server-to-server MCP client sends none, a web page always does. Loopback binding alone would not stop DNS rebinding. A hosted deployment must therefore declare `MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal` (and `MAPPOSTER_HTTP_ALLOWED_ORIGINS=https://studio.internal` if a browser calls it); otherwise only loopback `Host` headers are accepted and the server says so on startup. Request bodies are capped at 8 MiB (`MAPPOSTER_HTTP_MAX_BODY`) and refused with `413` — `Host` and `Origin` are trivially forged by exactly the non-browser clients the guard admits, so an unbounded body would OOM the process and take the shared browser pool with it.
 
 **Two listeners, not one.** Alongside the MCP transport, `mcp-server` runs a small static server (`MAPPOSTER_APP_PORT`, default 4180) that serves `dist/` to its own headless browser. It has no access control beyond a path-traversal guard, so it binds `127.0.0.1` (`MAPPOSTER_APP_HOST`). It starts for **both** transports, including stdio — a `listen(port, callback)` there would bind every interface and quietly publish `dist/` to the LAN on every deployment.

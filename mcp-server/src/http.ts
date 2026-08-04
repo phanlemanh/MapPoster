@@ -11,6 +11,7 @@ import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerCo
 import { ensureDist } from './ensureDist';
 import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
+import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
 import { prepareClipRender, MotionParamError, ClipConcurrencyError, type ClipPreparation } from './motionCompiler';
 import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
@@ -155,13 +156,41 @@ export async function startHttpServer(
         return;
       }
       void (async () => {
+        // --- Resolve phase: parsing/validating/geocoding the CALLER's own
+        // input. Anything thrown here is the caller's fault (Decision 3) —
+        // a malformed body, a schema violation, an unresolvable location, a
+        // bad theme/colour/geojson, an out-of-range zoom/format. `ok:false`
+        // is unchanged; only the HTTP status now tells them which kind of
+        // failure it was instead of always answering 200.
+        let cfg: RenderConfig;
         try {
           const body = await readJsonBody(req, maxBodyBytes);
           // Same contract render_map registers on the MCP transport — parsed
           // here rather than trusted as-is, and never a second hand-rolled
           // schema that could drift from it.
           const params = renderMapSchema.parse(body);
-          const cfg = await resolveConfig(params);
+          cfg = await resolveConfig(params);
+        } catch (e) {
+          if (e instanceof PayloadTooLargeError) {
+            res.writeHead(413, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
+          // gives the same one-line human-readable clarity every other guard in
+          // this codebase already throws (assertTheme, assertLngLat, ...). Also
+          // covers a malformed JSON body — readJsonBody's own JSON.parse throws
+          // a plain SyntaxError, which falls through to this same 400 branch.
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(400, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+          return;
+        }
+
+        // --- Render phase: OUR infrastructure (browser pool, page render,
+        // delivery to sinkDir). A failure here is our fault, not the
+        // caller's — 500, not 400.
+        try {
           const png = await deps.render(cfg);
           const image = await deliver(png, `rest-${Date.now()}`, 'inline', { sinkDir: deps.sinkDir });
           res.writeHead(200, { 'content-type': 'application/json' });
@@ -176,13 +205,8 @@ export async function startHttpServer(
             }),
           );
         } catch (e) {
-          const status = e instanceof PayloadTooLargeError ? 413 : 200;
-          // A raw ZodError.message is a multi-line JSON issues dump; prettifyError
-          // gives the same one-line human-readable clarity every other guard in
-          // this codebase already throws (assertTheme, assertLngLat, ...).
-          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
-          res.writeHead(status, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: message }));
+          res.writeHead(500, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
         }
       })();
       return;
@@ -198,36 +222,62 @@ export async function startHttpServer(
         return;
       }
       void (async () => {
+        // --- Resolve phase: parsing/validating/geocoding/compiling motion —
+        // all the CALLER's own input. Anything thrown here is the caller's
+        // fault EXCEPT the two conditions that already have their own,
+        // more specific status: over the body cap (413) and over the shared
+        // clip-concurrency limit (429, Decision 2). A well-formed-but-
+        // semantically-rejected `motion` (bad preset, invariant violation)
+        // stays 422, exactly as before Decision 3. Everything else here —
+        // malformed JSON, a schema violation, an unresolvable location, a bad
+        // theme/colour/geojson, an out-of-range zoom/format — is new: 400
+        // instead of always 200.
+        //
+        // Finding C: config resolution + AC-9's chrome:'clean' force + the
+        // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
+        // live in ONE shared helper (motionCompiler.ts's prepareClipRender)
+        // instead of being reimplemented here and again in tools.ts's
+        // render_clip. A resolveConfig failure inside that same call throws
+        // a plain Error, unwrapped by prepareClipRender on purpose — it
+        // falls through to the generic 400 branch below, same as any other
+        // resolve-phase failure.
+        let prep: ClipPreparation;
         try {
           const body = (await readJsonBody(req, maxBodyBytes)) as Record<string, unknown> | undefined;
           const params = renderMapSchema.parse(body);
-
-          // Finding C: config resolution + AC-9's chrome:'clean' force + the
-          // MAPPOSTER_MAX_CLIP_FRAMES budget + preset-vs-script resolution all
-          // live in ONE shared helper now (motionCompiler.ts's
-          // prepareClipRender) instead of being reimplemented here and again
-          // in tools.ts's render_clip. MotionParamError is the one thing this
-          // surface maps to 422 — a resolveConfig failure inside the same
-          // call throws a plain Error and falls through to the outer catch
-          // below, unchanged from before this refactor.
-          let prep: ClipPreparation;
-          try {
-            prep = await prepareClipRender(params, body?.motion);
-          } catch (e) {
-            // Decision 2: over the shared clip-concurrency limit (both this
-            // endpoint and MCP render_clip share ONE counter — see
-            // motionCompiler.ts's acquireClipSlot).
-            if (e instanceof ClipConcurrencyError) {
-              res.writeHead(429, { 'content-type': 'application/json' });
-              res.end(JSON.stringify({ ok: false, error: e.message }));
-              return;
-            }
-            if (!(e instanceof MotionParamError)) throw e;
+          prep = await prepareClipRender(params, body?.motion);
+        } catch (e) {
+          if (e instanceof PayloadTooLargeError) {
+            res.writeHead(413, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          // Decision 2: over the shared clip-concurrency limit (both this
+          // endpoint and MCP render_clip share ONE counter — see
+          // motionCompiler.ts's acquireClipSlot).
+          if (e instanceof ClipConcurrencyError) {
+            res.writeHead(429, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          if (e instanceof MotionParamError) {
             res.writeHead(422, { 'content-type': 'application/json' });
             res.end(JSON.stringify({ ok: false, error: e.message }));
             return;
           }
-          const { cfg, motion, preset, releaseClipSlot } = prep;
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(400, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+          return;
+        }
+
+        // --- Render/encode phase: OUR infrastructure. `renderClip`/`deps`
+        // wiring and frame capture failing here is our fault (500) — but the
+        // two explicit outcomes below (encode-failure degrade, oversize
+        // rejection) are NOT failures in that sense; they keep their
+        // existing status codes untouched (spec §5 / Finding G).
+        const { cfg, motion, preset, releaseClipSlot } = prep;
+        try {
           try {
             if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
             const { frames, settle } = await deps.renderClip(cfg);
@@ -307,17 +357,20 @@ export async function startHttpServer(
                 }),
               );
             }
-          } finally {
-            // Decision 2: free the shared clip slot no matter how this call
-            // ends — success, degrade, oversize rejection, or a re-thrown
-            // infra error caught by the outer catch below.
-            releaseClipSlot();
+          } catch (e) {
+            // Decision 3: anything that reaches here — `deps.renderClip`
+            // itself throwing (a page crash mid-capture), or the clip deps
+            // simply not being wired — is OUR infrastructure failing, not
+            // the caller's input. The encode-failure degrade (200) and the
+            // oversize rejection (422) above both `return` before this catch
+            // is ever reached, so neither is reclassified by it.
+            res.writeHead(500, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
           }
-        } catch (e) {
-          const status = e instanceof PayloadTooLargeError ? 413 : 200;
-          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
-          res.writeHead(status, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: message }));
+        } finally {
+          // Decision 2: free the shared clip slot no matter how this call
+          // ends — success, degrade, oversize rejection, or the 500 above.
+          releaseClipSlot();
         }
       })();
       return;

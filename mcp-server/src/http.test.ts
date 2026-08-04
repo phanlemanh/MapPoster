@@ -222,17 +222,54 @@ describe('POST /render (REST)', () => {
     expect(body.width).toBe(1);
   });
 
-  it('returns ok:false on resolve error (unknown theme) instead of throwing', async () => {
+  it('returns 400 + ok:false on a resolve-phase error (unknown theme) instead of throwing or answering 200 (Decision 3)', async () => {
     srv = await startHttpServer(0, fakeDeps());
     const res = await fetch(renderUrl(srv), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 }, theme: 'khong-ton-tai' }),
     });
-    expect(res.status).toBe(200);
+    // A bad theme is the CALLER's fault — 400, not 200. The body shape
+    // ({ ok:false, error }) is unchanged; this is backward compatible with a
+    // consumer that only checks `body.ok`, per Decision 3's stated contract.
+    expect(res.status).toBe(400);
     const body = (await res.json()) as { ok: boolean; error?: string };
     expect(body.ok).toBe(false);
     expect(body.error).toMatch(/theme/i);
+  });
+
+  it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: 'zzz-nowhere-on-earth' }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    // {ok:false, error} is unchanged in a 4xx body — Decision 3 only changes
+    // the HTTP status, never the response shape.
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/no geocoding result/i);
+  });
+
+  it('500: a failure while actually rendering (not resolving) is OUR fault, not the caller\'s (Decision 3)', async () => {
+    srv = await startHttpServer(0, {
+      render: async () => {
+        throw new Error('page crashed mid-render');
+      },
+      sinkDir: tmpdir(),
+      defaultDelivery: 'inline',
+    });
+    const res = await fetch(renderUrl(srv), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ location: { lng: 106.7, lat: 10.78 } }),
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/page crashed mid-render/);
   });
 
   it('rejects when MAPPOSTER_TOKEN set and bearer missing/wrong', async () => {
@@ -366,6 +403,40 @@ describe('POST /render-clip', () => {
     expect(body.resolved?.center).toBeDefined();
     expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
     expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
+  });
+
+  it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
+    srv = await startHttpServer(0, fakeClipDeps());
+    const res = await postJson(clipUrl(srv), {
+      location: 'zzz-nowhere-on-earth',
+      motion: { preset: 'drift' },
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as ClipResBody;
+    // {ok:false, error} is unchanged in a 4xx body — Decision 3 only changes
+    // the HTTP status, never the response shape.
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/no geocoding result/i);
+  });
+
+  it('500: a failure while actually rendering the clip (not resolving) is OUR fault — distinct from the encode-failure degrade, which stays 200 (Decision 3)', async () => {
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async () => {
+          throw new Error('page crashed mid-capture');
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/page crashed mid-capture/);
   });
 
   it('422: preset lạ, thiếu motion, và script vỡ bất biến R — message nêu tên luật', async () => {

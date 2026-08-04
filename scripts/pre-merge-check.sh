@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # pre-merge-check.sh — CI gate for the Acceptance-Gate Kit.
 #
-# Usage: pre-merge-check.sh [repo_root] [--slug <slug>]... [--base <ref>]
+# Usage: pre-merge-check.sh [repo_root] [--slug <slug>]... [--base <ref>] [--no-t1-escape]
+#
+# --no-t1-escape: turn off ONLY the T1-escape backstop for push-event runs
+# (commits landing directly on the main branch have no PR premise); every other
+# rule still runs, and the run prints a NOT ENFORCED marker plus a declared-off
+# ledger line so the off state is visible, never silent.
 #
 # --base <ref> (or env PRE_MERGE_BASE): the PR base for the T1-escape
 # backstop — changed files matching risk_tiers.t3_paths, or falling outside
@@ -33,31 +38,160 @@
 # (pre-implementation) features are out of scope.
 set -u
 
+# Đếm vi phạm — khởi tạo NGAY ĐẦU, trước mọi khối có thể tăng nó. Bản trước khởi
+# tạo mãi ở giữa file trong khi khối kiểm config phía trên đã `violations+1`:
+# dưới `set -u` đó là lỗi shell CHÍ MẠNG, script chết giữa chừng và thoát 0 —
+# một typo trong config.yaml giết TOÀN BỘ cổng (signoff, verdict, staleness,
+# bypass, T1-escape) mà CI vẫn xanh. Đúng thứ false-green kit sinh ra để chặn.
+violations=0
+# Bật khi lưới giữ-chỗ nổ ít nhất một lần; dùng để in ĐÚNG MỘT dòng cảnh báo
+# về phạm vi hẹp của chính lưới đó ở cuối lần chạy.
+NARROW_NET_SEEN=""
+
 # CI evidence re-checker shipped alongside this script (needs ../lib/evidence-core.js).
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RECHECK="$HERE/recheck-evidence.js"
 
 ROOT="."
 SLUGS=()
+# PRE_MERGE_BASE set-nhưng-RỖNG khác với không-set: không-set là bỏ-qua-có-tín-
+# hiệu hợp lệ (NOTE + declared-off), còn set-rỗng nghĩa là CI ĐÃ nối dây phạm
+# vi mà dây đứt (biến chưa có giá trị, command substitution chết im). Rơi về
+# nhánh skip là khai-rồi-mà-như-không-khai — cùng lớp với --base thiếu giá trị.
+# CHỈ ghi CỜ ở đây, phán SAU vòng parse: cờ --base tường minh override env theo
+# convention chung, nên env-rỗng chỉ đáng nổ khi giá trị rỗng đó THẬT SỰ được
+# dùng (không có --base) — bản đầu nổ trước vòng parse làm
+# `PRE_MERGE_BASE="" ... --base <ref thật>` đỏ oan kèm gợi ý sửa trỏ sai chỗ
+# (S4 round 8 của gap-probe bắt được, kèm repro).
+PMB_SET_EMPTY=0
+[ "${PRE_MERGE_BASE+x}" = "x" ] && [ -z "$PRE_MERGE_BASE" ] && PMB_SET_EMPTY=1
 BASE="${PRE_MERGE_BASE:-}"
+# Răng T1-escape bật mặc định. Opt-OUT chứ không phải opt-in `--pr`: acceptance-init
+# đang dạy consumer truyền đúng `--base`, nên opt-in sẽ làm răng tắt IM LẶNG trên
+# mọi repo tiêu thụ đang chạy — biến một sửa lỗi thành lỗ fail-open hàng loạt.
+T1_ESCAPE=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --slug)
       [ $# -ge 2 ] || { echo "pre-merge-check: --slug requires a value" >&2; exit 2; }
+      case "$2" in -*) echo "pre-merge-check: --slug requires a value (got option $2)" >&2; exit 2 ;; esac
+      # Giá trị RỖNG cùng lớp với thiếu giá trị: lọc theo slug rỗng thì không
+      # thư mục nào khớp, mọi slug bị bỏ qua mà vẫn `clean` — khai-lọc-rỗng
+      # phải nổ to (nợ chip 33ca1add, cùng doctrine với --base rỗng bên dưới).
+      [ -n "$2" ] || { echo "pre-merge-check: --slug requires a value (got empty string — a CI variable is unset or a command substitution failed)" >&2; exit 2; }
       SLUGS+=("$2"); shift 2 ;;
     --base)
       [ $# -ge 2 ] || { echo "pre-merge-check: --base requires a value" >&2; exit 2; }
+      # Quên giá trị thì `--base --no-t1-escape` nuốt cờ kế làm ref: base không
+      # bao giờ resolve, răng T1-escape lẫn gap-probe cùng bỏ qua, script in
+      # `clean` và thoát 0. Chốt `-*` ở trên chỉ phủ positional, không phủ GIÁ TRỊ.
+      case "$2" in -*) echo "pre-merge-check: --base requires a value (got option $2)" >&2; exit 2 ;; esac
+      # Giá trị RỖNG — kiểu CI `--base "$VAR"` với VAR unset, hoặc
+      # `--base "$(git rev-parse ...)"` mà lệnh con chết im dưới bash -e của
+      # GithubActions. Bản cũ rơi về nhánh "no PR base given": gap-probe lẫn
+      # T1-escape cùng declared-off và repo sạch thoát 0 — operator ĐÃ khai
+      # phạm vi mà cổng chạy như không khai. Doctrine ADR 0004/0006: đã khai
+      # thì không xác định được phạm vi là exit 2, không phải skip.
+      [ -n "$2" ] || { echo "pre-merge-check: --base requires a value (got empty string — a CI variable is unset or a command substitution failed; drop --base entirely to run without a diff scope)" >&2; exit 2; }
       BASE="$2"; shift 2 ;;
-    *) ROOT="$1"; shift ;;
+    --no-t1-escape)
+      # Không nhận tham số — `reason` là hằng, giữ ranh giới "không thêm cờ nào khác".
+      T1_ESCAPE=0; shift ;;
+    -*)
+      # `-*` chứ không phải `--*`: một gạch cũng là lỗi gõ, và bản chỉ bắt hai
+      # gạch để lọt `-no-t1-escape` y nguyên. Nuốt cờ lạ vào ROOT là fail-open
+      # chí tử — ROOT sai → không thấy _acceptance/ → thoát 0 mà KHÔNG chạy
+      # luật nào. Từ khi kit dạy consumer chép tay cờ vào CI, một lỗi gõ là đủ.
+      echo "pre-merge-check: unknown option $1" >&2; exit 2 ;;
+    *)
+      # Positional thứ hai cũng là lỗi gõ (vd `pre-merge-check.sh . extra` âm
+      # thầm đổi ROOT sang `extra`), và ROOT không tồn tại thì phải nổ chứ
+      # không được đi tiếp để rơi vào nhánh "nothing to check".
+      [ -n "${ROOT_SET:-}" ] && { echo "pre-merge-check: unexpected argument $1" >&2; exit 2; }
+      [ -d "$1" ] || { echo "pre-merge-check: root not a directory: $1" >&2; exit 2; }
+      ROOT="$1"; ROOT_SET=1; shift ;;
   esac
 done
 
+# Phán quyết env-rỗng (cờ ghi ở đầu file): tới đây BASE còn rỗng nghĩa là không
+# có --base nào override — giá trị đứt dây của CI sắp được DÙNG thật, nổ to.
+if [ "$PMB_SET_EMPTY" -eq 1 ] && [ -z "$BASE" ]; then
+  echo "pre-merge-check: PRE_MERGE_BASE is set but empty — a CI variable expansion failed (unset it to run without a diff scope, or give a real ref via PRE_MERGE_BASE or --base)" >&2
+  exit 2
+fi
+
+# ─── Sổ luật-đã-chạy (rules ledger) ─────────────────────────────────────────
+# `clean` phải được CHỨNG MINH, không phải mặc định: mọi khối luật ghi sổ qua
+# ledger_mark; điểm nghẽn trước kết luận so EXPECTED với sổ HAI CHIỀU. Lệch =
+# lỗi NỘI TẠI của cổng -> exit 2, không phải violation của feature. EXPECTED
+# là danh sách ĐÓNG, CỐ ĐỊNH, không phụ thuộc config — thêm khối luật mới
+# PHẢI thêm tên vào đây (suite P48 + RL7a canh hai chiều bằng máy).
+LEDGER_EXPECTED="per-slug gap-probe t1-escape"
+# set -- xoá positional params — hợp lệ vì đứng SAU vòng parse args ở trên.
+set -- $LEDGER_EXPECTED
+LEDGER_K=$#
+LEDGER_ENABLED=1
+LEDGER_RAN=""; LEDGER_OFF=""; LEDGER_RAN_N=0; LEDGER_OFF_N=0
+ledger_mark() { # <ran|declared-off> <tên>
+  [ "$LEDGER_ENABLED" -eq 1 ] || return 0
+  case "$1" in
+    ran)          LEDGER_RAN="${LEDGER_RAN}${2} "; LEDGER_RAN_N=$((LEDGER_RAN_N+1)) ;;
+    declared-off) LEDGER_OFF="${LEDGER_OFF}${2} "; LEDGER_OFF_N=$((LEDGER_OFF_N+1)) ;;
+  esac
+  echo "$1 $2"
+}
+ledger_count() { # <tên> — số lần tên xuất hiện trong sổ. Thuần bash có chủ
+  # đích: chokepoint không được phụ thuộc binary ngoài, vì trạng thái
+  # node-vắng (AC-12) phải đi qua nó mà không tự phá sổ.
+  local c=0 w
+  for w in $LEDGER_RAN $LEDGER_OFF; do [ "$w" = "$1" ] && c=$((c+1)); done
+  echo "$c"
+}
+
+# lib dùng chung — CÙNG file mà scripts/gate-card.js require. pre-merge chỉ còn
+# đọc config, xác định phạm vi diff, in ấn và đếm; LUẬT nằm trong lib. Bản awk
+# cũ đã lệch thật: một dòng JSON hỏng mở được van thoát ở bash trong khi thẻ
+# Cổng 1 loại nó (AC-13). Parity giữ bằng comment là parity không có răng.
+GP_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/gap-probe.js"
+
 ACC="$ROOT/_acceptance"
-[ -d "$ACC" ] || { echo "pre-merge-check: no _acceptance/ — nothing to check"; exit 0; }
+if [ ! -d "$ACC" ]; then
+  # Có --slug nghĩa là operator KHAI một bộ lọc — không có gì để lọc thì phải
+  # nổ, không phải "nothing to check" xanh (cùng lớp bộ-lọc-khai-mà-rỗng dưới).
+  if [ ${#SLUGS[@]} -gt 0 ]; then
+    echo "pre-merge-check: --slug given but no _acceptance/ under $ROOT — a declared filter with nothing to filter must not green the gate" >&2
+    exit 2
+  fi
+  echo "pre-merge-check: no _acceptance/ — nothing to check"; exit 0
+fi
+# Bộ lọc --slug khai một tên KHÔNG khớp thư mục nào = cùng hình dạng với giá
+# trị rỗng (chip 33ca1add) mà round 9 chỉ ra tôi quét sót: vòng per-slug bỏ qua
+# mọi thư mục, không luật nào soi feature nào, sổ vẫn ghi `ran per-slug` (đếm
+# thư mục TRƯỚC bộ lọc) và script in `clean` — một slug gõ sai trong CI làm
+# cổng xanh vĩnh viễn. Lọc theo tên thư mục nên kiểm tra tương đương là -d.
+if [ ${#SLUGS[@]} -gt 0 ]; then
+  for _s in "${SLUGS[@]}"; do
+    # Vòng lặp per-slug so BẰNG với `basename` của thư mục, nên giá trị chứa
+    # `/` hay là `.`/`..` KHÔNG BAO GIỜ khớp basename nào — nhưng lại qua được
+    # phép thử -d bên dưới (`feat-x/`, `.`, `..` đều là "thư mục có thật").
+    # Round 7 bắt đúng lỗ này trong guard vừa thêm: kiểm phải cùng ngữ nghĩa
+    # với bộ lọc thật, không phải một phép thử gần giống.
+    case "$_s" in
+      */*|.|..)
+        echo "pre-merge-check: --slug $_s is not a plain slug name (slashes, . and .. can never match a slug directory basename — a declared filter that matches nothing must not green the gate)" >&2
+        exit 2 ;;
+    esac
+    [ -d "$ACC/$_s" ] || { echo "pre-merge-check: --slug $_s matches no directory under _acceptance/ (typo? a declared filter that matches nothing must not green the gate)" >&2; exit 2; }
+  done
+fi
 
 # Which tiers need a signed report before merge — from consumer config when
 # present (signoff.required_for), defaulting to T2+T3.
 REQUIRED_FOR="T2 T3"
+# Mode luật gap-probe. Mặc định `advisory`: bỏ qua phản biện phải THẤY ĐƯỢC,
+# nhưng bật kit lên không được chặn merge của repo chưa kịp làm quen. `off` là
+# im hoàn toàn; `required` là chặn.
+GAP_PROBE_MODE="advisory"
 # Committed-evidence re-check mode: strict (block) | warn (advise, default) | off.
 # Default warn so adopting the re-check never blocks merges over reports written by
 # an OLDER evidence template — a repo opts into strict once its reports meet the bar.
@@ -75,6 +209,46 @@ AGENT_AUTHORS=""
 if [ -f "$ACC/config.yaml" ]; then
   cfg_req="$(sed -n 's/^[[:space:]]*required_for:[[:space:]]*//p' "$ACC/config.yaml" | head -1 | sed 's/[[:space:]]*#.*$//')"
   [ -n "$cfg_req" ] && REQUIRED_FOR="$cfg_req"
+  # `enforcement` là khoá DUY NHẤT mà hook (write-time) và pre-merge (merge
+  # boundary) CÙNG đọc, nên nó là chỗ duy nhất hai parser có thể bất đồng — và
+  # mọi bất đồng đều cùng một hình dạng fail-open: hook giữ `strict` (enforce
+  # đầy đủ, không ai nghi ngờ) trong khi sổ ở pre-merge tắt IM LẶNG.
+  #
+  # Vì thế grep dưới đây nhân bản TRỌN VẸN regex của hook
+  # (`/^enforcement\s*:\s*(strict|warn|off)\s*(?:#.*)?$/m`) theo TỪNG chiều,
+  # thay vì chuẩn hoá giá trị rồi so — hai round vá kiểu chuẩn-hoá đều để hở
+  # một chiều (round 1: hoa/thường; round 2: nháy; round 3 review vẫn bắt được
+  # chiều space-trước-dấu-hai-chấm và dòng-trùng-khoá). Các chiều:
+  #   - `[[:space:]]*` quanh dấu `:` = `\s*` của hook (cả tab);
+  #   - token đúng chữ thường, không nháy — `OFF`/`"off"` trượt Ở CẢ HAI BÊN;
+  #   - đuôi chỉ được khoảng trắng + chú thích `#` — khớp `\s*(?:#.*)?$`;
+  #   - NHIỀU dòng cùng khoá: hook match dòng ĐẦU TIÊN thoả trọn pattern (dòng
+  #     giá-trị-rác không thoả nên bị nhảy qua) — grep + head -1 cho đúng thế.
+  # Bảng parity RL11c đo cả hai bên trên CÙNG chuỗi; regex hook đọc từ nguồn.
+  # Các khoá còn lại (`gap_probe`, `recheck`, ...) chỉ pre-merge đọc, độ rộng
+  # khác nhau ở đó KHÔNG tạo bất đồng hai lớp.
+  cfg_enf="$(grep -E '^enforcement[[:space:]]*:[[:space:]]*(strict|warn|off)[[:space:]]*(#.*)?$' "$ACC/config.yaml" \
+    | head -1 | sed -e 's/^enforcement[[:space:]]*:[[:space:]]*//' -e 's/[[:space:]]*#.*$//' -e 's/[[:space:]]*$//')"
+  # off là off toàn cục (tiền lệ hook) — sổ luật tắt theo, không dòng nào
+  # (AC-11); warn/strict/không-khớp đều GIỮ sổ bật.
+  case "$cfg_enf" in off) LEDGER_ENABLED=0 ;; esac
+  cfg_gp="$(sed -n 's/^[[:space:]]*gap_probe:[[:space:]]*//p' "$ACC/config.yaml" | head -1 \
+    | sed -e 's/[[:space:]]*#.*$//' -e 's/^["'"'"']//' -e 's/["'"'"']$//' -e 's/[[:space:]]*$//' \
+    | tr '[:upper:]' '[:lower:]')"
+  if [ -n "$cfg_gp" ]; then
+    case "$cfg_gp" in
+      required|advisory|off) GAP_PROBE_MODE="$cfg_gp" ;;
+      *)
+        # KHÔNG âm thầm rơi về mặc định: một cổng tự tắt vì sai chính tả đúng là
+        # false-green mà luật này sinh ra để chặn.
+        echo "VIOLATION [config]: gap_probe: \"$cfg_gp\" không phải mode hợp lệ — dùng required | advisory | off (khoá vắng = advisory)"
+        violations=$((violations+1))
+        # KHÔNG rơi về advisory: cổng đã chặn bằng VIOLATION trên, nên chạy luật
+        # gap-probe theo một mode ĐOÁN chỉ tạo tín hiệu sai. "Cảnh báo rồi vẫn
+        # advisory" là fail-open có tiếng động — vẫn là fail-open (AC-11 v3-r2).
+        GAP_PROBE_MODE="off" ;;
+    esac
+  fi
   cfg_rc="$(sed -n 's/^[[:space:]]*recheck:[[:space:]]*//p' "$ACC/config.yaml" | head -1 | sed 's/[[:space:]]*#.*$//')"
   case "$cfg_rc" in strict|warn|off) RECHECK_MODE="$cfg_rc" ;; esac
   T1_GLOBS="$(sed -n '/^  t1_skip_globs:/,/^  [a-zA-Z0-9_-]*:/p' "$ACC/config.yaml" \
@@ -111,6 +285,79 @@ front_field() { # <file> <key> — read <key> from the LEADING --- frontmatter b
     | sed -e 's/[[:space:]]*#.*$//' -e 's/^["'"'"']//' -e 's/["'"'"']$//' -e 's/[[:space:]]*$//'
 }
 
+claims_released() { # <dir> — 0 iff thư mục TỰ NHẬN đã qua cổng.
+  # Đọc bằng fm_field (BẤT KỲ dòng nào) chứ không front_field (chỉ frontmatter
+  # dẫn đầu) là CỐ Ý: đây là bộ DÒ, doctrine là rộng-khi-dò/chặt-khi-nhận. Một
+  # fence hỏng hoặc lệch không được phép mua lấy sự vô hình — đó đúng là thứ
+  # đang cần bắt. Mọi chốt CHẤP NHẬN bên dưới vẫn dùng front_field như cũ.
+  if [ -f "$1/evidence-report.md" ] \
+     && [ "$(fm_field "$1/evidence-report.md" verdict)" = "PASS" ]; then
+    return 0
+  fi
+  # Nhánh contract là thứ bản vá cục bộ của repo tiêu thụ KHÔNG có, nên nó bỏ
+  # sót ca "khai signed-off mà không có evidence nào".
+  if [ -f "$1/contract.md" ]; then
+    case "$(fm_field "$1/contract.md" status)" in
+      implemented|verified|signed-off) return 0 ;;
+    esac
+  fi
+  return 1
+}
+
+placeholder_signoff() { # <chuỗi> — 0 iff chữ ký khớp một mẫu giữ-chỗ đã biết.
+  # ĐÂY LÀ LUẬT CHỮ KÝ DUY NHẤT còn lại (ngoài chốt rỗng). Không có lớp dự
+  # phòng nào phía sau: `signoff.approvers` KHÔNG được cổng đọc kể từ 1.24.0 —
+  # bốn bản vá cố khớp chữ ký với allowlist đều hỏng theo một hình dạng YAML
+  # hợp lệ mới, nên cả lớp bị gỡ (xem contract của premerge-unjudged-pass).
+  #
+  # PHẠM VI THẬT, đo được, đừng mô tả rộng hơn: khớp TIỀN TỐ với đúng 8 từ khoá
+  # + 4 ký hiệu dưới đây. Mọi thứ khác ĐỀU QUA — kể cả giữ-chỗ tiếng Anh không
+  # nằm trong bảng (`FIXME`, `placeholder`, `LGTM`), lời cộc lốc (`ok`, `yes`,
+  # `x`, `.`), và mọi giữ-chỗ viết bằng ngôn ngữ khác (`chờ Manh gật`).
+  # Khớp theo TIỀN TỐ vì chữ ký thật dẫn đầu bằng tên. LC_ALL=C để `tr` không
+  # chết trên UTF-8.
+  case "$(printf '%s' "$1" | LC_ALL=C tr '[:upper:]' '[:lower:]')" in
+    '>'|'|'|'-') return 0 ;;
+    '<'*) return 0 ;;                       # template chưa điền: "<name> <date>"
+    pending*|tbd*|todo*|n/a*|none|unsigned*|waiting*) return 0 ;;
+  esac
+  return 1
+}
+
+
+# Mọi đường mà luật gap-probe KHÔNG chạy được đều đi qua ĐÂY. Một hàm, một
+# marker, một chỗ quyết định mode — vì kênh "NOTE rồi exit 0" đã giết contract
+# v1 (ledger d-114) và suýt giết v3 (gap-probe P0-2). Ở `required`, không cưỡng
+# chế được nghĩa là KHÔNG cho merge: cổng không tự hạ chuẩn khi nó đang mù.
+GP_NOT_ENFORCED=0
+gap_probe_not_enforced() { # <lý do>
+  [ "$GAP_PROBE_MODE" = "off" ] && return 0
+  [ "$GP_NOT_ENFORCED" -eq 1 ] && return 0   # AC-16: ĐÚNG một dòng marker
+  GP_NOT_ENFORCED=1
+  echo "GAP-PROBE: NOT ENFORCED reason=$1"
+  if [ "$GAP_PROBE_MODE" = "required" ]; then
+    echo "VIOLATION [gap-probe]: mode required nhưng luật không cưỡng chế được — $1. Sửa nguyên nhân, hoặc hạ gap_probe xuống advisory nếu chấp nhận merge mà không có phản biện."
+    violations=$((violations+1))
+  else
+    echo "NOTE: gap-probe không cưỡng chế được — $1 (advisory, không chặn merge)."
+  fi
+}
+
+# Cùng khuôn gap_probe_not_enforced: một hàm, một marker, một chỗ quyết định.
+# Hai chuỗi là HẰNG — CI grep được, và suite so bằng `grep -F` nên không ai tự
+# viết cả đề lẫn đáp án. Tắt im lặng là thứ luật này sinh ra để chặn.
+T1_ESCAPE_OFF=0
+t1_escape_not_enforced() {
+  [ "$T1_ESCAPE_OFF" -eq 1 ] && return 0
+  T1_ESCAPE_OFF=1
+  ledger_mark declared-off t1-escape
+  echo "T1-ESCAPE: NOT ENFORCED reason=push-event-no-pr-premise"
+  # Marker trên là cho MÁY (CI grep). Dòng dưới là cho NGƯỜI: một người chưa
+  # đọc kit phải biết LỚP NÀO tắt, VÌ SAO, và rủi ro cụ thể là gì.
+  echo "NOTE: lớp đang tắt là răng T1-escape — luật đòi mọi thay đổi chạm code quan trọng phải kèm thư mục _acceptance/<slug>/ (hồ sơ nghiệm thu). Nó chỉ có nghĩa khi so một PR với nhánh đích; lần chạy này là commit đẩy thẳng nhánh chính, nơi commit hạ tầng (đóng gói bản phát hành, đồng bộ bản sao) theo thiết kế không kèm hồ sơ nào."
+  echo "NOTE: rủi ro khi tắt — nếu một thay đổi chạm code quan trọng lọt vào lần chạy này, nó sẽ KHÔNG bị chặn vì thiếu hồ sơ nghiệm thu. Các luật khác vẫn chạy đủ (phản biện context sạch, chữ ký người, bằng chứng hết hạn). Muốn bật lại: bỏ cờ --no-t1-escape."
+}
+
 match_globs() { # <path> <newline-separated globs> — 0 iff any glob matches
   while IFS= read -r g; do
     [ -n "$g" ] || continue
@@ -132,7 +379,6 @@ stale_files() { # <root> <commit> — files changed since <commit> (incl. workin
   done
 }
 
-violations=0
 
 # config.yaml 2-space lint: every kit parser (hook resolveConfigKey, the sed/awk
 # here) is line/indent based — a TAB or odd indent silently breaks config:
@@ -152,21 +398,126 @@ if [ -f "$ACC/config.yaml" ]; then
   fi
 fi
 
+# ─── PR diff scope (hoisted) ───────────────────────────────────────────────
+# Phần này trước đây chỉ được tính ở CUỐI file, trong khối T1-escape — nên mọi
+# luật nằm trong vòng lặp per-slug đều không nhìn thấy diff. Luật gap-probe cần
+# nó (chỉ xét slug có file trong PR), nên hoist lên đây; T1-escape bên dưới DÙNG
+# LẠI ba biến này thay vì tính lại. Thông điệp giữ NGUYÊN VĂN để nội dung và thứ
+# tự output không đổi.
+DIFF_READY=0
+DIFF_FILES=""
+DIFF_SKIP_NOTE=""
+if [ -z "$BASE" ]; then
+  DIFF_SKIP_NOTE="no PR base given (pass --base <ref> or set PRE_MERGE_BASE; GitHub Actions: --base \"origin/\$GITHUB_BASE_REF\")"
+elif ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  # Tới nhánh này là base ĐÃ KHAI (nhánh -z ở trên bắt trường hợp không khai)
+  # mà git không dùng được — không phải git repo, hoặc rev-parse bị chặn (CI
+  # container hay gặp safe.directory). Bản cũ hạ về DIFF_SKIP_NOTE: gap-probe
+  # lẫn T1-escape cùng declared-off và repo sạch thoát 0, ngược cả câu README
+  # 'base đã khai mà không resolve được là exit 2 ở MỌI repo' (round 9 bắt).
+  # Cùng doctrine với nhánh ref-không-resolve ngay dưới: đã khai thì mù là nổ.
+  echo "VIOLATION [scope]: base \"$BASE\" đã khai nhưng git không dùng được trên $ROOT (không phải git repo, hoặc rev-parse bị chặn — CI container kiểm safe.directory). Phạm vi diff KHÔNG xác định được mà bạn đã yêu cầu nó; sửa môi trường git, hoặc bỏ hẳn --base nếu thật sự muốn chạy không phạm vi."
+  exit 2
+else
+  BASE_SHA="$(git -C "$ROOT" rev-parse --quiet --verify "$BASE^{commit}" 2>/dev/null || true)"
+  [ -z "$BASE_SHA" ] && BASE_SHA="$(git -C "$ROOT" rev-parse --quiet --verify "origin/$BASE^{commit}" 2>/dev/null || true)"
+  if [ -z "$BASE_SHA" ]; then
+    # KHÁC với "không truyền base": ở đây người vận hành ĐÃ yêu cầu một phạm vi
+    # mà máy không tính được (ref gõ sai, nhánh đã xoá, clone shallow). Hạ về
+    # bỏ-qua-rồi-clean là fail-open — cùng doctrine ADR 0004.
+    # stdout như MỌI dòng VIOLATION khác (config/gap-probe/PR/ledger/per-slug)
+    # — bản đầu >&2 làm CI nào chỉ grep stdout nhận exit 2 trần không lý do.
+    echo "VIOLATION [scope]: base \"$BASE\" không resolve được trong clone này — phạm vi diff KHÔNG xác định được, mà bạn đã yêu cầu nó. Sửa ref (CI: fetch-depth: 0 + đúng base_ref), hoặc bỏ hẳn --base nếu thật sự muốn chạy không phạm vi."
+    exit 2
+  else
+    # `rev-parse --verify` mới chỉ chứng minh OBJECT tồn tại. `git diff A...HEAD`
+    # vẫn rc=128 + stdout rỗng khi KHÔNG có merge-base (clone shallow/grafted,
+    # lịch sử rời nhau, base bị force-push). Nuốt rc ở đây là tai hoạ: script
+    # tin phạm vi "đã biết và RỖNG" → gap-probe không bao giờ nổ, T1-escape
+    # không thấy gì, NOTE bỏ-qua không in, và guard fail-closed của CI (grep
+    # "skipped") bị vượt luôn. Mù thì phải KHAI là mù.
+    if DIFF_FILES="$(git -C "$ROOT" diff --name-only "$BASE_SHA...HEAD" -- 2>/dev/null)"; then
+      DIFF_READY=1
+    else
+      DIFF_FILES=""
+      DIFF_SKIP_NOTE="git diff \"$BASE\"...HEAD failed (no merge base? shallow/grafted clone, unrelated history, force-pushed base)"
+    fi
+  fi
+fi
+
+# 0 iff PR đổi ít nhất một file dưới _acceptance/<slug>/. NEO `^` là bắt buộc:
+# fixture ở tests/.../_acceptance/<slug>/ KHÔNG phải artifact của slug đó — glob
+# chưa neo chính là lỗ README đang ghi cho khối T1-escape bên dưới.
+# 0 iff PR đổi ít nhất một file dưới _acceptance/<slug>/.
+# Path của `git diff` LUÔN tương đối với git top-level, KHÔNG phải với $ROOT —
+# nên chỉ neo `^` là giả định ROOT == git root, và repo có `_acceptance/` nằm
+# sâu (monorepo: pkg/_acceptance/) sẽ thấy luật TẮT im lặng. Dùng đúng idiom mà
+# stale_files() và khối T1-escape trong file này vẫn dùng: chấp cả hai hình
+# dạng. Vẫn chặn được fixture rác vì đòi khớp trọn `_acceptance/<slug>/`.
+slug_in_diff() { # <slug>
+  [ "$DIFF_READY" -eq 1 ] || return 1
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in
+      _acceptance/"$1"/*|*/_acceptance/"$1"/*) return 0 ;;
+    esac
+  done <<SLUGDIFF
+$DIFF_FILES
+SLUGDIFF
+  return 1
+}
+
+# AC-12 nửa sau: không có base thì luật không xác định được phạm vi, nên bỏ qua
+# — nhưng bỏ qua phải THẤY ĐƯỢC (cùng lối với răng T1-escape bên dưới).
+if [ "$GAP_PROBE_MODE" != "off" ] && [ "$DIFF_READY" -eq 0 ]; then
+  gap_probe_not_enforced "$DIFF_SKIP_NOTE (luật chỉ xét slug có file trong diff PR)"
+fi
+
+# per-slug: hai đường dẫn độc lập về lexical — vòng đếm dưới đây dùng biến
+# _sd, vòng luật thật dùng dir. Tiêm hỏng một vòng thì con số lệch và điểm
+# nghẽn từ chối kết luận (AC-9: bắt cả biến thể CHƯA nghĩ ra).
+SLUG_SEEN=0; SLUG_EXPECTED_N=0
+for _sd in "$ACC"/*/; do [ -d "$_sd" ] && SLUG_EXPECTED_N=$((SLUG_EXPECTED_N+1)); done
+GP_SCOPE_N=0; GP_RAN=0
+
 for dir in "$ACC"/*/; do
   [ -d "$dir" ] || continue
+  SLUG_SEEN=$((SLUG_SEEN+1))
   slug="$(basename "$dir")"
   if [ ${#SLUGS[@]} -gt 0 ]; then
     found=0
     for s in "${SLUGS[@]}"; do [ "$s" = "$slug" ] && found=1; done
     [ $found -eq 1 ] || continue
   fi
+  # Mỗi `continue` dưới đây loại thư mục khỏi cổng HOÀN TOÀN. Im lặng đó đúng
+  # với scaffold bỏ hoang, nhưng một thư mục TỰ KHAI đã phát hành mà vô hình là
+  # một PASS chưa ai phán cưỡi CI xanh (incident 2026-07-20 #255 ở repo tiêu thụ).
   contract="$dir/contract.md"
-  [ -f "$contract" ] || continue
+  if [ ! -f "$contract" ]; then
+    if claims_released "$dir"; then
+      echo "VIOLATION [$slug]: no contract.md — slug invisible to the gate, yet it claims release (evidence-report.md declares verdict PASS). An unjudged PASS would ride CI green. Add contract.md with frontmatter status + risk_tier so the gate can judge it."
+      violations=$((violations+1))
+    fi
+    continue
+  fi
 
   tier="$(fm_field "$contract" risk_tier)"
   status="$(fm_field "$contract" status)"
 
-  [ -n "$tier" ] || continue
+  # Thiếu field ≠ khai báo → bị flag. Field CÓ mặt nhưng ngoài phạm vi (status
+  # draft/approved, tier ngoài required_for) LÀ khai báo → vẫn im lặng đúng
+  # thiết kế, xử ở hai `case` ngay dưới.
+  if [ -z "$tier" ] || [ -z "$status" ]; then
+    if claims_released "$dir"; then
+      if   [ -z "$tier" ] && [ -z "$status" ]; then uj_missing="status nor risk_tier"
+      elif [ -z "$tier" ];                     then uj_missing="risk_tier"
+      else                                          uj_missing="status"
+      fi
+      echo "VIOLATION [$slug]: contract has no $uj_missing — slug invisible to the gate, yet it claims release. Add the missing frontmatter to $slug/contract.md so the gate can judge it."
+      violations=$((violations+1))
+    fi
+    continue
+  fi
   case "$REQUIRED_FOR" in *"$tier"*) ;; *) continue ;; esac
   case "$status" in implemented|verified|signed-off) ;; *) continue ;; esac
 
@@ -183,6 +534,95 @@ for dir in "$ACC"/*/; do
         echo "VIOLATION [$slug]: status=$status but approved_by is empty and gate1_skipped is not true — Gate 1 approval was never recorded (contract skipped the gate)"
         violations=$((violations+1)); continue ;;
     esac
+  fi
+
+  # Cross-layer pairing teeth (wave 2): a gated feature whose contract tags a
+  # criterion (cross-layer) MUST pair it with >=1 eval declaring
+  # layer: backend-effect in evals.yaml — otherwise this merge would ride on
+  # UI-only evidence for a UI→API→backend path. Write-time stays advisory
+  # (lint W4); this is the merge-boundary backstop for every runtime.
+  # Fail-open: evals.yaml missing → NOTE, never a block.
+  # `## Criteria` runs until the next H1/H2 — a `### nhóm phụ` inside it is
+  # content, not a boundary. Exiting on any heading truncated the scan and every
+  # AC after the first sub-heading went untagged (teeth silently off).
+  xl_acs="$(awk '/^#/ && !/^###/ {insec=0} tolower($0) ~ /^##[[:space:]]+criteria/{insec=1; next} insec && tolower($0) ~ /^[[:space:]]*[-*].*\(cross-layer\)/ { if (match($0, /AC-[0-9]+/)) print substr($0, RSTART, RLENGTH) }' "$contract" | sort -u)"
+  if [ -n "$xl_acs" ]; then
+    if [ ! -f "${dir}evals.yaml" ]; then
+      echo "NOTE [$slug]: cross-layer criteria declared but no evals.yaml — pairing unverifiable (fail-open)"
+    else
+      # Buffer per eval block then flush: `layer:` may appear BEFORE `criterion:`
+      # in a hand-written evals.yaml — printing at layer-time would miss those.
+      # A YAML mapping key REQUIRES whitespace (or EOL) after its colon — that
+      # alone separates `- id: E1` (opens a block) from a `paths:` glob like
+      # `- api:v2/**` (a list item, colon glued to the value). Do NOT whitelist
+      # key names here: a block opening on an unlisted key would fail to flush,
+      # leaking the previous block's `layer:` onto it — false-green, the exact
+      # failure these teeth exist to stop. Open wide, discriminate on syntax.
+      xl_paired="$(awk '
+        function flush() { if (lay=="backend-effect" && crit!="") print crit }
+        tolower($0) ~ /^[[:space:]]*-[[:space:]]*[a-z_]+:([[:space:]]|$)/ { flush(); crit=""; lay="" }
+        tolower($0) ~ /^[[:space:]]*(-[[:space:]]*)?criterion:[[:space:]]*/ {v=$0; sub(/^[^:]*:[[:space:]]*/,"",v); gsub(/["'\'']/,"",v); sub(/[[:space:]]+#.*$/,"",v); sub(/[[:space:]]+$/,"",v); crit=v}
+        tolower($0) ~ /^[[:space:]]*(-[[:space:]]*)?layer:[[:space:]]*/ {v=tolower($0); sub(/^[^:]*:[[:space:]]*/,"",v); gsub(/["'\'']/,"",v); sub(/[[:space:]]+#.*$/,"",v); sub(/[[:space:]]+$/,"",v); lay=v}
+        END { flush() }
+      ' "${dir}evals.yaml" | sort -u)"
+      while IFS= read -r xac; do
+        [ -n "$xac" ] || continue
+        if ! printf '%s\n' "$xl_paired" | grep -qx "$xac"; then
+          echo "VIOLATION [$slug]: $xac is tagged (cross-layer) but no eval of it declares layer: backend-effect — a cross-layer criterion would merge on UI-only evidence; add the paired test/script eval, or untag it with the human's signoff at Gate 1"
+          violations=$((violations+1))
+        fi
+      done <<XLACS
+$xl_acs
+XLACS
+    fi
+  fi
+
+  # Counter scope NẰM NGOÀI khối luật bên dưới và cố ý khác lexical (off không
+  # nháy kép): tiêm vô hiệu khối thì counter vẫn đếm, sổ lệch, chokepoint bắt.
+  [ "$GAP_PROBE_MODE" != off ] && slug_in_diff "$slug" && GP_SCOPE_N=$((GP_SCOPE_N+1))
+
+  # ─── Gap-probe presence (phản biện context sạch) ─────────────────────────
+  # Vị trí có chủ đích: SAU hai bước lọc `REQUIRED_FOR` và `status implemented+`
+  # phía trên, nên AC-4 (T1) và AC-10 (draft/approved) đúng theo CẤU TRÚC chứ
+  # không nhờ một nhánh if riêng. Chỉ xét slug có file trong diff PR: quét cả
+  # `_acceptance/` khiến repo có lịch sử nhận hàng chục VIOLATION không liên
+  # quan diff ở PR đầu tiên rồi tắt luật (Cổng 1 2026-07-26, ledger d-116).
+  if [ "$GAP_PROBE_MODE" != "off" ] && slug_in_diff "$slug"; then
+    gp_fix='Chạy bước S1#7 (phản biện context sạch) để sinh gap-probe.md, HOẶC ghi vào decisions.jsonl một entry {"id":"d-<UTC>-<rand>","type":"descope","stage":"S1","at":"<ISO>","decision":"bỏ gap-probe — <lý do>","impact":"đổi lại không có phản biện context sạch trước duyệt"}'
+    # front_field CHỈ đọc khối --- ĐẦU file: một dòng `verdict:` nằm trong thân
+    # bài (vd trích trong bảng finding) không được tính, và `touch` file rỗng cho
+    # chuỗi rỗng nên rơi vào nhánh "thiếu". Đó là chốt chống bypass.
+    gp_line=""
+    if [ -f "$GP_LIB" ] && command -v node >/dev/null 2>&1; then
+      gp_line="$(node "$GP_LIB" classify "$dir" 2>/dev/null || true)"
+    fi
+    if [ -z "$gp_line" ]; then
+      if ! command -v node >/dev/null 2>&1; then
+        gap_probe_not_enforced "không có \`node\` trên máy chạy pre-merge"
+      elif [ ! -f "$GP_LIB" ]; then
+        gap_probe_not_enforced "thiếu $GP_LIB (mang cổng vào repo phải copy CẢ lib/)"
+      else
+        gap_probe_not_enforced "node lib/gap-probe.js classify thất bại trên $slug"
+      fi
+    else
+      GP_RAN=1
+      gp_outcome="${gp_line%%	*}"
+      gp_id="${gp_line#*	}"
+      case "$gp_outcome" in
+        ok) : ;;
+        probe-failed)
+          echo "NOTE [$slug]: gap-probe verdict là probe-failed — phản biện KHÔNG chạy được. Merge lúc này nghĩa là merge mà chưa có phản biện context sạch; chạy lại S1#7 nếu muốn có, hoặc chấp nhận rủi ro đó." ;;
+        descoped)
+          echo "NOTE [$slug]: phản biện context sạch đã được BỎ có chủ đích theo ledger $gp_id — quyết định có dấu vết, không phải sơ suất." ;;
+        *)
+          if [ "$GAP_PROBE_MODE" = "required" ]; then
+            echo "VIOLATION [$slug]: chưa qua phản biện context sạch (gap-probe) — không có gap-probe.md hợp lệ và ledger không có entry descope. $gp_fix"
+            violations=$((violations+1))
+          else
+            echo "NOTE [$slug]: chưa qua phản biện context sạch (gap-probe) — advisory, không chặn merge. $gp_fix"
+          fi ;;
+      esac
+    fi
   fi
 
   report="$dir/evidence-report.md"
@@ -218,6 +658,36 @@ for dir in "$ACC"/*/; do
   if [ -z "$signoff" ]; then
     echo "VIOLATION [$slug]: verdict PASS but human_signoff is empty (Gate 2 pending)"
     violations=$((violations+1)); continue
+  fi
+  # THỨ TỰ CÓ RĂNG: chốt rỗng ngay trên chạy TRƯỚC. Gộp hai chốt cho gọn sẽ làm
+  # chuỗi rỗng không khớp mẫu lưới-đen nào rồi rơi ra `clean` — hồi quy fail-open
+  # trên một luật đang bảo vệ.
+  #
+  # human_signoff trước 1.24.0 chỉ bị kiểm KHÁC-RỖNG, nên "PENDING — chờ Manh
+  # gật" thoả và cổng in "signed off by PENDING". Đó KHÔNG phải đường tấn công
+  # mà là đường đi bộ bình thường: người duyệt mở file định ký, gõ một dòng giữ
+  # chỗ, commit đúng nghi thức human-fields-only. Và require_human_commit không
+  # cứu được — nó kiểm AI commit và commit đó chạm dòng nào, không kiểm nội
+  # dung có phải một cái tên.
+  #
+  # PHẠM VI ĐÃ RÚT (2026-07-29, sau BỐN lần thử): chốt này CHỈ so chuỗi trên
+  # chính chữ ký — không đọc `signoff.approvers`, không phân tích YAML nào. Bốn
+  # bản vá liên tiếp cố khớp chữ ký với allowlist đều hỏng theo một hình dạng
+  # YAML hợp lệ MỚI (khoá trần / indent 2 / ngang cột / chú thích đuôi / dấu
+  # phẩy trong nháy / flow mapping / space trước dấu hai chấm), ba lần kèm hồi
+  # quy chặn nhầm người duyệt thật. Không gian hình dạng YAML hợp lệ là vô hạn
+  # còn mỗi bản vá chỉ đóng được tập mình nghĩ ra — nên lớp đó bị GỠ HẲN thay
+  # vì vá lần năm. Đánh đổi đã khai: giữ-chỗ viết bằng ngôn ngữ ngoài bảng dưới
+  # vẫn lọt (xem "Đã biết là không bắt được" trong contract).
+  if placeholder_signoff "$signoff"; then
+    echo "VIOLATION [$slug]: human_signoff \"$signoff\" is a placeholder, not a signature — it names no approver, so Gate 2 is still pending. Replace it with the approver's name + date once they actually sign."
+    violations=$((violations+1))
+    # Nói THẲNG giới hạn của chính luật vừa nổ, đúng lúc người vận hành đang
+    # sửa dòng đó. Không có câu này, cách sửa rẻ nhất là đổi "PENDING" thành
+    # một cách nói khác — và cổng sẽ xanh, vì lưới chỉ khớp một bảng tiền tố
+    # ngắn cố định. Một dòng cho cả lần chạy, in ở cuối (xem NARROW_NET_SEEN).
+    NARROW_NET_SEEN=1
+    continue
   fi
   # Human-signoff provenance: the signature is text in an AI-writable file —
   # the git history of the commit that INTRODUCED it is the only
@@ -300,6 +770,19 @@ GLOBS2
      && ! grep -qiE '^[[:space:]]*observed[[:space:]]*[:=]' "$report"; then
     echo "NOTE [$slug]: schema v$sv report has screenshot evidence without observed: — frame inspection was not machine-enforced for this report. Re-verify with template v2 to enforce."
   fi
+  # network truth (wave 1, advisory): a claim-bearing network_observed (clean /
+  # app-fail) must have its dump file on disk — vocab without evidence is NOTEd,
+  # never blocked (nothing network-related is hook-enforced until schema v3).
+  net_missing=0
+  while IFS= read -r eid; do
+    [ -n "$eid" ] || continue
+    [ -f "$dir/evidence/${eid}-network.txt" ] || net_missing=$((net_missing+1))
+  done <<NETIDS
+$(awk 'tolower($0) ~ /^[[:space:]]*-[[:space:]]*eval:/ {id=$NF} tolower($0) ~ /^[[:space:]]*network_observed[[:space:]]*[:=][[:space:]]*["'\''"]?(clean|app-fail)($|[^a-z-])/ {print id}' "$report")
+NETIDS
+  if [ "$net_missing" -gt 0 ]; then
+    echo "NOTE [$slug]: $net_missing network_observed claim(s) (clean/app-fail) with no evidence/E{id}-network.txt on disk — vocab without a dump file (advisory until schema v3)"
+  fi
   # Re-verify the COMMITTED evidence with the same core the hook runs — catches a
   # report hand-edited after the write-time hook, or written under bypass.
   if [ "$RECHECK_MODE" != off ]; then
@@ -320,6 +803,30 @@ GLOBS2
   echo "OK [$slug]: $verdict, signed off by $signoff"
 done
 
+# per-slug chỉ được ghi `ran` khi vòng lặp nhìn thấy ĐÚNG số thư mục mà phép
+# đếm độc lập nhìn thấy.
+[ "$SLUG_SEEN" -eq "$SLUG_EXPECTED_N" ] && ledger_mark ran per-slug
+
+# gap-probe ghi sổ ở ĐÚNG MỘT chỗ, sau khi đã biết trọn lịch sử lần chạy. Bản
+# trước mark từ HAI nơi độc lập — `declared-off` trong gap_probe_not_enforced()
+# và `ran` trong vòng lặp — nên một lần chạy mà classifier thành công ở slug này
+# và thất bại ở slug kia ghi CẢ HAI tên: chokepoint đếm 2 rồi exit 2, biến một
+# suy giảm advisory (theo thiết kế chỉ NOTE, không chặn) thành chặn cứng, VÀ
+# nuốt luôn dòng tổng kết violation thật của lần chạy đó — người đọc nhận đúng
+# lời khuyên SAI ("không phải lỗi của bạn, báo maintainer").
+# Thứ tự dưới đây là thứ tự trung thực: một lần chạy chỉ cưỡng chế được MỘT
+# PHẦN thì khai là `declared-off`, không phải `ran`.
+if [ "$GAP_PROBE_MODE" = "off" ]; then
+  ledger_mark declared-off gap-probe          # tắt CÓ khai báo qua config (AC-3)
+elif [ "$GP_NOT_ENFORCED" -eq 1 ]; then
+  ledger_mark declared-off gap-probe          # mọi đường *_not_enforced (AC-12)
+elif [ "$GP_RAN" -eq 1 ] || [ "$GP_SCOPE_N" -eq 0 ]; then
+  # chạy thật ít nhất một slug, HOẶC vũ trang mà scope rỗng = đã làm trọn việc
+  ledger_mark ran gap-probe
+fi
+# Còn lại (scope KHÔNG rỗng, không chạy, không khai tắt) = khối bị trượt qua:
+# cố ý KHÔNG mark để chokepoint bắt (AC-2/AC-9).
+
 # ── T1-escape backstop (PR-level) ────────────────────────────────────────────
 # T1 is self-declared at Phase 0 from EXPECTED paths — nothing stops a "docs
 # typo" PR from also touching src/billing/. With a PR base: changed files
@@ -328,41 +835,75 @@ done
 # gated PR re-verifies, so its diff always includes gate artifacts.) There is
 # no path→slug mapping, so "carries artifacts" means any _acceptance/ change;
 # the per-slug checks above judge their quality.
-if [ -z "$BASE" ]; then
-  echo "NOTE: T1-escape backstop skipped — no PR base given (pass --base <ref> or set PRE_MERGE_BASE; GitHub Actions: --base \"origin/\$GITHUB_BASE_REF\")"
-elif ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
-  echo "NOTE: T1-escape backstop skipped — $ROOT is not a git repo here"
+if [ "$T1_ESCAPE" -eq 0 ]; then
+  t1_escape_not_enforced
+elif [ "$DIFF_READY" -eq 0 ]; then
+  echo "NOTE: T1-escape backstop skipped — $DIFF_SKIP_NOTE"
+  # AC-3: thiếu --base là tắt CÓ khai báo (bỏ-qua-có-tín-hiệu, hành vi cũ).
+  ledger_mark declared-off t1-escape
 else
-  BASE_SHA="$(git -C "$ROOT" rev-parse --quiet --verify "$BASE^{commit}" 2>/dev/null || true)"
-  [ -z "$BASE_SHA" ] && BASE_SHA="$(git -C "$ROOT" rev-parse --quiet --verify "origin/$BASE^{commit}" 2>/dev/null || true)"
-  if [ -z "$BASE_SHA" ]; then
-    echo "NOTE: T1-escape backstop skipped — base \"$BASE\" not resolvable in this clone"
-  else
-    changed="$(git -C "$ROOT" diff --name-only "$BASE_SHA...HEAD" -- 2>/dev/null)"
-    gate_touched=0; t3_hits=""; nont1_hits=""
-    while IFS= read -r f; do
-      [ -n "$f" ] || continue
-      case "$f" in _acceptance/*|*/_acceptance/*) gate_touched=1; continue ;; esac
-      if [ -n "$T3_PATHS" ] && match_globs "$f" "$T3_PATHS"; then
-        t3_hits="${t3_hits}${f}"$'\n'
-      elif ! match_globs "$f" "$T1_GLOBS"; then
-        nont1_hits="${nont1_hits}${f}"$'\n'
-      fi
-    done <<CHANGED
+  changed="$DIFF_FILES"
+  gate_touched=0; t3_hits=""; nont1_hits=""
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    case "$f" in _acceptance/*|*/_acceptance/*) gate_touched=1; continue ;; esac
+    if [ -n "$T3_PATHS" ] && match_globs "$f" "$T3_PATHS"; then
+      t3_hits="${t3_hits}${f}"$'\n'
+    elif ! match_globs "$f" "$T1_GLOBS"; then
+      nont1_hits="${nont1_hits}${f}"$'\n'
+    fi
+  done <<CHANGED
 $changed
 CHANGED
-    if [ "$gate_touched" -eq 0 ]; then
-      if [ -n "$t3_hits" ]; then
-        echo "VIOLATION [PR]: T3 paths (t3_paths) changed but the PR carries NO _acceptance/<slug>/ artifacts — critical code changed without the gate. Changed:"
-        printf '%s' "$t3_hits" | head -10 | sed 's/^/    /'
-        violations=$((violations+1))
-      elif [ -n "$nont1_hits" ]; then
-        echo "VIOLATION [PR]: non-T1 files changed (outside t1_skip_globs) but the PR carries NO _acceptance/<slug>/ artifacts — declare T1 honestly (t1_skip_globs) or run the gate. Changed:"
-        printf '%s' "$nont1_hits" | head -10 | sed 's/^/    /'
-        violations=$((violations+1))
-      fi
+  if [ "$gate_touched" -eq 0 ]; then
+    if [ -n "$t3_hits" ]; then
+      echo "VIOLATION [PR]: T3 paths (t3_paths) changed but the PR carries NO _acceptance/<slug>/ artifacts — critical code changed without the gate. Changed:"
+      printf '%s' "$t3_hits" | head -10 | sed 's/^/    /'
+      violations=$((violations+1))
+    elif [ -n "$nont1_hits" ]; then
+      echo "VIOLATION [PR]: non-T1 files changed (outside t1_skip_globs) but the PR carries NO _acceptance/<slug>/ artifacts — declare T1 honestly (t1_skip_globs) or run the gate. Changed:"
+      printf '%s' "$nont1_hits" | head -10 | sed 's/^/    /'
+      violations=$((violations+1))
     fi
   fi
+  ledger_mark ran t1-escape
+fi
+
+# AC-16 vế sau: dòng tổng kết PHẢI khai là luật đã tắt. Một marker lẻ giữa hàng
+# chục dòng output là thứ người đọc lướt qua; khai ở dòng cuối thì không.
+[ "$GP_NOT_ENFORCED" -eq 1 ] && echo "pre-merge-check: gap-probe: KHÔNG cưỡng chế trong lần chạy này (xem dòng marker NOT ENFORCED ở trên)"
+[ "$T1_ESCAPE_OFF" -eq 1 ] && echo "pre-merge-check: T1-escape: KHÔNG cưỡng chế trong lần chạy này (xem dòng marker NOT ENFORCED ở trên)"
+
+# ─── Điểm nghẽn sổ luật: `clean` phải được chứng minh (AC-2/AC-5/AC-7) ──────
+if [ "$LEDGER_ENABLED" -eq 1 ]; then
+  ledger_bad=0
+  for _n in $LEDGER_EXPECTED; do
+    _c="$(ledger_count "$_n")"
+    if [ "$_c" -eq 0 ]; then
+      echo "VIOLATION [ledger]: luật $_n không chạy và không khai tắt"
+      ledger_bad=1
+    elif [ "$_c" -gt 1 ]; then
+      echo "VIOLATION [ledger]: luật $_n ghi sổ $_c lần — trạng thái sổ không nhất quán"
+      ledger_bad=1
+    fi
+  done
+  for _w in $LEDGER_RAN $LEDGER_OFF; do
+    case " $LEDGER_EXPECTED " in
+      *" $_w "*) ;;
+      *) echo "VIOLATION [ledger]: tên lạ $_w — cập nhật EXPECTED"; ledger_bad=1 ;;
+    esac
+  done
+  # k lấy từ LEDGER_K (đếm EXPECTED lúc khai báo) — TUYỆT ĐỐI không n+m: in
+  # tổng tự cộng là tautology không bao giờ hiển thị lệch được (AC-5).
+  echo "pre-merge-check: rules ran=$LEDGER_RAN_N declared-off=$LEDGER_OFF_N expected=$LEDGER_K"
+  if [ "$ledger_bad" -eq 1 ]; then
+    echo "NOTE: VIOLATION [ledger] là lỗi NỘI TẠI của cổng pre-merge (một khối luật bị trượt qua hoặc sổ lệch) — KHÔNG phải lỗi trong thay đổi của bạn. Bước kế tiếp: báo maintainer của kit kèm TOÀN BỘ output lần chạy này; đừng sửa feature của bạn để né nó."
+    exit 2
+  fi
+fi
+
+if [ -n "$NARROW_NET_SEEN" ]; then
+  echo "NOTE: the placeholder net that just fired matches a SHORT FIXED prefix list — pending, tbd, todo, n/a, none, unsigned, waiting, a bare > | or -, and an unfilled <...> template. NOTHING else. A holding note phrased any other way (\"FIXME\", \"LGTM\", \"ok\", or one written in another language) passes this gate. Rewording the line is NOT a fix; put a real approver name + date there."
 fi
 
 if [ "$violations" -gt 0 ]; then

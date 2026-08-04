@@ -8,7 +8,7 @@ surfaces: [api, cli]
 status: signed-off
 approved_by: manh@mstar.vn
 approved_at: 2026-07-09T10:39:07Z
-time_human_minutes: {gate1: 3, gate2: 0}
+time_human_minutes: {gate1: 3, gate2: 5}
 ---
 
 # Acceptance Contract: mcp-map-render

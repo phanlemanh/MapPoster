@@ -83,10 +83,18 @@ editor tương tác, undo, selection — không có người ngồi trước tim
 2. **Clip nghỉ trước 72% thời lượng** (bất biến R, §3) — khung SETTLE của cổng chấm
    (`start + dur×0.72`) luôn thấy bản đồ tĩnh hoàn chỉnh; toàn bộ cổng no-fab/L9-L12 chạy
    nguyên vẹn không sửa.
-3. **Clip text-free tuyệt đối** — ranh giới cho phép duy nhất: nhãn bản đồ gốc OSM (tên
-   đường/địa danh qua `layers.roadLabels` — sự thật địa lý). Mọi chữ do hệ sinh (tên dự án,
-   khoảng cách, giá, fact) ở lớp DOM để đi qua cổng no-fab. Đây là M4 mở rộng sang video,
-   kiểm tra được (AC-9, §8).
+3. **Clip text-free, với MỘT ngoại lệ tường minh: attribution giấy phép.** Mọi chữ do hệ sinh
+   (tên dự án, khoảng cách, giá, fact) — và cả nhãn bản đồ OSM khi `layers.roadLabels` opt-in —
+   ở lớp DOM để đi qua cổng no-fab. Đây là M4 mở rộng sang video, kiểm tra được (AC-9, §8).
+   **Ngoại lệ duy nhất được phép**: dòng attribution licence
+   (`© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre`, `drawAttribution` trong
+   `src/lib/export.ts`) VẪN được nướng vào từng khung pixel, kể cả khi `chrome: 'clean'` ép mọi
+   chữ khác tắt (`text.show: false`) — quyết định của chủ repo (2026-08-04): đây là nghĩa vụ giấy
+   phép của dữ liệu OSM/OpenFreeMap, và nướng nó vào pixel nghĩa là việc tuân thủ không phụ thuộc
+   vào bên tiêu thụ (artifact platform) có nhớ tự vẽ nó ở lớp DOM hay không. Ngoại lệ này bị khoá
+   bằng test (`src/lib/export.test.ts`): với `chrome: 'clean'`, chữ DUY NHẤT được vẽ lên canvas là
+   dòng attribution — bất kỳ lệnh `fillText`/`strokeText` nào khác (kể cả `drawPosterText` bị gỡ
+   guard trong tương lai) đều làm test đỏ.
 
 ## 3. MotionScript
 

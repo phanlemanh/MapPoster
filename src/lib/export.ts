@@ -253,6 +253,18 @@ export async function exportPoster(opts: ExportOptions): Promise<void> {
   }
 }
 
+/**
+ * The ONE pixel-text exception clips are allowed (spec §2.3): a licence
+ * obligation for OSM/OpenFreeMap data, baked into the pixels so compliance
+ * does not depend on a downstream consumer remembering to render it. Every
+ * other text (title, POI facts, prices, …) belongs in the consuming DOM
+ * layer, not on this canvas.
+ *
+ * Exported as a single source of truth so `drawAttribution` and the test that
+ * locks this exception (`export.test.ts`) can never drift from each other.
+ */
+export const ATTRIBUTION_TEXT = '© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre';
+
 function drawAttribution(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
   const size = Math.max(9, Math.min(W, H) * 0.011);
   ctx.save();
@@ -263,7 +275,7 @@ function drawAttribution(ctx: CanvasRenderingContext2D, W: number, H: number, co
   ctx.fillStyle = color;
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
   ctx.shadowBlur = size * 0.4;
-  ctx.fillText('© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre', W - size * 1.2, H - size * 1.2);
+  ctx.fillText(ATTRIBUTION_TEXT, W - size * 1.2, H - size * 1.2);
   ctx.restore();
 }
 

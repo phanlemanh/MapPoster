@@ -88,8 +88,16 @@ render_map({
 `render_clip` renders the same place/highlight contract as `render_map`, plus a
 `motion` param, as a short **text-free** MP4 camera-motion clip (AC-9: `chrome`
 is always forced to `'clean'`, no matter what the caller asks for — the only
-text a clip may ever show is OpenStreetMap's own road labels, and only when
-`layers.roadLabels` opts in). `motion` is either a named preset (`approach` —
+*chosen* text a clip may ever show is OpenStreetMap's own road labels, and
+only when `layers.roadLabels` opts in). **One exception, baked in regardless
+of `chrome`**: the OSM/OpenFreeMap/MapLibre licence attribution is drawn onto
+every frame (`drawAttribution` in `src/lib/export.ts`) — a licence obligation
+for that map data, kept in the pixels so compliance never depends on a
+downstream consumer remembering to render it separately. Every other piece of
+text (poster title, POI facts, price, distance, …) belongs in the *consuming*
+DOM layer, never on the clip canvas; a test (`src/lib/export.test.ts`) locks
+this down — with `chrome: 'clean'`, the attribution string is the only thing
+`fillText`/`strokeText` ever draws. `motion` is either a named preset (`approach` —
 flies in and reveals a region boundary; `pushIn` — pushes into and pulses
 around a point; `drift` — a slow pan/zoom) with optional `fps`/`durationSec`
 overrides, or a raw MotionScript `{ script }`. Example call:

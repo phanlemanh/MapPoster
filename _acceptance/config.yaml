@@ -17,8 +17,8 @@ executors:
   script:
     compiler_domain_sweep: "npx tsx _acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts"
   design:
-    gate: "node /Users/manhphan/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.11.2/scripts/design-gate.mjs"
-    ui_check: "/Users/manhphan/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.11.2/scripts/design-scan.js"
+    gate: "node /Users/manh-macmini/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.31.0/scripts/design-gate.mjs"
+    ui_check: "/Users/manh-macmini/.claude/plugins/cache/acceptance-gate-kit/acceptance-gate/1.31.0/scripts/design-scan.js"
 risk_tiers:
   t1_skip_globs:
     - "**/*.md"

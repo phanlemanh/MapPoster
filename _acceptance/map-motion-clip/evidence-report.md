@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 06d37e264d3f191b67c4e1960ff64390ed428657
-human_signoff:
+human_signoff: manh (2026-08-04) — verdict đưa trong phiên; commit do Claude thực hiện theo chỉ thị của manh
 ---
 
 # Evidence Report: map-motion-clip
@@ -243,7 +243,7 @@ human_signoff:
     shot -> progressive boundary reveal -> settled close shot with pin),
     but "does this read as intentional" is the perceptual call reserved
     for the human per contract.md and the evidence-report-template rules.
-  human_override:
+  human_override: manh (2026-08-04) — CHẤP NHẬN. Ba nhịp phân biệt được trên ba khung đã xem: toàn cảnh chưa tô → vùng tô dở hình nêm → vùng khép kín có pin.
 
 - eval: E17
   criterion: AC-14
@@ -272,7 +272,7 @@ human_signoff:
     (a t3_paths file) is adequately justified and locked down is a
     legitimacy question, not a machine-checkable fact -- the verifier
     deliberately does not score AC-14.
-  human_override:
+  human_override: manh (2026-08-04) — CHẤP NHẬN. Ngoại lệ attribution là tường minh: ghi ở spec §2.3, có lý do giấy phép OSM, và bị khoá bằng export.test.ts.
 
 ## Analyst
 

@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 06d37e264d3f191b67c4e1960ff64390ed428657
-human_signoff:
+human_signoff: manh (2026-08-04) — verdict đưa trong phiên; commit do Claude thực hiện theo chỉ thị của manh
 ---
 
 # Evidence Report: mcp-map-render
@@ -327,7 +327,7 @@ the existing still-image path, not modifying it — confirmed behaviorally by ev
     alongside it in the same shared files. No new judge-panel opinion is offered this round; a prior
     round's judge-panel PASS (3/3 lenses, Round 14) exists in this report's git history for reference but
     is not carried forward as this round's finding.
-  human_override:
+  human_override: manh (2026-08-04) — CHẤP NHẬN. Round 15 chứng minh 42 file đổi không làm hồi quy feature này; giới hạn 'chưa review đối kháng trên diff mới' đã đọc và chấp nhận.
   # ^ Required before this item can become a direct human PASS — and, since overall verdict is
   # PENDING-JUDGMENT, before overall PASS. This contract's risk_tier T3 mandates a direct human verdict on
   # EVERY judgment eval. Round 14's `human_signoff` (manh, 2026-07-11) was tied to commit `6c3d36b` and

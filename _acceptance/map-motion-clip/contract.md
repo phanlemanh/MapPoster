@@ -8,7 +8,7 @@ surfaces: [api, sdk]
 status: signed-off
 approved_by: manh
 approved_at: 2026-08-04
-time_human_minutes: {gate1: 15, gate2: 0}
+time_human_minutes: {gate1: 15, gate2: 5}
 ---
 
 # Acceptance Contract: map-motion-clip

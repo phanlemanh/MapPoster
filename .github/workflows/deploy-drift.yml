@@ -1,0 +1,93 @@
+# Bắt "production đứng yên trong khi main đã đi tiếp".
+#
+# Vì sao cần: service Render `onehub-mapposter` khai `autoDeploy: yes` nhưng repo
+# KHÔNG có webhook nào (`gh api repos/.../hooks` trả `[]`), nên GitHub chưa bao giờ
+# báo commit mới cho Render — xem issue #9. Hệ quả là một kiểu hỏng im lặng: CI
+# xanh, PR merge sạch, dashboard nói "auto-deploy bật", mà production vẫn chạy
+# build cũ vô thời hạn. Lần đầu nó xảy ra, nó suýt che mất bản vá ffmpeg — thứ mà
+# nếu thiếu thì mọi lần encode clip degrade thành `HTTP 200 {ok:true}` không có
+# clip, tức lại một tầng hỏng-im-lặng nữa chồng lên.
+#
+# Workflow này KHÔNG gắn vào pull_request: drift là chuyện của môi trường, không
+# phải lỗi của người mở PR, và để nó chặn merge thì sai địa chỉ.
+name: Deploy drift
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # 4 lần/ngày là đủ dày để không trôi qua một ngày làm việc
+  workflow_dispatch:         # bấm tay sau khi merge nếu muốn biết ngay
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Thiếu secret thì BỎ QUA có thông báo, không fail đỏ: một workflow đỏ vì
+      # thiếu cấu hình sẽ bị ngó lơ trong một tuần, rồi khi nó đỏ vì lý do THẬT
+      # thì không ai còn nhìn nữa.
+      - name: Kiểm điều kiện chạy
+        id: pre
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
+            echo "::notice::Bỏ qua — cần secret RENDER_API_KEY và RENDER_SERVICE_ID. Xem issue #9."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: So commit đang live với main
+        if: steps.pre.outputs.skip == 'false'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          set -euo pipefail
+
+          main_sha="$(git rev-parse HEAD)"
+
+          # Deploy đang phục vụ traffic = bản `live` MỚI NHẤT. Lấy cả danh sách rồi
+          # lọc thay vì tin phần tử đầu: phần tử đầu có thể đang build_in_progress,
+          # và khi đó production vẫn đang chạy bản trước đó.
+          live_json="$(curl -sS --fail-with-body --max-time 30 \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys?limit=20")"
+
+          # `.deploy // .` vì API bọc mỗi phần tử trong {deploy, cursor}; giữ cả hai
+          # dạng để không vỡ nếu Render bỏ lớp bọc.
+          live_sha="$(printf '%s' "$live_json" \
+            | jq -r 'map(.deploy // .) | map(select(.status == "live")) | .[0].commit.id // ""')"
+
+          if [ -z "$live_sha" ]; then
+            echo "::error::Không tìm thấy deploy nào ở trạng thái live trong 20 bản gần nhất — service có thể đang hỏng."
+            exit 1
+          fi
+
+          echo "main đang ở : $main_sha"
+          echo "live đang ở : $live_sha"
+
+          if [ "$main_sha" = "$live_sha" ]; then
+            echo "::notice::Khớp — production đang chạy đúng main."
+            exit 0
+          fi
+
+          # Lệch KHÔNG phải lúc nào cũng là sự cố: một commit chỉ đụng docs hoặc
+          # _acceptance thì không cần deploy. Chỉ báo động khi phần LỆCH có chạm
+          # thứ thực sự đi vào image.
+          if git diff --quiet "$live_sha" "$main_sha" -- \
+               ':(exclude)docs/**' ':(exclude)_acceptance/**' ':(exclude)**/*.md'; then
+            echo "::notice::Lệch commit nhưng chỉ ở docs/_acceptance — production không cần deploy lại."
+            exit 0
+          fi
+
+          echo "::error::Production đang chạy $live_sha trong khi main đã ở $main_sha, và phần lệch có chạm code. Trigger deploy (\`render deploys create\`) hoặc sửa webhook — xem issue #9."
+          git --no-pager diff --stat "$live_sha" "$main_sha" -- \
+            ':(exclude)docs/**' ':(exclude)_acceptance/**' ':(exclude)**/*.md' | tail -20
+          exit 1

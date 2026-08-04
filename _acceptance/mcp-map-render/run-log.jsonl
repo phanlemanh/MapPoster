@@ -152,3 +152,14 @@
 {"ts":"2026-07-11T02:35:00Z","round":14,"evalId":"E9","run_id":"minted-mcp-map-render-E9-r14","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-07-11T02:35:00Z","round":14,"evalId":"E11","run_id":"minted-mcp-map-render-E11-r14","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-07-11T02:35:00Z","round":14,"evalId":"E10","run_id":"run-20260711T012831Z-339746393","exit_code":0,"cmd":"ui-check:E10"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E1","run_id":"mcp-map-render-E1-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E2","run_id":"mcp-map-render-E2-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E3","run_id":"mcp-map-render-E3-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E4","run_id":"mcp-map-render-E4-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E5","run_id":"mcp-map-render-E5-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E6","run_id":"mcp-map-render-E6-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E7","run_id":"mcp-map-render-E7-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E8","run_id":"mcp-map-render-E8-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E9","run_id":"mcp-map-render-E9-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E11","run_id":"mcp-map-render-E11-20260804-063501","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-04T06:35:01Z","round":15,"evalId":"E10","run_id":"mcp-map-render-E10-20260804-063306","exit_code":0,"cmd":"npx playwright test e2e/_verify-e10-ui-check.spec.ts (temp probe, removed after run)"}

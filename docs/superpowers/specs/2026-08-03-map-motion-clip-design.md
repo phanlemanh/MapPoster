@@ -52,7 +52,7 @@ editor tương tác, undo, selection — không có người ngồi trước tim
 | D2 | Chuyển động đóng thành **công thức cho LLM biên tập** — đúng mẫu 3 viên bí kíp đã chốt 25/07 | Không LLM tự do viết toạ độ |
 | D3 | MapPoster = **engine chuyển động cho video plugin artifact platform** | Không phải sản phẩm đứng riêng ở v1 |
 | D4 | Phạm vi spec: **cả hai repo** (MapPoster + video plugin/render-svc) | Spec này ở repo map; mũi khâu ngoài repo ở §10 |
-| D5 | Hướng **A — lớp clip** với spike chặn rủi ro `<video>`-trong-hyperframes trước; NO-GO → rẽ B (png-sequence) đã thoả thuận | Spike §7 |
+| D5 | Hướng **A — lớp clip** với spike chặn rủi ro `<video>`-trong-hyperframes trước; NO-GO → rẽ B (png-sequence) đã thoả thuận | Spike §7 — **đã chạy 04/08: GO**, không rẽ B |
 
 ## 2. Kiến trúc tổng
 
@@ -287,6 +287,25 @@ Project-dir tối giản (`index.html` + `<video muted>` + đồng hồ khung DO
 NO-GO → **rẽ B**: thêm `delivery:'frames'` (dãy PNG, cùng MotionScript/REST/cache/zMediaRef —
 không đổi trường nào) + component swap `<img>` theo `currentTime` phía composition. Spike chỉ
 định đoạt tầng giao hàng, không định đoạt kiến trúc. Chi phí: nửa ngày, repo onehub-render-service.
+
+### Kết quả — chạy 2026-08-04: **GO**
+
+`onehub-render-service/spike/video-in-hyperframes/` (commit `6ab86e4`). Video nguồn 24 khung,
+khung `i` tô màu `#{i*10}0040` — đọc pixel là suy ngược ra chỉ số khung nguồn, không OCR.
+
+| Tiêu chí | Ngưỡng | Đo được |
+|---|---|---|
+| Video hiện | có | **24/24** |
+| Seek đúng | lệch ≤ 1 khung, đơn điệu | **lệch 0**, 0 giật lùi, 0 lặp — `0→0 1→1 … 23→23` |
+| Tất định | byte-identical | **giống nhau từng byte** |
+
+**Phát hiện đổi cách viết Gói 2:** producer KHÔNG dựa vào `<video>` phát trong trình duyệt —
+nó có pha `video_extract`, tự trích mọi khung từ file rồi composite theo thời-gian-nội-dung.
+Bài toán seek frame-accurate đã được giải ở tầng dưới. Nên composition **chỉ cần đặt thẻ
+`<video src>`**: không script ghim `currentTime`, không `autoplay`, không phải lo wall-clock.
+Đoạn script ghim thời gian mà spike ban đầu viết ra hoá ra thừa.
+
+**Rẽ B chính thức đóng.** `delivery:'frames'` không cần làm.
 
 ## 8. Kiểm thử & tiêu chí chấp nhận
 

@@ -5,6 +5,7 @@ import { deliver } from './delivery';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
 import { resolvedOf, type ToolDeps } from './tools';
 import { acquireClipSlotWaiting, prepareClipRenderWithSlot, MotionParamError } from './motionCompiler';
+import { GeocodeUpstreamError } from './geocode';
 import { slugify } from '../../src/lib/format';
 import type { JobArtifact, JobFinishPatch, JobRecord, JobStore } from './jobStore';
 
@@ -59,7 +60,12 @@ async function resolvePhase<T>(run: () => Promise<T>): Promise<T> {
     return await run();
   } catch (e) {
     // MotionParamError đã tự nói nó là lỗi đầu vào rồi — giữ nguyên kiểu.
-    throw e instanceof MotionParamError ? e : new JobInputError(e);
+    if (e instanceof MotionParamError) throw e;
+    // Bên thứ ba ngã thì KHÔNG phải lỗi người gọi, dù nó xảy ra đúng trong pha
+    // giải. Ranh giới pha bao luôn một lời gọi ra mạng — đó là chỗ hở của bản
+    // sửa round 1, và nó được bịt tại chính chỗ biết mình gọi ra ngoài.
+    if (e instanceof GeocodeUpstreamError) throw e;
+    throw new JobInputError(e);
   }
 }
 
@@ -176,6 +182,10 @@ export function createJobRunner({
         width: cfg.size.width,
         height: cfg.size.height,
         bytes,
+        // `/render-clip` đồng bộ trả cả hai trường này. Bỏ chúng ở đường mới là
+        // bắt người tiêu thụ mất dữ liệu khi dọn sang mà không có tín hiệu gì.
+        durationSec: motion.durationSec,
+        fps: motion.fps,
       };
       return { status: 'done', artifacts: [settleArtifact, clipArtifact], resolved: resolvedOf(cfg), motion: motionOut };
     } finally {

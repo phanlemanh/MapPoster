@@ -15,7 +15,7 @@ import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
 import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
-import { createJobStore, createJobStoreFromEnv, JobQueueFullError, type JobRecord, type JobStore } from './jobStore';
+import { createJobStoreFromEnv, JobQueueFullError, type JobRecord, type JobStore } from './jobStore';
 import { createJobRunner, type JobRunner } from './jobRunner';
 
 export interface HttpServer {
@@ -140,7 +140,9 @@ async function jobStatusBody(rec: JobRecord): Promise<Record<string, unknown>> {
     // Một tệp đã bị dọn hoặc chưa kịp ghi không được làm hỏng CẢ câu trả lời:
     // phần siêu dữ liệu vẫn đúng, chỉ thiếu nội dung.
     const base64 = await fs.readFile(a.path).then((b) => b.toString('base64')).catch(() => undefined);
-    const block = { base64, format: a.format, width: a.width, height: a.height, bytes: a.bytes };
+    const block: Record<string, unknown> = { base64, format: a.format, width: a.width, height: a.height, bytes: a.bytes };
+    if (a.durationSec !== undefined) block.durationSec = a.durationSec;
+    if (a.fps !== undefined) block.fps = a.fps;
     if (a.role === 'image') out.image = block;
     if (a.role === 'settle') out.settle = block;
     if (a.role === 'clip') out.clip = block;

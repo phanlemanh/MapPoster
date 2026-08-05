@@ -5,18 +5,29 @@ import path from 'node:path';
 
 // resolveConfig reaches into ./geocode for anything that isn't a bare {lng,lat}.
 // Mocked so the runner's own behaviour is what's under test, not Nominatim.
-// A location starting "zzz" throws — that is the CALLER-fault path (AC-6).
-vi.mock('./geocode', () => ({
-  resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
-    if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
-    return typeof input === 'string'
-      ? { center: [106.7, 10.78], zoom: 12, place: { name: input, country: 'Vietnam', lat: 10.78, lng: 106.7 } }
-      : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
-  }),
-  searchCandidates: vi.fn(async () => []),
-  resolveBoundary: vi.fn(async () => null),
-  resolveCountryAt: vi.fn(async () => 'Vietnam'),
-}));
+// `importActual` chứ không thay trọn gói: lớp `GeocodeUpstreamError` phải là
+// lớp THẬT, nếu không `instanceof` trong jobRunner so với `undefined` và ném
+// TypeError — mọi ca lỗi người gọi sẽ âm thầm bị gán nhầm thành lỗi máy chủ.
+vi.mock('./geocode', async () => {
+  const actual = await vi.importActual<typeof import('./geocode')>('./geocode');
+  return {
+    ...actual,
+    resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
+      if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
+      // "upstream-…" giả lập Nominatim NGÃ (503 / mạng hỏng) — khác hẳn "tra
+      // không ra": đầu vào đúng, bên ngoài hỏng.
+      if (typeof input === 'string' && input.toLowerCase().startsWith('upstream-')) {
+        throw new actual.GeocodeUpstreamError(new Error('Geocoding failed: 503'));
+      }
+      return typeof input === 'string'
+        ? { center: [106.7, 10.78], zoom: 12, place: { name: input, country: 'Vietnam', lat: 10.78, lng: 106.7 } }
+        : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
+    }),
+    searchCandidates: vi.fn(async () => []),
+    resolveBoundary: vi.fn(async () => null),
+    resolveCountryAt: vi.fn(async () => 'Vietnam'),
+  };
+});
 
 import { createJobStore } from './jobStore';
 import { createJobRunner } from './jobRunner';
@@ -390,5 +401,50 @@ describe('AC-17: việc clip đang chờ chỗ KHÔNG được bỏ đói việc
     await runner.drain();
     expect(store.get(clipA.id)!.status).toBe('done');
     expect(store.get(clipB.id)!.status).toBe('done');
+  });
+});
+
+// Vòng soi code round 4: ranh giới "pha giải = lỗi người gọi" bao luôn một lời
+// gọi ra bên thứ ba. Nominatim trả 503 cho một địa danh HOÀN TOÀN HỢP LỆ thì
+// người gọi bị bảo đi sửa đầu vào, và sẽ không thử lại một yêu cầu mà một giây
+// sau là chạy được. Đúng lớp lỗi mà bản sửa round 1 tuyên bố đã diệt.
+describe('AC-6: bên thứ ba ngã KHÔNG phải lỗi người gọi', () => {
+  it('Nominatim trả 503 → lỗi tại MÁY CHỦ, dù nó xảy ra trong pha giải', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'upstream-Hà Nội' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('failed');
+    expect(rec.errorKind).toBe('server'); // KHÔNG phải 'input'
+  });
+
+  it('mạng ổn nhưng không có kết quả thì VẪN là lỗi người gọi — hai ca không được lẫn', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'zzz-khong-co' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    expect(store.get(job.id)!.errorKind).toBe('input');
+  });
+});
+
+describe('AC-15: đường mới không được đánh rơi trường mà đường cũ có', () => {
+  it('khối clip mang cả durationSec và fps, đúng như /render-clip đồng bộ trả', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const job = store.create({ ...clipJobFixture, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const clip = store.get(job.id)!.artifacts.find((a) => a.role === 'clip')!;
+    expect(clip.durationSec).toBeGreaterThan(0);
+    expect(clip.fps).toBeGreaterThan(0);
   });
 });

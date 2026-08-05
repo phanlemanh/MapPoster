@@ -1,93 +1,71 @@
 ## Trong hợp đồng
 
-- **sweep() nuốt mọi lỗi fs.rm SAU KHI bản ghi đã rời sổ — tệp rác vĩnh viễn, không log, không thử lại**
-  file: `mcp-server/src/jobRunner.ts:234`
+- **Async clip status drops `durationSec`/`fps` that the synchronous `/render-clip` returns**
+  file: `mcp-server/src/http.ts:146`
   severity: medium
-  AC: AC-12
+  AC: AC-15
+  source: conventions
+  detail: `/render-clip` returns `clip: { base64, format, width, height, durationSec, fps, bytes }` (http.ts ~line 375). The job path builds its clip block as `{ base64, format, width, height, bytes }` (http.ts:143-146), and the sibling `motion` object built in jobRunner.ts:135 is `{ preset?, restAtSec }` — so neither `durationSec` nor `fps` appears anywhere in a `/jobs/status` response, even though both are known (`motion.fps`, `motion.durationSec` are in scope at that exact line and `motion.fps` is already passed to `encodeAnimation` one line later).
+
+  AC-15 is specifically "the two-endpoint contract is enough for OneHub to switch to job submission without needing any new concept — or name what is missing". A consumer migrating off `/render-clip` silently loses two response fields it may be muxing or timing against, with no signal that they were dropped. The gap is not listed in the contract's accepted "Known limits", so it reads as an oversight rather than a decision.
+
+  rationale: AC-15 explicitly asks the signer to judge whether the two-endpoint contract is enough for OneHub to switch over 'hoặc nêu đích danh thứ còn thiếu' — this finding names exactly such a missing field, which is the judgment this AC exists to surface.
+
+- **Upstream geocoder outages are reported to the caller as `errorKind: 'input'`**
+  file: `mcp-server/src/jobRunner.ts:57`
+  severity: medium
+  AC: AC-6
   source: bugs
-  detail: takeExpired(now) xoá bản ghi khỏi Map trước rồi mới trả về (jobStore.ts:120-129, `for (const rec of expired) jobs.delete(rec.id)`). sweep() nhận danh sách đó rồi `await fs.rm(a.path, { force: true }).catch(() => {})`.
+  detail: `resolvePhase()` labels *everything* thrown out of `resolveConfig` as a `JobInputError`, and `isCallerFault` (jobRunner.ts:66) then sets `errorKind: 'input'` in the job record. But the "resolve phase" is not pure input validation — it performs network I/O. `resolveConfig` → `resolveLocation` (geocode.ts:147) → `searchLadder` → `searchPlaces` (src/lib/geocoding.ts:350) does `if (!res.ok) throw new Error(\`Geocoding failed: ${res.status}\`)`, and there is no try/catch anywhere between that throw and `resolvePhase` (geocode.ts's only `catch` is the rate-limiter chain guard at line 74, which does not wrap the search).
 
-  Bản ghi là NGUỒN DUY NHẤT ghi lại đường dẫn tệp (chú thích ở jobStore.ts:20 nói đúng vậy). Một khi nó bị xoá và fs.rm hỏng (EACCES, EBUSY, EIO, ENOTDIR, mount read-only), không còn gì trên đời biết tệp đó tồn tại: không thử lại, không log, không hàng chờ dọn sau. Với clip mp4 hàng chục MB trên instance 2 GB, đây là rò đĩa đơn điệu tăng mà không tín hiệu nào báo.
+  Failure scenario: Nominatim returns 503 (or the fetch rejects with a network error, or 429 from the shared rate limit) while a job renders `{location:"Hà Nội"}`. The job finishes as `{status:"failed", error:"Geocoding failed: 503", errorKind:"input"}`. `errorKind` exists specifically so the caller can decide retry-vs-fix; the caller is told to fix an input that is perfectly valid, and will not retry a request that would succeed a second later. The class of mistake the commit that added this (a0b84bd, "phân loại lỗi tại-ai theo pha, không theo chuỗi thông điệp") set out to eliminate is not actually eliminated — the phase boundary encloses a third-party dependency.
 
-  `{ force: true }` đã nuốt sẵn ENOENT (ca lành duy nhất) — nên `.catch(() => {})` chỉ còn nuốt các lỗi THẬT.
-
-  rationale: AC-12 khoá đích danh: khi quét dọn chạy, thợ phải "xoá đúng những tệp ghi trong bản ghi đó"; finding cho thấy lỗi xoá tệp bị nuốt im lặng nên tệp có thể không thực sự bị xoá, phá vỡ đúng cam kết đó.
+  rationale: AC-6 requires a caller-fault job (unresolvable location) and a server-fault job (browser died) to be clearly distinguished by fault type when queried; this finding shows a third case — the geocoding dependency itself failing (503/network error) — is mislabeled as caller-fault, breaking the very distinction AC-6 mandates.
 
 ## Ngoài hợp đồng — người quyết ở Gate 2
 
 Các lỗi dưới đây là thật, nhưng nằm ngoài phạm vi đã duyệt ở Cổng 1 — người quyết, máy không tự sửa.
 
-- **Hai núm cấu hình được khai (spec §7) và nêu đích danh trong thông điệp lỗi nhưng KHÔNG BAO GIỜ đọc từ env**
-  Người dùng thấy gì: Người vận hành đặt biến môi trường để tăng số việc chờ tối đa hoặc thời gian giữ kết quả nhưng hệ thống vẫn dùng con số mặc định cũ — thay đổi không có tác dụng gì, kể cả sau khi khởi động lại.
-  file: `mcp-server/src/jobStore.ts:78`
+- **Queue cap only bounds 'queued' jobs — terminal records keep caller `params` for the full TTL, unbounded in count**
+  Người dùng thấy gì: Nếu nhiều yêu cầu render bị từ chối nhanh liên tiếp (ví dụ do sai định dạng), dữ liệu người dùng gửi lên vẫn được giữ nguyên trong bộ nhớ máy chủ tới 30 phút mỗi lần dù yêu cầu đã kết thúc, và nếu việc này lặp lại nhiều lần có thể khiến dịch vụ chậm dần hoặc ngừng hoạt động.
+  file: `mcp-server/src/jobStore.ts:105`
   severity: high
   Đề xuất: known-limits
 
-- **Việc clip chiếm một slot thợ trong suốt thời gian chỉ ĐỨNG CHỜ slot clip — việc render xếp sau bị bỏ đói tới 10 phút**
-  Người dùng thấy gì: Khi có hai yêu cầu xuất video clip gửi liên tiếp, các yêu cầu xuất ảnh tĩnh gửi sau đó có thể bị treo chờ tới 10 phút dù máy chủ còn năng lực xử lý ảnh.
-  file: `mcp-server/src/jobRunner.ts:116`
-  severity: high
-  Đề xuất: new-contract
+- **Unused import `createJobStore` in http.ts**
+  Người dùng thấy gì: Đây là một dòng mã thừa không được dùng tới trong nội bộ hệ thống; không ảnh hưởng gì tới trải nghiệm hay dữ liệu của người dùng.
+  file: `mcp-server/src/http.ts:18`
+  severity: low
+  Đề xuất: known-limits
 
-- **README — hợp đồng vận hành của repo — không được cập nhật; README + config.ts vẫn khẳng định async job queue là "gói sau"**
-  Người dùng thấy gì: Tài liệu hướng dẫn sử dụng dịch vụ vẫn mô tả tính năng nhận-việc-bất-đồng-bộ như thể chưa tồn tại, nên người tích hợp đọc tài liệu sẽ không biết hai cửa gửi việc và tra trạng thái mới đã có sẵn.
-  file: `README.md:130`
+- **Runner lifecycle is not tied to the HTTP server it is injected into**
+  Người dùng thấy gì: Trong vận hành bình thường của dịch vụ, người dùng không bị ảnh hưởng; rủi ro chỉ xuất hiện khi có ai đó nhúng và tắt máy chủ theo cách lập trình (ví dụ trong môi trường kiểm thử nội bộ), khi đó tiến trình xử lý việc nền có thể tiếp tục âm thầm chạy dù không còn ai theo dõi được nữa.
+  file: `mcp-server/src/http.ts:531`
+  severity: low
+  Đề xuất: known-limits
+
+- **Timed-out slot waiters stay in the `waiters` array until a later pump walks past them**
+  Người dùng thấy gì: Trong những đợt hệ thống bị quá tải kéo dài liên tục, một phần bộ nhớ nhỏ có thể tích tụ dần theo thời gian ở hậu trường; đây là rò rỉ chậm, không gây gián đoạn tức thời cho người dùng đang chờ kết quả.
+  file: `mcp-server/src/motionCompiler.ts:402`
+  severity: low
+  Đề xuất: known-limits
+
+- **Queue cap only bounds queued jobs — finished records retain full `params` for 30 min, so fast-failing jobs OOM the process**
+  Người dùng thấy gì: Nếu có kẻ gửi liên tục hàng loạt yêu cầu render với dữ liệu lớn nhưng cố tình sai định dạng để bị từ chối ngay, dữ liệu đó vẫn nằm lại trong bộ nhớ máy chủ suốt 30 phút mỗi lần mà không hề kích hoạt cảnh báo quá tải, và có thể khiến dịch vụ ngừng hoạt động cho mọi người dùng khác.
+  file: `mcp-server/src/jobStore.ts:105`
   severity: high
   Đề xuất: known-limits
 
-- **/jobs vứt bỏ kết quả `renderMapSchema.parse` và lưu params thô, ngược quy ước "parse, đừng tin" mà /render ghi rõ**
-  Người dùng thấy gì: Yêu cầu gửi qua đường nhận-việc có thể mang theo các trường dữ liệu thừa không được lọc bỏ như đường xử lý ngay lập tức, tạo nguy cơ khác biệt hành vi âm thầm giữa hai cách gọi cùng một tính năng trong tương lai.
-  file: `mcp-server/src/http.ts:472`
-  severity: medium
-  Đề xuất: known-limits
-
-- **jobStatusBody nuốt lỗi đọc tệp — trả 200 {ok:true, status:'done'} không nội dung, không lý do**
-  Người dùng thấy gì: Nếu ảnh kết quả bị mất khỏi ổ đĩa sau khi việc đã hoàn tất, người gọi tra trạng thái vẫn nhận được câu trả lời "thành công" nhưng không có ảnh, mà không có bất kỳ lời giải thích nào cho biết đã có sự cố.
+- **`/jobs/status` swallows artifact read errors and returns `ok:true, status:"done"` with no payload and no error**
+  Người dùng thấy gì: Nếu tệp ảnh kết quả bị mất khỏi máy chủ trước khi người dùng tải về, hệ thống vẫn báo 'đã xong' nhưng không kèm ảnh và không giải thích lý do — người dùng nhận về kết quả trống mà không biết đó là lỗi hệ thống.
   file: `mcp-server/src/http.ts:142`
   severity: medium
   Đề xuất: known-limits
 
-- **loadServerConfig() bị đưa ra ngoài try/catch — env sai giờ ném stack trace thô thay vì thông điệp + exit(1)**
-  Người dùng thấy gì: Nếu người vận hành đặt sai một giá trị cấu hình khi khởi động dịch vụ, tiến trình sẽ dừng bằng một thông báo lỗi kỹ thuật khó hiểu thay vì lời giải thích ngắn gọn và thoát gọn gàng như trước.
-  file: `mcp-server/src/http.ts:537`
-  severity: low
-  Đề xuất: known-limits
-
-- **MAPPOSTER_MAX_QUEUED_JOBS và MAPPOSTER_JOB_TTL_MS không bao giờ được đọc từ env — thông điệp 429 trỏ tới một núm chết**
-  Người dùng thấy gì: Người vận hành đặt biến môi trường để tăng số việc chờ tối đa hoặc thời gian giữ kết quả nhưng hệ thống vẫn dùng con số mặc định cũ — thay đổi không có tác dụng gì, kể cả sau khi khởi động lại.
-  file: `mcp-server/src/jobStore.ts:78`
-  severity: high
-  Đề xuất: known-limits
-
-- **jobStatusBody nuốt lỗi đọc tệp — trả 200 {ok:true, status:'done'} mà không có base64 và không có lý do**
-  Người dùng thấy gì: Nếu ảnh kết quả bị mất khỏi ổ đĩa sau khi việc đã hoàn tất, người gọi tra trạng thái vẫn nhận được câu trả lời "thành công" nhưng không có ảnh, mà không có bất kỳ lời giải thích nào cho biết đã có sự cố.
-  file: `mcp-server/src/http.ts:142`
-  severity: medium
-  Đề xuất: known-limits
-
-- **Việc clip chiếm một slot thợ trong suốt thời gian chỉ ĐỨNG CHỜ slot clip — việc render xếp sau bị bỏ đói tới 10 phút**
-  Người dùng thấy gì: Khi có hai yêu cầu xuất video clip gửi liên tiếp, các yêu cầu xuất ảnh tĩnh gửi sau đó có thể bị treo chờ tới 10 phút dù máy chủ còn năng lực xử lý ảnh.
-  file: `mcp-server/src/jobRunner.ts:116`
+- **Job artifacts written before a restart are orphaned in `sinkDir` forever — the TTL sweep can never reach them**
+  Người dùng thấy gì: Mỗi lần máy chủ khởi động lại (triển khai bản mới, sự cố, bảo trì), các tệp ảnh/video đã tạo ra nhưng chưa kịp được người dùng tải về sẽ bị bỏ quên vĩnh viễn trên đĩa và không bao giờ tự dọn — theo thời gian điều này có thể làm đầy dần dung lượng lưu trữ của dịch vụ.
+  file: `mcp-server/src/jobRunner.ts:248`
   severity: medium
   Đề xuất: new-contract
-
-- **/jobs vứt bỏ kết quả renderMapSchema.parse và lưu params thô — mất lớp strip của zod so với /render**
-  Người dùng thấy gì: Yêu cầu gửi qua đường nhận-việc có thể mang theo các trường dữ liệu thừa không được lọc bỏ như đường xử lý ngay lập tức, tạo nguy cơ khác biệt hành vi âm thầm giữa hai cách gọi cùng một tính năng trong tương lai.
-  file: `mcp-server/src/http.ts:472`
-  severity: low
-  Đề xuất: known-limits
-
-## Chưa phân loại (triage-failed)
-
-phân loại phạm vi không chạy được — không lỗi nào bị máy tự sửa, người xem lại toàn bộ
-
-- **loadServerConfig() bị đưa ra ngoài try/catch ở khối isMain — env sai giờ ném stack thô thay vì thông điệp + exit(1)**
-  file: `mcp-server/src/http.ts:537`
-  severity: low
-  source: bugs
-  detail: Trước: `try { ensureDist(loadServerConfig()); } catch (e) { console.error(...); process.exit(1); }` — loadServerConfig nằm TRONG try.
-  Sau: `const cfg = loadServerConfig();` đứng trước try, chỉ ensureDist(cfg) còn được bọc.
-
-  loadServerConfig() gọi envNumber() cho MAPPOSTER_APP_PORT / MAPPOSTER_POOL / MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS / MAPPOSTER_HTTP_MAX_BODY, và envNumber được thiết kế để NÉM khi giá trị sai (chú thích config.ts: "Parse a numeric env var, or refuse to start"). Với MAPPOSTER_POOL=abc, tiến trình giờ chết bằng uncaught exception + stack trace ở phạm vi module thay vì một dòng giải thích và exit(1) — mất đúng đường xử lý lỗi khởi động mà khối try này được viết ra để giữ.
 
 Cụm ngoài vùng phủ: cluster: n-a (không đo được — không eval nào khai paths, hoặc dưới ngưỡng cụm).

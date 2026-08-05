@@ -7,7 +7,10 @@ import { promises as fsp } from 'node:fs';
 // resolveConfig (used by every /render test) reaches into ./geocode for anything
 // that isn't a bare {lng,lat} — mocked so a region highlight resolved *by name*
 // (the whole point of Task 1) doesn't need a real Nominatim round trip.
-vi.mock('./geocode', () => ({
+// `importActual` chứ không thay trọn gói — jobRunner so `instanceof` với lớp
+// lỗi thật của mô-đun này; thay trọn thì nó thành undefined và phép so ném lỗi.
+vi.mock('./geocode', async () => ({
+  ...(await vi.importActual<typeof import('./geocode')>('./geocode')),
   resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
     if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
     return typeof input === 'string'

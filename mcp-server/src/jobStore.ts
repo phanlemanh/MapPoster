@@ -15,6 +15,9 @@ export interface JobArtifact {
   width: number;
   height: number;
   bytes: number;
+  /** Chỉ có ở artifact clip — giữ cho khớp hình dạng `/render-clip` đồng bộ trả. */
+  durationSec?: number;
+  fps?: number;
 }
 
 export interface JobRecord {

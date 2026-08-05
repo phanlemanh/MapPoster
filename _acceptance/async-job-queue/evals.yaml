@@ -199,6 +199,25 @@ evals:
     paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
+  # ── AC-6 (bổ sung round 4): bên thứ ba ngã ≠ lỗi người gọi ───────────────
+  - id: E24
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.job_runner
+    layer: backend-effect
+    expected: "exit 0; Nominatim trả 503 cho một địa danh HỢP LỆ → errorKind 'server'; còn mạng ổn mà không có kết quả → errorKind 'input'. Hai ca KHÔNG được lẫn — ranh giới pha giải bao luôn một lời gọi ra mạng, nên phân biệt phải nằm ở chính chỗ biết mình gọi ra ngoài"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/geocode.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-15 (bổ sung round 4): đường mới không đánh rơi trường của đường cũ ─
+  - id: E25
+    criterion: AC-15
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; khối clip trong kết quả việc mang CẢ durationSec và fps — đúng những trường mà /render-clip đồng bộ đang trả; người tiêu thụ dọn sang không bị mất dữ liệu trong im lặng"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
   # ── AC-15: judgment — giao ước có đủ để người tiêu thụ dọn sang không ─────
   - id: E20
     criterion: AC-15

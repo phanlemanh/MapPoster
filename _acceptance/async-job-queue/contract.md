@@ -5,7 +5,7 @@ slug: async-job-queue
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: approved
+status: implemented
 approved_by: manh
 approved_at: 2026-08-05
 time_human_minutes: {gate1: 10}

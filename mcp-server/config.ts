@@ -48,6 +48,18 @@ export const DEFAULT_POOL_ACQUIRE_TIMEOUT_MS = 10 * 60 * 1000;
  * are serialized on purpose — a full async job queue is a later package. */
 export const DEFAULT_CLIP_CONCURRENCY = 1;
 
+/** 50 việc đang chờ: hàng chờ không trần là OOM có hẹn giờ. Bản ghi rẻ, nhưng
+ * mỗi việc chờ giữ nguyên `params` của người gọi (có thể chứa GeoJSON inline). */
+export const DEFAULT_MAX_QUEUED_JOBS = 50;
+
+/** 30 phút giữ một việc đã kết thúc: đủ để người gọi hỏi lại vài nhịp, đủ ngắn
+ * để `sinkDir` không phình. Hết hạn thì bản ghi rời sổ VÀ tệp của nó bị xoá. */
+export const DEFAULT_JOB_TTL_MS = 30 * 60 * 1000;
+
+/** 10 phút chờ một slot clip: khớp `DEFAULT_POOL_ACQUIRE_TIMEOUT_MS` ngay trên.
+ * Chờ không hạn không phải kiên nhẫn — nó là treo vĩnh viễn đội lốt "đang chờ". */
+export const DEFAULT_JOB_SLOT_WAIT_MS = 10 * 60 * 1000;
+
 /**
  * Parse a numeric env var, or refuse to start.
  *

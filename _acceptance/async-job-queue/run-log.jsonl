@@ -38,3 +38,24 @@
 {"ts":"2026-08-05T04:01:48Z","round":2,"evalId":"E13","run_id":"minted-async-job-queue-E13-r2","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
 {"ts":"2026-08-05T04:01:48Z","round":2,"evalId":"E19","run_id":"minted-async-job-queue-E19-r2","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
 {"ts":"2026-08-05T04:01:48Z","round":2,"kind":"baseline","evals_hash":"7e2deaca7200631c0299d12279fa9c7d3d5168a2dad3325f7456f9b7d4bc7e91","non_discriminating":[]}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E1","run_id":"minted-async-job-queue-E1-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E2","run_id":"minted-async-job-queue-E2-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E3","run_id":"minted-async-job-queue-E3-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E5","run_id":"minted-async-job-queue-E5-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E6","run_id":"minted-async-job-queue-E6-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E8","run_id":"minted-async-job-queue-E8-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E11","run_id":"minted-async-job-queue-E11-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E18","run_id":"minted-async-job-queue-E18-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E4","run_id":"minted-async-job-queue-E4-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E17","run_id":"minted-async-job-queue-E17-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E7","run_id":"minted-async-job-queue-E7-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E8b","run_id":"minted-async-job-queue-E8b-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E9","run_id":"minted-async-job-queue-E9-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E10","run_id":"minted-async-job-queue-E10-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E14","run_id":"minted-async-job-queue-E14-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E15","run_id":"minted-async-job-queue-E15-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E16","run_id":"minted-async-job-queue-E16-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E12","run_id":"minted-async-job-queue-E12-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E13","run_id":"minted-async-job-queue-E13-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"evalId":"E19","run_id":"minted-async-job-queue-E19-r3","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-05T07:16:57Z","round":3,"kind":"baseline","evals_hash":"7e2deaca7200631c0299d12279fa9c7d3d5168a2dad3325f7456f9b7d4bc7e91","non_discriminating":[{"cmd":"npx vitest run mcp-server/src/http.test.ts","evals":["E1","E2","E3","E5","E6","E8","E11","E18"]},{"cmd":"npx vitest run mcp-server/src/tools.test.ts","evals":["E12"]},{"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts","evals":["E13","E19"]}]}

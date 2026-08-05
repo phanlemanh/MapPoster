@@ -1,13 +1,13 @@
 ---
 schema_version: 2
 feature_slug: async-job-queue
-verdict: REJECT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: a0b84bd293380f7648670cc088e0324ace439843
+verified_commit: aa2dc5621131f34ebde4fa1b657c51508a74a3ed
 human_signoff:
 ---
 
@@ -35,275 +35,263 @@ human_signoff:
 | E17 | AC-12 | test | PASS |
 | E18 | AC-13 | test | PASS |
 | E19 | AC-14 | test | PASS |
-| E20 | AC-15 | judgment | PASS (proposal, 2-1 split) |
+| E20 | AC-15 | judgment | PASS (proposal, 3-0) |
 
 ## Evidence
 
 - eval: E1
-  run_id: minted-async-job-queue-E1-r2
+  run_id: minted-async-job-queue-E1-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E2
-  run_id: minted-async-job-queue-E2-r2
+  run_id: minted-async-job-queue-E2-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E3
-  run_id: minted-async-job-queue-E3-r2
+  run_id: minted-async-job-queue-E3-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E4
-  run_id: minted-async-job-queue-E4-r2
+  run_id: minted-async-job-queue-E4-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  11 passed (11)
-    Start at  11:03:08
-    Duration  938ms (transform 35ms, setup 0ms, import 44ms, tests 5ms, environment 762ms)
+    Start at  14:18:11
+    Duration  1.53s (transform 58ms, setup 0ms, import 93ms, tests 7ms, environment 1.03s)
 
 - eval: E5
-  run_id: minted-async-job-queue-E5-r2
+  run_id: minted-async-job-queue-E5-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E6
-  run_id: minted-async-job-queue-E6-r2
+  run_id: minted-async-job-queue-E6-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E7
-  run_id: minted-async-job-queue-E7-r2
+  run_id: minted-async-job-queue-E7-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E8
-  run_id: minted-async-job-queue-E8-r2
+  run_id: minted-async-job-queue-E8-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E8b
-  run_id: minted-async-job-queue-E8b-r2
+  run_id: minted-async-job-queue-E8b-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E9
-  run_id: minted-async-job-queue-E9-r2
+  run_id: minted-async-job-queue-E9-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E10
-  run_id: minted-async-job-queue-E10-r2
+  run_id: minted-async-job-queue-E10-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E11
-  run_id: minted-async-job-queue-E11-r2
+  run_id: minted-async-job-queue-E11-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E12
-  run_id: minted-async-job-queue-E12-r2
+  run_id: minted-async-job-queue-E12-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-05T11:03:07Z
+  verified_at: 2026-08-05T14:18:10Z
   output: |
     Tests  32 passed (32)
-    Start at  11:03:07
-    Duration  1.40s (transform 160ms, setup 0ms, import 276ms, tests 239ms, environment 708ms)
+    Start at  14:18:10
+    Duration  1.86s (transform 168ms, setup 0ms, import 257ms, tests 214ms, environment 1.19s)
 
 - eval: E13
-  run_id: minted-async-job-queue-E13-r2
+  run_id: minted-async-job-queue-E13-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  31 passed (31)
-    Start at  11:03:08
-    Duration  1.23s (transform 223ms, setup 0ms, import 365ms, tests 17ms, environment 688ms)
+    Start at  14:18:11
+    Duration  1.52s (transform 195ms, setup 0ms, import 287ms, tests 20ms, environment 943ms)
 
 - eval: E14
-  run_id: minted-async-job-queue-E14-r2
+  run_id: minted-async-job-queue-E14-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E15
-  run_id: minted-async-job-queue-E15-r2
+  run_id: minted-async-job-queue-E15-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E16
-  run_id: minted-async-job-queue-E16-r2
+  run_id: minted-async-job-queue-E16-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  17 passed (17)
-    Start at  11:03:08
-    Duration  1.43s (transform 210ms, setup 0ms, import 290ms, tests 139ms, environment 824ms)
+    Start at  14:18:11
+    Duration  2.14s (transform 367ms, setup 0ms, import 442ms, tests 165ms, environment 1.32s)
 
 - eval: E17
-  run_id: minted-async-job-queue-E17-r2
+  run_id: minted-async-job-queue-E17-r3
   exit_code: 0
-  baseline: n-a
+  baseline: red
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  11 passed (11)
-    Start at  11:03:08
-    Duration  938ms (transform 35ms, setup 0ms, import 44ms, tests 5ms, environment 762ms)
+    Start at  14:18:11
+    Duration  1.53s (transform 58ms, setup 0ms, import 93ms, tests 7ms, environment 1.03s)
 
 - eval: E18
-  run_id: minted-async-job-queue-E18-r2
+  run_id: minted-async-job-queue-E18-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  49 passed (49)
-    Start at  11:03:08
-    Duration  2.25s (transform 325ms, setup 0ms, import 1.08s, tests 117ms, environment 870ms)
+    Start at  14:18:11
+    Duration  3.46s (transform 574ms, setup 0ms, import 2.03s, tests 167ms, environment 957ms)
 
 - eval: E19
-  run_id: minted-async-job-queue-E19-r2
+  run_id: minted-async-job-queue-E19-r3
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-05T11:03:08Z
+  verified_at: 2026-08-05T14:18:11Z
   output: |
     Tests  31 passed (31)
-    Start at  11:03:08
-    Duration  1.23s (transform 223ms, setup 0ms, import 365ms, tests 17ms, environment 688ms)
+    Start at  14:18:11
+    Duration  1.52s (transform 195ms, setup 0ms, import 287ms, tests 20ms, environment 943ms)
 
 - eval: E20
   judged_by: judge panel (domain-correctness, operational-feasibility, spec-alignment) — fresh context
   proposal: PASS
   votes:
-    - domain-correctness: PASS — Ba thiếu sót đầu (không gọi ngược, không tiến độ, không huỷ) đều được tài liệu biện minh rõ ràng gắn với hành vi thực tế của OneHub hôm nay (đã tự xử lý 429 nghĩa là đã quen kiểu hỏi-lại; không ai nêu nhu cầu tiến độ/huỷ) nên không chặn việc dọn sang ở vòng đầu. Thiếu sót thứ tư — restart xoá sạch mã việc — không bị giấu: contract.md (Out of scope) và design doc (§2 bảng ràng buộc, §6) nêu đích danh đây là "Áp lực 4" do chính chủ repo đặt ra nhưng cố ý chưa giải quyết, có lý do hạ tầng/tiền rõ ràng và hẹn hợp đồng riêng ở vòng sau — đúng đòi hỏi "hoặc nêu đích danh thứ còn thiếu" của AC-15. Vì AC-15 tự nhận là judgment cần chữ ký người ở Gate 2 nên đây là phần việc con người xác nhận thêm, nhưng xét thuần trên tài liệu thì không có khái niệm nào bị bỏ sót âm thầm.
-    - operational-feasibility: PASS — Ba thiếu sót đầu (không gọi ngược, không tiến độ, không huỷ) là mẫu hình chuẩn cho gửi-việc/hỏi-việc — OneHub chỉ cần đổi từ "giữ kết nối chờ" sang "hỏi lại theo nhịp", không cần khái niệm mới, và cả ba đều được liệt kê tường minh kèm lý do ở mục Out of scope. Thiếu sót thứ tư — khởi động lại làm mọi mã việc thành vô danh — không bị giấu: cả contract (Out of scope, dòng 122-124) và design doc (§2 bảng ràng buộc, §6 "Nói thẳng chứ không giấu vào chú thích") nêu đích danh hệ quả cụ thể (người gọi nhận 404) và khoanh vùng nó vào một hợp đồng riêng của vòng sau; AC-15 chỉ đòi hỏi "đủ mà không cần thêm khái niệm — hoặc nêu đích danh thứ còn thiếu", và vế thứ hai đã được thoả. Vì cả bốn khoảng trống đều được đặt tên và giải trình rõ ràng thay vì bị bỏ sót, giao ước đạt tiêu chí AC-15 ở vòng đầu.
-    - spec-alignment: FAIL — Ba thiếu sót (không gọi ngược, không tiến độ, không huỷ) được contract tự liệt kê trong ngoặc ở chính AC-15 là chấp nhận được — design doc §1 xác nhận đây chỉ là "phần vành" chưa ai cần, đúng khuôn submit-poll của Shotstack/Bannerbear. Nhưng "khởi động lại = mọi mã việc thành vô danh" KHÔNG nằm trong danh sách chấp nhận-được đó của AC-15, và design doc §1 nói rõ đây là áp lực #4 mà chủ repo đã nêu tường minh nhưng gói này cố ý không giải quyết ("Gói này nhận 1–3... Áp lực 4 cố ý để lại") — khác về bản chất với ba cái kia (chưa từng bị yêu cầu), đây là một nhu cầu thật bị bỏ ngỏ, không có gợi ý resubmission/idempotency nào cho OneHub khi lệch giữa "mã chưa từng tồn tại" và "mã bị mất do redeploy" (AC-4 cố ý gộp chung 404). Đây là thứ chặn việc dọn sang production-grade mà không cần OneHub tự phát minh thêm khái niệm phục hồi.
-  verdict: PASS (proposal, 2-1 split — pending human review)
+    - domain-correctness: PASS — Hai cửa POST /jobs + POST /jobs/status cấp đủ nguyên liệu tối thiểu (mã việc dùng ngay, hỏi lại ra trạng thái/kết quả, 404 thống nhất cho "mã lạ") để OneHub chuyển từ gọi đồng bộ sang gửi-việc-rồi-hỏi mà không cần phát minh khái niệm mới — hỏi lại theo nhịp thay callback, thiếu tiến độ, thiếu huỷ việc đều khớp đúng hình MVP chuẩn ngành mà chính tài liệu dẫn ra (Shotstack/Bannerbear/AWS MediaConvert: lõi là mã-việc + hỏi-trạng-thái, bỏ phần vành). Khởi động lại làm mã việc thành vô danh không phải khái niệm mới vì nó tái dùng đúng cửa 404 đã định nghĩa cho mã lạ/hết hạn (AC-4), dù nó tái hiện một phần vấn đề "mất trắng khi redeploy" mà gói này vốn nhắm giải quyết — nhưng tài liệu đã nói thẳng điều đó là phạm vi để lại cho hợp đồng độ-bền vòng sau, không phải một khoảng trống bị giấu. Không có thiếu sót nào trong bốn cái buộc thêm khái niệm giao thức mới ở vòng đầu.
+    - operational-feasibility: PASS — Ba thiếu sót đầu (không gọi ngược, không tiến độ, không huỷ) không chặn: submit-rồi-hỏi tự nó đã là mô hình OneHub cần dựng, và AC-1/AC-4/AC-5/AC-6 cho đủ vòng lặp hỏi để lấy trạng thái/kết quả mà không cần thêm khái niệm giao thức nào. Thiếu sót thứ tư — khởi động lại xoá sạch mã việc thành 404 — không tệ hơn tình huống OneHub đã phải xử lý ở đường đồng bộ hiện tại (kết nối rớt giữa chừng cũng mù mờ y vậy), và hệ quả được nói thẳng trong cả contract lẫn design doc kèm lý do hoãn có chủ đích, nên chấp nhận được cho vòng đầu. Không có thiếu sót nào trong bốn cái đạt ngưỡng chặn migration hoàn toàn, dù OneHub sẽ phải tự thêm chính sách resubmit khi gặp 404 mơ hồ (không được contract cấp sẵn) — đó là gánh nặng vận hành thêm chứ không phải lỗ hổng chặn cửa.
+    - spec-alignment: PASS — Cả hai tài liệu tự đặt tên đích danh bốn khoảng trống này (mục Out of scope + Notes của contract, §2/§6/§9 của design doc): webhook — "OneHub chưa cần, và không có độ bền thì gọi ngược cũng không đáng tin"; tiến độ — "chưa ai hỏi"; huỷ việc — "chưa có nhu cầu nêu ra"; và khởi động lại — nói thẳng "restart = mọi mã việc thành vô danh, người gọi nhận 404" chứ không giấu. Vì AC-15 chấp nhận hai nhánh (đủ khái niệm HOẶC nêu đích danh cái thiếu), và cả bốn cái đều được nêu đích danh kèm lý do vì sao chưa cần ở vòng đầu, không cái nào trong bốn thứ đó bị bỏ sót lặng lẽ — nhánh thứ hai của AC-15 được thoả. Không có căn cứ nào trong hai văn bản cho thấy một trong bốn khoảng trống chặn cứng lối OneHub chuyển từ đồng bộ+tự xử-429 sang gửi-việc+tự hỏi nhịp; 429 ở cửa nhận việc (AC-3) vẫn được giữ y hệt cơ chế OneHub đã quen xử lý.
+  verdict: PASS (proposal, 3-0 unanimous — pending human review)
   human_override:
 
 ## Lệnh không gắn eval
 
-Các lệnh dưới đây không được gán vào eval nào cụ thể (evals: []) nên không có block Evidence riêng theo id, nhưng được ghi rõ tại đây vì một trong số chúng là nguyên nhân trực tiếp của verdict REJECT tổng thể.
+Các lệnh dưới đây không được gán vào eval nào cụ thể (evals: []); cả hai đều xanh và đóng vai trò regression-guard toàn repo.
 
 - cmd: `npm test`
   exit_code: 0
-  role: regression-guard toàn repo (388 passed, 7 skipped / 395)
+  role: regression-guard toàn repo
   output: |
     Tests  388 passed | 7 skipped (395)
-    Start at  11:03:07
-    Duration  4.47s (transform 3.05s, setup 0ms, import 10.97s, tests 5.13s, environment 24.58s)
+    Start at  14:18:10
+    Duration  4.84s (transform 2.92s, setup 0ms, import 14.16s, tests 4.58s, environment 32.18s)
 
-- cmd: `npm run test:e2e`
+- cmd: `npm run test:e2e && npm run test:mcp`
   exit_code: 0
-  role: regression-guard e2e toàn repo (14 passed)
+  role: regression-guard e2e + tích hợp MCP (gộp nối tiếp theo quyết định d-20260805T071657Z-7029 để hết tranh chấp trình duyệt giữa hai bộ đo trong lúc nghiệm thu — nguyên nhân của REJECT ở round 2)
   output: |
-    ✓  14 [chromium] › e2e/render-mode.spec.ts:207:1 › motion: verifyAndReapplyGeoAt guards a reverted highlight source even when highlight.fill is false (Finding 1) (2.2s)
-
-    14 passed (44.8s)
-
-- cmd: `npm run test:mcp`
-  exit_code: 1
-  role: NGUYÊN NHÂN TRỰC TIẾP của verdict REJECT — không map vào eval nào trong contract, nhưng là một test tích hợp có sẵn trong repo (renderClip.test.ts) và exit khác 0 nghĩa là cây đang xác minh KHÔNG xanh toàn phần.
-  output: |
-    Test Files  1 failed | 2 passed (3)
-    Tests  1 failed | 6 passed (7)
-    Start at  11:03:08
-    Duration  59.73s (transform 92ms, setup 0ms, import 1.74s, tests 56.35s, environment 1.26s)
-
-    FAIL  mcp-server/src/renderClip.test.ts > renderClipFrames (integration) > renders fps×duration frames plus a settle still (AC-5)
-    TimeoutError: page.waitForFunction: Timeout 20000ms exceeded.
+    Tests  7 passed (7)
+    Start at  14:18:58
+    Duration  46.98s (transform 43ms, setup 0ms, import 902ms, tests 44.72s, environment 1.05s)
 
 ## Analyst
 
-none — mọi eval feature đều red trên baseline (có phân biệt)
+E1, E2, E3, E5, E6, E8, E11, E18 (npx vitest run mcp-server/src/http.test.ts); E12 (npx vitest run mcp-server/src/tools.test.ts); E13, E19 (npx vitest run mcp-server/src/motionCompiler.test.ts)
 
 ## Variance
 
@@ -314,6 +302,8 @@ none — every multi-run eval is uniform
 Round 1: All 19 machine evals (E1–E19) exit 0 on HEAD and the E20 judgment panel unanimously proposed PASS; verdict is REJECT because review (see review-findings.md, section "Trong hợp đồng") found that `isCallerFault` in mcp-server/src/jobRunner.ts:42 misclassifies genuine caller-input failures (bad theme, bad format, bad geojson) as errorKind 'server', violating AC-6's "phân biệt rõ lỗi tại người gọi hay tại máy chủ" — a defect the existing E8 test does not exercise, since it only covers a genuine server-side throw. Returned to implementation.
 
 Round 2: E8b (mới, phủ trực tiếp ca phân loại lỗi người gọi ở jobRunner cho AC-6) cùng toàn bộ 19 eval máy còn lại và panel E20 đều xanh, đóng lại phát hiện round 1; nhưng verdict vẫn REJECT vì `npm run test:mcp` (lệnh không gắn eval, phủ tích hợp renderClip.test.ts) exit 1 — timeout 20s tại ca "renders fps×duration frames plus a settle still" (AC-5) — chưa rõ do gói job-queue gây ra hay do môi trường render, cần điều tra trước khi merge.
+
+Round 3: Điều tra xác nhận nguyên nhân round 2 là tranh chấp tài nguyên trình duyệt giữa hai bộ đo dùng Chromium chạy song song trong chính vòng nghiệm thu, không phải hồi quy của gói (renderClip.test.ts chạy riêng xanh hai lần 43,6s/41,6s, chỉ trong vòng nghiệm thu mới vượt trần 20s ở 59,7s) — không sửa code sản phẩm; thay vào đó feature_loop.suite_keys được gộp thành một lệnh nối tiếp `npm run test:e2e && npm run test:mcp` (quyết định d-20260805T071657Z-7029), nay exit 0 (7 passed). Toàn bộ 19 eval máy + panel E20 (nay đồng thuận 3-0 PASS, spec-alignment đảo chiều từ FAIL sang PASS sau khi xác nhận contract/design doc đã nêu đích danh khoảng trống "restart xoá mã việc" thoả nhánh thứ hai của AC-15) đều xanh. Verdict: PASS.
 
 ## Gate 2 checklist (human)
 

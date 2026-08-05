@@ -109,6 +109,29 @@ describe('createJobRunner — chạy việc', () => {
     expect(rec.errorKind).toBe('input');
   });
 
+  // Ba ca dưới đây đến từ vòng soi code round 1: bản phân loại đầu tiên khớp
+  // CHUỖI trong thông điệp lỗi, mà `resolveConfig` lại ném "Unknown theme: …",
+  // "Unknown format: …", "Invalid highlight.regions[].geojson: …" — không cái
+  // nào khớp, nên cả ba bị gán nhầm là lỗi máy chủ và người gọi được bảo thử
+  // lại một yêu cầu không đời nào thành công. Cùng thân đó gửi vào `/render`
+  // đồng bộ thì trả 400, nên hai bề mặt còn bất đồng với nhau về lỗi tại ai.
+  it.each([
+    ['chủ đề lạ', { location: 'Huế', theme: 'rubby' }],
+    ['khổ ảnh lạ', { location: 'Huế', format: 'wat' }],
+    ['geojson hỏng', { location: 'Huế', highlight: { regions: [{ geojson: { khong: 'phai geojson' } }] } }],
+  ])('AC-6: %s → hỏng vì NGƯỜI GỌI, không phải máy chủ', async (_ten, params) => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('failed');
+    expect(rec.errorKind).toBe('input');
+  });
+
   it('AC-6: render nổ → hỏng vì MÁY CHỦ', async () => {
     const store = createJobStore();
     const deps = makeDeps({

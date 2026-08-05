@@ -30,20 +30,40 @@ export interface JobRunner {
 }
 
 /**
- * Lỗi của NGƯỜI GỌI, không phải của mình.
+ * Bất cứ thứ gì hỏng trong PHA GIẢI — phân giải chính đầu vào của người gọi.
  *
- * Đây là cùng ranh giới `/render` đã dựng giữa 400 và 500, chỉ khác chỗ sống:
+ * Đây là cùng ranh giới `/render` đã dựng giữa 400 và 500 (xem hai khối chú
+ * thích "Resolve phase" / "Render phase" trong `http.ts`), chỉ khác chỗ sống:
  * ở đường đồng bộ nó là mã HTTP, ở đây nó là một trường trong thân phản hồi,
  * vì mã HTTP của lệnh HỎI luôn nói về câu hỏi chứ không về việc.
- *
- * Mặc định là "lỗi tại máy chủ": đoán nhầm về phía mình thì người gọi thử lại
- * vô ích; đoán nhầm về phía họ thì mình giấu mất một sự cố của chính mình.
  */
-const isCallerFault = (e: unknown): boolean => {
-  if (e instanceof MotionParamError) return true;
-  const msg = (e as Error)?.message ?? '';
-  return /No geocoding result|Unsupported format|out of range/i.test(msg);
-};
+class JobInputError extends Error {
+  constructor(cause: unknown) {
+    super((cause as Error)?.message ?? String(cause));
+    this.name = 'JobInputError';
+  }
+}
+
+/**
+ * Chạy pha giải và gắn nhãn "lỗi tại người gọi" cho mọi thứ ném ra từ đó.
+ *
+ * Phân loại theo PHA chứ không theo chuỗi trong thông điệp. Bản đầu tiên khớp
+ * chuỗi (`/No geocoding result|.../`) và đã sai ngay: `resolveConfig` ném
+ * `Unknown theme: …`, `Unknown format: …`, `Invalid highlight.regions[].geojson: …`
+ * — không cái nào khớp, nên cả ba bị gán "lỗi tại máy chủ" và người gọi được
+ * bảo thử lại một yêu cầu không bao giờ thành công. Một danh sách chuỗi luôn
+ * trôi khỏi thông điệp mà code thật phát ra; ranh giới pha thì không.
+ */
+async function resolvePhase<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    // MotionParamError đã tự nói nó là lỗi đầu vào rồi — giữ nguyên kiểu.
+    throw e instanceof MotionParamError ? e : new JobInputError(e);
+  }
+}
+
+const isCallerFault = (e: unknown): boolean => e instanceof MotionParamError || e instanceof JobInputError;
 
 let counter = 0;
 const fileNameFor = (kind: string, placeName: string): string =>
@@ -69,7 +89,7 @@ export function createJobRunner({
   };
 
   async function runRender(job: JobRecord): Promise<JobFinishPatch> {
-    const cfg = await resolveConfig(job.params as RenderMapParams);
+    const cfg = await resolvePhase(() => resolveConfig(job.params as RenderMapParams));
     const png = await deps.render(cfg);
     // 'url' chứ không phải 'both': kết quả sống trên ĐĨA, thân phản hồi được
     // dựng lúc HỎI. Giữ base64 trong sổ là đúng thứ thiết kế đi tránh — một
@@ -91,12 +111,11 @@ export function createJobRunner({
 
     // Lối CHỜ, không phải lối ném-ngay: thợ được xếp hàng, đường đồng bộ thì
     // không. Cùng MỘT bộ đếm, hai chính sách lấy chỗ.
+    // Hết hạn chờ slot là lỗi TẠI MÁY CHỦ — nằm NGOÀI `resolvePhase` có chủ ý:
+    // đầu vào của người gọi không có lỗi gì, chỉ là mình đang nghẽn.
     const release = await acquireClipSlotWaiting({ timeoutMs: slotWaitMs, env });
-    const { cfg, motion, preset, releaseClipSlot } = await prepareClipRenderWithSlot(
-      job.params as RenderMapParams,
-      job.motionInput,
-      release,
-      env,
+    const { cfg, motion, preset, releaseClipSlot } = await resolvePhase(() =>
+      prepareClipRenderWithSlot(job.params as RenderMapParams, job.motionInput, release, env),
     );
     try {
       const { frames, settle } = await deps.renderClip(cfg);

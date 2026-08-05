@@ -157,3 +157,103 @@ describe('compileMotion', () => {
     expect(() => compileMotion('drift', cfg(), { fps: 60 })).toThrow(/fps=60 is out of range/);
   });
 });
+
+import { afterEach, beforeEach, vi } from 'vitest';
+import {
+  acquireClipSlot,
+  acquireClipSlotWaiting,
+  ClipConcurrencyError,
+  ClipSlotWaitTimeoutError,
+  resetClipGateForTests,
+} from './motionCompiler';
+
+describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => {
+  beforeEach(() => {
+    resetClipGateForTests();
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+  });
+  afterEach(() => {
+    resetClipGateForTests();
+    delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
+    vi.useRealTimers();
+  });
+
+  it('lối NÉM-NGAY giữ nguyên hành vi: hết chỗ là ném, không chờ', () => {
+    const release = acquireClipSlot();
+    expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError);
+    release();
+    expect(() => acquireClipSlot()).not.toThrow();
+  });
+
+  it('lối CHỜ: người chờ được đánh thức khi slot được trả', async () => {
+    const first = acquireClipSlot();
+    let woke = false;
+    const waiting = acquireClipSlotWaiting({ timeoutMs: 60_000 }).then((r) => {
+      woke = true;
+      return r;
+    });
+
+    await Promise.resolve();
+    expect(woke).toBe(false); // vẫn đang chờ, chưa ai nhả
+
+    first();
+    const release = await waiting;
+    expect(woke).toBe(true);
+    release();
+  });
+
+  it('đánh thức theo ĐÚNG thứ tự xếp hàng', async () => {
+    const first = acquireClipSlot();
+    const order: number[] = [];
+
+    const a = acquireClipSlotWaiting({ timeoutMs: 60_000 }).then((r) => { order.push(1); return r; });
+    const b = acquireClipSlotWaiting({ timeoutMs: 60_000 }).then((r) => { order.push(2); return r; });
+    const c = acquireClipSlotWaiting({ timeoutMs: 60_000 }).then((r) => { order.push(3); return r; });
+
+    first();
+    (await a)();
+    (await b)();
+    (await c)();
+
+    expect(order).toEqual([1, 2, 3]);
+  });
+
+  it('slot được trả trên MỌI lối ra — kể cả khi bên giữ ném lỗi', async () => {
+    const release = acquireClipSlot();
+    try {
+      throw new Error('bên giữ slot nổ giữa chừng');
+    } catch {
+      release();
+    }
+    // slot đã về, người chờ tiếp theo lấy được ngay
+    await expect(acquireClipSlotWaiting({ timeoutMs: 10 })).resolves.toBeTypeOf('function');
+  });
+
+  it('release là idempotent — gọi hai lần không cấp thừa một chỗ', async () => {
+    const release = acquireClipSlotWaiting({ timeoutMs: 10 });
+    const r = await release;
+    r();
+    r();
+    const second = acquireClipSlot();
+    expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError); // trần vẫn đúng là 1
+    second();
+  });
+
+  it('CHỜ CÓ HẠN: quá hạn thì ném, và người đã hết hạn KHÔNG còn tồn trong hàng', async () => {
+    vi.useFakeTimers();
+    const first = acquireClipSlot();
+
+    const late = acquireClipSlotWaiting({ timeoutMs: 5_000 });
+    const expectation = expect(late).rejects.toBeInstanceOf(ClipSlotWaitTimeoutError);
+    await vi.advanceTimersByTimeAsync(5_001);
+    await expectation;
+
+    // người hết hạn đã rời hàng: slot được trả phải rơi vào người chờ CÒN SỐNG
+    const alive = acquireClipSlotWaiting({ timeoutMs: 60_000 });
+    first();
+    await vi.advanceTimersByTimeAsync(0);
+    const release = await alive;
+    expect(release).toBeTypeOf('function');
+    release();
+  });
+});

@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 46a924fbde1bd4bd26bbabd56e4cd894227e7287
-human_signoff:
+human_signoff: manh 2026-08-05
 ---
 
 # Evidence Report: async-job-queue

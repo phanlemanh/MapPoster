@@ -48,3 +48,39 @@
 - **claude-sonnet-5**: 23 agent · 250 calls · out 85,477 · in 4,213 · cache_read 18,585,250 · cache_create 1,859,999
 - **claude-haiku-4-5-20251001**: 7 agent · 14 calls · out 3,729 · in 126 · cache_read 309,395 · cache_create 330,926
 
+### S4 round 5 (PASS) — wf_f26fda95-f4a (27 agent, 119,330 out-tok)
+
+| label | model | calls | out | in | cache_read | s |
+|---|---|--:|--:|--:|--:|--:|
+| review:bugs | claude-opus-5 | 22 | 30,916 | 44 | 2,311,567 | 499 |
+| review:conventions | claude-opus-5 | 15 | 17,499 | 4,615 | 1,432,638 | 323 |
+| refute:config.yaml | claude-sonnet-5 | 18 | 9,337 | 36 | 1,551,588 | 190 |
+| refute:jobStore.ts | claude-sonnet-5 | 15 | 8,589 | 2,194 | 1,199,869 | 195 |
+| refute:jobRunner.ts | claude-sonnet-5 | 10 | 7,244 | 20 | 736,738 | 108 |
+| refute:http.ts | claude-sonnet-5 | 19 | 7,034 | 1,082 | 1,564,554 | 262 |
+| baseline:diffBase | claude-sonnet-5 | 15 | 6,591 | 30 | 1,066,205 | 131 |
+| refute:geocode.ts | claude-sonnet-5 | 24 | 6,282 | 48 | 2,145,074 | 350 |
+| refute:README.md | claude-sonnet-5 | 12 | 4,070 | 24 | 803,389 | 123 |
+| refute:http.ts | claude-sonnet-5 | 8 | 3,728 | 16 | 535,936 | 77 |
+| refute:jobStore.ts | claude-sonnet-5 | 5 | 3,710 | 10 | 291,248 | 66 |
+| refute:http.ts | claude-sonnet-5 | 14 | 3,213 | 28 | 1,089,583 | 117 |
+| refute:jobRunner.ts | claude-sonnet-5 | 9 | 2,876 | 18 | 596,656 | 68 |
+| refute:http.ts | claude-sonnet-5 | 9 | 2,574 | 18 | 558,814 | 86 |
+| judge:E20:operational-feasibility | claude-sonnet-5 | 9 | 1,040 | 18 | 639,495 | 350 |
+| machine:npm run test:e2e && npm run test:mcp | claude-haiku-4-5-20251001 | 3 | 801 | 26 | 91,181 | 104 |
+| machine:npx vitest run mcp-server/src/tools.test | claude-haiku-4-5-20251001 | 2 | 643 | 18 | 61,775 | 15 |
+| machine:npx vitest run mcp-server/src/jobStore.t | claude-haiku-4-5-20251001 | 2 | 552 | 18 | 44,249 | 11 |
+| machine:npx vitest run mcp-server/src/jobRunner. | claude-haiku-4-5-20251001 | 2 | 549 | 18 | 44,247 | 12 |
+| machine:npm test | claude-haiku-4-5-20251001 | 2 | 469 | 18 | 61,747 | 18 |
+| machine:npx vitest run mcp-server/src/http.test. | claude-haiku-4-5-20251001 | 2 | 398 | 18 | 44,247 | 16 |
+| synthesize:report | claude-sonnet-5 | 8 | 374 | 16 | 668,136 | 309 |
+| capture:provenance | claude-sonnet-5 | 2 | 365 | 4 | 63,590 | 13 |
+| judge:E20:spec-alignment | claude-sonnet-5 | 2 | 347 | 4 | 63,826 | 75 |
+| triage | claude-sonnet-5 | 2 | 120 | 4 | 68,247 | 85 |
+| judge:E20:domain-correctness | claude-sonnet-5 | 2 | 7 | 4 | 63,826 | 72 |
+| machine:npx vitest run mcp-server/src/motionComp | claude-haiku-4-5-20251001 | 2 | 2 | 18 | 44,251 | 14 |
+
+- **claude-opus-5**: 2 agent · 37 calls · out 48,415 · in 4,659 · cache_read 3,744,205 · cache_create 254,908
+- **claude-sonnet-5**: 18 agent · 183 calls · out 67,501 · in 3,574 · cache_read 13,706,774 · cache_create 1,507,686
+- **claude-haiku-4-5-20251001**: 7 agent · 15 calls · out 3,414 · in 134 · cache_read 391,697 · cache_create 296,246
+

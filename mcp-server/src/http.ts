@@ -13,8 +13,10 @@ import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
-import { prepareClipRender, MotionParamError, ClipConcurrencyError, type ClipPreparation } from './motionCompiler';
+import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
+import { createJobStore, JobQueueFullError, type JobRecord, type JobStore } from './jobStore';
+import { createJobRunner, type JobRunner } from './jobRunner';
 
 export interface HttpServer {
   url: string;
@@ -115,6 +117,37 @@ export function isAllowedRequest(
 
 const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '[::1]'];
 
+const jobSubmitSchema = z.object({
+  kind: z.enum(['render', 'clip']),
+  params: z.unknown(),
+  motion: z.unknown().optional(),
+});
+
+/**
+ * Thân phản hồi cho một lệnh HỎI việc. Kết quả sống trên ĐĨA — đọc lên ở đây,
+ * không giữ trong sổ: một clip sát trần nằm ở hàng chục MB, còn instance chỉ có
+ * 2 GB chia với Chromium.
+ */
+async function jobStatusBody(rec: JobRecord): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = { ok: true, id: rec.id, kind: rec.kind, status: rec.status };
+  if (rec.resolved) out.resolved = rec.resolved;
+  if (rec.motion) out.motion = rec.motion;
+  if (rec.error) out.error = rec.error;
+  if (rec.errorKind) out.errorKind = rec.errorKind;
+  if (rec.degradeNote) out.clipError = rec.degradeNote;
+
+  for (const a of rec.artifacts) {
+    // Một tệp đã bị dọn hoặc chưa kịp ghi không được làm hỏng CẢ câu trả lời:
+    // phần siêu dữ liệu vẫn đúng, chỉ thiếu nội dung.
+    const base64 = await fs.readFile(a.path).then((b) => b.toString('base64')).catch(() => undefined);
+    const block = { base64, format: a.format, width: a.width, height: a.height, bytes: a.bytes };
+    if (a.role === 'image') out.image = block;
+    if (a.role === 'settle') out.settle = block;
+    if (a.role === 'clip') out.clip = block;
+  }
+  return out;
+}
+
 /**
  * Serve the MCP server over Streamable HTTP (stateless). Per MCP's stateless
  * pattern, each request gets a fresh McpServer + transport; the render deps
@@ -134,6 +167,7 @@ export async function startHttpServer(
     allowedOrigins: parseList(process.env.MAPPOSTER_HTTP_ALLOWED_ORIGINS),
   },
   maxBodyBytes = envNumber(process.env, 'MAPPOSTER_HTTP_MAX_BODY', DEFAULT_MAX_BODY_BYTES, { min: 1024 }),
+  jobs?: { store: JobStore; runner: JobRunner },
 ): Promise<HttpServer> {
   const allowedHosts = policy.allowedHosts.length ? policy.allowedHosts : LOOPBACK_HOSTS;
   const server = http.createServer((req, res) => {
@@ -143,6 +177,23 @@ export async function startHttpServer(
     }
     if (!isAllowedRequest(req.headers, { allowedOrigins: policy.allowedOrigins, allowedHosts })) {
       res.writeHead(403).end('forbidden');
+      return;
+    }
+    // Từ chối một thân quá khổ TRƯỚC khi đọc một byte nào — và trước khi rẽ
+    // vào bất kỳ cửa nào, nên cả ba cửa hưởng cùng một luật.
+    //
+    // Đây từng là lỗ thật: phép kiểm này chỉ đứng trước nhánh `/mcp`, nên
+    // `/render` rơi thẳng vào `readJsonBody`, mà hàm đó HUỶ SOCKET khi chạm
+    // trần rồi handler mới ghi 413 — người gọi nhận đứt kết nối chứ không nhận
+    // mã lỗi. Bảng ca guard chạy chung ba cửa (AC-13) là thứ phát hiện ra nó;
+    // test theo từng cửa riêng lẻ không bao giờ thấy.
+    //
+    // Thân theo lối chunked không khai độ dài thì `readJsonBody` vẫn đếm và
+    // vẫn huỷ — đó là chốt chặn chống OOM, không phải đường đi thường.
+    const declaredLength = Number(req.headers['content-length'] ?? 0);
+    if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
+      res.writeHead(413, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: `Request body exceeds ${maxBodyBytes} bytes` }));
       return;
     }
     // Plain-REST sibling to the MCP transport below, for callers (e.g. OneHub)
@@ -375,12 +426,73 @@ export async function startHttpServer(
       })();
       return;
     }
-    // Refuse an oversized body before reading a byte of it. A chunked request
-    // declares no length, so readJsonBody counts as it goes — this is the cheap
-    // path, not the only one.
-    const declared = Number(req.headers['content-length'] ?? 0);
-    if (Number.isFinite(declared) && declared > maxBodyBytes) {
-      res.writeHead(413).end('payload too large');
+    // Lối bất đồng bộ: nhận việc rồi trả mã ngay. `/render` và `/render-clip`
+    // ở trên KHÔNG đổi một chữ — muốn hết 429 thì dọn sang đây. Cả hai cửa đều
+    // POST nên luật 405 ở đầu handler không phải nới ra, và quyết định
+    // không-khai-healthCheckPath ở render.yaml không phải xem lại.
+    if (jobs && (req.url === '/jobs' || req.url === '/jobs/status')) {
+      const token = process.env.MAPPOSTER_TOKEN;
+      if (token && req.headers.authorization !== `Bearer ${token}`) {
+        res.writeHead(401).end('unauthorized');
+        return;
+      }
+      const isSubmit = req.url === '/jobs';
+      void (async () => {
+        let body: unknown;
+        try {
+          body = await readJsonBody(req, maxBodyBytes);
+        } catch (e) {
+          const code = e instanceof PayloadTooLargeError ? 413 : 400;
+          res.writeHead(code, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+          return;
+        }
+
+        if (!isSubmit) {
+          const id = (body as { id?: unknown })?.id;
+          const rec = typeof id === 'string' ? jobs.store.get(id) : undefined;
+          if (!rec) {
+            // Ngoại lệ DUY NHẤT của luật "mã HTTP nói về câu hỏi, thân nói về
+            // việc": mã không tồn tại thì chính CÂU HỎI sai, không phải việc hỏng.
+            res.writeHead(404, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: `no such job: ${String(id)}` }));
+            return;
+          }
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify(await jobStatusBody(rec)));
+          return;
+        }
+
+        // --- Nhận việc. Chỉ kiểm những gì kiểm được TỨC THÌ: khuôn dạng thuần.
+        // Tra toạ độ là gọi mạng, độ trễ không chặn trên được — để lại cho thợ,
+        // nếu không ta dựng lại đúng cái treo mà gói này đi gỡ.
+        let submit: z.infer<typeof jobSubmitSchema>;
+        try {
+          submit = jobSubmitSchema.parse(body);
+          renderMapSchema.parse(submit.params);
+          if (submit.kind === 'clip') motionParamSchema.parse(submit.motion);
+        } catch (e) {
+          const message = e instanceof z.ZodError ? z.prettifyError(e) : ((e as Error).message ?? String(e));
+          res.writeHead(400, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: message }));
+          return;
+        }
+
+        try {
+          const rec = jobs.store.create({ kind: submit.kind, params: submit.params, motionInput: submit.motion, nowMs: Date.now() });
+          jobs.runner.kick();
+          res.writeHead(202, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, id: rec.id, kind: rec.kind, status: rec.status }));
+        } catch (e) {
+          if (e instanceof JobQueueFullError) {
+            res.writeHead(429, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+            return;
+          }
+          res.writeHead(500, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: (e as Error).message ?? String(e) }));
+        }
+      })();
       return;
     }
     void (async () => {
@@ -422,15 +534,30 @@ export async function startHttpServer(
 
 const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
+  const cfg = loadServerConfig();
   try {
-    ensureDist(loadServerConfig());
+    ensureDist(cfg);
   } catch (e) {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   }
   applyStartupEnv();
   probeFfmpegAtStartup();
-  startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }))
+
+  const deps = makeRenderDeps(cfg);
+  const store = createJobStore();
+  // Số thợ mặc định = sức chứa hồ trình duyệt: vượt lên là tự chuốc
+  // PoolAcquireTimeoutError cho chính việc của mình.
+  const runner = createJobRunner({
+    store,
+    deps,
+    workers: envNumber(process.env, 'MAPPOSTER_JOB_WORKERS', cfg.poolSize, { min: 1 }),
+  });
+  // Dọn định kỳ: bản ghi hết hạn rời sổ và tệp của chúng rời đĩa. `unref` để
+  // đồng hồ này không giữ tiến trình sống khi mọi thứ khác đã đóng.
+  setInterval(() => void runner.sweep(), 60_000).unref();
+
+  startHttpServer(envNumber(process.env, 'MCP_HTTP_PORT', 4181, { min: 0, max: 65535 }), deps, undefined, undefined, undefined, { store, runner })
     .then((s) => console.error(`MapPoster MCP (HTTP) listening at ${s.url}`))
     .catch((e) => {
       console.error(e);

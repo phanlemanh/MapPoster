@@ -63,6 +63,9 @@ export interface JobStore {
    * Sổ không xoá tệp — nó chỉ nói cái nào hết hạn; thợ mới là bên chạm đĩa.
    */
   takeExpired(nowMs: number): JobRecord[];
+  /** Còn việc nào đang chờ không — KHÔNG rút nó ra. Vòng thợ hỏi câu này để
+   * biết mình đã rảnh thật hay chỉ đang giữa hai nhịp. */
+  claimNextPeek(): boolean;
   pendingCount(): number;
   size(): number;
 }
@@ -129,6 +132,7 @@ export function createJobStore(
       return expired;
     },
 
+    claimNextPeek: () => countPending() > 0,
     pendingCount: countPending,
     size: () => jobs.size,
   };

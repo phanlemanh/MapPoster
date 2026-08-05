@@ -110,3 +110,16 @@ describe('createJobStore', () => {
     expect(src).not.toMatch(/require\(['"]node:fs['"]\)/);
   });
 });
+
+describe('claimNextPeek', () => {
+  it('nhìn mà không rút', () => {
+    const store = createJobStore({ newId: seqIds() });
+    store.create({ kind: 'render', params: {}, nowMs: 1 });
+
+    expect(store.claimNextPeek()).toBe(true);
+    expect(store.get('job-1')!.status).toBe('queued'); // vẫn đang chờ, chưa ai nhận
+
+    store.claimNext(2);
+    expect(store.claimNextPeek()).toBe(false);
+  });
+});

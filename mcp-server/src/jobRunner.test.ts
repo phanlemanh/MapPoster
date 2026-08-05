@@ -1,0 +1,321 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { promises as fsp } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+// resolveConfig reaches into ./geocode for anything that isn't a bare {lng,lat}.
+// Mocked so the runner's own behaviour is what's under test, not Nominatim.
+// A location starting "zzz" throws — that is the CALLER-fault path (AC-6).
+vi.mock('./geocode', () => ({
+  resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
+    if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
+    return typeof input === 'string'
+      ? { center: [106.7, 10.78], zoom: 12, place: { name: input, country: 'Vietnam', lat: 10.78, lng: 106.7 } }
+      : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
+  }),
+  searchCandidates: vi.fn(async () => []),
+  resolveBoundary: vi.fn(async () => null),
+  resolveCountryAt: vi.fn(async () => 'Vietnam'),
+}));
+
+import { createJobStore } from './jobStore';
+import { createJobRunner } from './jobRunner';
+import { resetClipGateForTests } from './motionCompiler';
+import type { ToolDeps } from './tools';
+import type { RenderConfig } from '../../src/render/renderConfig';
+
+/** A real 1×1 PNG — `deliver` reads width/height out of the IHDR chunk. */
+const PNG_1x1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+let sinkDir: string;
+
+function makeDeps(over: Partial<ToolDeps> = {}): ToolDeps {
+  return {
+    sinkDir,
+    defaultDelivery: 'url',
+    render: vi.fn(async () => PNG_1x1),
+    ...over,
+  } as ToolDeps;
+}
+
+/** Clip deps that succeed: two frames + a settle still, encoder writes a real file. */
+function clipDeps(over: Partial<ToolDeps> = {}): ToolDeps {
+  return makeDeps({
+    renderClip: vi.fn(async () => ({ frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 })),
+    encodeAnimation: vi.fn(async (_frames, opts: { outPath: string }) => {
+      await fsp.writeFile(opts.outPath, Buffer.alloc(64, 7));
+      return opts.outPath;
+    }),
+    ...over,
+  } as Partial<ToolDeps>);
+}
+
+beforeEach(async () => {
+  resetClipGateForTests();
+  sinkDir = await fsp.mkdtemp(path.join(tmpdir(), 'mapposter-jobs-'));
+});
+
+afterEach(async () => {
+  resetClipGateForTests();
+  await fsp.rm(sinkDir, { recursive: true, force: true });
+  delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+});
+
+describe('createJobRunner — chạy việc', () => {
+  it('AC-5 seam: đường dẫn THỢ ghi trùng khít đường dẫn lưu trong bản ghi', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'Đà Nẵng' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('done');
+    expect(rec.artifacts).toHaveLength(1);
+    // Tệp TỒN TẠI đúng đường dẫn ghi trong bản ghi, và nội dung là byte thợ ghi
+    // — không phải byte do test tự đặt sẵn ở đâu đó.
+    await expect(fsp.readFile(rec.artifacts[0].path)).resolves.toEqual(PNG_1x1);
+    expect(rec.artifacts[0].bytes).toBe(PNG_1x1.length);
+    expect(rec.artifacts[0].width).toBe(1);
+  });
+
+  it("AC-5: trạng thái chỉ lật sang 'done' SAU khi ghi xong — không bao giờ đọc ra ENOENT", async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'Thừa Thiên Huế' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('done');
+    await expect(fsp.stat(rec.artifacts[0].path)).resolves.toBeDefined();
+  });
+
+  it('AC-6: địa danh không tra được → hỏng vì NGƯỜI GỌI', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'zzz-khong-co' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('failed');
+    expect(rec.errorKind).toBe('input');
+  });
+
+  it('AC-6: render nổ → hỏng vì MÁY CHỦ', async () => {
+    const store = createJobStore();
+    const deps = makeDeps({
+      render: vi.fn(async () => {
+        throw new Error('trình duyệt chết giữa chừng');
+      }),
+    });
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    const job = store.create({ kind: 'render', params: { location: 'Hà Nội' }, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    expect(store.get(job.id)!.status).toBe('failed');
+    expect(store.get(job.id)!.errorKind).toBe('server');
+  });
+
+  it('AC-11: một việc nổ KHÔNG chặn việc kế tiếp — vòng thợ còn sống', async () => {
+    const store = createJobStore();
+    let call = 0;
+    const deps = makeDeps({
+      render: vi.fn(async () => {
+        call++;
+        if (call === 1) throw new Error('nổ bất ngờ');
+        return PNG_1x1;
+      }),
+    });
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    const a = store.create({ kind: 'render', params: { location: { lng: 1, lat: 1 } }, nowMs: 1 });
+    const b = store.create({ kind: 'render', params: { location: { lng: 2, lat: 2 } }, nowMs: 2 });
+
+    runner.kick();
+    await runner.drain();
+
+    expect(store.get(a.id)!.status).toBe('failed');
+    expect(store.get(b.id)!.status).toBe('done');
+  });
+
+  it('AC-8: nhiều việc chạy ĐÚNG THỨ TỰ nhận', async () => {
+    const store = createJobStore();
+    const seen: number[] = [];
+    const deps = makeDeps({
+      render: vi.fn(async (cfg: RenderConfig) => {
+        seen.push(cfg.camera.center[0]);
+        return PNG_1x1;
+      }),
+    });
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    store.create({ kind: 'render', params: { location: { lng: 1, lat: 1 } }, nowMs: 1 });
+    store.create({ kind: 'render', params: { location: { lng: 2, lat: 2 } }, nowMs: 2 });
+    store.create({ kind: 'render', params: { location: { lng: 3, lat: 3 } }, nowMs: 3 });
+
+    runner.kick();
+    await runner.drain();
+
+    expect(seen).toEqual([1, 2, 3]);
+  });
+
+  it('AC-10: số việc chạy CÙNG LÚC không bao giờ vượt số thợ', async () => {
+    const store = createJobStore();
+    let live = 0;
+    let peak = 0;
+    const deps = makeDeps({
+      render: vi.fn(async () => {
+        live++;
+        peak = Math.max(peak, live);
+        await new Promise((r) => setTimeout(r, 5));
+        live--;
+        return PNG_1x1;
+      }),
+    });
+    const runner = createJobRunner({ store, deps, workers: 2 });
+    for (let i = 0; i < 6; i++) store.create({ kind: 'render', params: { location: { lng: i, lat: 1 } }, nowMs: i });
+
+    runner.kick();
+    await runner.drain();
+
+    expect(peak).toBeLessThanOrEqual(2);
+    expect(peak).toBeGreaterThan(1); // thật sự song song, không phải tuần tự trá hình
+  });
+});
+
+describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => {
+  // `pushIn` chứ không phải `approach`: approach bay tới rồi vẽ dần một ranh
+  // giới nên nó ĐÒI highlight.regions — dùng nó ở đây là kiểm sai thứ.
+  const clipJob = {
+    kind: 'clip' as const,
+    params: { location: 'Đà Lạt', highlight: { points: [{ lng: 108.44, lat: 11.94 }] } },
+    motionInput: { preset: 'pushIn' },
+  };
+
+  it('clip chạy trọn vẹn thì giữ CẢ ảnh tĩnh lẫn clip', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.error).toBeUndefined();
+    expect(rec.status).toBe('done');
+    expect(rec.artifacts.map((a) => a.role).sort()).toEqual(['clip', 'settle']);
+  });
+
+  it('encoder nổ → việc vẫn XONG, ảnh tĩnh còn nguyên, kèm lý do; không sót tệp mp4 dở', async () => {
+    const store = createJobStore();
+    let outPath = '';
+    const deps = clipDeps({
+      encodeAnimation: vi.fn(async (_f, opts: { outPath: string }) => {
+        outPath = opts.outPath;
+        await fsp.writeFile(opts.outPath, Buffer.alloc(8)); // ffmpeg thật để lại tệp dở
+        throw new Error('ffmpeg vắng mặt');
+      }),
+    } as Partial<ToolDeps>);
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('done');
+    expect(rec.artifacts.map((a) => a.role)).toEqual(['settle']); // ảnh tĩnh KHÔNG bị vứt
+    expect(rec.degradeNote).toMatch(/encode failed/);
+    await expect(fsp.stat(outPath)).rejects.toThrow(); // tệp dở đã dọn
+  });
+
+  it('clip vượt trần dung lượng → HỎNG, nhưng ảnh tĩnh vẫn được giữ', async () => {
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '1';
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('failed');
+    expect(rec.errorKind).toBe('input'); // người gọi sửa được: hạ fps/size
+    expect(rec.artifacts.map((a) => a.role)).toEqual(['settle']);
+    expect(rec.error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+  });
+
+  it('AC-10: slot clip được trả trên MỌI lối ra — việc clip kế tiếp vẫn chạy được', async () => {
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '1'; // việc đầu chắc chắn hỏng
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const a = store.create({ ...clipJob, nowMs: 1 });
+    runner.kick();
+    await runner.drain();
+    expect(store.get(a.id)!.status).toBe('failed');
+
+    delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    const b = store.create({ ...clipJob, nowMs: 2 });
+    runner.kick();
+    await runner.drain();
+    // Slot của việc hỏng đã về; nếu rò thì việc này treo tới hết hạn chờ.
+    expect(store.get(b.id)!.status).toBe('done');
+  });
+});
+
+describe('createJobRunner — dọn tệp hết hạn (AC-12)', () => {
+  it('xoá đúng tệp của việc hết hạn, KHÔNG đụng tệp của công cụ khác', async () => {
+    const store = createJobStore({ ttlMs: 0 });
+    let clock = 1000;
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1, now: () => clock });
+
+    // Tên có dấu đi xuyên tới TÊN TỆP — chỗ chuẩn hoá unicode hay cắn nhất.
+    const job = store.create({ kind: 'render', params: { location: 'Đắk Lắk' }, nowMs: clock });
+    runner.kick();
+    await runner.drain();
+    const written = store.get(job.id)!.artifacts[0].path;
+    await expect(fsp.stat(written)).resolves.toBeDefined();
+
+    const foreign = path.join(sinkDir, 'mapposter-cua-cong-cu-khac.png');
+    await fsp.writeFile(foreign, PNG_1x1);
+
+    clock += 10_000;
+    await runner.sweep();
+
+    expect(store.get(job.id)).toBeUndefined(); // bản ghi rời sổ
+    await expect(fsp.stat(written)).rejects.toThrow(); // tệp của nó đã xoá
+    await expect(fsp.stat(foreign)).resolves.toBeDefined(); // tệp lạ CÒN NGUYÊN
+  });
+
+  it('một tệp đã biến mất không làm hỏng cả lượt dọn', async () => {
+    const store = createJobStore({ ttlMs: 0 });
+    let clock = 1000;
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1, now: () => clock });
+
+    const job = store.create({ kind: 'render', params: { location: 'Cà Mau' }, nowMs: clock });
+    runner.kick();
+    await runner.drain();
+    await fsp.rm(store.get(job.id)!.artifacts[0].path); // ai đó xoá trước
+
+    clock += 10_000;
+    await expect(runner.sweep()).resolves.toBeUndefined();
+  });
+
+  it('KHÔNG dọn việc đang chờ hay đang chạy, dù sổ đã quá hạn', async () => {
+    const store = createJobStore({ ttlMs: 0 });
+    const runner = createJobRunner({ store, deps: makeDeps(), workers: 1, now: () => 9_999 });
+    const waiting = store.create({ kind: 'render', params: { location: 'Sa Pa' }, nowMs: 0 });
+
+    await runner.sweep();
+
+    expect(store.get(waiting.id)).toBeDefined();
+  });
+});

@@ -1,0 +1,188 @@
+schema_version: 1
+feature_slug: async-job-queue
+evals:
+  # ── AC-1: nhận việc → mã dùng được ngay, không cửa sổ trống ────────────────
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; POST /jobs hợp lệ trả 202 {ok:true,id,status}; hỏi NGAY sau đó ở /jobs/status trả 200 với status ∈ {queued, running} — không ca nào trả 404 cho mã vừa nhận. Ít nhất một ca dùng tên địa danh tiếng Việt CÓ DẤU và assert tên đi qua sổ rồi ra phản hồi giữ nguyên từng ký tự"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-2: thân sai khuôn bị chặn NGAY LÚC NHẬN, không sinh việc rác ────────
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; thiếu location / zoom ngoài dải / kind lạ đều trả 400 với chuỗi đọc được (KHÔNG phải ZodError thô); và assert sổ việc vẫn rỗng sau mỗi ca — chứng minh không bản ghi nào được tạo"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-3: hàng chờ đầy — chặn ở cả tầng cửa lẫn tầng sổ ────────────────────
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; khi số việc đang chờ chạm trần, POST /jobs trả 429 và số bản ghi trong sổ KHÔNG tăng"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.job_store
+    expected: "exit 0; sổ việc tự từ chối khi chạm trần (không dựa vào tầng HTTP để chặn) — trần là bất biến của chính sổ"
+    paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-4: mã lạ → 404, không đoán ──────────────────────────────────────────
+  - id: E5
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; mã bịa và mã đã bị dọn đều trả 404 {ok:false}; KHÔNG ca nào trả 200 với trạng thái rỗng/undefined"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-5 (cross-layer): thợ ghi đĩa → sổ giữ đường dẫn → cửa đọc lên ───────
+  # Hai eval BẮT BUỘC đi cặp: một ở mối nối đầu-cuối, một ngay tại seam
+  # đường-dẫn-ghi ↔ đường-dẫn-lưu. Một lớp không bao giờ đủ cho hành vi xuyên lớp.
+  - id: E6
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.job_http
+    layer: end-to-end
+    expected: "exit 0; chạy trên THƯ MỤC TẠM THẬT với thao tác render giả ghi BYTE THẬT, đi qua jobRunner rồi hỏi POST /jobs/status; assert base64 giải mã ra ĐÚNG byte thợ đã ghi (không phải byte do test tự đặt sẵn), kèm width/height và khối resolved cùng hình dạng resolvedOf. Ít nhất một ca dùng tên địa danh CÓ DẤU"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobRunner.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.job_runner
+    layer: backend-effect
+    expected: "exit 0; đường dẫn thợ THỰC SỰ ghi ra trùng khít đường dẫn lưu trong bản ghi việc; và trạng thái chỉ lật sang 'done' SAU khi lệnh ghi hoàn tất (đọc tệp ngay lúc thấy 'done' không bao giờ ra ENOENT hay nội dung rỗng)"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-6: mã HTTP nói về CÂU HỎI, thân nói về VIỆC ─────────────────────────
+  - id: E8
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; việc hỏng vì tra toạ độ thất bại VÀ việc hỏng vì render ném lỗi — cả hai hỏi ra HTTP 200 (không 4xx/5xx), thân status 'failed', và hai ca phân biệt được lỗi tại người gọi vs tại máy chủ"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobRunner.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-7: giao ước xuống-cấp — ảnh tĩnh không bao giờ bị vứt ───────────────
+  - id: E9
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; encoder ném lỗi → việc vẫn giữ ảnh settle + lý do; clip vượt trần dung lượng → việc hỏng NHƯNG settle vẫn còn; không ca nào để mất settle đã dựng được"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-8: chạm trần thì XẾP HÀNG, đúng thứ tự, không ai bị đá ra ───────────
+  - id: E10
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; với trần đồng thời = N, gửi N+K việc clip thì K việc chờ rồi chạy theo ĐÚNG thứ tự nhận; không việc nào chuyển sang 'failed' vì quá tải và không lỗi concurrency nào ném ra ở lối việc"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/motionCompiler.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-9: chống thụt lùi — đường đồng bộ vẫn từ chối NGAY (REST + MCP) ─────
+  - id: E11
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; test 429 sẵn có của /render-clip đồng bộ vẫn xanh NGUYÊN VẸN — chạm trần là từ chối ngay, không chờ, không xếp hàng"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/motionCompiler.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; công cụ MCP render_clip chạm trần vẫn trả error result cùng thông điệp như trước gói này — hàng chờ không rò sang bề mặt MCP"
+    paths: ["mcp-server/src/tools.ts", "mcp-server/src/tools.test.ts", "mcp-server/src/motionCompiler.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-10: đánh thức người chờ trên MỌI lối ra, trần không bao giờ vỡ ──────
+  - id: E13
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.motion_compiler
+    expected: "exit 0; lối lấy-có-chờ: người chờ được đánh thức theo đúng thứ tự xếp hàng; slot được trả khi lời gọi giữ nó kết thúc bằng thành công, bằng ném lỗi, và bằng đường xuống-cấp; đồng thời lối ném-ngay CŨ giữ nguyên hành vi (hết chỗ là ném, không chờ)"
+    paths: ["mcp-server/src/motionCompiler.ts", "mcp-server/src/motionCompiler.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E14
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; đo số việc chạy ĐỒNG THỜI ở mọi thời điểm trong một kịch bản trộn đồng bộ + việc — đỉnh không bao giờ vượt trần đã cấu hình"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/motionCompiler.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-11: một việc hỏng không giết vòng thợ ──────────────────────────────
+  - id: E15
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; việc thứ nhất ném lỗi bất ngờ (không phải lỗi render đã biết) → việc đó thành 'failed' và việc thứ hai VẪN chạy tới 'done'; vòng thợ còn sống sau đó"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-12 (cross-layer): sổ bỏ bản ghi · THỢ xoá tệp · tệp lạ còn nguyên ───
+  - id: E16
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.job_runner
+    layer: backend-effect
+    expected: "exit 0; trên THƯ MỤC TẠM THẬT: việc quá hạn thì THỢ xoá đúng tệp ghi trong bản ghi; một tệp lạ đặt sẵn trong cùng thư mục CÒN NGUYÊN sau khi dọn; ít nhất một ca có tên tệp sinh từ địa danh CÓ DẤU và tệp đó thực sự bị xoá được"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E17
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.job_store
+    expected: "exit 0; sổ việc phát ra đúng danh sách bản ghi quá hạn rồi bỏ chúng khỏi sổ (tra lại trả không-tìm-thấy); và sổ việc KHÔNG import fs — không lời gọi hệ thống tệp nào trong đơn vị này"
+    paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-13: hai cửa mới KHÔNG được đứng trước chuỗi guard ──────────────────
+  - id: E18
+    criterion: AC-13
+    executor: test
+    cmd: config:executors.test.job_http
+    expected: "exit 0; CÙNG một bảng ca guard chạy trên cả ba cửa /render, /jobs, /jobs/status — không thẻ và thẻ sai đều 401, thân vượt trần đều bị chặn; và sau mỗi ca bị chặn, sổ việc KHÔNG tăng thêm bản ghi nào"
+    paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-14: chờ slot có hạn — không treo vĩnh viễn đội lốt 'đang chờ' ──────
+  - id: E19
+    criterion: AC-14
+    executor: test
+    cmd: config:executors.test.motion_compiler
+    expected: "exit 0; với đồng hồ giả: giữ chặt toàn bộ slot không trả, người chờ phải bị từ chối TRONG hạn cấu hình (không chờ vô hạn) và nhả chỗ của mình trong hàng — hàng chờ không tồn đọng người đã hết hạn"
+    paths: ["mcp-server/src/motionCompiler.ts", "mcp-server/src/motionCompiler.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-15: judgment — giao ước có đủ để người tiêu thụ dọn sang không ─────
+  - id: E20
+    criterion: AC-15
+    executor: judgment
+    question: >-
+      Đọc giao ước hai cửa (POST /jobs nhận việc, POST /jobs/status hỏi việc) trong contract
+      và design doc. Một người tiêu thụ phía máy chủ như OneHub — hôm nay đang gọi /render-clip
+      đồng bộ và tự xử lý 429 — có chuyển sang lối gửi việc được KHÔNG cần thêm khái niệm nào
+      không? Cụ thể: không có gọi ngược khi xong (phải tự hỏi lại theo nhịp), không có báo tiến
+      độ, không có huỷ việc, và khởi động lại server là mọi mã việc thành vô danh. Bốn thiếu
+      sót đó có cái nào chặn việc dọn sang không, hay đều chấp nhận được ở vòng đầu? Nếu có cái
+      chặn, nêu đích danh.
+    inputs: [contract.md, ../../docs/superpowers/specs/2026-08-05-async-job-queue-design.md]
+    evidence_required: [judged_by, verdict, rationale]

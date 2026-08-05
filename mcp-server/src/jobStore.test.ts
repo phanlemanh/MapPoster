@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createJobStore, JobQueueFullError } from './jobStore';
+import { createJobStore, createJobStoreFromEnv, JobQueueFullError } from './jobStore';
 
 /** Ids đếm tăng nên assert đọc được; production dùng crypto.randomUUID. */
 function seqIds() {
@@ -121,5 +121,56 @@ describe('claimNextPeek', () => {
 
     store.claimNext(2);
     expect(store.claimNextPeek()).toBe(false);
+  });
+});
+
+// AC-16 — vòng soi code round 3 tìm ra: hai núm này được KHAI trong spec, được
+// NÊU ĐÍCH DANH trong thông điệp 429 trả về cho người vận hành, mà lại không hề
+// đọc từ môi trường. Đặt biến, khởi động lại, không gì thay đổi, không tín hiệu.
+describe('createJobStoreFromEnv — núm cấu hình phải có tác dụng THẬT (AC-16)', () => {
+  it('trần hàng chờ nghe theo biến môi trường', () => {
+    const store = createJobStoreFromEnv({ MAPPOSTER_MAX_QUEUED_JOBS: '2' } as NodeJS.ProcessEnv);
+    store.create({ kind: 'render', params: {}, nowMs: 1 });
+    store.create({ kind: 'render', params: {}, nowMs: 2 });
+
+    expect(() => store.create({ kind: 'render', params: {}, nowMs: 3 })).toThrow(JobQueueFullError);
+  });
+
+  it('hạn giữ nghe theo biến môi trường', () => {
+    const store = createJobStoreFromEnv({ MAPPOSTER_JOB_TTL_MS: '1000' } as NodeJS.ProcessEnv);
+    const rec = store.create({ kind: 'render', params: {}, nowMs: 0 });
+    store.claimNext(0);
+    store.finish(rec.id, { status: 'done' }, 0);
+
+    expect(store.takeExpired(999)).toEqual([]);          // chưa tới hạn
+    expect(store.takeExpired(1001).map((r) => r.id)).toEqual([rec.id]);
+  });
+
+  it('môi trường trống thì rơi về mặc định, KHÔNG nổ', () => {
+    const store = createJobStoreFromEnv({} as NodeJS.ProcessEnv);
+    expect(() => store.create({ kind: 'render', params: {}, nowMs: 1 })).not.toThrow();
+  });
+
+  it('giá trị rác thì FAIL CLOSED — nói rõ tên biến, không âm thầm dùng mặc định', () => {
+    expect(() => createJobStoreFromEnv({ MAPPOSTER_MAX_QUEUED_JOBS: 'khong-phai-so' } as NodeJS.ProcessEnv))
+      .toThrow(/MAPPOSTER_MAX_QUEUED_JOBS/);
+  });
+});
+
+describe('claimNextWhere — bỏ qua chứ không đảo thứ tự', () => {
+  it('bỏ qua việc bị từ chối, lấy việc sau, và không đổi thứ tự việc cùng loại', () => {
+    const store = createJobStore({ newId: seqIds() });
+    store.create({ kind: 'clip', params: {}, nowMs: 1 });   // job-1
+    store.create({ kind: 'clip', params: {}, nowMs: 2 });   // job-2
+    store.create({ kind: 'render', params: {}, nowMs: 3 }); // job-3
+
+    // Từ chối mọi clip → phải nhảy tới việc render, hai clip vẫn nằm chờ.
+    expect(store.claimNextWhere(4, (j) => j.kind !== 'clip')!.id).toBe('job-3');
+    expect(store.get('job-1')!.status).toBe('queued');
+    expect(store.get('job-2')!.status).toBe('queued');
+
+    // Mở lại cho clip → job-1 trước job-2, thứ tự nhận giữ nguyên.
+    expect(store.claimNextWhere(5, () => true)!.id).toBe('job-1');
+    expect(store.claimNextWhere(6, () => true)!.id).toBe('job-2');
   });
 });

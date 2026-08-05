@@ -172,6 +172,33 @@ evals:
     paths: ["mcp-server/src/motionCompiler.ts", "mcp-server/src/motionCompiler.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
+  # ── AC-16: núm cấu hình phải có tác dụng THẬT ────────────────────────────
+  - id: E21
+    criterion: AC-16
+    executor: test
+    cmd: config:executors.test.job_store
+    expected: "exit 0; đặt MAPPOSTER_MAX_QUEUED_JOBS và MAPPOSTER_JOB_TTL_MS thì hành vi ĐỔI THẬT (trần và hạn giữ nghe theo biến); môi trường trống thì rơi về mặc định; giá trị rác thì FAIL CLOSED kèm TÊN BIẾN chứ không âm thầm dùng mặc định"
+    paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # ── AC-17: clip chờ chỗ không được bỏ đói việc dựng ảnh ──────────────────
+  - id: E22
+    criterion: AC-17
+    executor: test
+    cmd: config:executors.test.job_runner
+    layer: backend-effect
+    expected: "exit 0; với 2 thợ và trần clip 1: clip A giữ chỗ, việc dựng ảnh xếp SAU clip B vẫn chạy tới 'done' trong lúc đó, còn clip B vẫn ở 'queued' — chứng minh clip chờ chỗ KHÔNG ăn chỗ thợ. Ca này phải ĐỎ nếu gỡ bản sửa ra (đã kiểm chứng bằng cách gỡ thật)"
+    paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/jobStore.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E23
+    criterion: AC-17
+    executor: test
+    cmd: config:executors.test.job_store
+    expected: "exit 0; rút việc BỎ QUA cái bị từ chối và lấy cái sau, nhưng KHÔNG đảo thứ tự các việc cùng loại — mở lại thì vẫn phục vụ đúng thứ tự nhận"
+    paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
   # ── AC-15: judgment — giao ước có đủ để người tiêu thụ dọn sang không ─────
   - id: E20
     criterion: AC-15

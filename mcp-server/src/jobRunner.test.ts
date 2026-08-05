@@ -32,6 +32,13 @@ const PNG_1x1 = Buffer.from(
 
 let sinkDir: string;
 
+/** Fixture việc clip dùng chung: `pushIn` cần một điểm được tô sáng. */
+const clipJobFixture = {
+  kind: 'clip' as const,
+  params: { location: 'Đà Lạt', highlight: { points: [{ lng: 108.44, lat: 11.94 }] } },
+  motionInput: { preset: 'pushIn' },
+};
+
 function makeDeps(over: Partial<ToolDeps> = {}): ToolDeps {
   return {
     sinkDir,
@@ -62,6 +69,7 @@ afterEach(async () => {
   resetClipGateForTests();
   await fsp.rm(sinkDir, { recursive: true, force: true });
   delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+  delete process.env.MAPPOSTER_CLIP_CONCURRENCY;
 });
 
 describe('createJobRunner — chạy việc', () => {
@@ -340,5 +348,47 @@ describe('createJobRunner — dọn tệp hết hạn (AC-12)', () => {
     await runner.sweep();
 
     expect(store.get(waiting.id)).toBeDefined();
+  });
+});
+
+// AC-17 — vòng soi code round 3: `pump()` tăng số thợ bận NGAY khi rút việc,
+// rồi runClip mới đi chờ chỗ. Với mặc định (2 thợ, trần clip 1) chỉ hai clip
+// liên tiếp là khoá sạch cả hai thợ, và mọi việc dựng ẢNH xếp sau — vốn chẳng
+// cần chỗ clip nào — nằm chờ tới 10 phút. Không phép đo nào chạm tới, vì AC-8
+// chỉ đo thứ tự TRONG hàng clip.
+describe('AC-17: việc clip đang chờ chỗ KHÔNG được bỏ đói việc dựng ảnh', () => {
+  it('với 2 thợ và trần clip 1: clip thứ hai nằm chờ, việc dựng ảnh vẫn chạy xong', async () => {
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+    const store = createJobStore();
+
+    let openTheGate: () => void = () => {};
+    const gate = new Promise<void>((r) => { openTheGate = r; });
+    let firstClipStarted: () => void = () => {};
+    const clipIsHoldingTheSlot = new Promise<void>((r) => { firstClipStarted = r; });
+
+    const deps = clipDeps({
+      renderClip: vi.fn(async () => {
+        firstClipStarted();
+        await gate; // giữ chặt chỗ clip cho tới khi test cho phép
+        return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+      }),
+    } as Partial<ToolDeps>);
+
+    const runner = createJobRunner({ store, deps, workers: 2 });
+    const clipA = store.create({ ...clipJobFixture, nowMs: 1 });
+    const clipB = store.create({ ...clipJobFixture, nowMs: 2 });
+    const render = store.create({ kind: 'render', params: { location: 'Nha Trang' }, nowMs: 3 });
+
+    runner.kick();
+    await clipIsHoldingTheSlot;
+
+    // Chỗ then chốt: việc dựng ảnh phải xong TRONG KHI clip A còn đang giữ chỗ.
+    await vi.waitFor(() => expect(store.get(render.id)!.status).toBe('done'), { timeout: 2000 });
+    expect(store.get(clipB.id)!.status).toBe('queued'); // clip B chờ, KHÔNG ăn chỗ thợ
+
+    openTheGate();
+    await runner.drain();
+    expect(store.get(clipA.id)!.status).toBe('done');
+    expect(store.get(clipB.id)!.status).toBe('done');
   });
 });

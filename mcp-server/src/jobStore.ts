@@ -1,4 +1,4 @@
-import { DEFAULT_JOB_TTL_MS, DEFAULT_MAX_QUEUED_JOBS } from '../config';
+import { DEFAULT_JOB_TTL_MS, DEFAULT_MAX_QUEUED_JOBS, envNumber } from '../config';
 
 export type JobKind = 'render' | 'clip';
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed';
@@ -57,6 +57,15 @@ export interface JobStore {
   get(id: string): JobRecord | undefined;
   /** Việc đang chờ CŨ NHẤT → chuyển sang đang chạy. Không còn việc chờ thì undefined. */
   claimNext(nowMs: number): JobRecord | undefined;
+  /**
+   * Như `claimNext`, nhưng BỎ QUA việc mà `accept` từ chối và xét tiếp việc sau.
+   *
+   * Có mặt để thợ đừng rút một việc mà nó biết trước là sẽ phải ngồi chờ: một
+   * việc clip không lấy được chỗ thì cứ để yên trong hàng, và việc dựng ảnh
+   * đứng sau — vốn chẳng cần chỗ đó — vẫn chạy được ngay. Bỏ qua chứ KHÔNG
+   * đảo thứ tự: các việc cùng loại vẫn được xét đúng thứ tự nhận.
+   */
+  claimNextWhere(nowMs: number, accept: (job: JobRecord) => boolean): JobRecord | undefined;
   finish(id: string, patch: JobFinishPatch, nowMs: number): void;
   /**
    * Bản ghi đã KẾT THÚC và quá hạn giữ: bỏ khỏi sổ và TRẢ VỀ cho bên gọi.
@@ -105,8 +114,13 @@ export function createJobStore(
     },
 
     claimNext(nowMs) {
+      return this.claimNextWhere(nowMs, () => true);
+    },
+
+    claimNextWhere(nowMs, accept) {
       for (const rec of jobs.values()) {
         if (rec.status !== 'queued') continue;
+        if (!accept(rec)) continue;
         const next: JobRecord = { ...rec, status: 'running', startedAt: nowMs };
         jobs.set(next.id, next);
         return next;
@@ -136,4 +150,21 @@ export function createJobStore(
     pendingCount: countPending,
     size: () => jobs.size,
   };
+}
+
+/**
+ * Sổ việc lấy hai núm từ MÔI TRƯỜNG — lối dựng dành cho tiến trình thật.
+ *
+ * Tách thành hàm riêng thay vì nhét thẳng vào `http.ts` để việc "núm có tác
+ * dụng thật không" KIỂM ĐƯỢC. Bản đầu tiên gọi `createJobStore()` trần, nên
+ * `MAPPOSTER_MAX_QUEUED_JOBS` và `MAPPOSTER_JOB_TTL_MS` là núm chết: người
+ * vận hành đọc thông điệp 429 — vốn nêu đích danh tên biến — rồi đặt biến,
+ * khởi động lại, và không gì thay đổi. Không test nào chạm tới `isMain` được,
+ * nên lỗi đó sống sót qua cả một vòng nghiệm thu xanh.
+ */
+export function createJobStoreFromEnv(env: NodeJS.ProcessEnv = process.env): JobStore {
+  return createJobStore({
+    maxQueued: envNumber(env, 'MAPPOSTER_MAX_QUEUED_JOBS', DEFAULT_MAX_QUEUED_JOBS, { min: 1 }),
+    ttlMs: envNumber(env, 'MAPPOSTER_JOB_TTL_MS', DEFAULT_JOB_TTL_MS, { min: 1000 }),
+  });
 }

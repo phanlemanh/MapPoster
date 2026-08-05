@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
+import { envNumber, DEFAULT_CLIP_MAX_BYTES, DEFAULT_CLIP_CONCURRENCY } from '../config';
 import { deliver } from './delivery';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
 import { resolvedOf, type ToolDeps } from './tools';
@@ -78,6 +78,9 @@ export function createJobRunner({
   env = process.env,
 }: JobRunnerOptions): JobRunner {
   let live = 0;
+  /** Bao nhiêu việc CLIP đang chạy — tách riêng khỏi `live` vì trần clip và
+   * số thợ là hai con số khác nhau, và một clip chờ chỗ không được ăn chỗ thợ. */
+  let liveClips = 0;
   let stopped = false;
   const idleWaiters: (() => void)[] = [];
 
@@ -197,14 +200,31 @@ export function createJobRunner({
     }
   }
 
+  /**
+   * Đừng rút một việc mà mình biết trước là sẽ phải ngồi chờ.
+   *
+   * Số việc clip đang chạy không được vượt trần clip — nếu vượt, việc clip thứ
+   * hai sẽ chiếm một chỗ thợ chỉ để `await` hàng chờ, và mọi việc DỰNG ẢNH xếp
+   * sau bị bỏ đói dù chúng chẳng cần chỗ đó. Với mặc định (2 thợ, trần clip 1)
+   * chỉ hai clip liên tiếp là đủ khoá sạch cả hai thợ.
+   *
+   * Đây là hàng rào phòng xa, KHÔNG thay lối lấy-có-chờ: một lời gọi ĐỒNG BỘ
+   * vẫn có thể giật mất chỗ ngay giữa lúc mình kiểm và lúc mình lấy. Đúng khe
+   * hẹp đó là phần việc còn lại của hạn chờ ở AC-14.
+   */
+  const canStart = (job: JobRecord): boolean =>
+    job.kind !== 'clip' || liveClips < envNumber(env, 'MAPPOSTER_CLIP_CONCURRENCY', DEFAULT_CLIP_CONCURRENCY, { min: 1 });
+
   function pump(): void {
     if (stopped) return;
     while (live < workers) {
-      const job = store.claimNext(now());
+      const job = store.claimNextWhere(now(), canStart);
       if (!job) break;
       live++;
+      if (job.kind === 'clip') liveClips++;
       void runOne(job).finally(() => {
         live--;
+        if (job.kind === 'clip') liveClips--;
         pump();
         settleIdle();
       });

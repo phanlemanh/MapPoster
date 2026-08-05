@@ -5,7 +5,7 @@ slug: async-job-queue
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by: manh
 approved_at: 2026-08-05
 time_human_minutes: {gate1: 10}
@@ -78,6 +78,13 @@ Source input: `docs/superpowers/specs/2026-08-05-async-job-queue-design.md`.
 - **AC-15**: Given người ký đọc giao ước hai cửa, When đánh giá, Then nó đủ để OneHub
   chuyển sang lối gửi việc mà không cần thêm khái niệm nào (không gọi ngược, không tiến
   độ, không huỷ) — hoặc nêu đích danh thứ còn thiếu. *(judgment)*
+- **AC-16**: Given người vận hành đặt `MAPPOSTER_MAX_QUEUED_JOBS` hoặc `MAPPOSTER_JOB_TTL_MS`,
+  When máy chủ khởi động, Then hai núm đó THẬT SỰ đổi hành vi; và giá trị rác thì từ chối
+  khởi động kèm tên biến, không âm thầm rơi về mặc định. Một núm được nêu đích danh trong
+  thông điệp lỗi trả cho người vận hành mà không có tác dụng là dối họ. *(negative)*
+- **AC-17**: Given trần clip đã đầy và còn việc dựng ảnh xếp sau, When thợ rút việc kế tiếp,
+  Then việc dựng ảnh VẪN chạy được — một việc clip chưa có chỗ thì nằm yên trong hàng chứ
+  không chiếm chỗ thợ để ngồi chờ. *(should-NOT-block)*
 
 ## Coverage
 
@@ -134,6 +141,30 @@ judgment, cần verdict của người ký ở Gate 2.
 - **Khử trùng hai việc giống hệt.** Người gọi có thể cố tình muốn hai bản; không đoán thay họ.
 - **Nhiều instance / hàng đợi phân tán.** `render.yaml` đang khai một instance.
 - **Màn hình xem hàng đợi.** Gói này không có bề mặt người dùng nào.
+
+## Known limits
+
+Chủ repo xem 12 phát hiện ngoài hợp đồng ở Cổng 2 ngày 2026-08-05 và quyết: hai cái nâng
+phạm vi sửa ngay (thành AC-16, AC-17), một cái tách hợp đồng riêng, còn lại **chấp nhận và
+ship**. Danh sách chấp nhận, để người sau không tưởng là sót:
+
+- **Hỏi một việc mà tệp kết quả đã bốc hơi thì vẫn trả "xong", thiếu nội dung, không lý do.**
+  Người gọi phân biệt "xong, ảnh đây" với "xong nhưng ảnh mất" chỉ bằng sự vắng mặt của một
+  khoá. Nên có một trường nói rõ; chưa làm.
+- **Cửa nhận việc lưu tham số THÔ thay vì bản đã lọc qua schema.** Đường đồng bộ dùng đầu ra
+  đã parse; hai đường vì thế đưa hai vật hơi khác nhau vào cùng bộ giải. Chưa lộ hậu quả vì
+  schema hiện không có giá trị mặc định nào, nhưng sẽ trôi tiếp khi nó có.
+- **Lỗi cấu hình lúc khởi động nay ném vết ngăn xếp thô** thay vì một dòng thông điệp rồi
+  thoát — do đọc cấu hình bị nhấc ra ngoài khối bắt lỗi. Đây là bước lùi do chính vòng này
+  gây ra, và đã được chấp nhận có ý thức.
+- **`render.yaml` neo chú thích theo số dòng của `http.ts`** — cả bốn tham chiếu đã lệch sau
+  khi tệp dài thêm. Chú thích sai chỗ, không phải hành vi sai.
+- **`_acceptance/config.yaml` có một khoá chạy trùng lệnh với khoá khác**, nên bộ đo HTTP
+  chạy hai lần mỗi vòng; và ba dòng mới lệch kiểu trích dẫn với phần còn lại của tệp.
+
+Tách hợp đồng riêng: **`README.md` chưa có hai cửa mới, chưa có bốn núm mới, và vẫn viết
+"hàng đợi bất đồng bộ là gói sau"** — câu đó bị chính vòng này làm sai. `mcp-server/config.ts`
+cũng còn một chú thích nói y như vậy.
 
 ## Notes
 

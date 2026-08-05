@@ -15,7 +15,7 @@ import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
 import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { applyStartupEnv, probeFfmpegAtStartup } from './bootstrap';
-import { createJobStore, JobQueueFullError, type JobRecord, type JobStore } from './jobStore';
+import { createJobStore, createJobStoreFromEnv, JobQueueFullError, type JobRecord, type JobStore } from './jobStore';
 import { createJobRunner, type JobRunner } from './jobRunner';
 
 export interface HttpServer {
@@ -545,7 +545,12 @@ if (isMain) {
   probeFfmpegAtStartup();
 
   const deps = makeRenderDeps(cfg);
-  const store = createJobStore();
+  // Cả hai núm PHẢI đi qua `envNumber` như mọi núm khác của repo. Bản đầu gọi
+  // `createJobStore()` trần, nên hai biến môi trường này là núm CHẾT: người
+  // vận hành đọc thông điệp 429 — vốn nêu đích danh MAPPOSTER_MAX_QUEUED_JOBS —
+  // rồi đặt biến, khởi động lại, và không gì thay đổi. Đúng lớp lỗi "fail open,
+  // không tín hiệu" mà `envNumber` được viết ra để chặn.
+  const store = createJobStoreFromEnv();
   // Số thợ mặc định = sức chứa hồ trình duyệt: vượt lên là tự chuốc
   // PoolAcquireTimeoutError cho chính việc của mình.
   const runner = createJobRunner({

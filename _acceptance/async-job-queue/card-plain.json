@@ -1,25 +1,7 @@
 {
   "feature_plain": "Người gọi gửi yêu cầu dựng bản đồ rồi nhận ngay một mã việc, không phải ngồi giữ đường dây suốt vài phút — lúc nào tiện thì quay lại hỏi kết quả.",
   "scope_plain": "Chưa làm phần giữ việc sống sót qua khởi động lại máy chủ, chưa gọi ngược khi xong, chưa huỷ việc, chưa màn hình xem hàng đợi — để dành cho vòng sau.",
-  "will_do": [
-    { "id": "AC-1", "p": "Sẽ trả mã việc ngay khi nhận, và mã đó dùng được lập tức — không có khoảnh khắc nào vừa cấp mã mà tra lại đã không thấy." },
-    { "id": "AC-2", "p": "Sẽ soi đầu vào ngay lúc nhận và nói rõ sai chỗ nào bằng câu đọc được, thay vì nhận bừa rồi hỏng lặng lẽ ở phía sau." },
-    { "id": "AC-3", "p": "Sẽ từ chối thẳng khi hàng chờ đã đầy, thay vì nhận thêm cho tới lúc máy chủ hết sức." },
-    { "id": "AC-5", "p": "Sẽ trả ảnh đã dựng xong khi được hỏi, kèm đúng những gì máy chủ đã tự chọn thay người gọi." },
-    { "id": "AC-7", "p": "Sẽ giữ lại ảnh tĩnh đã dựng được ngay cả khi phần clip hỏng — thứ đã làm ra không bao giờ bị vứt đi." },
-    { "id": "AC-8", "p": "Sẽ xếp hàng khi hết chỗ và chạy đúng thứ tự đã nhận, không đá việc nào ra ngoài." },
-    { "id": "AC-9", "p": "Sẽ giữ nguyên hành vi của đường gọi cũ đang chạy thật — hết chỗ vẫn từ chối ngay, không âm thầm đổi." },
-    { "id": "AC-10", "p": "Sẽ không bao giờ chạy quá số việc cùng lúc đã đặt, dù việc đến từ đường cũ hay đường mới." },
-    { "id": "AC-11", "p": "Sẽ để một việc hỏng không kéo theo cả hàng — việc kế tiếp vẫn được chạy." },
-    { "id": "AC-12", "p": "Sẽ dọn việc cũ sau một thời gian và chỉ xoá đúng tệp của việc đó, không đụng sản phẩm của công cụ khác." },
-    { "id": "AC-14", "p": "Sẽ cho việc chờ có hạn — quá hạn thì báo hỏng, chứ không nằm mãi ở trạng thái đang chờ." },
-    { "id": "AC-15", "p": "Sẽ hỏi người ký một câu: giao ước này đã đủ để bên tiêu thụ dọn sang dùng chưa." }
-  ],
-  "wont_do": [
-    { "id": "AC-4", "p": "Sẽ KHÔNG đoán bừa — hỏi một mã không có thật thì trả lời thẳng là không biết mã đó." },
-    { "id": "AC-6", "p": "Sẽ KHÔNG lẫn lộn hai loại hỏng — hỏng vì đầu vào của người gọi và hỏng vì máy chủ được ghi rõ là hai chuyện khác nhau." },
-    { "id": "AC-13", "p": "Chặn mọi lối tắt qua vòng kiểm tra thẻ ra vào — hai cửa mới bị soi y hệt cửa cũ, không thẻ là không vào." }
-  ],
+  "decisions": [],
   "decisions_plain": [
     { "id": "d-20260805T010154Z-1137", "p": "KHÔNG làm phần giữ việc sống sót qua khởi động lại — đổi lại chưa phải chốt chuyện hạ tầng và tiền ngay vòng đầu, nhưng máy chủ khởi động lại là mọi mã việc thành vô danh." },
     { "id": "d-20260805T010154Z-1274", "p": "Dùng đúng một chỗ giữ trần số việc chạy cùng lúc cho cả đường cũ lẫn đường mới — đổi lại phải sửa một tệp đang phục vụ thật, nên có một tiêu chí riêng khoá hành vi cũ lại." },
@@ -29,6 +11,11 @@
     { "id": "d-20260805T010154Z-1822", "p": "KHÔNG làm phần gọi ngược khi xong, dù các sản phẩm cùng loại đều có — đổi lại bên tiêu thụ phải tự hỏi lại theo nhịp." },
     { "id": "d-20260805T010154Z-1959", "p": "KHÔNG theo cách báo kết quả của chuẩn HTTP chung, mà giữ đúng nếp trả lời sẵn có của repo — đổi lại quen thuộc với người trong nhà, hơi lạ với một khách hàng tổng quát." },
     { "id": "d-20260805T011100Z-2096", "p": "Chỉ một bộ phận được phép chạm đĩa, cả lúc ghi lẫn lúc xoá — đổi lại phần sổ sách kiểm thử được rất nhanh, nhưng việc dọn tệp phụ thuộc vào bộ phận đó còn sống." },
-    { "id": "d-20260805T011100Z-2233", "p": "Chờ quá hạn thì báo hỏng chứ không tự thử lại — đổi lại sự cố không bị che, nhưng một đợt tắc ngắn cũng giết việc đáng lẽ chạy được và người gọi phải gửi lại." }
+    { "id": "d-20260805T011100Z-2233", "p": "Chờ quá hạn thì báo hỏng chứ không tự thử lại — đổi lại sự cố không bị che, nhưng một đợt tắc ngắn cũng giết việc đáng lẽ chạy được và người gọi phải gửi lại." },
+    { "id": "d-20260805T032458Z-3011", "p": "Trần hàng chờ chỉ đếm việc ĐANG CHỜ, không đếm việc đã xong — đổi lại một loạt việc vừa xong không chặn người gửi mới, nhưng bộ nhớ có thể phình giữa hai lượt dọn." },
+    { "id": "d-20260805T033836Z-4021", "p": "Gửi thân yêu cầu quá khổ vào đường gọi CŨ nay nhận mã lỗi tử tế thay vì đứt kết nối — đổi lại ba cửa hưởng đúng một luật, NHƯNG đây là thay đổi hành vi ở đường đang chạy thật, ngược ràng buộc anh chốt ở Cổng 1." },
+    { "id": "d-20260805T040127Z-5017", "p": "Phân biệt lỗi tại ai theo vị trí trong luồng thay vì theo chữ trong thông điệp — đổi lại hai lối gọi thôi bất đồng về cùng một đầu vào, nhưng sự cố hạ tầng xảy ra đúng lúc phân giải đầu vào sẽ bị tính là lỗi người gọi." },
+    { "id": "d-20260805T042459Z-6023", "p": "KHÔNG sửa code để chiều một bộ đo đỏ vì tranh chấp tài nguyên — đổi lại không nới trần chờ của một bài kiểm có sẵn chỉ để làm đẹp bảng điểm, nhưng phải tốn một vòng nghiệm thu nữa." },
+    { "id": "d-20260805T071657Z-7029", "p": "Hai bộ đo cùng cần trình duyệt nay chạy nối tiếp thay vì tranh nhau — đổi lại độ phủ giữ nguyên và mọi việc sau của kho này được hưởng, nhưng khi đỏ thì phải đọc kỹ hơn mới biết đỏ ở đâu." }
   ]
 }

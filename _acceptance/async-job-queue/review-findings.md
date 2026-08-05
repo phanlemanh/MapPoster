@@ -1,62 +1,83 @@
 ## Trong hợp đồng
 
-### isCallerFault misclassifies caller-input failures as errorKind 'server'
-- file: `mcp-server/src/jobRunner.ts:42`
-- severity: high
-- AC: AC-6
-- source: bugs
-
-The regex `/No geocoding result|Unsupported format|out of range/i` only ever matches ONE error this codebase throws. Greping every `throw new Error` in resolveConfig.ts/geocode.ts: the real messages are `Unknown theme: ...`, `Unknown format: ...`, `Invalid highlight.regions[].geojson: ...`, `Invalid longitude/latitude/zoom: ...`, `No boundary found for region "..."`. The strings "Unsupported format" and "out of range" appear nowhere in the repo, so those two alternatives are dead. Every one of those failures is pure caller input, and every one of them is reachable through POST /jobs because renderMapSchema does not validate them at submit time (`theme: z.string()`, `format: z.string()|{w,h}`, `geojson: z.any()`) — they are only caught later inside resolveConfig, on the worker.
-
-Confirmed by probe (run against HEAD, then removed):
-```
-bad theme   -> status=failed errorKind=server error=Unknown theme: rubby. Known themes: ...
-bad format  -> status=failed errorKind=server error=Unknown format: wat
-bad geojson -> status=failed errorKind=server error=Invalid highlight.regions[].geojson: expected a GeoJSON FeatureCollection
-```
-
-The identical bodies return HTTP 400 on the synchronous /render path (http.ts resolve-phase catch), so the two surfaces now disagree about who is at fault for the same input. This breaks AC-6 ("phân biệt rõ lỗi tại người gọi hay tại máy chủ") and is actively misleading: errorKind 'server' tells OneHub to retry a request that can never succeed. The existing AC-6 test (E8) only exercises `render: throw new Error('trình duyệt chết')`, which is genuinely a server fault, so nothing catches this.
-
-Fix direction: classify positively (MotionParamError plus anything thrown by resolveConfig/geocode is caller fault) rather than by string-matching a list that has already drifted from the messages the code emits.
+(không có finding nào map được vào AC ở round này — phát hiện round 1 về `isCallerFault` misclassify errorKind đã được đóng, xác nhận bởi eval E8b mới thêm, xanh trên HEAD.)
 
 ## Ngoài hợp đồng — người quyết ở Gate 2
 
 Các lỗi dưới đây là thật, nhưng nằm ngoài phạm vi đã duyệt ở Cổng 1 — người quyết, máy không tự sửa.
 
-- **Hai núm cấu hình MAPPOSTER_MAX_QUEUED_JOBS / MAPPOSTER_JOB_TTL_MS không hề đọc từ env**
-  Người dùng thấy gì: Người vận hành không thể chỉnh giới hạn số việc chờ hay thời gian giữ kết quả qua cấu hình môi trường — đổi biến môi trường không có tác dụng gì, hệ thống luôn dùng số mặc định mà không báo hiệu cho ai biết.
-  file: `/Users/manh-macmini/dev/map/.claude/worktrees/suspicious-wozniak-cdb826/mcp-server/src/http.ts:548`
+- **MAPPOSTER_MAX_QUEUED_JOBS và MAPPOSTER_JOB_TTL_MS được khai là núm cấu hình nhưng không bao giờ đọc từ env**
+  Người dùng thấy gì: Nếu người vận hành muốn tăng hoặc giảm giới hạn số việc đang chờ, hoặc thời gian giữ kết quả, bằng cách đổi cấu hình, thao tác đó sẽ không có tác dụng gì — hệ thống luôn dùng đúng một giá trị mặc định.
+  file: `mcp-server/src/http.ts:548`
   severity: high
   Đề xuất: known-limits
 
-- **Trần hàng chờ chỉ đếm việc 'queued' — bản ghi đã kết thúc vẫn giữ nguyên `params` suốt 30 phút và KHÔNG có trần**
-  Người dùng thấy gì: Các việc đã hoàn tất vẫn giữ nguyên toàn bộ dữ liệu yêu cầu gốc (có thể chứa bản đồ lớn) suốt 30 phút mà không có giới hạn tổng số, nên một luồng yêu cầu hợp lệ đều đặn có thể làm hết bộ nhớ máy chủ và làm sập dịch vụ cho mọi người dùng.
-  file: `/Users/manh-macmini/dev/map/.claude/worktrees/suspicious-wozniak-cdb826/mcp-server/src/jobStore.ts:96`
+- **README.md không được cập nhật: hai endpoint HTTP công khai mới không tài liệu, và README + config.ts vẫn khẳng định async job queue là "gói sau"**
+  Người dùng thấy gì: Người đọc tài liệu sản phẩm sẽ không biết có cách gửi việc render không đồng bộ để tránh bị từ chối khi hệ thống quá tải, vì tài liệu vẫn nói tính năng đó chưa tồn tại.
+  file: `README.md:130`
   severity: high
   Đề xuất: known-limits
 
-- **Việc clip chiếm slot thợ trong lúc CHỜ slot clip — việc render ảnh xếp sau bị bỏ đói tới 10 phút**
-  Người dùng thấy gì: Khi hai việc xuất video được gửi cùng lúc, một việc chỉ cần xuất ảnh tĩnh xếp ngay sau đó có thể phải chờ tới 10 phút dù bản thân nó không cần chờ gì cả, vì một chỗ xử lý bị chiếm dụng vô ích trong lúc chờ.
-  file: `/Users/manh-macmini/dev/map/.claude/worktrees/suspicious-wozniak-cdb826/mcp-server/src/jobRunner.ts:94`
+- **/jobs vứt bỏ kết quả của renderMapSchema.parse và lưu params thô, ngược với quy ước "parse, đừng tin" mà /render ghi rõ**
+  Người dùng thấy gì: Hiện tại chưa ảnh hưởng gì tới người dùng, nhưng nếu về sau có dữ liệu thừa hoặc sai lọt vào yêu cầu gửi việc, nó có thể âm thầm đi xuyên qua hệ thống mà không bị chặn như ở đường xử lý ảnh tức thời.
+  file: `mcp-server/src/http.ts:472`
   severity: medium
   Đề xuất: known-limits
 
-- **Finished jobs retain caller `params` (incl. inline GeoJSON) for the full 30-min TTL, unbounded**
-  Người dùng thấy gì: Các việc đã hoàn tất vẫn giữ nguyên toàn bộ dữ liệu yêu cầu gốc (có thể chứa bản đồ lớn) suốt 30 phút mà không có giới hạn tổng số, nên một luồng yêu cầu hợp lệ đều đặn có thể làm hết bộ nhớ máy chủ và làm sập dịch vụ cho mọi người dùng.
-  file: `/Users/manh-macmini/dev/map/.claude/worktrees/suspicious-wozniak-cdb826/mcp-server/src/jobStore.ts:117`
+- **jobStatusBody nuốt lỗi đọc tệp — trả về 200 {ok:true, status:'done'} không ảnh, không lý do**
+  Người dùng thấy gì: Khi một việc đã báo là xong nhưng tệp kết quả vì lý do nào đó không đọc được nữa, người gọi sẽ nhận một câu trả lời trông như thành công nhưng không có ảnh và không lời giải thích, dễ nhầm là hệ thống đang hoạt động bình thường.
+  file: `mcp-server/src/http.ts:142`
   severity: medium
   Đề xuất: known-limits
 
-- **jobStatusBody swallows artifact read failures — returns status 'done' with no content and no error**
-  Người dùng thấy gì: Khi máy chủ không đọc được tệp ảnh đã lưu của một việc đã xong, câu trả lời vẫn báo 'đã xong' thành công nhưng lặng lẽ thiếu mất ảnh và không giải thích lý do, khiến người gọi không biết vì sao không nhận được ảnh.
-  file: `/Users/manh-macmini/dev/map/.claude/worktrees/suspicious-wozniak-cdb826/mcp-server/src/http.ts:142`
-  severity: medium
-  Đề xuất: known-limits
-
-- **Clip jobs occupy a worker while merely waiting for a clip slot, blocking unrelated render jobs**
-  Người dùng thấy gì: Khi hai việc xuất video được gửi cùng lúc, một việc chỉ cần xuất ảnh tĩnh xếp ngay sau đó có thể phải chờ tới 10 phút dù bản thân nó không cần chờ gì cả, vì một chỗ xử lý bị chiếm dụng vô ích trong lúc chờ.
-  file: `mcp-server/src/jobRunner.ts:94`
+- **_acceptance/config.yaml: executor job_http trùng lặp nguyên văn clip_http, và ba dòng mới lệch kiểu trích dẫn**
+  Người dùng thấy gì: Không ảnh hưởng tới người dùng cuối; đây là một hao phí thời gian chạy kiểm tra nội bộ, không tác động tới tính năng mà người dùng thấy hay dùng.
+  file: `_acceptance/config.yaml:19`
   severity: low
   Đề xuất: known-limits
 
-Cụm ngoài vùng phủ: cluster: n-a (không đo được — không eval nào khai paths, hoặc dưới ngưỡng cụm).
+- **render.yaml trỏ tới http.ts theo số dòng — cả bốn tham chiếu đã lệch sau khi http.ts dài thêm ~120 dòng**
+  Người dùng thấy gì: Không ảnh hưởng tới người dùng cuối; đây là tài liệu vận hành nội bộ trỏ sai vị trí, có thể khiến người vận hành mất thời gian tra cứu khi có sự cố.
+  file: `render.yaml:40`
+  severity: low
+  Đề xuất: known-limits
+
+- **MAPPOSTER_MAX_QUEUED_JOBS và MAPPOSTER_JOB_TTL_MS không bao giờ được đọc từ env — thông điệp 429 chỉ người vận hành tới một núm chết**
+  Người dùng thấy gì: Nếu người vận hành muốn tăng hoặc giảm giới hạn số việc đang chờ, hoặc thời gian giữ kết quả, bằng cách đổi cấu hình, thao tác đó sẽ không có tác dụng gì — hệ thống luôn dùng đúng một giá trị mặc định, kể cả khi thông báo lỗi ngụ ý ngược lại.
+  file: `mcp-server/src/jobStore.ts:78`
+  severity: high
+  Đề xuất: known-limits
+
+- **jobStatusBody nuốt lỗi đọc tệp — trả status 'done' + ok:true nhưng thiếu hẳn nội dung, không lời giải thích**
+  Người dùng thấy gì: Khi một việc đã báo là xong nhưng tệp kết quả vì lý do nào đó không đọc được nữa, người gọi sẽ nhận một câu trả lời trông như thành công nhưng không có ảnh và không lời giải thích, dễ nhầm là hệ thống đang hoạt động bình thường.
+  file: `mcp-server/src/http.ts:142`
+  severity: medium
+  Đề xuất: known-limits
+
+- **sweep() nuốt mọi lỗi fs.rm sau khi bản ghi đã rời sổ — tệp rác vĩnh viễn, không log, không thử lại**
+  Người dùng thấy gì: Nếu việc xoá một tệp kết quả cũ gặp trục trặc, tệp đó có thể ở lại trên đĩa mà không ai biết để dọn — chỉ ảnh hưởng dung lượng lưu trữ vận hành, không ảnh hưởng trực tiếp tới người đang dùng dịch vụ.
+  file: `mcp-server/src/jobRunner.ts:234`
+  severity: medium
+  Đề xuất: known-limits
+
+- **Việc clip chiếm slot thợ trong suốt thời gian CHỜ slot clip — việc render xếp sau bị bỏ đói tới 10 phút**
+  Người dùng thấy gì: Khi hàng chờ xử lý clip đã đầy, một việc render ảnh gửi sau đó có thể phải chờ rất lâu — tới nhiều phút — dù bản thân nó không cần tới tài nguyên xử lý clip nào, làm chậm trải nghiệm đúng vào lúc hàng đợi lẽ ra phải giải quyết được vấn đề chờ đợi.
+  file: `mcp-server/src/jobRunner.ts:116`
+  severity: medium
+  Đề xuất: known-limits
+
+- **loadServerConfig() bị đưa ra ngoài try/catch — env sai giờ ném stack trace thô thay vì thông điệp thân thiện + exit(1)**
+  Người dùng thấy gì: Nếu cấu hình khởi động sai, máy chủ sẽ dừng lại với một thông báo lỗi kỹ thuật khó hiểu thay vì một dòng giải thích rõ ràng cho người vận hành — chỉ ảnh hưởng người vận hành lúc triển khai, không ảnh hưởng người dùng cuối.
+  file: `mcp-server/src/http.ts:537`
+  severity: low
+  Đề xuất: known-limits
+
+## Chưa adversarial-verify (refuter chết)
+
+- **Việc clip chiếm một slot thợ trong suốt thời gian chỉ ĐỨNG CHỜ slot clip, bỏ đói việc render xếp sau**
+  file: `mcp-server/src/jobRunner.ts:116`
+  severity: medium
+  detail: `pump()` (jobRunner.ts:200-213) tăng `live` NGAY khi rút việc ra khỏi sổ, rồi `runOne` → `runClip` mới `await acquireClipSlotWaiting(...)` ở dòng 116. Nghĩa là một việc clip đang xếp hàng chờ slot vẫn tính là một thợ ĐANG BẬN, tối đa `MAPPOSTER_JOB_SLOT_WAIT_MS` (mặc định 10 phút, config.ts:61). Với mặc định của chính gói này — `workers = cfg.poolSize` (http.ts:554, poolSize mặc định 2) và `DEFAULT_CLIP_CONCURRENCY = 1` — chỉ cần hai việc clip nộp liên tiếp là cả hai thợ bị chiếm: một chạy thật, một ngồi không chờ slot. Mọi việc `kind: 'render'` xếp sau (không cần slot clip, không cạnh tranh gì với clip ngoài hồ trình duyệt) nằm ở trạng thái `queued` tới 10 phút. Điều này nghịch với chính lý do gói tồn tại (bỏ 429/treo cho người gọi) và nghịch với chú thích ngay trên dòng 14 ("bên gọi nên đặt bằng sức chứa hồ trình duyệt") — sức chứa hồ chỉ đúng nếu thợ thực sự đang dùng hồ. Sửa hướng: lấy slot clip TRƯỚC khi chiếm thợ, hoặc trả việc về hàng khi chưa có slot thay vì chờ tại chỗ.
+  source: conventions (refuter chết trên finding này — chưa có adversarial-verify độc lập xác nhận lại; nội dung trùng lớp với finding "Việc clip chiếm slot thợ..." ở mục Ngoài hợp đồng phía trên nhưng KHÔNG được gộp vì trạng thái xác minh khác nhau)
+
+⚠ Cụm ngoài vùng phủ: 3/11 lỗi rơi vào file không bộ đo nào phủ (README.md, _acceptance/config.yaml, render.yaml) — dừng và quyết: mở rộng hợp đồng hay rút phạm vi.

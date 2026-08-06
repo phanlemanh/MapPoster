@@ -58,3 +58,5 @@
 {"ts":"2026-08-06T15:54:35Z","round":4,"evalId":"E13","run_id":"map-motion-clip-E8-20260806","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-06T15:54:35Z","round":4,"evalId":"E14","run_id":"map-motion-clip-E11-20260806","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
 {"ts":"2026-08-06T15:54:35Z","round":4,"evalId":"E15","run_id":"map-motion-clip-E8-20260806","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-06T16:33:29Z","round":3,"evalId":"E12","run_id":"map-motion-clip-E12-20260806r3","exit_code":0,"cmd":"npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts":"2026-08-06T16:35:29Z","round":3,"evalId":"E7","run_id":"map-motion-clip-E7-20260806r3","exit_code":0,"cmd":"npm run test:mcp"}

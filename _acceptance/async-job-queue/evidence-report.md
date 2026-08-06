@@ -1,19 +1,31 @@
 ---
 schema_version: 2
 feature_slug: async-job-queue
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 25c2d2ae828cfcbbe315d8839e0f932aa531ab56
+verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
 human_signoff:
 ---
 
 # Evidence Report: async-job-queue
 
-_Re-verification round (T2). Prior evidence went STALE: `feat/routes-measurements` landed downstream
+_Round 3 — re-pin, no fresh eval run required. Commit `b4150be` (after this contract's prior round)
+changes only `src/lib/export.test.ts` — a `map-motion-clip`-owned file. This contract has no eval
+mapped to `config:executors.test.text_free`, and none of its own commands (`job_http`, `job_store`,
+`job_runner`, `clip_http`, `clip_tools`, `motion_compiler`) touch that file either; it also has no
+eval mapped to a whole-suite broad guard (`test.api`/`test.mcp`) the way routes-measurements and
+tier0-agent-params do. So there is genuinely nothing of this contract's own to re-run — this round
+exists solely to re-pin `verified_commit` past the staleness boundary `b4150be` created, and to record
+that the coordinator's own commit `31ad91b` merged a blind judge's PASS verdict for E20 (kept exactly
+as merged, not touched here). With E20 now PASS (not UNCERTAIN) and this contract at `risk_tier: T2`
+— which requires `human_override` only for UNCERTAIN judgment items, not for every judgment item the
+way T3 does — all 24 machine evals plus the one judgment eval are PASS, so the contract is **PASS**._
+
+_Prior round (T2). Prior evidence went STALE: `feat/routes-measurements` landed downstream
 commits after the last verified commit. Contract `status` downgraded `signed-off` → `implemented` per
 the staleness guard. `human_signoff` cleared (both the evidence-report field AND the contract.md
 frontmatter carried a stray copy from the prior signoff — only the evidence-report field is this
@@ -55,7 +67,7 @@ re-checked against the actual assertion in the (unchanged) test file._
 | E23 | AC-17 | test | PASS |
 | E24 | AC-6 | test | PASS |
 | E25 | AC-15 | test | PASS |
-| E20 | AC-15 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
+| E20 | AC-15 | judgment | PASS (judge) |
 
 ## Evidence
 
@@ -329,6 +341,13 @@ none — every eval this round is a deterministic single run.
   machine evals re-run fresh and re-confirmed against their specific `expected` clauses. E20 left
   UNFILLED per this round's instructions — a prior signature does not carry to a new verification
   round. Verdict PENDING-JUDGMENT.
+- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only — `b4150be` touched a sibling
+  contract's file this contract does not depend on and has no eval command covering, so no fresh eval
+  run was performed or needed (all 24 machine-eval blocks above are unchanged from the prior round and
+  remain valid: nothing they depend on moved). The coordinator's own commit `31ad91b` merged a blind
+  judge's PASS verdict into E20 (rationale kept exactly as written, not edited by this verifier).
+  `risk_tier: T2` requires `human_override` only on UNCERTAIN judgment items — E20 is PASS, not
+  UNCERTAIN — so no override is required for this contract to reach PASS. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

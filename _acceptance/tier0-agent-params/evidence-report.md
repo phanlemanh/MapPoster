@@ -7,11 +7,18 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 06e4ae166c29aaec9426d2779941e9f3093355ce
+verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
 human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+_Round 4 — re-pin only, not a re-audit. Commit `b4150be` (after this contract's Round 3 verify)
+changes `src/lib/export.test.ts` only — a `map-motion-clip`-owned file this contract does not depend
+on (its own criteria live in `mcp-server/**`, never touching `src/lib/export.ts`). That commit made
+every already-verified `verified_commit` older than HEAD, which the pre-merge staleness check blocks
+regardless of relevance, so this round re-runs this contract's broad guards (`npm test`, `npm run
+test:mcp`) fresh and re-pins. No new gaps expected or found — see Iterations below._
 
 _Round 3 — re-verification of Round 2's three REJECTs. Commit `06e4ae1` adds a new describe block to
 `resolveConfig.test.ts`, "boundary halves the evals claimed but no test proved (verify round 1
@@ -127,6 +134,35 @@ diff introduced, but one this round's stricter check is the first to catch.**_
     from a pre-edit backup) and the full file re-confirmed green — back to all 53 of 53 tests passing,
     `git diff` empty. The test is a real discriminator, not a tautology.
 
+- eval: E19
+  run_id: tier0-agent-params-E19-20260806r4
+  exit_code: 0
+  baseline: green
+  verifier: config:executors.test.api
+  verified_at: 2026-08-06T16:34:13Z
+  output: |
+    ROUND 4 re-pin — re-run fresh because `b4150be` changed `src/lib/export.test.ts` (owned by
+    map-motion-clip, not this contract, but the whole-suite guard was re-run per the coordinator's
+    instruction anyway):
+     Test Files  30 passed | 3 skipped (33)
+          Tests  457 passed | 7 skipped (464)
+       Duration  2.89s
+    Up from 456 in Round 3 — the +1 delta is `export.test.ts`'s new attribution-content-pin test, not
+    anything in this contract's own surface.
+
+- eval: E20
+  run_id: tier0-agent-params-E20-20260806r4
+  exit_code: 0
+  baseline: green
+  verifier: config:executors.test.mcp
+  verified_at: 2026-08-06T16:35:29Z
+  output: |
+    ROUND 4 re-pin: real vite build + real headless-Chromium MCP integration suite.
+     Test Files  3 passed (3)
+          Tests  7 passed (7)
+       Duration  49.76s
+    Unaffected by `b4150be` (`export.test.ts` is not part of this suite's file list).
+
 ## Analyst
 
 Baseline: all 18 feature evals (E1-E18) are `red` on the pre-feature diffBase per Round 1's own
@@ -171,6 +207,13 @@ none — every eval this round is a deterministic single run.
   (mutated the guard, confirmed the new test fails, reverted, re-confirmed green) rather than trusting
   the commit message. All 20 machine evals now pass; this contract has no judgment evals. Verdict
   **PASS**.
+- Round 4 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only, not a re-audit — commit
+  `b4150be` (a sibling-contract test file, `src/lib/export.test.ts`) landed after Round 3's
+  `verified_commit`, tripping the pre-merge staleness check even though this contract does not depend
+  on that file. Re-ran this contract's broad guards fresh: `npm test` 457/464 passed (up from 456 —
+  the `export.test.ts` delta, not this contract's own surface), `npm run test:mcp` 7/7 passed,
+  unaffected. No re-audit of E1-E18 performed — none of their source/test files changed since Round 3.
+  All 20 machine evals remain PASS; this contract has no judgment evals. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

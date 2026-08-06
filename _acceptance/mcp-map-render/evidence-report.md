@@ -7,11 +7,22 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 25c2d2ae828cfcbbe315d8839e0f932aa531ab56
+verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
 human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
+
+_Round 19 — re-pin. Commit `b4150be` (after Round 18) changes `src/lib/export.test.ts` only — not a
+file any of this contract's own evals target directly, but it IS part of the aggregate `npm test` that
+E1-E9/E11 (`config:executors.test.api`) run, and `npm run test:e2e` (E10) is this contract's own
+whole-suite guard, so both were re-run fresh rather than merely re-pinned. Neither
+`mcp-server/src/resolveConfig.ts` nor `mcp-server/src/tools.ts` changed further this round (only the
+test file in a sibling contract's domain did), so no new diff review was needed beyond confirming that.
+The coordinator's own commit `31ad91b` separately merged a blind judge's PASS verdict into E12 (kept
+exactly as merged below, not touched by this verifier); `human_override` remains empty, so — per
+`risk_tier: T3`, which mandates a direct human verdict on every judgment item regardless of the judge's
+score — this contract stays PENDING-JUDGMENT._
 
 _Round 18 — re-verification. Round 17's evidence (verified_commit `9b573fc`, signed off `manh`
 2026-08-06) went STALE again: `feat/routes-measurements` landed downstream commits touching this
@@ -45,31 +56,31 @@ since Round 15._
 | E9 | AC-9 | test | PASS |
 | E10 | AC-10 | ui-check | PASS |
 | E11 | AC-11 | test | PASS |
-| E12 | AC-12 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
+| E12 | AC-12 | judgment | PASS (judge) — awaiting mandatory T3 `human_override` |
 
 ## Evidence
 
 - eval: E1
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
-    `npm test` aggregate: Test Files 30 passed | 3 skipped (33); Tests 453 passed | 7 skipped (460);
-    Duration 2.90s. Up from 424 passed in Round 17 — the +29 delta is new resolveConfig.test.ts (+134
-    lines: routes/measure describes) / tools.test.ts (+46) / applyRenderConfig.test.ts (+22) /
-    geometry.test.ts (new file, 94 lines, 12 tests) coverage for this round's own routes-measurements
-    surface — nothing in this contract's own render_map/highlight/geocode/pool/transport coverage
-    shrank. This contract's own `render_map('Ho Chi Minh City', format=tiktok)` 1080×1920 centering
-    assertions are present and green in this run.
+    ROUND 19 re-pin re-run: `npm test` aggregate: Test Files 30 passed | 3 skipped (33); Tests 457
+    passed | 7 skipped (464); Duration 2.89s. Up from 453 in Round 18 — the +4 delta is `src/lib/
+    export.test.ts`'s new attribution-content-pin test (commit `b4150be`, +1) plus tier0-agent-params'
+    own three boundary-half additions merged in between rounds (+3, commit `06e4ae1`) — none of it in
+    this contract's own render_map/highlight/geocode/pool/transport coverage, which is unchanged. This
+    contract's own `render_map('Ho Chi Minh City', format=tiktok)` 1080×1920 centering assertions are
+    present and green in this run.
 
 - eval: E2
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Named-region highlight resolve path — `bboxOfGeojsons(regions.map(r => r.geojson))` replaces the
     old `bboxOfRegions(regions)` call at the exact same call site (resolveConfig.ts, region auto-frame
@@ -78,84 +89,89 @@ since Round 15._
     polygon / region-anchoring / GeoJSON shape-check assertions are present and green.
 
 - eval: E3
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Named-point highlight / auto-zoom path untouched by this round's diff (only the region/route bbox
     helper and `resolvedOf`'s conditional spread changed). AC-3 assertions present and green.
 
 - eval: E4
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Geocode cache / env-validation path — `geocode.ts` does not appear in this round's changed-file
     list (`git diff 9b573fc..HEAD --stat` confirms). AC-4 assertions present and green, unaffected.
 
 - eval: E5
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Render-variants / browser-pool path — `browserPool.ts`/`deps.ts` untouched this round. AC-5
     assertions present and green.
 
 - eval: E6
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Tool-set parity + HTTP transport guards — `tools.ts` changed (+46 lines: `routeSchema`/
     `measureSchema` additions to `renderMapShape`), additively, not touching the `listTools` surface or
     Host/Origin/body-cap guards AC-6 checks. Assertions present and green.
-    Corroborating (real build + real headless browser + real transport):
-    `npm run test:e2e`: 14 passed (46.8s). `npm run test:mcp`: 7 passed (Test Files 3 passed).
+    Corroborating (real build + real headless browser + real transport, re-run fresh this round):
+    `npm run test:e2e`: 14 passed (51.0s). `npm run test:mcp`: 7 passed (Test Files 3 passed).
 
 - eval: E7
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Default-delivery base64+path / sink-dir path — `renderFrame.test.ts` unaffected by this round's
     diff. AC-7 assertions present and green.
 
 - eval: E8
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     `list_formats` preset / custom-dims path unaffected. AC-8 assertions present and green.
 
 - eval: E9
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     chrome:clean/poster + theme/colour validation path unaffected by this round's diff. AC-9
     assertions present and green.
 
 - eval: E10
-  run_id: mcp-map-render-E10-20260806
+  run_id: mcp-map-render-E10-20260806r19
   exit_code: 0
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-06T15:55:18Z
+  verified_at: 2026-08-06T16:34:29Z
   screenshot: evidence/E10-step1.png
   observed: |
+    ROUND 19 re-pin: `npm run test:e2e` re-run fresh (14 passed, 51.0s) — `e2e/render-mode.spec.ts:93`
+    (AC-10) still green, unaffected by `b4150be` (that commit touches `src/lib/export.test.ts`, not
+    `render-mode.spec.ts` or any file under `src/render/**`). The frames themselves are unchanged from
+    Round 18's capture (nothing in this round's diff touches the render page or renderFrame path), so
+    the same screenshots are cited rather than re-captured — a like-for-like re-pin, not a re-audit.
     E10-step1.png (immediately after navigating `/render.html?config=<tiktokConfig>`, before ready):
     a solid dark-navy 1080x1920 frame, the small "© OpenStreetMap contributors · OpenMapTiles ·
     OpenFreeMap · MapLibre" attribution line visible bottom-right, NO onboarding modal/overlay anywhere
@@ -184,11 +200,11 @@ since Round 15._
     14 passed (46.8s) overall.
 
 - eval: E11
-  run_id: mcp-map-render-E1-20260806
+  run_id: mcp-map-render-E1-20260806r19
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T15:54:02Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
     Ungeocodable-location / invalid-dims structured-error path unaffected by this round's diff. AC-11
     assertions present and green.
@@ -231,6 +247,16 @@ flakiness.
   a real `renderFrame()` PNG, decoded and independently confirmed 1080×1920, plus the automated
   Playwright AC-10 spec passing) — first fresh E10 evidence since Round 15. E12 left UNFILLED for the
   orchestrator's blind judge panel, per this round's instructions. Verdict PENDING-JUDGMENT.
+- Round 19 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin triggered by commit `b4150be`
+  (`src/lib/export.test.ts`, a sibling contract's file) landing after Round 18's `verified_commit`.
+  E1-E9/E11 (`npm test`) and E10 (`npm run test:e2e`) were re-run fresh rather than merely re-pinned,
+  since both commands include the changed file in their aggregate scope: 457/464 and 14/14 passed
+  respectively, both up only by the sibling contracts' additive test counts, nothing in this
+  contract's own coverage shrank. E10's frames were not re-captured (nothing in this round's diff
+  touches the render page), so Round 18's screenshots are cited as still-valid evidence. Separately,
+  the coordinator's own commit `31ad91b` merged a blind judge's PASS verdict into E12 (kept exactly as
+  merged, not touched here). `human_override` remains empty, so per `risk_tier: T3` the contract stays
+  **PENDING-JUDGMENT** — one step closer to Gate 2 (a human now only needs to review and countersign).
 
 ## Gate 2 checklist (human)
 

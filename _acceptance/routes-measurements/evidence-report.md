@@ -7,11 +7,18 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 06e4ae166c29aaec9426d2779941e9f3093355ce
+verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
 human_signoff:
 ---
 
 # Evidence Report: routes-measurements
+
+_Round 3 — re-pin only, not a re-audit. Commit `b4150be` (after this contract's Round 2 verify)
+changes `src/lib/export.test.ts` only — a `map-motion-clip`-owned file this contract does not depend
+on (`surfaces: [api]`, no `src/lib/**` involvement anywhere in this contract's own criteria). That
+commit made every already-verified `verified_commit` older than HEAD, tripping the pre-merge
+staleness check regardless of relevance, so this round re-runs the broad guards (`npm test`, `npm run
+test:mcp`) fresh and re-pins. No new gaps expected or found — see Iterations below._
 
 _Round 2 — re-verification of Round 1's single REJECT. Commit `06e4ae1` adds a new describe block to
 `resolveConfig.test.ts`, "boundary halves the evals claimed but no test proved (verify round 1
@@ -336,33 +343,35 @@ clean the other 19 are._
     ẢNH: 5 render → _acceptance/routes-measurements/demo/index.html · KIỂM: 9 đạt · 0 trượt
 
 - eval: E17
-  run_id: routes-measurements-E17-20260806r2
+  run_id: routes-measurements-E17-20260806r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T16:26:35Z
+  verified_at: 2026-08-06T16:34:13Z
   output: |
-    ROUND 2 re-run (test file changed since Round 1, so the broad guard was re-run fresh per the
-    coordinator's instruction):
+    ROUND 3 re-pin — re-run fresh because `b4150be` changed `src/lib/export.test.ts` (a sibling
+    contract's file, not this one's, but the broad guard was re-run per the coordinator's instruction):
      Test Files  30 passed | 3 skipped (33)
-          Tests  456 passed | 7 skipped (463)
-       Duration  3.29s
-    Up from 453 in Round 1 — the +3 delta is exactly the three new boundary-half test cases commit
-    `06e4ae1` added. Broad regression-floor guard — expected green on both trees.
+          Tests  457 passed | 7 skipped (464)
+       Duration  2.89s
+    Up from 456 in Round 2 — the +1 delta is `export.test.ts`'s new attribution-content-pin test, not
+    anything in this contract's own surface. Broad regression-floor guard — expected green on both
+    trees.
 
 - eval: E18
-  run_id: routes-measurements-E18-20260806
+  run_id: routes-measurements-E18-20260806r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T16:00:16Z
+  verified_at: 2026-08-06T16:35:29Z
   output: |
-    Real vite build + real headless-Chromium MCP integration suite (renderFrame.test.ts,
+    ROUND 3 re-pin: real vite build + real headless-Chromium MCP integration suite (renderFrame.test.ts,
     renderClip.test.ts, stdioChannel.test.ts):
      Test Files  3 passed (3)
           Tests  7 passed (7)
-       Duration  42.80s
-    Broad regression-floor guard — expected green on both trees, same reasoning as E17.
+       Duration  49.76s
+    Unaffected by `b4150be` (`export.test.ts` is not part of this suite's file list). Broad
+    regression-floor guard — expected green on both trees, same reasoning as E17.
 
 ## Analyst
 
@@ -411,6 +420,13 @@ none — every eval this round is a deterministic single run (no `runs > 1` mark
   the new assertion is a real discriminator via a negative control (mutated the sibling size guard,
   confirmed its paired test fails, reverted). All 20 machine evals now pass; zero judgment/ui-check
   evals on this `surfaces: [api]` contract. Verdict **PASS**.
+- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only, not a re-audit — commit
+  `b4150be` (a sibling-contract test file, `src/lib/export.test.ts`) landed after Round 2's
+  `verified_commit`, tripping the pre-merge staleness check even though this contract does not depend
+  on that file. Re-ran the broad guards fresh: `npm test` 457/464 passed (up from 456 — the
+  `export.test.ts` delta, not this contract's own surface), `npm run test:mcp` 7/7 passed, unaffected.
+  No re-audit of E1-E16/E19/E20 performed — none of their source/test files changed since Round 2. All
+  20 machine evals remain PASS; zero judgment/ui-check evals. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

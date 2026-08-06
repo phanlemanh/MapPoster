@@ -7,13 +7,26 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 25c2d2ae828cfcbbe315d8839e0f932aa531ab56
+verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
 human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
 
-_Re-verification round (T3). Prior evidence went STALE: `feat/routes-measurements` landed downstream
+_Round 3 — re-pin, and this time a genuine re-run: commit `b4150be` changes `src/lib/export.test.ts`,
+which IS this contract's own T3 file (`config:executors.test.text_free` runs it directly for E12,
+AC-9 — "clip không chữ"). The new test pins `ATTRIBUTION_TEXT`'s CONTENT to an independent literal
+plus four per-credit `toContain` checks, closing the self-referential-comparison gap a blind judge
+flagged three times (final review PR #15, Gate 2 PR #15, and this round's own E17 judgment pass) — E17
+was UNCERTAIN before this commit for exactly that reason and is now PASS (see the judge block below,
+merged by the coordinator; left untouched here). E12 was re-run fresh, not merely re-pinned, and this
+verifier independently negative-controlled the new pin (see Evidence below) rather than trusting the
+commit message. `human_override` is still empty on all three judgment items (E16 carries over from
+this round's own blind panel with no human review yet; E17's is a fresh post-patch judge pass, also
+awaiting human review) — T3 mandates a direct human verdict regardless of judge score, so this
+contract stays PENDING-JUDGMENT._
+
+_Round 2 (prior text below, unchanged). Prior evidence went STALE: `feat/routes-measurements` landed downstream
 commits after the last verified commit. Contract `status` downgraded `signed-off` → `implemented` per
 the staleness guard. `human_signoff` cleared, and E16/E17's prior `human_override` values do NOT carry
 to this round — both judgment items are left UNFILLED below for a fresh blind judge panel, regardless
@@ -48,8 +61,8 @@ code._
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
-| E17 | AC-14 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
+| E16 | AC-13 | judgment | PASS (judge) — awaiting mandatory T3 `human_override` |
+| E17 | AC-14 | judgment | PASS (judge, re-scored after `b4150be`) — awaiting mandatory T3 `human_override` |
 
 ## Evidence
 
@@ -127,14 +140,15 @@ code._
     16/16 passed — `motionMath.test.ts`, unchanged since prior round.
 
 - eval: E7
-  run_id: map-motion-clip-E7-20260806
+  run_id: map-motion-clip-E7-20260806r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T16:00:16Z
+  verified_at: 2026-08-06T16:35:29Z
   output: |
-    Test Files 3 passed (3); Tests 7 passed (7); Duration 42.80s — real vite build + real headless
-    Chromium. `renderClip.test.ts` (part of this suite) is the determinism/frame-count check.
+    ROUND 3 re-pin: Test Files 3 passed (3); Tests 7 passed (7); Duration 49.76s — real vite build +
+    real headless Chromium. Unaffected by `b4150be` (not part of this suite's file list).
+    `renderClip.test.ts` (part of this suite) is the determinism/frame-count check.
 
 - eval: E8
   run_id: map-motion-clip-E8-20260806
@@ -175,16 +189,30 @@ code._
     MCP `render_clip` surface.
 
 - eval: E12
-  run_id: map-motion-clip-E12-20260806
+  run_id: map-motion-clip-E12-20260806r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T16:33:29Z
   output: |
-    `npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts`: 18/18 passed — this contract's
-    T3 surface (`src/lib/export.ts`), confirmed BYTE-IDENTICAL to the prior verified commit
-    (`git diff <prior>..HEAD -- src/lib/export.ts src/lib/mapStyle.ts` empty), so this is a pure
-    regression re-confirmation, not new risk.
+    ROUND 3 — a GENUINE re-run, not a re-pin: `src/lib/export.test.ts` itself changed this round
+    (commit `b4150be`), adding `it('pins the attribution CONTENT to a literal, not just to whatever
+    the constant happens to say', ...)`:
+      expect(ATTRIBUTION_TEXT).toBe('© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre');
+      for (const credit of ['OpenStreetMap', 'OpenMapTiles', 'OpenFreeMap', 'MapLibre']) {
+        expect(ATTRIBUTION_TEXT).toContain(credit);
+      }
+    `npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts`: 19/19 passed (up from 18 — this
+    new test). `src/lib/export.ts` itself (the t3_path) is untouched by this commit — confirmed via
+    `git show b4150be --stat` (one file changed: `src/lib/export.test.ts`).
+    Independent negative control (this verifier, not the commit message): temporarily mutated
+    `src/lib/export.ts`'s `ATTRIBUTION_TEXT` constant to `'Made with MapPoster'` and re-ran the new
+    test in isolation — it broke exactly as expected, reporting the literal mismatch against the
+    expected OSM attribution string. Source was then reverted (`cp` from a pre-edit backup) and the
+    full pair re-confirmed green (19/19, `git diff` empty). The new pin is a real discriminator: the
+    OLD test (asserting `textCalls` equals `[ATTRIBUTION_TEXT]`, a self-referential comparison against
+    the very constant under test) would NOT have caught this mutation — it would still see exactly one
+    fillText call using whatever the constant currently says. The new test is what closes that gap.
 
 - eval: E13
   run_id: map-motion-clip-E8-20260806
@@ -251,6 +279,17 @@ none — every eval this round is a deterministic single run.
   with each `expected` clause checked against a real assertion, not just green exit codes. E16/E17 left
   UNFILLED per this round's instructions — a prior signature does not carry to a new verification
   round. Verdict PENDING-JUDGMENT.
+- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): commit `b4150be` changed this contract's
+  OWN `src/lib/export.test.ts` (adding the attribution-content-pin test a judge had flagged as missing
+  across three independent reviews), so E12 got a genuine re-run, not a re-pin: 19/19 passed (up from
+  18), independently negative-controlled by this verifier (mutated `ATTRIBUTION_TEXT`, confirmed the
+  new test catches it, reverted). E7 and the rest of the machine evals were re-confirmed unaffected.
+  Separately, the coordinator's own commit `31ad91b` merged blind-judge verdicts into E16 (PASS) and
+  E17 (PASS, re-scored after `b4150be` closed the gap the judge's first pass had flagged) — those
+  judgment blocks are left exactly as merged, not touched by this verifier. `human_override` remains
+  empty on both, so — per `risk_tier: T3`, which mandates a direct human verdict on every judgment
+  item regardless of the judge's score — the contract stays **PENDING-JUDGMENT**, one step closer to
+  Gate 2 than before (a human now only needs to review and countersign, not wait on a re-judge).
 
 ## Gate 2 checklist (human)
 

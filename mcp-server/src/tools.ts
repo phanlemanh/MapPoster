@@ -297,6 +297,14 @@ const cameraSchema = z
   .object({ center: z.tuple([lng, lat]).optional(), zoom: zoomLevel.optional(), bearing: z.number().optional(), pitch: z.number().optional() })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
+const layerStateSchema = z
+  .object({
+    landcover: z.boolean(), buildings: z.boolean(), water: z.boolean(), parks: z.boolean(),
+    roads: z.boolean(), rail: z.boolean(), aeroway: z.boolean(), roadLabels: z.boolean(),
+  })
+  .partial()
+  .strict();
+const fontSchema = z.enum(['Space Grotesk', 'Montserrat', 'Playfair Display', 'Oswald', 'Bebas Neue', 'Merriweather']);
 
 const renderMapShape = {
   location: locationSchema,
@@ -307,6 +315,9 @@ const renderMapShape = {
   camera: cameraSchema,
   placeName: z.string().min(1).optional(),
   labels: z.boolean().optional(),
+  layers: layerStateSchema.optional(),
+  detail: z.number().min(0).max(1).optional(),
+  font: fontSchema.optional(),
   delivery: deliverySchema,
 };
 

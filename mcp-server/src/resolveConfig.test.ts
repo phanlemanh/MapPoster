@@ -199,4 +199,29 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', camera: { center: [999, 0] } })).rejects.toThrow(/invalid longitude/i);
     await expect(resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 500, lat: 0 }] } })).rejects.toThrow(/invalid longitude/i);
   });
+
+  it('passes layers, detail and font through to the render config', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 106.7, lat: 10.78 },
+      layers: { buildings: false, parks: false },
+      detail: 0.9,
+      font: 'Oswald',
+    });
+    expect(cfg.layers).toEqual({ buildings: false, parks: false });
+    expect(cfg.detail).toBe(0.9);
+    expect(cfg.font).toBe('Oswald');
+  });
+
+  it('merges labels:true into layers.roadLabels but refuses both at once', async () => {
+    const cfg = await resolveConfig({ location: { lng: 106.7, lat: 10.78 }, labels: true, layers: { water: false } });
+    expect(cfg.layers).toEqual({ water: false, roadLabels: true });
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, labels: true, layers: { roadLabels: false } }),
+    ).rejects.toThrow(/either labels or layers\.roadLabels, not both/);
+  });
+
+  it('rejects out-of-range detail and unknown font', async () => {
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 1.5 })).rejects.toThrow(/invalid detail/i);
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, font: 'Comic Sans' as never })).rejects.toThrow(/unknown font/i);
+  });
 });

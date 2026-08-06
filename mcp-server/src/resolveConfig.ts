@@ -1,8 +1,9 @@
 import { resolveLocation, resolveBoundary, resolveCountryAt } from './geocode';
 import { LAYOUTS } from '../../src/data/layouts';
 import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
-import type { GeoJSONFeatureCollection, MarkerIconKey } from '../../src/types';
+import type { FontKey, GeoJSONFeatureCollection, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
+import { FONTS } from '../../src/data/fonts';
 
 export type FormatInput = string | { width: number; height: number };
 
@@ -24,6 +25,11 @@ export interface RenderMapParams {
   placeName?: string;
   /** Show names along major roads (motorway/trunk/primary/secondary). Off by default: poster first. */
   labels?: boolean;
+  /** Per-layer visibility. Mutually exclusive with `labels` for roadLabels. */
+  layers?: Partial<LayerState>;
+  /** 0..1 map detail (road-width ramp; minor roads appear strictly above 0.12). */
+  detail?: number;
+  font?: FontKey;
 }
 
 /** Named format presets (video-first). Layout ids also resolve via getLayout. */
@@ -57,6 +63,16 @@ function assertLngLat(lng: number, lat: number): [number, number] {
 function assertZoom(zoom: number): number {
   if (!Number.isFinite(zoom) || zoom < 0 || zoom > 22) throw new Error(`Invalid zoom: ${zoom} (must be between 0 and 22)`);
   return zoom;
+}
+
+function assertDetail(d: number): number {
+  if (!Number.isFinite(d) || d < 0 || d > 1) throw new Error(`Invalid detail: ${d} (must be between 0 and 1)`);
+  return d;
+}
+
+function assertFont(key: string): FontKey {
+  if (FONTS.some((f) => f.key === key)) return key as FontKey;
+  throw new Error(`Unknown font: ${key}. Known fonts: ${FONTS.map((f) => f.key).join(', ')}`);
 }
 
 export function formatSize(format?: FormatInput): { width: number; height: number } {
@@ -184,6 +200,11 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const theme = assertTheme(params.theme ?? DEFAULT_THEME_ID);
   const chrome: Chrome = params.chrome ?? 'clean';
   const color = params.highlight?.color != null ? assertColor(params.highlight.color, 'highlight.color') : undefined;
+  if (params.labels !== undefined && params.layers?.roadLabels !== undefined) {
+    throw new Error('Pass either labels or layers.roadLabels, not both — they set the same switch');
+  }
+  const detail = params.detail != null ? assertDetail(params.detail) : undefined;
+  const font = params.font != null ? assertFont(params.font) : undefined;
 
   const base = await resolveLocation(params.location);
 
@@ -264,6 +285,11 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     place: params.placeName ? { ...base.place, name: params.placeName } : base.place,
     highlight,
     markers: markers.length ? markers : undefined,
-    layers: params.labels ? { roadLabels: true } : undefined,
+    layers:
+      params.layers || params.labels
+        ? { ...(params.layers ?? {}), ...(params.labels ? { roadLabels: true } : {}) }
+        : undefined,
+    detail,
+    font,
   };
 }

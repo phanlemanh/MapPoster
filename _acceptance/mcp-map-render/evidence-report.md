@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: f7b1d6c4ea056d30ddd61df185dc87ed0c74566f
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: mcp-map-render
@@ -289,7 +289,7 @@ round's diff touched that eval's own assertions._
     contract's `risk_tier: T3`, a panel proposal is advisory only — EVERY judgment item mandates a direct
     human verdict before it can count as PASS, regardless of how the panel voted. No `human_override` was
     supplied this round, so E12 remains UNCERTAIN and the overall verdict is PENDING-JUDGMENT.
-  human_override:
+  human_override: manh 2026-08-06
 
 ## Analyst
 

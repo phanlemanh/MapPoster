@@ -19,8 +19,14 @@ vi.mock('./geocode', async () => ({
   }),
   searchCandidates: vi.fn(async () => []),
   resolveBoundary: vi.fn(async () => ({
-    type: 'FeatureCollection',
-    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    },
+    osmType: 'relation',
+    osmId: 1973756,
+    displayName: 'District 1, Ho Chi Minh City, Vietnam',
+    placeRank: 18,
   })),
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));

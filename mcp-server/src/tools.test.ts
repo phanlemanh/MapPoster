@@ -18,7 +18,16 @@ vi.mock('./geocode', () => ({
           { name: 'Ho Chi Minh City Hall', country: 'Vietnam', lng: 106.7, lat: 10.776, zoom: 15, displayName: 'Ho Chi Minh City Hall, …' },
         ],
   ),
-  resolveBoundary: vi.fn(async () => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }] })),
+  resolveBoundary: vi.fn(async () => ({
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    },
+    osmType: 'relation',
+    osmId: 1973756,
+    displayName: 'District 1, Ho Chi Minh City, Vietnam',
+    placeRank: 18,
+  })),
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 

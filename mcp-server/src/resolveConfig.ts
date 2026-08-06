@@ -252,20 +252,33 @@ function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, numbe
 }
 
 export interface ResolvedHighlights {
-  regions: { bbox: [number, number, number, number] | null; center: [number, number] | null }[];
+  regions: {
+    bbox: [number, number, number, number] | null;
+    center: [number, number] | null;
+    osmType?: 'node' | 'way' | 'relation';
+    osmId?: number;
+    displayName?: string;
+    placeRank?: number;
+  }[];
   points: { lng: number; lat: number }[];
 }
 
 /**
  * What the agent actually got, per the tool contract's `resolved.highlights`.
  * Region names are resolved server-side, so echo each one's extent — that is the
- * only way a caller can tell which "District 1" it ended up with.
+ * only way a caller can tell which "District 1" it ended up with. For a named
+ * region we also echo the matched OSM entity's identity; inline-geojson regions
+ * carry no such identity, so the fields are omitted rather than `undefined`.
  */
 export function summarizeHighlights(cfg: RenderConfig): ResolvedHighlights {
   const regions = (cfg.highlight?.regions ?? []).map((r) => {
     const bbox = bboxOfRegions([r]);
     const center: [number, number] | null = bbox ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : null;
-    return { bbox, center };
+    return {
+      bbox,
+      center,
+      ...(r.osmType != null ? { osmType: r.osmType, osmId: r.osmId, displayName: r.displayName, placeRank: r.placeRank } : {}),
+    };
   });
   return { regions, points: (cfg.markers ?? []).map((m) => ({ lng: m.lng, lat: m.lat })) };
 }
@@ -367,12 +380,12 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     const rColor = regionColors[i];
     if (typeof r === 'string' || 'name' in r) {
       const name = typeof r === 'string' ? r : r.name;
-      const gj = await resolveBoundary(name, anchor);
+      const b = await resolveBoundary(name, anchor);
       // Fail loudly, matching the point path (resolveLocation throws). Silently
       // dropping the region would return a "successful" poster missing the very
       // highlight the caller asked for.
-      if (!gj) throw new Error(`No boundary found for region "${name}"${anchor ? ` in ${anchor}` : ''}`);
-      regions.push({ geojson: gj, color: rColor });
+      if (!b) throw new Error(`No boundary found for region "${name}"${anchor ? ` in ${anchor}` : ''}`);
+      regions.push({ geojson: b.geojson, color: rColor, osmType: b.osmType, osmId: b.osmId, displayName: b.displayName, placeRank: b.placeRank });
     } else {
       regions.push({ geojson: assertGeojson(r.geojson), color: rColor });
     }

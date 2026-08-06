@@ -201,7 +201,7 @@ describe('resolveBoundary', () => {
     );
 
     const gj = await resolveBoundary('Quận 3, HCMC');
-    expect(gj?.features[0].geometry.type).toBe('Polygon');
+    expect(gj?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(urls.some((u) => u.includes('/search?') && u.includes('District 3, Ho Chi Minh City'))).toBe(true);
     // the polygon came from the relation we matched, not from a second global name search
     expect(urls.some((u) => u.includes('/lookup?') && u.includes('R1234'))).toBe(true);
@@ -234,11 +234,28 @@ describe('resolveBoundary', () => {
     );
     const b1 = await resolveBoundary('Quận 3, HCMC');
     const b2 = await resolveBoundary('Quận 3, HCMC');
-    expect(b1?.features[0].geometry.type).toBe('Polygon');
+    expect(b1?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(b2).toBe(b1);
     const callsAfterFirst = fn.mock.calls.length;
     expect(await resolveBoundary('Quận 3, HCMC')).toBe(b1);
     expect(fn).toHaveBeenCalledTimes(callsAfterFirst); // no further upstream
+  });
+
+  it('returns the same ResolvedBoundary shape on a cache hit (bug: stale cache type)', async () => {
+    // Widening `boundaryCache` to `Map<string, ResolvedBoundary | null>` is the
+    // fix: a cache typed for the old bare-FeatureCollection shape would silently
+    // hand back that stale shape on the second call, with no type error to catch
+    // it (GeoJSONFeatureCollection is `any`). Call twice on the same key — the
+    // second call is served from `boundaryCache` — and assert the shape held.
+    routeFetch(
+      () => [district3],
+      () => [boundaryItem],
+    );
+    const a = await resolveBoundary('District 1', 'Vietnam');
+    const b = await resolveBoundary('District 1', 'Vietnam');
+    expect(b).toEqual(a);
+    expect(b?.geojson.type).toBe('FeatureCollection');
+    expect(b).toMatchObject({ osmType: 'relation', osmId: 1234, displayName: 'District 3, Ho Chi Minh City, Vietnam' });
   });
 
   it('rejects a transient failure at the polygon lookup and never caches it (R2-HIGH)', async () => {
@@ -257,7 +274,7 @@ describe('resolveBoundary', () => {
       () => [boundaryItem],
     );
     const b = await resolveBoundary('Quận 3, HCMC');
-    expect(b?.features[0].geometry.type).toBe('Polygon');
+    expect(b?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(fn.mock.calls.length).toBeGreaterThan(0); // it really re-fetched
   });
 

@@ -13,6 +13,15 @@ export interface ResolvedLocation {
   place: { name: string; country: string; lat: number; lng: number };
 }
 
+export interface ResolvedBoundary {
+  geojson: GeoJSONFeatureCollection;
+  osmType?: 'node' | 'way' | 'relation';
+  osmId?: number;
+  displayName?: string;
+  /** Nominatim granularity (city ~16, road ~26). Search doesn't return admin_level. */
+  placeRank?: number;
+}
+
 // --- caches + a serialized rate-limiter (Nominatim policy: <= 1 req/s) ---
 
 /**
@@ -42,7 +51,7 @@ function lruSet<K, V>(m: Map<K, V>, k: K, v: V): void {
 
 const locCache = new Map<string, ResolvedLocation>();
 /** `null` is a REAL value here ("this place has no polygon"), so presence is checked with `has`. */
-const boundaryCache = new Map<string, GeoJSONFeatureCollection | null>();
+const boundaryCache = new Map<string, ResolvedBoundary | null>();
 const countryCache = new Map<string, string>();
 
 let minSpacingMs = 1000;
@@ -242,8 +251,9 @@ export async function searchCandidates(query: string, limit = 5): Promise<GeoCan
   }));
 }
 
-/** Resolve a place's administrative boundary GeoJSON (cached). */
-export async function resolveBoundary(place: string, expectCountry?: string): Promise<GeoJSONFeatureCollection | null> {
+/** Resolve a place's administrative boundary GeoJSON, plus the matched OSM entity's
+ * identity (cached). */
+export async function resolveBoundary(place: string, expectCountry?: string): Promise<ResolvedBoundary | null> {
   const key = `${place.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
   if (boundaryCache.has(key)) return lruGet(boundaryCache, key) ?? null;
 
@@ -267,7 +277,9 @@ export async function resolveBoundary(place: string, expectCountry?: string): Pr
   // an outage must never be memoized as "this region does not exist". Passing the
   // hit's osm_type/osm_id fetches the polygon of the entity we actually matched.
   const b = await fetchRegionBoundary(hit);
-  const geojson = b ? b.geojson : null;
-  lruSet(boundaryCache, key, geojson);
-  return geojson;
+  const resolved: ResolvedBoundary | null = b
+    ? { geojson: b.geojson, osmType: hit.osmType, osmId: hit.osmId, displayName: hit.displayName, placeRank: hit.placeRank }
+    : null;
+  lruSet(boundaryCache, key, resolved);
+  return resolved;
 }

@@ -14,6 +14,11 @@ export interface RenderCamera {
 export interface RenderHighlightRegion {
   geojson: GeoJSONFeatureCollection;
   color: string | null;
+  /** OSM identity of the matched boundary — echoed into resolved.highlights, ignored by the render page. */
+  osmType?: 'node' | 'way' | 'relation';
+  osmId?: number;
+  displayName?: string;
+  placeRank?: number;
 }
 
 export interface RenderMarker {

@@ -9,8 +9,14 @@ vi.mock('./geocode', () => ({
       : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } },
   ),
   resolveBoundary: vi.fn(async () => ({
-    type: 'FeatureCollection',
-    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    },
+    osmType: 'relation',
+    osmId: 1973756,
+    displayName: 'District 1, Ho Chi Minh City, Vietnam',
+    placeRank: 18,
   })),
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
@@ -100,6 +106,18 @@ describe('resolveConfig', () => {
     expect(regions[0].center![0]).toBeCloseTo(106.7, 6);
     expect(regions[0].center![1]).toBeCloseTo(10.8, 6);
     expect(points).toEqual([]);
+  });
+
+  it('echoes the matched OSM identity in resolved.highlights.regions', async () => {
+    const cfg = await resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: ['District 1'] } });
+    const summary = summarizeHighlights(cfg);
+    expect(summary.regions[0]).toMatchObject({
+      osmType: 'relation',
+      osmId: 1973756,
+      displayName: 'District 1, Ho Chi Minh City, Vietnam',
+      placeRank: 18,
+    });
+    expect(summary.regions[0].bbox).not.toBeNull();
   });
 
   it('refuses a highlight colour that is not a hex colour', async () => {

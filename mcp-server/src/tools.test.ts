@@ -644,6 +644,52 @@ describe('render_clip', () => {
   });
 });
 
+describe('cost metadata (PR #3)', () => {
+  // Fake riêng: trả đúng số khung mà script yêu cầu, như renderer thật. Fake dùng
+  // chung ở describe render_clip cố định 2 khung, nên không kiểm được hợp đồng
+  // "cost.frames là số khung THẬT SỰ đã render".
+  const FRAMES = 7;
+  const costRenderClip = vi.fn(async (cfg: RenderConfig) => ({
+    frames: Array.from({ length: FRAMES }, () => fakePng(cfg.size.width, cfg.size.height)),
+    settle: fakePng(cfg.size.width, cfg.size.height),
+  }));
+  const costEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+  const costTools = () => makeTools({ render, renderClip: costRenderClip, encodeAnimation: costEncode, sinkDir, defaultDelivery: 'both' });
+
+  it('reports what the call actually cost, in names that carry their unit', async () => {
+    const j = textJson(await costTools().render_clip({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+
+    expect(j.cost.frames).toBe(FRAMES); // số khung renderer TRẢ VỀ, không phải số script khai
+    expect(typeof j.cost.renderMs).toBe('number');
+    expect(typeof j.cost.encodeMs).toBe('number');
+    expect(j.cost.renderMs).toBeGreaterThanOrEqual(0);
+    expect(j.cost.bytes).toBe(j.clip.bytes);
+    // Tên phải mang đơn vị — 'time'/'size' là thứ phía tiêu thụ đoán sai đơn vị.
+    expect(j.cost).not.toHaveProperty('time');
+    expect(j.cost).not.toHaveProperty('size');
+  });
+
+  it('still reports cost on the encode-failure degrade path, where it matters most', async () => {
+    const crashingEncode = vi.fn(async () => { throw new Error('ffmpeg exploded'); });
+    const t = makeTools({ render, renderClip: costRenderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' });
+    const j = textJson(await t.render_clip({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+    expect(j.clipError).toBeDefined();
+    expect(typeof j.cost.renderMs).toBe('number');   // render ĐÃ xảy ra, đã tốn tiền
+    expect(j.cost.bytes).toBe(0);                     // encode thì không
+  });
+});
+
 describe('render_clip concurrency gate (Decision 2)', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
   const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {

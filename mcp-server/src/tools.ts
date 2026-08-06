@@ -200,7 +200,12 @@ export function makeTools(deps: ToolDeps) {
         }
         const { cfg, motion, preset, releaseClipSlot } = prep;
         try {
+          // Số đo chi phí: đặt tên mang đơn vị (renderMs/encodeMs/bytes). Một
+          // trường `time` hay `size` là thứ phía tiêu thụ đoán sai đơn vị rồi
+          // hiển thị sai — cùng lớp lỗi với `km` trần ở PR #2.
+          const tRender = Date.now();
           const { frames, settle: settlePng } = await deps.renderClip(cfg);
+          const renderMs = Date.now() - tRender;
 
           // The clip is written to a FILE under sinkDir and never inlined as
           // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
@@ -210,11 +215,17 @@ export function makeTools(deps: ToolDeps) {
           const outPath = path.join(deps.sinkDir, `${name}.mp4`);
           const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
+          const costOf = (encodeMs: number, bytes: number) => ({ frames: frames.length, renderMs, encodeMs, bytes });
+
           let bytes: number;
+          const tEncode = Date.now();
+          let encodeMs = 0;
           try {
             await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath, quality: params.output?.quality });
             ({ size: bytes } = await fs.stat(outPath));
+            encodeMs = Date.now() - tEncode;
           } catch (e) {
+            encodeMs = Date.now() - tEncode;
             // Same degrade as REST /render-clip (spec §5): frames were already
             // captured, so an encoder failure (missing ffmpeg, corrupt frame)
             // must never throw away the settle still that already rendered
@@ -230,6 +241,9 @@ export function makeTools(deps: ToolDeps) {
               settle,
               motion: motionOut,
               resolved: resolvedOf(cfg),
+              // Khung ĐÃ render — tiền đã tiêu. Nhánh degrade là chỗ caller cần
+              // con số này nhất để quyết định thử lại hay hạ quality.
+              cost: costOf(encodeMs, 0),
               clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
             });
           }
@@ -262,6 +276,7 @@ export function makeTools(deps: ToolDeps) {
 
           return ok({
             clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
+            cost: costOf(encodeMs, bytes),
             settle,
             motion: motionOut,
             resolved: resolvedOf(cfg),

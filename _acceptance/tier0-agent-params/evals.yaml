@@ -1,0 +1,164 @@
+schema_version: 1
+feature_slug: tier0-agent-params
+
+# Executor choice: every criterion here is mechanically checkable — this feature
+# is an API/schema surface with no rendered UI and no business-judgment call, so
+# there are no `judgment` and no `ui-check` evals (surfaces: [api]; design evals
+# skipped per skill §2b — nothing in this diff renders a web UI).
+#
+# Suppression halves (skill rule b) are carried in `expected` and named there
+# explicitly, so a verifier reading only this file can tell a should-fire eval
+# from a should-NOT-fire one.
+
+evals:
+  # --- AC-1 / AC-2 / AC-3 — layers, detail, font -------------------------
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; 'passes layers, detail and font through to the render config' green — RenderConfig carries all three verbatim"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-ACCEPT half — labels + layers.roadLabels together REJECTED with /either labels or layers.roadLabels, not both/; neither value silently wins"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; BOUNDARY both halves — detail>1, unknown font, unknown layer key and non-boolean layer value all REJECTED; detail=0 and detail=1 ACCEPTED"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-4 / AC-5 / AC-6 / AC-7 — per-region and per-point --------------
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; all three region forms resolve; colours land per-region and an uncoloured region gets null; SHOULD-NOT-ACCEPT half — a bad colour on ANY element rejects the whole call"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; all three point forms resolve; fallback chain per-point → highlight.pointIcon/highlight.color → 'pin'/'#ffffff'/44 verified in that order"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; BOUNDARY both halves — size 18 and 140 ACCEPTED; size outside the range REJECTED; size 0 REJECTED rather than treated as unset (!= null, not truthy)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-SUBSTITUTE half — unknown per-point icon AND unknown top-level pointIcon both REJECTED; neither falls back to 'pin'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-8 — cheap validation before any network ------------------------
+  - id: E8
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-FIRE half — with a bad colour/size on a LATER element, resolveBoundary and resolveLocation assert .not.toHaveBeenCalled(): zero Nominatim requests spent"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-9 / AC-10 — discovery tools ------------------------------------
+  - id: E9
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; list_themes returns 13 themes each with dark + a 15-key colors palette (accent present); count unchanged"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; list_formats emits '4k' exactly once; aspect/category correct per entry; print present on print layouts and the KEY ABSENT (not undefined) on non-print ones"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-11 — motion.script echoed on all three clip surfaces -----------
+  - id: E11
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; MCP render_clip response carries motion.script with a camera array and fps matching clip.fps"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; REST POST /render-clip response carries motion.script.camera as an array"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E13
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; async /jobs clip result carries motion.script in the same shape the two synchronous surfaces return"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-12 / AC-13 — camera bounds and the bearing seed ----------------
+  - id: E14
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; ASYMMETRIC boundary — pitch outside 0..60 REJECTED, but bearing -45 NOT rejected: normalized to 315 (bounding it would remove a working MapLibre capability)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E15
+    criterion: AC-13
+    executor: test
+    cmd: config:executors.test.motion_compiler
+    expected: "exit 0; every keyframe a preset compiles carries cfg.camera.bearing; DETERMINISM half — a bearing-less config compiles to the identical object as before (early return, not a rebuilt script)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-14 — render_animation delivery + cap + rollback ----------------
+  - id: E16
+    criterion: AC-14
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; delivery:'url' yields ZERO inline base64 blocks; over-cap on the second output of format:'both' removes BOTH files — sink left with no .gif and no .mp4"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-15 — OSM identity matches the entity that made the polygon -----
+  - id: E17
+    criterion: AC-15
+    executor: test
+    cmd: config:executors.test.geocode
+    expected: "exit 0; on the fetchRegionBoundary FALLBACK path the echoed identity is the entity that actually produced the polygon, not the original search hit; cached second call returns the identical shape and spends no extra fetch"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- Whole-repo structural invariants ----------------------------------
+  # These are properties of the repo, not behaviours of a module: no unit test
+  # can express "t3_path untouched" or "three separate files agree".
+  - id: E18
+    criterion: AC-11
+    executor: script
+    cmd: config:executors.script.tier0_invariants
+    expected: "exit 0; I1 t3_path (src/lib/export.ts, src/lib/mapStyle.ts) untouched vs merge-base; I2 all three motionOut bindings echo script: motion; I3 every new Zod field has a runtime assert that is both defined AND called, and bearing is normalized rather than asserted"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # --- Regression floor: nothing else broke ------------------------------
+  - id: E19
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; full Vitest suite green — the 12 new params and 3 bug fixes break no existing behaviour"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E20
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; gated MCP integration — real vite build, real PNG and real clip rendered through headless Chromium, so the new params reach actual pixels rather than only the resolver"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

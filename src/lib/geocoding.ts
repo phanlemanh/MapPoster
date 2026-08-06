@@ -114,6 +114,19 @@ export interface RegionBoundary {
   /** FeatureCollection with a single Polygon/MultiPolygon feature */
   geojson: GeoJSONFeatureCollection;
   name: string;
+  /**
+   * Identity of the OSM entity `geojson` actually came from — NOT necessarily
+   * the entity `fetchRegionBoundary` was asked to look up. The exact-lookup
+   * path (`loc.osmType`/`loc.osmId`) and the name-search fallback below can
+   * resolve to different OSM objects, so this must always describe whichever
+   * one produced the polygon, or a caller echoing it as "the matched entity"
+   * would be naming something other than what got drawn.
+   */
+  osmType?: 'node' | 'way' | 'relation';
+  osmId?: number;
+  displayName?: string;
+  /** Nominatim granularity (city ~16, road ~26). */
+  placeRank?: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,6 +136,10 @@ function toBoundary(item: any): RegionBoundary | null {
   return {
     geojson: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: g }] },
     name: String(item.display_name || '').split(',')[0],
+    osmType: item.osm_type,
+    osmId: item.osm_id,
+    displayName: item.display_name,
+    placeRank: typeof item.place_rank === 'number' ? item.place_rank : undefined,
   };
 }
 

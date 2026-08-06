@@ -104,6 +104,7 @@ export function makeTools(deps: ToolDeps) {
     async render_animation(
       params: RenderMapParams & {
         animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string };
+        delivery?: DeliveryMode;
       },
     ): Promise<ToolResult> {
       try {
@@ -126,7 +127,8 @@ export function makeTools(deps: ToolDeps) {
         });
 
         const name = fileNameFor(cfg);
-        const outputs: { format: 'gif' | 'mp4'; path: string }[] = [];
+        const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+        const outputs: { format: 'gif' | 'mp4'; path: string; bytes: number }[] = [];
         const wanted: ('gif' | 'mp4')[] = format === 'both' ? ['gif', 'mp4'] : [format];
         for (const f of wanted) {
           const outPath = await deps.encodeAnimation(pngs, {
@@ -136,14 +138,24 @@ export function makeTools(deps: ToolDeps) {
             // full-size 256-color GIFs are enormous; default to half-width unless told otherwise
             gifWidth: f === 'gif' ? (anim.gifWidth ?? Math.min(540, cfg.size.width)) : undefined,
           });
-          outputs.push({ format: f, path: outPath });
+          const { size: bytes } = await fs.stat(outPath);
+          if (bytes > cap) {
+            // Cùng chính sách với render_clip (Finding C): file quá cỡ trong sinkDir
+            // bền vững sẽ tích tụ mãi mãi nếu không xoá tại đây.
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            for (const o of outputs) await fs.rm(o.path, { force: true }).catch(() => {});
+            return fail(`animation ${f} is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower frames/fps or size`);
+          }
+          outputs.push({ format: f, path: outPath, bytes });
         }
 
-        // a mid-sequence frame as inline preview so the caller sees the effect
+        // Trước đây preview LUÔN inline bất kể `delivery` — schema quảng cáo
+        // delivery (renderMapShape) rồi handler lờ nó đi.
         const preview = pngs[Math.floor(pngs.length / 2)];
+        const image = await deliver(preview, `${name}-preview`, mode(params.delivery), { sinkDir: deps.sinkDir });
         return ok(
-          { animation: { outputs, frames, fps, width: cfg.size.width, height: cfg.size.height, loop: true }, resolved: resolvedOf(cfg) },
-          [{ base64: preview.toString('base64') }],
+          { image, animation: { outputs, frames, fps, width: cfg.size.width, height: cfg.size.height, loop: true }, resolved: resolvedOf(cfg) },
+          [image],
         );
       } catch (e) {
         return fail((e as Error).message ?? String(e));
@@ -181,7 +193,7 @@ export function makeTools(deps: ToolDeps) {
           // still, exactly as it does for the other image tools.
           const name = fileNameFor(cfg);
           const outPath = path.join(deps.sinkDir, `${name}.mp4`);
-          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
           let bytes: number;
           try {
@@ -262,7 +274,7 @@ export function makeTools(deps: ToolDeps) {
     },
 
     async list_themes(): Promise<ToolResult> {
-      return ok({ themes: THEMES.map((t) => ({ id: t.id, name: t.name })) });
+      return ok({ themes: THEMES.map((t) => ({ id: t.id, name: t.name, dark: t.dark, colors: t.colors })) });
     },
 
     async list_formats(): Promise<ToolResult> {
@@ -282,21 +294,55 @@ const zoomLevel = z.number().min(0).max(22);
 const hexColor = z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
 
 const locationSchema = z.union([z.string().min(1), z.object({ lng, lat, zoom: zoomLevel.optional() })]);
+const markerIconSchema = z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']);
+// drawMarker does no clamping of its own — a size of 5000 paints over the
+// whole canvas, a size of 0 is invisible. Mirrored at runtime in resolveConfig
+// (assertMarkerSize) since makeTools can be called directly, bypassing Zod.
+const pointOpts = { icon: markerIconSchema.optional(), color: hexColor.optional(), size: z.number().min(18).max(140).optional() };
 const highlightSchema = z
   .object({
-    regions: z.array(z.union([z.string().min(1), z.object({ geojson: z.any() })])).optional(),
-    points: z.array(z.union([z.string().min(1), z.object({ lng, lat })])).optional(),
+    regions: z
+      .array(z.union([
+        z.string().min(1),
+        z.object({ name: z.string().min(1), color: hexColor.optional() }),
+        z.object({ geojson: z.any(), color: hexColor.optional() }),
+      ]))
+      .optional(),
+    points: z
+      .array(z.union([
+        z.string().min(1),
+        z.object({ lng, lat, ...pointOpts }),
+        z.object({ query: z.string().min(1), ...pointOpts }),
+      ]))
+      .optional(),
     color: hexColor.optional(),
     fill: z.boolean().optional(),
     dim: z.boolean().optional(),
-    pointIcon: z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']).optional(),
+    pointIcon: markerIconSchema.optional(),
   })
   .optional();
 const formatSchema = z.union([z.string().min(1), z.object({ width: dim, height: dim })]).optional();
 const cameraSchema = z
-  .object({ center: z.tuple([lng, lat]).optional(), zoom: zoomLevel.optional(), bearing: z.number().optional(), pitch: z.number().optional() })
+  .object({
+    center: z.tuple([lng, lat]).optional(),
+    zoom: zoomLevel.optional(),
+    // No range bound: resolveConfig normalizes any finite bearing to [0,360)
+    // (lerpAngle already uses that convention) rather than rejecting it —
+    // MapLibre renders e.g. bearing: -45 correctly, so refusing it here would
+    // be a regression, not a fix.
+    bearing: z.number().finite().optional(),
+    pitch: z.number().min(0).max(60).optional(),
+  })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
+const layerStateSchema = z
+  .object({
+    landcover: z.boolean(), buildings: z.boolean(), water: z.boolean(), parks: z.boolean(),
+    roads: z.boolean(), rail: z.boolean(), aeroway: z.boolean(), roadLabels: z.boolean(),
+  })
+  .partial()
+  .strict();
+const fontSchema = z.enum(['Space Grotesk', 'Montserrat', 'Playfair Display', 'Oswald', 'Bebas Neue', 'Merriweather']);
 
 const renderMapShape = {
   location: locationSchema,
@@ -307,6 +353,9 @@ const renderMapShape = {
   camera: cameraSchema,
   placeName: z.string().min(1).optional(),
   labels: z.boolean().optional(),
+  layers: layerStateSchema.optional(),
+  detail: z.number().min(0).max(1).optional(),
+  font: fontSchema.optional(),
   delivery: deliverySchema,
 };
 
@@ -354,7 +403,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
         'Render a looping radar-pulse animation (GIF and/or MP4) around highlight points — expanding rings mark the location. Requires highlight.points.',
       inputSchema: { ...renderMapShape, animation: animationSchema },
     },
-    (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string } }) =>
+    (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string }; delivery?: DeliveryMode }) =>
       t.render_animation(a),
   );
   s.registerTool(

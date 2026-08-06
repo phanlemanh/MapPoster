@@ -7,11 +7,25 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 0201cc3e792cd086de3335d3ae195d73bb5fadfb
+verified_commit: 9b573fcba6d3d7bd6627736faa390eea27722dcf
 human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: map-motion-clip
+
+_Round 3 — re-verification. Round 2's evidence (verified_commit `0201cc3`, signed off `manh`
+2026-08-06) went stale: `feat/tier0-agent-params` landed downstream commits touching
+`mcp-server/src/resolveConfig.ts`, `tools.ts`, `geocode.ts`, `motionCompiler.ts`, `http.ts`,
+`jobRunner.ts`, and `src/render/renderConfig.ts` after that commit. Contract `status` downgraded
+`signed-off` → `implemented` per the staleness guard before this report was written.
+`human_signoff` is cleared — the round-2 signature does not carry to this round._
+
+_T3 — this round's diff to `motionCompiler.ts` adds a `seedBearing()` step (compiled clip
+keyframes now honour `camera.bearing` when set; byte-identical output when bearing is unset/0,
+which is the case for every fixture E4/E5/E16 exercise) and `jobRunner.ts`/`http.ts` now echo the
+full compiled `script` in the job/REST clip response (additive field, not a behaviour change to
+`export.ts`'s text-free invariant, the file this contract's T3 designation is anchored to —
+`export.ts` itself is untouched by this round's diff)._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -30,236 +44,273 @@ human_signoff: manh 2026-08-06
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | PASS (panel proposal; awaits mandatory T3 human_override) |
-| E17 | AC-14 | judgment | PASS (panel proposal; awaits mandatory T3 human_override) |
+| E16 | AC-13 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
+| E17 | AC-14 | judgment | UNCERTAIN (unscored — pending blind judge panel) |
 
 ## Evidence
 
 - eval: E1
-  run_id: minted-map-motion-clip-E1-r2
+  run_id: minted-map-motion-clip-E1-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:08:07Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  1 passed (1)
-          Tests  16 passed (16)
-       Start at  08:30:40
-       Duration  1.50s (transform 71ms, setup 0ms, import 217ms, tests 7ms, environment 1.03s)
+    Test Files  1 passed (1)
+    Tests  16 passed (16)
+    Start at  21:08:07
+    Duration  394ms (transform 18ms, setup 0ms, import 39ms, tests 6ms, environment 253ms)
 
 - eval: E2
-  run_id: minted-map-motion-clip-E2-r2
+  run_id: minted-map-motion-clip-E2-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:08:07Z
   output: |
-    Same suite run as E1/E3 (src/render/motionScript.test.ts covers all three
-    criteria in one file). Tests 16 passed (16); Duration 1.50s.
+    Same run as E1 (src/render/motionScript.test.ts covers all three invariant criteria in one
+    file). Tests 16 passed (16); Duration 394ms.
 
 - eval: E3
-  run_id: minted-map-motion-clip-E3-r2
+  run_id: minted-map-motion-clip-E3-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:08:07Z
   output: |
-    Same suite run as E1/E2 (src/render/motionScript.test.ts covers all three
-    criteria in one file). Tests 16 passed (16); Duration 1.50s.
+    Same run as E1/E2 (src/render/motionScript.test.ts). Tests 16 passed (16); Duration 394ms.
 
 - eval: E4
   run_id: map-motion-clip-sweep-local
   exit_code: 0
   baseline: green
   verifier: config:executors.script.compiler_domain_sweep
-  verified_at: 2026-08-06T08:30:41Z
+  verified_at: 2026-08-06T14:08:20Z
   output: |
+    combinations: 2652 (presets=3 × lngs=4 × zoom 0→22 step 0.1)
+    accepted: 2612
     material errors (clear message, expected): 40
     violations: 0
     OK — no combination produced a self-rejected script or a motionless clip
 
 - eval: E5
-  run_id: minted-map-motion-clip-E5-r2
+  run_id: minted-map-motion-clip-E5-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-06T08:30:41Z
+  verified_at: 2026-08-06T14:07:57Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  1 passed (1)
-          Tests  31 passed (31)
-       Start at  08:30:41
-       Duration  1.39s (transform 164ms, setup 0ms, import 226ms, tests 19ms, environment 988ms)
+    Test Files  1 passed (1)
+    Tests  39 passed (39)
+    Start at  21:07:57
+    Duration  529ms (transform 64ms, setup 0ms, import 98ms, tests 80ms, environment 254ms)
+    (39 vs 31 in round 2 — tier0-agent-params added seedBearing coverage; no shrinkage.)
 
 - eval: E6
-  run_id: minted-map-motion-clip-E6-r2
+  run_id: minted-map-motion-clip-E6-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_math
-  verified_at: 2026-08-06T08:30:39Z
+  verified_at: 2026-08-06T14:08:11Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  1 passed (1)
-          Tests  16 passed (16)
-       Start at  08:30:39
-       Duration  1.37s (transform 165ms, setup 0ms, import 249ms, tests 4ms, environment 955ms)
+    Test Files  1 passed (1)
+    Tests  16 passed (16)
+    Start at  21:08:11
+    Duration  376ms (transform 17ms, setup 0ms, import 23ms, tests 4ms, environment 254ms)
 
 - eval: E7
-  run_id: minted-map-motion-clip-E7-r2
+  run_id: minted-map-motion-clip-E7-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:09:35Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-          Tests  7 passed (7)
-       Start at  08:30:40
-       Duration  63.76s (transform 72ms, setup 0ms, import 2.15s, tests 59.67s, environment 1.52s)
+    Run as one serialized pipeline `npm run test:e2e && npm run test:mcp` (config comment: e2e and
+    mcp both drive real Chromium, parallel runs make test:mcp flaky — respect sequential-only).
+    test:mcp portion: Tests  7 passed (7)
+    Start at  21:09:35
+    Duration  44.27s (transform 37ms, setup 0ms, import 857ms, tests 42.36s, environment 761ms)
 
 - eval: E8
-  run_id: minted-map-motion-clip-E8-r2
+  run_id: minted-map-motion-clip-E8-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:07:42Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  1 passed (1)
-         Tests  49 passed (49)
-      Start at  08:30:40
-      Duration  3.07s (transform 381ms, setup 0ms, import 1.67s, tests 174ms, environment 927ms)
+    Test Files  1 passed (1)
+    Tests  49 passed (49)
+    Start at  21:07:42
+    Duration  994ms (transform 107ms, setup 0ms, import 569ms, tests 77ms, environment 250ms)
 
 - eval: E9
-  run_id: minted-map-motion-clip-E9-r2
+  run_id: minted-map-motion-clip-E9-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:07:42Z
   output: |
-    Same suite run as E8/E10/E13/E15 (mcp-server/src/http.test.ts covers all
-    five criteria in one file). Tests 49 passed (49); Duration 3.07s.
+    Same run as E8 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.
 
 - eval: E10
-  run_id: minted-map-motion-clip-E10-r2
+  run_id: minted-map-motion-clip-E10-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:07:42Z
   output: |
-    Same suite run as E8/E9/E13/E15 (mcp-server/src/http.test.ts). Tests 49
-    passed (49); Duration 3.07s.
+    Same run as E8/E9 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.
 
 - eval: E11
-  run_id: minted-map-motion-clip-E11-r2
+  run_id: minted-map-motion-clip-E11-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:08:02Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  1 passed (1)
-          Tests  32 passed (32)
-       Start at  08:30:40
-       Duration  2.13s (transform 371ms, setup 0ms, import 537ms, tests 199ms, environment 1.06s)
+    Test Files  1 passed (1)
+    Tests  39 passed (39)
+    Start at  21:08:02
+    Duration  431ms (transform 48ms, setup 0ms, import 80ms, tests 9ms, environment 249ms)
+    (39 vs 32 in round 2 — tier0-agent-params added coverage; no shrinkage.)
 
 - eval: E12
-  run_id: minted-map-motion-clip-E12-r2
+  run_id: minted-map-motion-clip-E12-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:11:04Z
   output: |
-    RUN  v4.1.10 /Users/manh-macmini/dev/map
-     Test Files  2 passed (2)
-          Tests  18 passed (18)
-       Start at  08:30:40
-       Duration  1.37s (transform 140ms, setup 0ms, import 266ms, tests 10ms, environment 2.08s)
+    Test Files  2 passed (2)
+    Tests  18 passed (18)
+    Start at  21:11:04
+    Duration  411ms (transform 62ms, setup 0ms, import 101ms, tests 7ms, environment 508ms)
+    (src/lib/export.ts untouched by this round's diff — confirmed via
+    `git diff 0201cc3..9b573fc -- src/lib/export.ts`, empty.)
 
 - eval: E13
-  run_id: minted-map-motion-clip-E13-r2
+  run_id: minted-map-motion-clip-E13-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:07:42Z
   output: |
-    Same suite run as E8/E9/E10/E15 (mcp-server/src/http.test.ts). Tests 49
-    passed (49); Duration 3.07s.
+    Same run as E8/E9/E10 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.
 
 - eval: E14
-  run_id: minted-map-motion-clip-E14-r2
+  run_id: minted-map-motion-clip-E14-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:08:02Z
   output: |
-    Same suite run as E11 (mcp-server/src/tools.test.ts). Tests 32 passed
-    (32); Duration 2.13s.
+    Same run as E11 (mcp-server/src/tools.test.ts). Tests 39 passed (39); Duration 431ms.
 
 - eval: E15
-  run_id: minted-map-motion-clip-E15-r2
+  run_id: minted-map-motion-clip-E15-r3
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T08:30:40Z
+  verified_at: 2026-08-06T14:07:42Z
   output: |
-    Same suite run as E8/E9/E10/E13 (mcp-server/src/http.test.ts). Tests 49
-    passed (49); Duration 3.07s.
+    Same run as E8/E9/E10/E13 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.
 
 - eval: E16
   criterion: AC-13
   executor: judgment
-  judged_by: judge panel (fresh context) — 3 lenses
-  proposal: PASS
-  votes:
-  - domain-correctness: PASS — Trích toàn bộ 24 khung từ E16-clip.mp4 (12fps/2s): khung 1-7 là một cú zoom liên tục từ khung rộng toàn thành phố (thấy được bối cảnh, chưa có ranh giới) xuống mức quận; khung 11 bắt được trạng thái ranh giới đang vẽ dở (hình nêm cắt cụt, khớp E16-step2.png) trước khi khung 12-15 mới khép kín hình dạng đầy đủ — tức có bước trung gian thật, không phải bật (0→100%) trong một khung; khung 16-24 (hơn 1/3 clip) đứng yên tuyệt đối với pin "settle". Ba nhịp mở-rộng → vẽ-dần → đứng-yên đọc ra rõ ràng, không phải một đoạn trôi vô hướng.
-  - operational-feasibility: PASS — Phân rã 24 khung của E16-clip.mp4 (khớp 3 ảnh step) cho thấy đúng ba nhịp: khung 1 mở ở toàn cảnh thành phố chưa có ranh giới; ranh giới quận không hiện đột ngột mà mờ dần qua ~4 khung liên tiếp (khung 10 chưa có → khung 13 gần như đầy, opacity tăng tuyến tính quan sát được); từ khung ~13-14 đến khung 24 (gần một nửa clip) sai khác pixel giữa các khung liên tiếp gần như bằng 0, tức đuôi đứng yên hoàn toàn. Cả ba nhịp tách bạch rõ ràng, không đọc như một đoạn trôi vô hướng.
-  - spec-alignment: PASS — Trích khung từ E16-clip.mp4 (24 khung, 12fps, 2s) cho thấy đủ ba nhịp: khung mở đầu (f01-f10) là toàn cảnh rộng thấy mạng lưới đường và sông của thành phố, chưa có tô ranh giới; từ f11 ranh giới quận bắt đầu xuất hiện và lan rộng dần qua nhiều khung liên tiếp (f12→f15→f18) chứ không bật lên đột ngột; đuôi clip (f21-f24, ~0.33s cuối) các khung giống hệt nhau từng byte (maxdiff=0), tức đứng yên hoàn toàn. Ba khung tĩnh E16-step1/2/3.png cũng khớp đúng trình tự này (toàn cảnh → nửa vẽ ranh giới dạng vệt mờ dần → hoàn chỉnh có marker).
-  human_override: manh 2026-08-06
+  judged_by: judge-subagent (fresh context, blind)
+  verdict: PASS
+  rationale: |
+    Giám khảo giải mã trực tiếp E16-clip.mp4 và soi frame tại t=0/1/2 · 2.5/3.0/3.5 · 4.0/4.3/5.9 giây. (1) t=0–2s toàn cảnh rộng, camera zoom dần, chưa có ranh giới. (2) t=2.5s ranh giới CHỈ hiện phần trên, mép dưới còn gradient; t=3.0s lan rộng; t=3.5s đầy đủ — vẽ dần, không bung đột ngột. (3) t=4.0–5.9s khung gần như giống hệt nhau: camera và vùng tô đứng yên. Ba nhịp đọc ra rành mạch.
+  human_override: manh 2026-08-06 — XÁC NHẬN — đã xem clip, ba nhịp rành mạch (khung rộng mở đầu, ranh giới vẽ dần, đuôi đứng yên); artefact sinh lại từ cây hiện tại, không mang sang.
 
 - eval: E17
   criterion: AC-14
   executor: judgment
-  judged_by: judge panel (fresh context) — 3 lenses
-  proposal: PASS
-  votes:
-  - domain-correctness: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 kèm lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, nướng pixel để không phụ thuộc bên tiêu thụ tự vẽ lại), và contract AC-9/AC-14 nêu đúng yêu cầu khoá chặt. Test khoá (export.test.ts) dùng Proxy chặn TOÀN BỘ fillText/strokeText (không liệt kê thủ công), assert `textCalls` bằng đúng `[ATTRIBUTION_TEXT]` khi `text.show:false` — nghĩa là bất kỳ chữ nào khác kể cả drawPosterText lỡ gỡ guard trong tương lai đều làm test đỏ, nên đây là một ngoại lệ có kỷ luật chứ không phải lỗ hổng được hợp thức hoá.
-  - operational-feasibility: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 (mục "Ba hợp đồng cốt lõi", điểm 3), kèm lý do chính đáng và có ngày quyết định rõ ràng (chủ repo, 2026-08-04): nghĩa vụ giấy phép dữ liệu OSM/OpenFreeMap, độc lập với việc bên tiêu thụ có tự vẽ hay không. Khoá vận hành trong export.test.ts đủ chặt về mặt cơ chế: dùng Proxy bẫy MỌI lệnh fillText/strokeText (không phải allowlist tên hàm cụ thể) và assert bằng-hẳn `textCalls === [ATTRIBUTION_TEXT]` khi `chrome:'clean'`/`text.show:false` — đúng kịch bản rủi ro mà spec nêu (kể cả `drawPosterText` bị gỡ guard sau này) sẽ làm test đỏ ngay. Một khe hở nhỏ còn lại — test không pin nội dung literal của hằng `ATTRIBUTION_TEXT` nên về lý thuyết hằng số này có thể bị đổi nội dung ở mức source — không đủ để lật verdict vì đó là thay đổi code tường minh qua review, không phải đường lách runtime/operational.
-  - spec-alignment: PASS — Spec §2 ("Ba hợp đồng cốt lõi" mục 3, dẫn chiếu §2.3 khớp cả trong spec lẫn contract AC-14) ghi tường minh ngoại lệ, nêu lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, độc lập với consumer). Implementation (export.ts) gọi drawAttribution() vô điều kiện với hằng số ATTRIBUTION_TEXT cố định (không nhận input ngoài), tách biệt khỏi khối `if (opts.text.show)` bao các fillText khác. Test khoá bằng Proxy bắt MỌI lệnh fillText/strokeText (không chỉ tên đã biết) và assert textCalls === [ATTRIBUTION_TEXT] khi chrome:'clean' — chặn được cả trường hợp guard tương lai bị gỡ. Ngoại lệ bị giới hạn ở một hằng số cứng, không mở thành cờ "cho phép chữ" chung, nên đây là một ngoại lệ có kiểm soát chứ không phải lỗ hổng.
-  human_override: manh 2026-08-06
+  judged_by: judge-subagent (fresh context, blind)
+  verdict: UNCERTAIN
+  rationale: |
+    Ngoại lệ được ghi tường minh (spec §2.3) và có lý do chính đáng (nghĩa vụ giấy phép OSM). export.test.ts khoá chặt về SỐ LƯỢNG: proxy bắt mọi fillText/strokeText kể cả lệnh chưa viết, assert đúng một phần tử, và chủ động bật showCity/showCountry/showCoords để chứng minh guard text.show không rò. Nhưng khoá KHÔNG ràng buộc NỘI DUNG: assertion so với hằng ATTRIBUTION_TEXT được import, không phải chuỗi licence literal — đổi nội dung hằng đó thì test vẫn xanh.
+  human_override: manh 2026-08-06 — CHẤP NHẬN có điều kiện — ngoại lệ attribution chính đáng và ghi tường minh; nhận đúng lỗ giám khảo chỉ ra là khoá ràng buộc SỐ LƯỢNG lệnh vẽ chữ chứ không ràng buộc NỘI DUNG (assert so với hằng ATTRIBUTION_TEXT nên đổi hằng đó test vẫn xanh); không chặn gói này vì không đường nào trong diff chạm hằng, phải siết ở gói sau.
+
+## Lệnh không gắn eval
+
+- cmd: `npm test`
+  exit_code: 0
+  role: regression-guard toàn repo
+  output: |
+    Test Files  29 passed | 3 skipped (32)
+    Tests  424 passed | 7 skipped (431)
+    Start at  21:08:32
+    Duration  2.91s (transform 1.70s, setup 0ms, import 6.42s, tests 4.31s, environment 12.81s)
+
+- cmd: `npm run test:e2e && npm run test:mcp`
+  exit_code: 0
+  role: regression-guard e2e + tích hợp MCP (lệnh nối tiếp, chạy tuần tự, không song song với bất
+    kỳ lệnh nào khác trong vòng này)
+  output: |
+    e2e: 14 passed (51.8s)
+    test:mcp: Tests  7 passed (7)
+    Duration  44.27s (transform 37ms, setup 0ms, import 857ms, tests 42.36s, environment 761ms)
+
+## Evidence carried forward (judgment inputs)
+
+E16 and E17's judgment inputs (`evidence/E16-clip.mp4`, `evidence/E16-step{1,2,3}.png`) are Round
+2's artefacts, dated 2026-08-04, carried forward unrefreshed this round. Risk assessment: this
+round's diff to `motionCompiler.ts` only changes output when `camera.bearing` is set (the
+`seedBearing()` early-return keeps compiled output byte-identical when bearing is unset/0); the
+`approach` preset fixture E16 was rendered from does not set `camera.bearing`, so the clip's visual
+content is unaffected by this round's diff. `src/lib/export.ts` (the text-free-invariant file E17
+judges) is untouched by this round's diff (`git diff 0201cc3..9b573fc -- src/lib/export.ts`,
+empty). Believed low-risk but not independently re-rendered this round — flagged for Gate 2.
 
 ## Analyst
 
 E1, E2, E3 (npx vitest run src/render/motionScript.test.ts); E4 (npx tsx
-_acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts); E5 (npx vitest
-run mcp-server/src/motionCompiler.test.ts); E6 (npx vitest run
-src/render/motionMath.test.ts); E7 (npm run test:mcp); E8, E9, E10, E13, E15
-(npx vitest run mcp-server/src/http.test.ts); E11, E14 (npx vitest run
-mcp-server/src/tools.test.ts); E12 (npx vitest run src/lib/export.test.ts
-src/lib/mapStyle.test.ts) — all pass on baseline too (non-discriminating this
-round; these are the same feature-path suites the contract has always relied
-on, not new regressions, so treat as intended coverage rather than something
-to rewrite).
+_acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts); E5 (npx vitest run
+mcp-server/src/motionCompiler.test.ts); E6 (npx vitest run src/render/motionMath.test.ts); E7 (npm
+run test:mcp, via the combined test:e2e && test:mcp pipeline); E8, E9, E10, E13, E15 (npx vitest
+run mcp-server/src/http.test.ts); E11, E14 (npx vitest run mcp-server/src/tools.test.ts); E12 (npx
+vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts) — same green-on-both set as Round 2;
+baseline values carried forward unchanged per this round's "re-verification, not new feature"
+instruction.
 
 ## Variance
 
-none — every eval in this round is deterministic (runs: 1); no
-ctx.providers.invoke / LLM-generator crossing evals in this eval set.
+none — every eval in this round is deterministic (runs: 1); no ctx.providers.invoke / LLM-generator
+crossing evals in this eval set.
 
 ## Iterations
 
 Round 1 (2026-08-04): all 15 machine evals (E1-E15) passed on first run, exit
 0. Judgment items E16/E17 human_override CHẤP NHẬN by manh (2026-08-04);
 verdict reached PASS, verified_commit 06d37e264d3f191b67c4e1960ff64390ed428657.
-Round 2 (this report): downstream commits (async-job-queue integration,
+
+Round 2 (2026-08-06): downstream commits (async-job-queue integration,
 geocode/http/motionCompiler edits) landed after round 1's verified_commit,
 making that evidence stale per pre-merge-check's staleness rule — re-verify
 triggered. All 15 machine evals (E1-E15) re-run against the new tree, exit 0,
 unchanged pass results; additionally the full suite (npm test: 397 passed, 7
 skipped) and npm run test:e2e && npm run test:mcp (14 + 7 passed) also stayed
 green. Fresh 3-lens judge panel proposes PASS on both E16/E17 with detailed
-frame-by-frame rationale; verdict is PENDING-JUDGMENT pending Gate-2
-human_override on this new round (T3 requires it regardless of judge verdict).
+frame-by-frame rationale; human_override supplied by manh 2026-08-06; verdict PASS.
+
+Round 3 (this report): re-verify triggered because `feat/tier0-agent-params` landed commits
+touching `resolveConfig.ts`/`tools.ts`/`geocode.ts`/`motionCompiler.ts`/`http.ts`/`jobRunner.ts`/
+`src/render/renderConfig.ts` after round 2's `verified_commit` (0201cc3) — code changed after
+evidence was signed, per the staleness rule. All 15 machine evals re-run fresh against `9b573fc`
+(mapping to 8 distinct commands: motionScript.test.ts 16 passed, compiler-domain-sweep 0
+violations, motionCompiler.test.ts 39 passed up from 31, motionMath.test.ts 16 passed, the
+combined test:e2e+test:mcp pipeline 14+7 passed, http.test.ts 49 passed, tools.test.ts 39 passed
+up from 32, export.test.ts+mapStyle.test.ts 18 passed), exit 0 unchanged from round 2's pass
+results; count increases are all additive tier0-agent-params coverage, no shrinkage. Two
+regression-guard commands stayed green (`npm test`: 424 passed, up from 397). E16/E17 (AC-13/AC-14,
+judgment) are NOT scored by this verifier — left unfilled for the orchestrator's blind judge panel,
+per this round's instructions (implementation must never judge itself); their evidence artefacts
+(clip/screenshots) are Round 2's, carried forward unrefreshed since the diff does not change this
+preset's compiled output (`seedBearing` only fires when `camera.bearing` is set) nor touch
+`export.ts`. Verdict: PENDING-JUDGMENT (T3 — every judgment item mandates a direct human
+`human_override` regardless of judge verdict; with both unscored, PASS is not reachable this round).
 
 ## Gate 2 checklist (human)
 
@@ -271,3 +322,10 @@ human_override on this new round (T3 requires it regardless of judge verdict).
 - [ ] If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when
       the hook re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract
+
+Artefact refresh (controller, sau vòng verify): E16-clip.mp4 và E16-step1/2/3.png đã được
+SINH LẠI từ cây hiện tại bằng `_acceptance/tier0-agent-params/scripts/regen-judge-artifacts.ts`
+(tiến trình node mới, nạp source hiện thời). Lý do: server MCP trong `.mcp.json` là tiến trình
+sống lâu — tsx nạp TypeScript một lần lúc khởi động, nên một phiên dài sẽ render bằng code
+TRƯỚC nhánh mà không có dấu hiệu nào. Giám khảo mù chấm trên artefact mới này, không phải bản
+mang sang từ vòng trước.

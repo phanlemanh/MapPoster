@@ -170,9 +170,24 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
   };
 }
 
+/**
+ * Bug fix: `compile()` builds keyframes as `{t, center, zoom}` with no
+ * bearing, so `render_clip({camera: {bearing: 45}, motion: {preset: ...}})`
+ * silently rendered the whole clip at bearing 0 — static `render_map` honours
+ * `camera.bearing`, clips did not. Early-return on null/0 keeps compiled
+ * output byte-identical for the overwhelmingly common bearing-less case (this
+ * repo's determinism invariant on rendered frames). `k.bearing ?? bearing`
+ * preserves any bearing a keyframe already set, only filling in the config's
+ * bearing where the keyframe is silent.
+ */
+function seedBearing(script: MotionScript, bearing: number | undefined): MotionScript {
+  if (bearing == null || bearing === 0) return script;
+  return { ...script, camera: script.camera.map((k) => ({ ...k, bearing: k.bearing ?? bearing })) };
+}
+
 /** Compiler KHÔNG BAO GIỜ được sinh script mà validator của chính nó từ chối (AC-2). */
 export function compileMotion(preset: MotionPreset, cfg: RenderConfig, overrides?: PresetOverrides, maxFrames?: number): MotionScript {
-  return validateMotionScript(compile(preset, cfg, overrides), motionContextOf(cfg, maxFrames));
+  return validateMotionScript(seedBearing(compile(preset, cfg, overrides), cfg.camera.bearing), motionContextOf(cfg, maxFrames));
 }
 
 export interface ResolvedMotion {

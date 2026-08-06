@@ -71,19 +71,81 @@ server to pick it up, rebuild explicitly — a stale `dist/` is served silently:
 npx vite build
 ```
 
-Tools: `render_map`, `render_variants`, `render_clip`, `geocode_place`, `list_themes`, `list_formats`. Example call:
+Tools: `render_map`, `render_variants`, `render_animation`, `render_clip`, `geocode_place`, `list_themes`, `list_formats`. Example call:
 
 ```jsonc
 render_map({
   "location": "Võ Văn Tần, Quận 3, HCMC",
-  "highlight": { "points": ["Võ Văn Tần, HCMC"] },
+  "highlight": { "points": [{ "query": "Võ Văn Tần, HCMC", "icon": "star", "color": "#e8b04b" }] },
   "format": "tiktok",        // 1080×1920
   "theme": "midnight-blue",
-  "chrome": "clean"
+  "chrome": "clean",
+  "layers": { "rail": false, "aeroway": false },
+  "detail": 0.4,
+  "font": "Oswald"
 })
 // → { image: { path, base64, width: 1080, height: 1920 },
 //     resolved: { center, zoom, place, theme, highlights: { regions:[{bbox,center}], points:[{lng,lat}] } } }
 ```
+
+`layers` toggles `{landcover, buildings, water, parks, roads, rail, aeroway, roadLabels}`
+independently (all on by default except `roadLabels`, which defaults off —
+poster first — any subset may be passed); `labels` is a
+shorthand for `layers.roadLabels` and the two are mutually exclusive — passing
+both is refused, since they set the same switch. `detail` is `0..1` and scales
+road width (0.6×–1.5×); minor roads only appear strictly above `0.12`. `font`
+is one of the six typefaces the **Style** panel offers (see [Features](#features)
+below): `Space Grotesk`, `Montserrat`, `Playfair Display`, `Oswald`, `Bebas Neue`,
+`Merriweather`.
+
+`highlight.regions[]` and `highlight.points[]` each accept either a bare
+string (geocoded/queried with the defaults) or an object that pins a specific
+colour/icon/size alongside the name — mixing plain strings and objects in the
+same array is fine. A region is `string | {name, color?} | {geojson, color?}`;
+a point is `string | {lng, lat, icon?, color?, size?} | {query, icon?, color?,
+size?}`. Per-point `size` is bounded `18..140` (`drawMarker` does no clamping
+of its own — 5000 would paint over the canvas, 0 would be invisible); an
+unknown `icon` is refused rather than silently falling back to `pin`, same as
+an unknown `theme` refuses rather than falling back to the default.
+
+`camera.pitch` is bounded `0..60` (MapLibre's default `maxPitch` — passing 85
+used to be accepted and then silently clamped by the engine, which is
+accept-then-discard) and `camera.bearing` is bounded `0..360`; both were
+previously unbounded.
+
+`resolved.highlights.regions[i]` echoes which named entity the server actually
+matched: `{bbox, center, osmType, osmId, displayName, placeRank}` for a
+region resolved by name (inline-geojson regions carry no such identity, so
+these fields are omitted). `placeRank` is Nominatim's own granularity number
+(city ≈ 16, road ≈ 26, POI ≈ 30) — the design note for this field originally
+called it `adminLevel`, but Nominatim's *search* endpoint (used here) does not
+return `admin_level`; `placeRank` is what the API actually gives back, and is
+the useful equivalent for telling "which District 1 did I get."
+
+`list_themes` returns `{ themes: [{id, name, dark, colors}] }` — `colors` is
+the theme's full 15-key palette (`background, water, waterway, green, landuse,
+park, building, roadHighway, roadMajor, roadMinor, rail, aeroway, boundary,
+text, accent`), so an agent compositing a DOM overlay on top of the rendered
+map can colour-match it exactly rather than guessing. `list_formats` returns
+`{ formats: [{name, width, height, aspect, category, print?}] }` — `aspect` is
+the reduced ratio (e.g. `9:16`), `category` is one of `Video | Print | Social |
+Wallpaper | Web`, and `print` (mm/in physical page size) is present only for
+print layouts. A name that exists in both the built-in video presets and the
+poster layouts (`4k`) is listed once.
+
+`render_animation` renders the same place/highlight contract as `render_map`,
+plus an `animation` param, as a looping radar-pulse GIF and/or MP4 around
+`highlight.points` (it requires at least one point — there is nothing to
+animate otherwise): `{ frames?, fps?, format?: 'gif'|'mp4'|'both', gifWidth?,
+rings?, radiusScale?, color? }`. It returns `{ image, animation: { outputs:
+[{format, path, bytes}], frames, fps, width, height, loop: true }, resolved
+}`; `image` is the middle frame as a preview still, and — like every other
+still on this server — honours the `delivery` param (`both`/`url`/`inline`). Each
+encoded output is checked against `MAPPOSTER_CLIP_MAX_BYTES`; going over it
+deletes every output already written for that call (not just the offending
+one) and returns an error rather than leaving partial files in `MAPPOSTER_SINK`
+— this is the same cap `render_clip` enforces, on the one output path that
+previously had none.
 
 `render_clip` renders the same place/highlight contract as `render_map`, plus a
 `motion` param, as a short **text-free** MP4 camera-motion clip (AC-9: `chrome`
@@ -111,14 +173,22 @@ render_clip({
 })
 // → { clip: { path, bytes, durationSec, fps, width: 1080, height: 1920 },
 //     settle: { path, base64, format: 'png', width, height },
-//     motion: { preset: 'pushIn', restAtSec },
+//     motion: { preset: 'pushIn', restAtSec, script: { /* the fully-compiled MotionScript */ } },
 //     resolved: { center, zoom, place, theme, highlights: {...} } }
 ```
+
+Every clip response — MCP `render_clip`, REST `POST /render-clip`, and the
+async `/jobs` clip path alike — echoes `motion.script`: the fully-compiled,
+validated MotionScript the preset (or raw script input) actually resolved to,
+not just the `preset` name and `restAtSec`. That closes the loop an agent
+needs to inspect what a preset compiled into and hand back a tweaked
+`{script}` next call. `camera.bearing` is honoured on clips (it used to be
+silently dropped by the preset compiler — a bug, not a design choice).
 
 Unlike every other tool here, the clip itself is **written to a file** under
 `MAPPOSTER_SINK` and returned as `clip.path` rather than inlined as base64 —
 a multi-megabyte MP4 would bloat the JSON-RPC stdio channel MCP runs over.
-`delivery` (inline/file/both) still applies to the `settle` still, same as the
+`delivery` (`both`/`url`/`inline`) still applies to the `settle` still, same as the
 other image tools. If the MP4 encoder fails (missing ffmpeg, a corrupt frame),
 the tool never throws the whole call away: the frames were already captured,
 so it degrades to `{ settle, motion, resolved, clipError }` — the settle still
@@ -217,7 +287,7 @@ guarantee.
 // → { ok: true,
 //     clip: { base64, format: 'mp4', width: 1080, height: 1920, durationSec, fps, bytes },
 //     settle: { base64, format: 'png', width, height },
-//     motion: { preset: 'pushIn', restAtSec },
+//     motion: { preset: 'pushIn', restAtSec, script: { /* the fully-compiled MotionScript */ } },
 //     resolved: {...} }
 ```
 

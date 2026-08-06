@@ -9,8 +9,14 @@ vi.mock('./geocode', () => ({
       : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } },
   ),
   resolveBoundary: vi.fn(async () => ({
-    type: 'FeatureCollection',
-    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    },
+    osmType: 'relation',
+    osmId: 1973756,
+    displayName: 'District 1, Ho Chi Minh City, Vietnam',
+    placeRank: 18,
   })),
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
@@ -100,6 +106,18 @@ describe('resolveConfig', () => {
     expect(regions[0].center![0]).toBeCloseTo(106.7, 6);
     expect(regions[0].center![1]).toBeCloseTo(10.8, 6);
     expect(points).toEqual([]);
+  });
+
+  it('echoes the matched OSM identity in resolved.highlights.regions', async () => {
+    const cfg = await resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: ['District 1'] } });
+    const summary = summarizeHighlights(cfg);
+    expect(summary.regions[0]).toMatchObject({
+      osmType: 'relation',
+      osmId: 1973756,
+      displayName: 'District 1, Ho Chi Minh City, Vietnam',
+      placeRank: 18,
+    });
+    expect(summary.regions[0].bbox).not.toBeNull();
   });
 
   it('refuses a highlight colour that is not a hex colour', async () => {
@@ -198,5 +216,162 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', camera: { zoom: 99 } })).rejects.toThrow(/invalid zoom/i);
     await expect(resolveConfig({ location: 'HCMC', camera: { center: [999, 0] } })).rejects.toThrow(/invalid longitude/i);
     await expect(resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 500, lat: 0 }] } })).rejects.toThrow(/invalid longitude/i);
+  });
+
+  it('bounds camera pitch to 0..60 (MapLibre maxPitch — 85 used to be accept-then-discard)', async () => {
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 200 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -1 } })).rejects.toThrow(/invalid pitch/i);
+  });
+
+  it('normalizes bearing to [0,360) instead of rejecting out-of-range values (F3)', async () => {
+    // MapLibre renders `bearing: -45` correctly today, and lerpAngle
+    // (src/render/motionMath.ts) already normalizes to [0,360) — rejecting it
+    // here would be a regression, not a fix. Normalize instead.
+    const cfg = await resolveConfig({ location: 'HCMC', camera: { bearing: -45, pitch: 30 } });
+    expect(cfg.camera).toMatchObject({ bearing: 315, pitch: 30 });
+
+    const wrapped = await resolveConfig({ location: 'HCMC', camera: { bearing: 405 } });
+    expect(wrapped.camera.bearing).toBe(45);
+
+    const exact = await resolveConfig({ location: 'HCMC', camera: { bearing: 45 } });
+    expect(exact.camera.bearing).toBe(45);
+  });
+
+  it('still rejects a non-finite bearing', async () => {
+    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: Infinity } })).rejects.toThrow(/invalid bearing/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: NaN } })).rejects.toThrow(/invalid bearing/i);
+  });
+
+  it('passes layers, detail and font through to the render config', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 106.7, lat: 10.78 },
+      layers: { buildings: false, parks: false },
+      detail: 0.9,
+      font: 'Oswald',
+    });
+    expect(cfg.layers).toEqual({ buildings: false, parks: false });
+    expect(cfg.detail).toBe(0.9);
+    expect(cfg.font).toBe('Oswald');
+  });
+
+  it('merges labels:true into layers.roadLabels but refuses both at once', async () => {
+    const cfg = await resolveConfig({ location: { lng: 106.7, lat: 10.78 }, labels: true, layers: { water: false } });
+    expect(cfg.layers).toEqual({ water: false, roadLabels: true });
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, labels: true, layers: { roadLabels: false } }),
+    ).rejects.toThrow(/either labels or layers\.roadLabels, not both/);
+  });
+
+  it('rejects out-of-range detail and unknown font', async () => {
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 1.5 })).rejects.toThrow(/invalid detail/i);
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, font: 'Comic Sans' as never })).rejects.toThrow(/unknown font/i);
+  });
+
+  it('rejects an unknown layer key and a non-boolean layer value (Zod-bypass guard)', async () => {
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, layers: { foo: true } as never }),
+    ).rejects.toThrow(/unknown layer/i);
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, layers: { buildings: 'yes' } as never }),
+    ).rejects.toThrow(/invalid layer/i);
+  });
+
+  it('carries per-region color through and validates it', async () => {
+    const gj = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[1, 1], [2, 1], [2, 2], [1, 1]]] } }] };
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: { regions: [{ name: 'District 1', color: '#ff0000' }, { geojson: gj, color: '#00ff00' }, 'District 3'] },
+    });
+    expect(cfg.highlight?.regions.map((r) => r.color)).toEqual(['#ff0000', '#00ff00', null]);
+    await expect(
+      resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: [{ name: 'District 1', color: 'red' }] } }),
+    ).rejects.toThrow(/highlight\.regions\[\]\.color/);
+  });
+
+  it('rejects a bad colour on a LATER region before any resolveBoundary call fires', async () => {
+    // The whole reason per-region colours are validated in an up-front pass
+    // (ahead of the region loop's network calls) rather than inline inside the
+    // loop is so a bad colour on a later region is caught before an earlier
+    // region ever pays for a resolveBoundary request. Assert that property
+    // directly, not just the resulting error message.
+    vi.mocked(geocode.resolveBoundary).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { regions: [{ name: 'District 1' }, { name: 'District 2', color: 'red' }] },
+      }),
+    ).rejects.toThrow(/highlight\.regions\[\]\.color/);
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
+  });
+
+  it('carries per-point icon/color/size and geocodes the query form', async () => {
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: {
+        points: [
+          { lng: 106.7, lat: 10.78, icon: 'star', color: '#ff00ff', size: 60 },
+          { query: 'Bến Thành Market', icon: 'heart' },
+          'Võ Văn Tần',
+        ],
+        pointIcon: 'home',
+        color: '#e8b04b',
+      },
+    });
+    expect(cfg.markers).toHaveLength(3);
+    expect(cfg.markers?.[0]).toMatchObject({ icon: 'star', color: '#ff00ff', size: 60 });
+    expect(cfg.markers?.[1]).toMatchObject({ icon: 'heart', color: '#e8b04b', size: 44 }); // fallback màu chung
+    expect(cfg.markers?.[2]).toMatchObject({ icon: 'home', color: '#e8b04b', size: 44 }); // fallback pointIcon
+  });
+
+  it('rejects out-of-range point size and bad point color', async () => {
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, size: 500 }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.size/);
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, color: 'javascript:x' }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.color/);
+  });
+
+  it('rejects a bad size/colour on a LATER point before any resolveLocation call for a point fires', async () => {
+    // Mirrors the region test above: per-point colour/size are validated in an
+    // up-front pass (ahead of the marker loop's network calls), so a bad value
+    // on a later point is caught before an earlier query-form point ever pays
+    // for a resolveLocation request.
+    vi.mocked(geocode.resolveLocation).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, size: 500 }] },
+      }),
+    ).rejects.toThrow(/highlight\.points\[\]\.size/);
+    // Only the base-location lookup should have fired, never a per-point one.
+    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+  });
+
+  it('rejects an unknown per-point icon instead of silently falling back to the default marker', async () => {
+    // getMarkerIcon() answers MARKER_ICONS[0] ('pin') for anything it doesn't
+    // know, and the agent never sees the rendered image — the same defect
+    // class assertTheme's comment describes for `theme`.
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, icon: 'rocket' as never }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.icon/);
+  });
+
+  it('rejects an unknown top-level pointIcon instead of silently falling back to the default marker', async () => {
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: ['x'], pointIcon: 'rocket' as never } }),
+    ).rejects.toThrow(/highlight\.pointIcon/);
+  });
+
+  it('rejects a bad icon on a LATER point before any resolveLocation call for a point fires', async () => {
+    vi.mocked(geocode.resolveLocation).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, icon: 'rocket' as never }] },
+      }),
+    ).rejects.toThrow(/highlight\.points\[\]\.icon/);
+    // Only the base-location lookup should have fired, never a per-point one.
+    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
   });
 });

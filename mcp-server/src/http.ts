@@ -335,7 +335,7 @@ export async function startHttpServer(
             if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
             const { frames, settle } = await deps.renderClip(cfg);
             const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
-            const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+            const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
             const outPath = path.join(os.tmpdir(), `mapposter-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
             try {

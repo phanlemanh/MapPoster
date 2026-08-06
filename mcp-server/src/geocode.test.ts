@@ -12,7 +12,13 @@ const searchItem = {
   display_name: 'Hanoi, Vietnam', boundingbox: ['20.9', '21.1', '105.7', '105.9'],
   address: { city: 'Hanoi', country: 'Vietnam' },
 };
-const boundaryItem = { display_name: 'Quận 3, HCMC', geojson: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] } };
+const boundaryItem = {
+  osm_type: 'relation',
+  osm_id: 1234,
+  place_rank: 18,
+  display_name: 'Quận 3, HCMC',
+  geojson: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+};
 
 beforeEach(() => __setRateLimitMs(0));
 afterEach(() => { vi.unstubAllGlobals(); __resetGeoCache(); });
@@ -201,10 +207,61 @@ describe('resolveBoundary', () => {
     );
 
     const gj = await resolveBoundary('Quận 3, HCMC');
-    expect(gj?.features[0].geometry.type).toBe('Polygon');
+    expect(gj?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(urls.some((u) => u.includes('/search?') && u.includes('District 3, Ho Chi Minh City'))).toBe(true);
     // the polygon came from the relation we matched, not from a second global name search
     expect(urls.some((u) => u.includes('/lookup?') && u.includes('R1234'))).toBe(true);
+  });
+
+  it('echoes the identity of the entity the polygon actually came from — not the hit — when the exact lookup falls through (R1-IMPORTANT)', async () => {
+    // fetchRegionBoundary (src/lib/geocoding.ts) first tries an EXACT lookup on
+    // the matched hit's own osm_type/osm_id. If that entity turns out not to be
+    // an area (a node/POI, or a non-multipolygon relation), it silently falls
+    // through to a second `/search?limit=1` on `name, country` and returns
+    // THAT entity's polygon instead — a DIFFERENT OSM object than `hit`.
+    // Echoing `hit`'s identity in that case names an entity that is not what
+    // got drawn; the identity must come from whichever entity produced the
+    // polygon.
+    const fallbackMatch = {
+      osm_type: 'relation',
+      osm_id: 5555,
+      place_rank: 16,
+      display_name: 'District 3 (fallback match), Ho Chi Minh City, Vietnam',
+      geojson: boundaryItem.geojson,
+    };
+    const urls: string[] = [];
+    const fn = vi.fn(async (url?: string) => {
+      const u = decodeURIComponent(String(url));
+      urls.push(u);
+      if (u.includes('/lookup?') && u.includes('R1234')) {
+        // the exact lookup for `hit` (district3, R1234) resolves to a non-area
+        // entity — no `geojson` field, so toBoundary() rejects it and
+        // fetchRegionBoundary falls through to the name search below.
+        return { ok: true, json: async () => [{ osm_type: 'node', osm_id: 1234, display_name: 'District 3 (a node, not an area)' }] } as unknown as Response;
+      }
+      if (u.includes('/search?') && u.includes('District 3, Vietnam')) {
+        // fetchRegionBoundary's own fallback: `[hit.name, hit.country].join(', ')`
+        return { ok: true, json: async () => [fallbackMatch] } as unknown as Response;
+      }
+      if (u.includes('/search?') && u.includes('District 3, Ho Chi Minh City')) {
+        // the searchLadder canonicalisation that produces `hit` in the first place
+        return { ok: true, json: async () => [district3] } as unknown as Response;
+      }
+      return { ok: true, json: async () => [] } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    const b = await resolveBoundary('Quận 3, HCMC');
+    expect(b?.geojson.features[0].geometry.type).toBe('Polygon');
+    // identity is the FALLBACK entity's (5555 / "fallback match"), never
+    // `hit`'s (1234 / "District 3, Ho Chi Minh City, Vietnam")
+    expect(b).toMatchObject({
+      osmType: 'relation',
+      osmId: 5555,
+      displayName: 'District 3 (fallback match), Ho Chi Minh City, Vietnam',
+      placeRank: 16,
+    });
+    expect(urls.some((u) => u.includes('/lookup?') && u.includes('R1234'))).toBe(true); // it did try the exact entity first
   });
 
   it('rejects a region hit that lands outside the city the query named', async () => {
@@ -234,11 +291,35 @@ describe('resolveBoundary', () => {
     );
     const b1 = await resolveBoundary('Quận 3, HCMC');
     const b2 = await resolveBoundary('Quận 3, HCMC');
-    expect(b1?.features[0].geometry.type).toBe('Polygon');
+    expect(b1?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(b2).toBe(b1);
     const callsAfterFirst = fn.mock.calls.length;
     expect(await resolveBoundary('Quận 3, HCMC')).toBe(b1);
     expect(fn).toHaveBeenCalledTimes(callsAfterFirst); // no further upstream
+  });
+
+  it('serves a cache hit from the same object with the full ResolvedBoundary shape, and never re-hits the network', async () => {
+    // `boundaryCache` is typed `Map<string, ResolvedBoundary | null>`. That
+    // typing is honest and worth keeping, but it is not fixing a runtime bug:
+    // `GeoJSONFeatureCollection` is `any` (src/types.ts), so the OLD map type
+    // already accepted a `ResolvedBoundary` on `lruSet` and handed back the
+    // IDENTICAL object on `lruGet` — there was never a shape mismatch to catch.
+    // `expect(b).toEqual(a)` on that same object reference passes unconditionally
+    // regardless of the Map's declared type, so it could never have failed.
+    // Assert the actual cache contract instead: a second call returns the exact
+    // same object (proving it came from the cache, not a re-fetch) AND the
+    // network is never touched again.
+    const { fn } = routeFetch(
+      () => [district3],
+      () => [boundaryItem],
+    );
+    const a = await resolveBoundary('District 1', 'Vietnam');
+    const callsAfterFirst = fn.mock.calls.length;
+    const b = await resolveBoundary('District 1', 'Vietnam');
+    expect(b).toBe(a); // same object reference straight from boundaryCache
+    expect(fn.mock.calls.length).toBe(callsAfterFirst); // no further upstream calls
+    expect(a?.geojson.type).toBe('FeatureCollection');
+    expect(a).toMatchObject({ osmType: 'relation', osmId: 1234, displayName: 'Quận 3, HCMC', placeRank: 18 });
   });
 
   it('rejects a transient failure at the polygon lookup and never caches it (R2-HIGH)', async () => {
@@ -257,7 +338,7 @@ describe('resolveBoundary', () => {
       () => [boundaryItem],
     );
     const b = await resolveBoundary('Quận 3, HCMC');
-    expect(b?.features[0].geometry.type).toBe('Polygon');
+    expect(b?.geojson.features[0].geometry.type).toBe('Polygon');
     expect(fn.mock.calls.length).toBeGreaterThan(0); // it really re-fetched
   });
 

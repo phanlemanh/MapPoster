@@ -13,6 +13,15 @@ export interface ResolvedLocation {
   place: { name: string; country: string; lat: number; lng: number };
 }
 
+export interface ResolvedBoundary {
+  geojson: GeoJSONFeatureCollection;
+  osmType?: 'node' | 'way' | 'relation';
+  osmId?: number;
+  displayName?: string;
+  /** Nominatim granularity (city ~16, road ~26). Search doesn't return admin_level. */
+  placeRank?: number;
+}
+
 // --- caches + a serialized rate-limiter (Nominatim policy: <= 1 req/s) ---
 
 /**
@@ -42,7 +51,7 @@ function lruSet<K, V>(m: Map<K, V>, k: K, v: V): void {
 
 const locCache = new Map<string, ResolvedLocation>();
 /** `null` is a REAL value here ("this place has no polygon"), so presence is checked with `has`. */
-const boundaryCache = new Map<string, GeoJSONFeatureCollection | null>();
+const boundaryCache = new Map<string, ResolvedBoundary | null>();
 const countryCache = new Map<string, string>();
 
 let minSpacingMs = 1000;
@@ -242,8 +251,9 @@ export async function searchCandidates(query: string, limit = 5): Promise<GeoCan
   }));
 }
 
-/** Resolve a place's administrative boundary GeoJSON (cached). */
-export async function resolveBoundary(place: string, expectCountry?: string): Promise<GeoJSONFeatureCollection | null> {
+/** Resolve a place's administrative boundary GeoJSON, plus the matched OSM entity's
+ * identity (cached). */
+export async function resolveBoundary(place: string, expectCountry?: string): Promise<ResolvedBoundary | null> {
   const key = `${place.trim().toLowerCase()}|${expectCountry?.toLowerCase() ?? ''}`;
   if (boundaryCache.has(key)) return lruGet(boundaryCache, key) ?? null;
 
@@ -264,10 +274,19 @@ export async function resolveBoundary(place: string, expectCountry?: string): Pr
   await throttle();
   // fetchRegionBoundary THROWS on a transient upstream failure and returns null
   // only for a definitive "no polygon". So a throw here skips the cache write —
-  // an outage must never be memoized as "this region does not exist". Passing the
-  // hit's osm_type/osm_id fetches the polygon of the entity we actually matched.
+  // an outage must never be memoized as "this region does not exist". We pass
+  // `hit`'s osm_type/osm_id so fetchRegionBoundary tries the exact entity we
+  // matched FIRST — but it is not guaranteed to be what the polygon actually
+  // comes from: if that exact lookup yields a non-area (a node/POI, or a
+  // non-multipolygon relation), fetchRegionBoundary silently falls through to
+  // a second `/search?limit=1` on `name, country` and returns THAT entity's
+  // polygon instead. Echoing `hit`'s identity in that case would name an
+  // entity that is not what got drawn — so echo `b`'s own identity, which
+  // `RegionBoundary` now carries precisely because it can differ from `hit`.
   const b = await fetchRegionBoundary(hit);
-  const geojson = b ? b.geojson : null;
-  lruSet(boundaryCache, key, geojson);
-  return geojson;
+  const resolved: ResolvedBoundary | null = b
+    ? { geojson: b.geojson, osmType: b.osmType, osmId: b.osmId, displayName: b.displayName, placeRank: b.placeRank }
+    : null;
+  lruSet(boundaryCache, key, resolved);
+  return resolved;
 }

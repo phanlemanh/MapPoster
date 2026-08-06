@@ -1,0 +1,28 @@
+{
+  "feature_plain": "Agent điều khiển bản đồ chi tiết hơn hẳn — chọn lớp hiển thị, màu từng vùng, biểu tượng từng điểm — và mọi giá trị lạ bị báo lỗi thay vì âm thầm đổi sang mặc định.",
+
+  "will_do": [
+    { "id": "AC-1", "p": "Sẽ cho agent chọn lớp bản đồ nào hiện, mức chi tiết đường sá và phông chữ." },
+    { "id": "AC-11", "p": "Sẽ trả lại kịch bản chuyển động đã biên dịch, để agent xem rồi chỉnh thay vì đoán mò." },
+    { "id": "AC-13", "p": "Sẽ giữ đúng góc xoay người gọi đặt, xuyên suốt đoạn phim." }
+  ],
+
+  "wont_do": [
+    { "id": "AC-2", "p": "Chặn lời gọi bật cùng một công tắc bằng hai đường khác nhau, thay vì tự chọn bên thắng." },
+    { "id": "AC-3", "p": "Chặn giá trị ngoài miền cho phép, kèm tên trường sai và giá trị sai." },
+    { "id": "AC-4", "p": "Chặn cả lời gọi khi bất kỳ vùng nào mang màu sai định dạng — vùng đúng cũng không được vẽ." },
+    { "id": "AC-5", "p": "Không bắt agent khai lại thứ đã khai chung: điểm thiếu biểu tượng, màu hay cỡ sẽ mượn giá trị chung." },
+    { "id": "AC-6", "p": "Chặn cỡ điểm đánh dấu quá to hoặc quá nhỏ, kể cả cỡ 0." },
+    { "id": "AC-7", "p": "Chặn biểu tượng lạ, thay vì lặng lẽ đổi thành hình ghim mặc định." },
+    { "id": "AC-8", "p": "Chặn input sai trước khi tiêu bất kỳ lượt tra cứu địa danh nào." },
+    { "id": "AC-9", "p": "Không thêm bớt chủ đề nào — chỉ trả kèm bảng màu đầy đủ để lớp chữ phủ lên khớp màu bản đồ." },
+    { "id": "AC-10", "p": "Không còn khổ ảnh trùng tên trong danh mục; khổ không phải khổ in thì không kèm kích thước giấy." },
+    { "id": "AC-12", "p": "Chặn góc nghiêng ngoài tầm, nhưng góc xoay âm thì tự quy đổi chứ không từ chối." },
+    { "id": "AC-14", "p": "Chặn file vượt hạn dung lượng và dọn sạch cả file đã ghi trước đó." },
+    { "id": "AC-15", "p": "Không khai nhầm vùng: tên vùng trả về luôn là vùng thật sự được vẽ, kể cả khi phải dò lại lần hai." }
+  ],
+
+  "scope_plain": "Chưa làm ảnh vệ tinh, chưa làm bộ công thức video bất động sản, không đụng lớp vẽ ảnh cuối và không sửa lỗ hổng đăng nhập của cổng MCP.",
+
+  "decisions_plain": []
+}

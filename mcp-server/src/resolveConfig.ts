@@ -1,16 +1,22 @@
 import { resolveLocation, resolveBoundary, resolveCountryAt } from './geocode';
 import { LAYOUTS } from '../../src/data/layouts';
 import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
-import type { GeoJSONFeatureCollection, MarkerIconKey } from '../../src/types';
+import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
+import { FONTS } from '../../src/data/fonts';
+import { MARKER_ICONS } from '../../src/data/markers';
 
 export type FormatInput = string | { width: number; height: number };
 
 export interface RenderMapParams {
   location: string | { lng: number; lat: number; zoom?: number };
   highlight?: {
-    regions?: (string | { geojson: GeoJSONFeatureCollection })[];
-    points?: (string | { lng: number; lat: number })[];
+    regions?: (string | { name: string; color?: string } | { geojson: GeoJSONFeatureCollection; color?: string })[];
+    points?: (
+      | string
+      | { lng: number; lat: number; icon?: MarkerIconKey; color?: string; size?: number }
+      | { query: string; icon?: MarkerIconKey; color?: string; size?: number }
+    )[];
     color?: string;
     fill?: boolean;
     dim?: boolean;
@@ -24,6 +30,11 @@ export interface RenderMapParams {
   placeName?: string;
   /** Show names along major roads (motorway/trunk/primary/secondary). Off by default: poster first. */
   labels?: boolean;
+  /** Per-layer visibility. Mutually exclusive with `labels` for roadLabels. */
+  layers?: Partial<LayerState>;
+  /** 0..1 map detail (road-width ramp; minor roads appear strictly above 0.12). */
+  detail?: number;
+  font?: FontKey;
 }
 
 /** Named format presets (video-first). Layout ids also resolve via getLayout. */
@@ -34,6 +45,25 @@ export const FORMATS: Record<string, { width: number; height: number }> = {
   landscape: { width: 1920, height: 1080 },
   portrait: { width: 1080, height: 1350 },
   '4k': { width: 3840, height: 2160 },
+};
+
+/**
+ * Category per `FORMATS` entry, judged on what each preset actually is rather
+ * than inherited wholesale from a single 'Video' default (Finding 4: that
+ * default mislabeled every image-first social preset, and hid the Wallpaper
+ * '4k' this table dedupes away behind a mislabeled Video one). Uses the same
+ * vocabulary `LAYOUTS` uses (`LAYOUT_CATEGORIES`), plus 'Video' where a
+ * preset is genuinely video-first.
+ */
+const FORMAT_CATEGORY: Record<keyof typeof FORMATS, FormatInfo['category']> = {
+  tiktok: 'Video', // vertical short-form video
+  story: 'Social', // 1080x1920 — an Instagram/Facebook Story post
+  square: 'Social', // 1080x1080 — an Instagram square post
+  landscape: 'Video', // horizontal video (e.g. YouTube)
+  portrait: 'Social', // 1080x1350 — Instagram's 4:5 portrait post ratio
+  // Wins the name collision with LAYOUTS's Desktop 4K Wallpaper entry
+  // (identical 3840x2160) — its category must match what it dedupes away.
+  '4k': 'Wallpaper',
 };
 
 /** Max edge, matching the WebGL canvas budget the layouts are designed against. */
@@ -57,6 +87,60 @@ function assertLngLat(lng: number, lat: number): [number, number] {
 function assertZoom(zoom: number): number {
   if (!Number.isFinite(zoom) || zoom < 0 || zoom > 22) throw new Error(`Invalid zoom: ${zoom} (must be between 0 and 22)`);
   return zoom;
+}
+
+/**
+ * Bearing has no engine-imposed range: MapLibre renders `bearing: -45`
+ * correctly today, and `lerpAngle` (src/render/motionMath.ts) already
+ * normalizes an arbitrary angle to `[0,360)` for the clip-motion path.
+ * Rejecting anything outside 0..360 (as an earlier version of this function
+ * did) is a regression — a caller passing a perfectly valid `-45` gets a
+ * refusal instead of a picture. Normalize instead, so every consumer of
+ * `RenderConfig.camera.bearing` sees the same `[0,360)` convention lerpAngle
+ * already uses. Non-finite input is still rejected — there is no angle to
+ * normalize it to.
+ */
+function normalizeBearing(b: number): number {
+  if (!Number.isFinite(b)) throw new Error(`Invalid bearing: ${b} (must be a finite number)`);
+  return ((b % 360) + 360) % 360;
+}
+
+/** 60, không phải 85: maxPitch mặc định của MapLibre là 60 — nhận 85 rồi để engine clamp là nhận-rồi-vứt. */
+function assertPitch(p: number): number {
+  if (!Number.isFinite(p) || p < 0 || p > 60) throw new Error(`Invalid pitch: ${p} (must be between 0 and 60)`);
+  return p;
+}
+
+function assertDetail(d: number): number {
+  if (!Number.isFinite(d) || d < 0 || d > 1) throw new Error(`Invalid detail: ${d} (must be between 0 and 1)`);
+  return d;
+}
+
+function assertFont(key: string): FontKey {
+  if (FONTS.some((f) => f.key === key)) return key as FontKey;
+  throw new Error(`Unknown font: ${key}. Known fonts: ${FONTS.map((f) => f.key).join(', ')}`);
+}
+
+/** Mirror `layerStateSchema` in tools.ts — do not let the two drift. */
+const LAYER_KEYS: LayerKey[] = ['landcover', 'buildings', 'water', 'parks', 'roads', 'rail', 'aeroway', 'roadLabels'];
+
+/**
+ * `layers` is spread straight into `applyRenderConfig`'s `{ ...ALL_LAYERS_ON,
+ * ...(cfg.layers ?? {}) }` merge, producing a `LayerState` (typed
+ * `Record<LayerKey, boolean>`). Bound it here as well as at the Zod boundary —
+ * every runtime guard in this file exists because the boundary can be
+ * bypassed (`makeTools` is called directly).
+ */
+function assertLayers(value: Partial<LayerState>): Partial<LayerState> {
+  for (const [key, v] of Object.entries(value)) {
+    if (!LAYER_KEYS.includes(key as LayerKey)) {
+      throw new Error(`Unknown layer: ${key}. Known layers: ${LAYER_KEYS.join(', ')}`);
+    }
+    if (typeof v !== 'boolean') {
+      throw new Error(`Invalid layer value for ${key}: ${JSON.stringify(v)} (must be a boolean)`);
+    }
+  }
+  return value;
 }
 
 export function formatSize(format?: FormatInput): { width: number; height: number } {
@@ -121,11 +205,65 @@ export function assertColor(value: string, label = 'color'): string {
   throw new Error(`Invalid ${label}: ${JSON.stringify(value)} — expected a hex colour like "#e8b04b"`);
 }
 
-/** List every format name an agent may pass. */
-export function listFormats(): { name: string; width: number; height: number }[] {
-  const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
-  for (const l of LAYOUTS) out.push({ name: l.id, width: l.width, height: l.height });
-  return out;
+/**
+ * `drawMarker` does no clamping of its own: a size of 5000 paints over the
+ * whole canvas, a size of 0 is invisible. Bound it here as well as at the Zod
+ * boundary — every runtime guard in this file exists because the boundary can
+ * be bypassed (`makeTools` is called directly).
+ */
+function assertMarkerSize(n: number): number {
+  if (!Number.isFinite(n) || n < 18 || n > 140) {
+    throw new Error(`Invalid highlight.points[].size: ${n} (must be between 18 and 140)`);
+  }
+  return n;
+}
+
+/**
+ * Reject an unknown marker icon rather than fall back to the default.
+ *
+ * `getMarkerIcon` answers `MARKER_ICONS[0]` ('pin') for anything it doesn't
+ * recognise, and the agent calling this server never sees the image — so
+ * `icon: 'rocket'` would silently render a pin with no error and no signal.
+ * Same defect class as `assertTheme` above; bound it here as well as at the
+ * Zod boundary — every runtime guard in this file exists because the
+ * boundary can be bypassed (`makeTools` is called directly).
+ */
+function assertMarkerIcon(key: string, label = 'highlight.points[].icon'): MarkerIconKey {
+  if (MARKER_ICONS.some((m) => m.key === key)) return key as MarkerIconKey;
+  throw new Error(`Invalid ${label}: ${key}. Known icons: ${MARKER_ICONS.map((m) => m.key).join(', ')}`);
+}
+
+export interface FormatInfo {
+  name: string;
+  width: number;
+  height: number;
+  /** reduced ratio, e.g. '9:16' */
+  aspect: string;
+  category: 'Video' | 'Print' | 'Social' | 'Wallpaper' | 'Web';
+  print?: { w: number; h: number; unit: 'mm' | 'in' };
+}
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+const aspectOf = (w: number, h: number): string => {
+  const g = gcd(w, h);
+  return `${w / g}:${h / g}`;
+};
+
+/** List every format name an agent may pass. FORMATS wins a name collision ('4k' exists in both). */
+export function listFormats(): FormatInfo[] {
+  const out = new Map<string, FormatInfo>();
+  for (const [name, s] of Object.entries(FORMATS)) {
+    out.set(name, { name, ...s, aspect: aspectOf(s.width, s.height), category: FORMAT_CATEGORY[name as keyof typeof FORMATS] });
+  }
+  for (const l of LAYOUTS) {
+    if (out.has(l.id)) continue;
+    out.set(l.id, {
+      name: l.id, width: l.width, height: l.height,
+      aspect: aspectOf(l.width, l.height), category: l.category,
+      ...(l.print ? { print: l.print } : {}),
+    });
+  }
+  return [...out.values()];
 }
 
 function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, number, number] | null {
@@ -144,20 +282,33 @@ function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, numbe
 }
 
 export interface ResolvedHighlights {
-  regions: { bbox: [number, number, number, number] | null; center: [number, number] | null }[];
+  regions: {
+    bbox: [number, number, number, number] | null;
+    center: [number, number] | null;
+    osmType?: 'node' | 'way' | 'relation';
+    osmId?: number;
+    displayName?: string;
+    placeRank?: number;
+  }[];
   points: { lng: number; lat: number }[];
 }
 
 /**
  * What the agent actually got, per the tool contract's `resolved.highlights`.
  * Region names are resolved server-side, so echo each one's extent — that is the
- * only way a caller can tell which "District 1" it ended up with.
+ * only way a caller can tell which "District 1" it ended up with. For a named
+ * region we also echo the matched OSM entity's identity; inline-geojson regions
+ * carry no such identity, so the fields are omitted rather than `undefined`.
  */
 export function summarizeHighlights(cfg: RenderConfig): ResolvedHighlights {
   const regions = (cfg.highlight?.regions ?? []).map((r) => {
     const bbox = bboxOfRegions([r]);
     const center: [number, number] | null = bbox ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : null;
-    return { bbox, center };
+    return {
+      bbox,
+      center,
+      ...(r.osmType != null ? { osmType: r.osmType, osmId: r.osmId, displayName: r.displayName, placeRank: r.placeRank } : {}),
+    };
   });
   return { regions, points: (cfg.markers ?? []).map((m) => ({ lng: m.lng, lat: m.lat })) };
 }
@@ -177,6 +328,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
   if (params.camera?.center) assertLngLat(params.camera.center[0], params.camera.center[1]);
   if (params.camera?.zoom != null) assertZoom(params.camera.zoom);
+  const bearing = params.camera?.bearing != null ? normalizeBearing(params.camera.bearing) : undefined;
+  if (params.camera?.pitch != null) assertPitch(params.camera.pitch);
 
   // Validate everything cheap BEFORE the first network call: a bad theme or
   // colour should not cost a Nominatim request against our rate limit.
@@ -184,6 +337,47 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const theme = assertTheme(params.theme ?? DEFAULT_THEME_ID);
   const chrome: Chrome = params.chrome ?? 'clean';
   const color = params.highlight?.color != null ? assertColor(params.highlight.color, 'highlight.color') : undefined;
+  if (params.labels !== undefined && params.layers?.roadLabels !== undefined) {
+    throw new Error('Pass either labels or layers.roadLabels, not both — they set the same switch');
+  }
+  const layers = params.layers != null ? assertLayers(params.layers) : undefined;
+  const detail = params.detail != null ? assertDetail(params.detail) : undefined;
+  const font = params.font != null ? assertFont(params.font) : undefined;
+  const pointIcon =
+    params.highlight?.pointIcon != null
+      ? assertMarkerIcon(params.highlight.pointIcon, 'highlight.pointIcon')
+      : undefined;
+
+  // Single read of `params.highlight?.regions` — the colour pass and the region
+  // loop below both index into the same array, and that index alignment is
+  // load-bearing. Binding it once removes the implicit invariant that nothing
+  // mutates `params` between two separate reads.
+  const rawRegions = params.highlight?.regions ?? [];
+
+  // Validate every per-region colour here too — the region loop below hits the
+  // network once per named region (resolveBoundary), so without this a bad
+  // colour on region 3 would only surface after regions 1 and 2 already spent
+  // a request. Pre-validating up front keeps the same "fail before network"
+  // guarantee the global colour and theme checks above already have.
+  const regionColors = rawRegions.map((r) =>
+    typeof r === 'object' && r.color != null ? assertColor(r.color, 'highlight.regions[].color') : null,
+  );
+
+  // Single read of `params.highlight?.points` — same reasoning as `rawRegions`
+  // above: the colour/size pass and the marker loop below both index into the
+  // same array, and that index alignment is load-bearing.
+  const rawPoints = params.highlight?.points ?? [];
+
+  // Validate every per-point colour and size here too, before the base
+  // location lookup below and before the marker loop's per-point
+  // resolveLocation calls (bare-string and {query} forms both hit the
+  // network). Without this a bad size or colour on a later point would only
+  // surface after earlier points already spent a geocoding request.
+  const pointColors = rawPoints.map((p) =>
+    typeof p !== 'string' && p.color != null ? assertColor(p.color, 'highlight.points[].color') : null,
+  );
+  const pointSizes = rawPoints.map((p) => (typeof p !== 'string' && p.size != null ? assertMarkerSize(p.size) : null));
+  const pointIcons = rawPoints.map((p) => (typeof p !== 'string' && p.icon != null ? assertMarkerIcon(p.icon) : null));
 
   const base = await resolveLocation(params.location);
 
@@ -195,8 +389,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   // let the guard pass everything. Fail closed: if we cannot say what country the
   // map is in, we cannot vouch for a highlight resolved by name.
   const namedHighlight =
-    (params.highlight?.regions ?? []).some((r) => typeof r === 'string') ||
-    (params.highlight?.points ?? []).some((p) => typeof p === 'string');
+    rawRegions.some((r) => typeof r === 'string' || 'name' in r) ||
+    rawPoints.some((p) => typeof p === 'string' || 'query' in p);
 
   let anchor = base.place.country || undefined;
   if (namedHighlight && !anchor) {
@@ -211,28 +405,37 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const regions: RenderHighlightRegion[] = [];
-  for (const r of params.highlight?.regions ?? []) {
-    if (typeof r === 'string') {
-      const gj = await resolveBoundary(r, anchor);
+  for (let i = 0; i < rawRegions.length; i++) {
+    const r = rawRegions[i];
+    const rColor = regionColors[i];
+    if (typeof r === 'string' || 'name' in r) {
+      const name = typeof r === 'string' ? r : r.name;
+      const b = await resolveBoundary(name, anchor);
       // Fail loudly, matching the point path (resolveLocation throws). Silently
       // dropping the region would return a "successful" poster missing the very
       // highlight the caller asked for.
-      if (!gj) throw new Error(`No boundary found for region "${r}"${anchor ? ` in ${anchor}` : ''}`);
-      regions.push({ geojson: gj, color: null });
+      if (!b) throw new Error(`No boundary found for region "${name}"${anchor ? ` in ${anchor}` : ''}`);
+      regions.push({ geojson: b.geojson, color: rColor, osmType: b.osmType, osmId: b.osmId, displayName: b.displayName, placeRank: b.placeRank });
     } else {
-      regions.push({ geojson: assertGeojson(r.geojson), color: null });
+      regions.push({ geojson: assertGeojson(r.geojson), color: rColor });
     }
   }
 
   const markers: RenderMarker[] = [];
-  for (const p of params.highlight?.points ?? []) {
-    const center = typeof p === 'string' ? (await resolveLocation(p, anchor)).center : assertLngLat(p.lng, p.lat);
+  for (let i = 0; i < rawPoints.length; i++) {
+    const p = rawPoints[i];
+    const center =
+      typeof p === 'string'
+        ? (await resolveLocation(p, anchor)).center
+        : 'query' in p
+          ? (await resolveLocation(p.query, anchor)).center
+          : assertLngLat(p.lng, p.lat);
     markers.push({
       lng: center[0],
       lat: center[1],
-      icon: params.highlight?.pointIcon ?? 'pin',
-      color: color ?? '#ffffff',
-      size: 44,
+      icon: pointIcons[i] ?? pointIcon ?? 'pin',
+      color: pointColors[i] ?? color ?? '#ffffff',
+      size: pointSizes[i] ?? 44,
     });
   }
 
@@ -257,13 +460,18 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     : undefined;
 
   return {
-    camera: { center, zoom, bearing: cam.bearing, pitch: cam.pitch },
+    camera: { center, zoom, bearing, pitch: cam.pitch },
     size,
     theme,
     chrome,
     place: params.placeName ? { ...base.place, name: params.placeName } : base.place,
     highlight,
     markers: markers.length ? markers : undefined,
-    layers: params.labels ? { roadLabels: true } : undefined,
+    layers:
+      layers || params.labels
+        ? { ...(layers ?? {}), ...(params.labels ? { roadLabels: true } : {}) }
+        : undefined,
+    detail,
+    font,
   };
 }

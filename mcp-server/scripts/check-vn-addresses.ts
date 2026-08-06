@@ -66,8 +66,8 @@ for (const q of QUERIES) {
 console.log('\n═══ REGIONS (resolveBoundary) ═══');
 for (const q of REGIONS) {
   try {
-    const gj = await resolveBoundary(q);
-    console.log(`REGION  : ${q}\n  ${gj ? describe(gj) : 'NO BOUNDARY'}`);
+    const b = await resolveBoundary(q);
+    console.log(`REGION  : ${q}\n  ${b ? describe(b.geojson) : 'NO BOUNDARY'}`);
   } catch (e) {
     console.log(`REGION  : ${q}\n  ERROR : ${(e as Error).message}`);
   }

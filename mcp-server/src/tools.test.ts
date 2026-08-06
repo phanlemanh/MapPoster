@@ -18,7 +18,16 @@ vi.mock('./geocode', () => ({
           { name: 'Ho Chi Minh City Hall', country: 'Vietnam', lng: 106.7, lat: 10.776, zoom: 15, displayName: 'Ho Chi Minh City Hall, …' },
         ],
   ),
-  resolveBoundary: vi.fn(async () => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }] })),
+  resolveBoundary: vi.fn(async () => ({
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.6, 10.7], [106.8, 10.7], [106.8, 10.9], [106.6, 10.9], [106.6, 10.7]]] } }],
+    },
+    osmType: 'relation',
+    osmId: 1973756,
+    displayName: 'District 1, Ho Chi Minh City, Vietnam',
+    placeRank: 18,
+  })),
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
@@ -181,6 +190,42 @@ describe('discovery tools', () => {
   it('list_themes returns all 13 themes', async () => {
     expect(textJson(await tools().list_themes()).themes).toHaveLength(13);
   });
+  it('list_themes exposes the full palette so agents can match overlay colors', async () => {
+    const { themes } = textJson(await tools().list_themes());
+    expect(themes).toHaveLength(13);
+    expect(themes[0]).toMatchObject({ id: 'midnight-blue', dark: true });
+    expect(themes[0].colors.background).toMatch(/^#/);
+    expect(Object.keys(themes[0].colors)).toContain('accent');
+  });
+
+  it('list_formats dedupes 4k and carries aspect/category/print', async () => {
+    const { formats } = textJson(await tools().list_formats());
+    expect(formats.filter((f: { name: string }) => f.name === '4k')).toHaveLength(1);
+    const tiktok = formats.find((f: { name: string }) => f.name === 'tiktok');
+    expect(tiktok).toMatchObject({ aspect: '9:16', category: 'Video' });
+    const a4 = formats.find((f: { name: string }) => f.name === 'a4');
+    expect(a4.category).toBe('Print');
+    expect(a4.print).toEqual({ w: 210, h: 297, unit: 'mm' });
+  });
+
+  it('gives every FORMATS entry its own correct category, not a blanket Video (Finding 4)', async () => {
+    // A hardcoded `category: 'Video'` for every FORMATS entry mislabeled
+    // square/story/portrait (all image-first social formats) as Video, and
+    // shadowed the Wallpaper '4k' from LAYOUTS with a mislabeled Video '4k' —
+    // an agent filtering category === 'Social' got nothing for tiktok/story.
+    const { formats } = textJson(await tools().list_formats());
+    const byName = (name: string) => formats.find((f: { name: string }) => f.name === name);
+
+    expect(byName('tiktok').category).toBe('Video'); // genuinely video-first
+    expect(byName('landscape').category).toBe('Video'); // genuinely video-first
+    expect(byName('story').category).toBe('Social'); // 1080x1920, an Instagram/FB Story format
+    expect(byName('square').category).toBe('Social'); // 1080x1080, an Instagram square post
+    expect(byName('portrait').category).toBe('Social'); // 1080x1350, Instagram's 4:5 portrait post ratio
+    // '4k' wins the name collision with LAYOUTS's Desktop 4K Wallpaper entry
+    // (identical 3840x2160) — its category must match what it dedupes away,
+    // not be silently relabeled Video.
+    expect(byName('4k').category).toBe('Wallpaper');
+  });
 });
 
 describe('render_animation', () => {
@@ -223,6 +268,65 @@ describe('render_animation', () => {
   it('fails cleanly when the server build has no animation deps', async () => {
     const res = await tools().render_animation({ location: 'HCMC', ...point });
     expect(res.isError).toBe(true);
+  });
+
+  it('honours delivery for the preview still (url → no inline base64)', async () => {
+    const res = await animTools().render_animation({
+      location: { lng: 106.7, lat: 10.78 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      animation: { frames: 4 },
+      delivery: 'url',
+    });
+    expect(res.isError).toBeFalsy();
+    expect(imageBlocks(res)).toHaveLength(0); // trước fix: luôn 1 block inline
+    expect(textJson(res).image.path).toMatch(/-preview\.png$/);
+  });
+
+  it('refuses an animation over MAPPOSTER_CLIP_MAX_BYTES and removes the file', async () => {
+    const bigEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
+      await fs.writeFile(opts.outPath, Buffer.alloc(64)); // stat.size = 64
+      return opts.outPath;
+    });
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    try {
+      const t = makeTools({ render, renderAnimation, encodeAnimation: bigEncode, sinkDir, defaultDelivery: 'both' });
+      const res = await t.render_animation({
+        location: { lng: 106.7, lat: 10.78 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+        animation: { frames: 4, format: 'gif' },
+      });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      const leftovers = (await fs.readdir(sinkDir)).filter((f) => f.endsWith('.gif'));
+      expect(leftovers).toHaveLength(0);
+    } finally {
+      delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    }
+  });
+
+  it('rolls back an already-written gif when format "both" busts the cap on the mp4 output', async () => {
+    const partialEncode = vi.fn(async (_f: Buffer[], opts: { format: 'gif' | 'mp4'; outPath: string }) => {
+      // gif lands under the cap; mp4 (checked second, per `wanted` order) busts it —
+      // keyed off opts.format rather than call order so the test doesn't depend on
+      // which format the implementation happens to encode first.
+      await fs.writeFile(opts.outPath, Buffer.alloc(opts.format === 'mp4' ? 64 : 5));
+      return opts.outPath;
+    });
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    try {
+      const t = makeTools({ render, renderAnimation, encodeAnimation: partialEncode, sinkDir, defaultDelivery: 'both' });
+      const res = await t.render_animation({
+        location: { lng: 106.7, lat: 10.78 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+        animation: { frames: 4, format: 'both' },
+      });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      const leftovers = (await fs.readdir(sinkDir)).filter((f) => f.endsWith('.gif') || f.endsWith('.mp4'));
+      expect(leftovers).toHaveLength(0); // the already-accepted gif must be rolled back, not just the mp4 that tripped the cap
+    } finally {
+      delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    }
   });
 });
 
@@ -270,6 +374,19 @@ describe('render_clip', () => {
     const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
     expect(textJson(res).motion.preset).toBe('pushIn');
     expect(textJson(res).motion.restAtSec).toBeCloseTo(3.9, 3);
+  });
+
+  it('echoes the compiled MotionScript so agents can inspect and tweak it', async () => {
+    const res = await clipTools().render_clip({
+      location: { lng: 105.85, lat: 21.03, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.03 }] },
+      motion: { preset: 'pushIn' },
+    });
+    const j = textJson(res);
+    expect(j.motion.script).toBeDefined();
+    expect(j.motion.script.fps).toBe(j.clip.fps);
+    expect(Array.isArray(j.motion.script.camera)).toBe(true);
+    expect(j.motion.script.camera.length).toBeGreaterThan(1);
   });
 
   it('forces chrome clean on the config handed to renderClip even when the caller asks for poster (AC-9)', async () => {

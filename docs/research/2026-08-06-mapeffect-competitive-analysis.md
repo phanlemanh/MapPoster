@@ -209,10 +209,34 @@ localisation, restyle, và khả năng trích dẫn. Xem §6 về mức độ ch
 | 9 | 🐞 seed `cfg.camera.bearing ?? 0` vào keyframe compiler sinh ra | motionCompiler.ts `compile()` |
 | 10 | 🐞 `render_animation` honour `delivery` + byte cap | tools.ts:104-151 |
 | 11 | `list_formats`: dedupe `4k`, trả `aspect`/`category`/`print?` | resolveConfig.ts:125-129 |
-| 12 | `resolved.highlights.regions[i] += {osmType, osmId, displayName, adminLevel}` | geocode.ts:225/232-235 — **phải nới kiểu `boundaryCache`** (geocode.ts:41) |
+| 12 | `resolved.highlights.regions[i] += {osmType, osmId, displayName, placeRank}` | geocode.ts — nới kiểu `boundaryCache` theo (xem đính chính 2) |
 
 **4 defect production đi kèm:** bearing bị nuốt trên clip · `pitch:200` được nhận rồi clamp im lặng ·
-`render_animation` quảng cáo `delivery` rồi lờ đi · `boundaryCache` trả null từ lần gọi thứ hai.
+`render_animation` quảng cáo `delivery` rồi lờ đi · ~~`boundaryCache` trả shape cũ từ lần gọi thứ hai~~ (**sai — xem đính chính 2**).
+
+> ## ⚠️ ĐÍNH CHÍNH 2 (2026-08-06, sau khi đã triển khai Tier 0)
+>
+> **`boundaryCache` chưa bao giờ là bug.** Tôi viết ở mục 12 rằng "phải nới kiểu `boundaryCache`,
+> không thì lần gọi thứ hai trả shape cũ im lặng". Điều đó **sai**: `GeoJSONFeatureCollection`
+> là `any` (`src/types.ts`), nên Map kiểu cũ vẫn nhận `ResolvedBoundary` lúc `lruSet` và trả
+> đúng object đó lúc `lruGet` — không có khác biệt runtime nào. Nới kiểu vẫn đáng làm
+> (làm kiểu khai báo trung thực) nhưng đó là **type hygiene, không phải vá bug**.
+> → **Tier 0 có 3 bug production thật, không phải 4.**
+>
+> **`adminLevel` cũng sai:** Nominatim `/search` không trả `admin_level`. Bản ship dùng
+> `placeRank` (city ~16, road ~26, POI ~30) — là trường granularity thật sự có trên `GeoResult`.
+>
+> **Phát hiện thêm khi triển khai (final review):** việc echo OSM identity ban đầu lấy identity
+> từ *search hit*, trong khi `fetchRegionBoundary` có nhánh fallback trả polygon của một entity
+> **khác** khi lookup chính xác không ra vùng. Tức là `resolved` có thể khẳng định chắc nịch
+> một identity không khớp polygon đã vẽ — đúng ngay ca mà tính năng này sinh ra để giải
+> (tên vùng VN nhập nhằng). Đã sửa: `RegionBoundary` nay mang identity của entity **thực sự**
+> sinh ra polygon.
+>
+> **Và một điều chỉnh về `bearing`:** kế hoạch định bound `bearing` 0..360. Nhưng MapLibre
+> render `bearing: -45` hoàn toàn đúng và `lerpAngle` đã tự normalize — bound sẽ là **gỡ bỏ
+> một năng lực đang chạy được**. Bản ship **normalize** (`-45` → `315`) thay vì từ chối.
+> Chỉ `pitch` mới bị từ chối khi ngoài 0..60.
 
 ---
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { Readable } from 'node:stream';
 import nodeHttp from 'node:http';
 import { tmpdir } from 'node:os';
@@ -7,7 +7,10 @@ import { promises as fsp } from 'node:fs';
 // resolveConfig (used by every /render test) reaches into ./geocode for anything
 // that isn't a bare {lng,lat} — mocked so a region highlight resolved *by name*
 // (the whole point of Task 1) doesn't need a real Nominatim round trip.
-vi.mock('./geocode', () => ({
+// `importActual` chứ không thay trọn gói — jobRunner so `instanceof` với lớp
+// lỗi thật của mô-đun này; thay trọn thì nó thành undefined và phép so ném lỗi.
+vi.mock('./geocode', async () => ({
+  ...(await vi.importActual<typeof import('./geocode')>('./geocode')),
   resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
     if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
     return typeof input === 'string'
@@ -610,5 +613,184 @@ describe('POST /render-clip', () => {
     // slot freed after the first request finished — a third now succeeds
     const third = await postJson(clipUrl(srv), body);
     expect(third.status).toBe(200);
+  });
+});
+
+// ── Lối bất đồng bộ: POST /jobs + POST /jobs/status ────────────────────────
+import { createJobStore } from './jobStore';
+import { createJobRunner } from './jobRunner';
+
+describe('POST /jobs + POST /jobs/status', () => {
+  let server: HttpServer | undefined;
+  let sink: string;
+  let base: string;
+
+  const submit = (body: unknown) =>
+    fetch(`${base}/jobs`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const ask = (id: unknown) =>
+    fetch(`${base}/jobs/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) });
+
+  async function boot(over: { maxQueued?: number; render?: ToolDeps['render'] } = {}) {
+    sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-http-jobs-`);
+    const store = createJobStore({ maxQueued: over.maxQueued });
+    const deps = {
+      sinkDir: sink,
+      defaultDelivery: 'url',
+      render: over.render ?? (async () => PNG_1x1),
+    } as unknown as ToolDeps;
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, undefined, { store, runner });
+    base = server.url.replace(/\/mcp$/, '');
+    return { store, runner };
+  }
+
+  afterEach(async () => {
+    await server?.close();
+    server = undefined;
+    await fsp.rm(sink, { recursive: true, force: true });
+  });
+
+  it('AC-1: nhận việc trả 202 + mã, và hỏi NGAY đã thấy — không cửa sổ trống', async () => {
+    await boot();
+    const res = await submit({ kind: 'render', params: { location: 'Đà Nẵng' } });
+    expect(res.status).toBe(202);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(typeof body.id).toBe('string');
+
+    const first = await (await ask(body.id)).json();
+    expect(['queued', 'running', 'done']).toContain(first.status);
+    expect(first.id).toBe(body.id);
+  });
+
+  it('AC-2: thân sai khuôn → 400 câu đọc được, và KHÔNG bản ghi nào được tạo', async () => {
+    const { store } = await boot();
+    const bads: unknown[] = [
+      { kind: 'render' },                                             // thiếu params
+      { kind: 'render', params: { location: { lng: 999, lat: 0 } } }, // kinh độ ngoài dải
+      { kind: 'la-lam', params: { location: 'x' } },                  // loại việc lạ
+      { kind: 'clip', params: { location: 'x' } },                    // clip mà thiếu motion
+    ];
+    for (const bad of bads) {
+      const res = await submit(bad);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(typeof body.error).toBe('string');
+      expect(body.error).not.toMatch(/^\[\s*\{/); // không phải ZodError thô
+    }
+    expect(store.size()).toBe(0);
+  });
+
+  it('AC-3: hàng chờ đầy → 429 và sổ KHÔNG tăng', async () => {
+    // Việc đầu chiếm thợ mãi mãi, việc thứ hai lấp chỗ chờ duy nhất.
+    const { store } = await boot({ maxQueued: 1, render: (() => new Promise(() => {})) as unknown as ToolDeps['render'] });
+    expect((await submit({ kind: 'render', params: { location: 'A' } })).status).toBe(202);
+    expect((await submit({ kind: 'render', params: { location: 'B' } })).status).toBe(202);
+    const before = store.size();
+
+    const res = await submit({ kind: 'render', params: { location: 'C' } });
+    expect(res.status).toBe(429);
+    expect(store.size()).toBe(before);
+  });
+
+  it('AC-4: mã lạ → 404, không đoán', async () => {
+    await boot();
+    for (const id of ['khong-ton-tai', 42, null]) {
+      const res = await ask(id);
+      expect(res.status).toBe(404);
+      expect((await res.json()).ok).toBe(false);
+    }
+  });
+
+  it('AC-5 đầu-cuối: việc xong trả base64 ĐÚNG byte thợ đã ghi', async () => {
+    const { store, runner } = await boot();
+    const id = (await (await submit({ kind: 'render', params: { location: 'Thừa Thiên Huế' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+
+    const body = await (await ask(id)).json();
+    expect(body.status).toBe('done');
+    expect(Buffer.from(body.image.base64, 'base64')).toEqual(PNG_1x1);
+    // và đúng tệp THỢ ghi, không phải tệp test tự đặt sẵn
+    await expect(fsp.readFile(store.get(id)!.artifacts[0].path)).resolves.toEqual(PNG_1x1);
+    expect(body.resolved).toBeDefined();
+  });
+
+  it('AC-6: việc hỏng vẫn hỏi ra HTTP 200 — mã nói về câu hỏi, thân nói về việc', async () => {
+    const { runner } = await boot({
+      render: (async () => {
+        throw new Error('trình duyệt chết');
+      }) as ToolDeps['render'],
+    });
+    const id = (await (await submit({ kind: 'render', params: { location: 'Hà Nội' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+
+    const res = await ask(id);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('failed');
+    expect(body.errorKind).toBe('server');
+  });
+
+  it('hỏi lặp cùng một mã luôn ra cùng câu trả lời', async () => {
+    const { runner } = await boot();
+    const id = (await (await submit({ kind: 'render', params: { location: 'Cần Thơ' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+
+    const a = await (await ask(id)).json();
+    const b = await (await ask(id)).json();
+    expect(b).toEqual(a);
+  });
+});
+
+describe('AC-13: CÙNG một bảng ca guard cho cả ba cửa', () => {
+  const DOORS = ['/render', '/jobs', '/jobs/status'];
+  let server: HttpServer | undefined;
+  let sink: string;
+  let base: string;
+  let store: ReturnType<typeof createJobStore>;
+
+  beforeEach(async () => {
+    process.env.MAPPOSTER_TOKEN = 'the-dung';
+    sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-guard-`);
+    store = createJobStore();
+    const deps = { sinkDir: sink, defaultDelivery: 'url', render: async () => PNG_1x1 } as unknown as ToolDeps;
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, 200, { store, runner });
+    base = server.url.replace(/\/mcp$/, '');
+  });
+
+  afterEach(async () => {
+    await server?.close();
+    server = undefined;
+    await fsp.rm(sink, { recursive: true, force: true });
+    delete process.env.MAPPOSTER_TOKEN;
+  });
+
+  const call = (door: string, headers: Record<string, string>, body: string) =>
+    fetch(`${base}${door}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body });
+
+  const SMALL = JSON.stringify({ kind: 'render', params: { location: 'x' }, id: 'x', location: 'x' });
+
+  it.each(DOORS)('%s — không thẻ thì 401 và sổ việc không tăng', async (door) => {
+    const res = await call(door, {}, SMALL);
+    expect(res.status).toBe(401);
+    expect(store.size()).toBe(0);
+  });
+
+  it.each(DOORS)('%s — thẻ sai thì 401 và sổ việc không tăng', async (door) => {
+    const res = await call(door, { authorization: 'Bearer sai-be-bet' }, SMALL);
+    expect(res.status).toBe(401);
+    expect(store.size()).toBe(0);
+  });
+
+  it.each(DOORS)('%s — thân vượt trần thì bị chặn TRƯỚC khi tạo việc', async (door) => {
+    const huge = JSON.stringify({ kind: 'render', params: { location: 'x'.repeat(5000) }, id: 'x', location: 'x'.repeat(5000) });
+    const res = await call(door, { authorization: 'Bearer the-dung' }, huge);
+    expect(res.status).toBe(413);
+    expect(store.size()).toBe(0);
   });
 });

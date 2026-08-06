@@ -14,6 +14,10 @@ executors:
     clip_http: "npx vitest run mcp-server/src/http.test.ts"
     clip_tools: "npx vitest run mcp-server/src/tools.test.ts"
     text_free: "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"
+    job_store: npx vitest run mcp-server/src/jobStore.test.ts
+    job_runner: npx vitest run mcp-server/src/jobRunner.test.ts
+    job_http: npx vitest run mcp-server/src/http.test.ts
+    browser_suites: npm run test:e2e && npm run test:mcp
   script:
     compiler_domain_sweep: "npx tsx _acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts"
   design:
@@ -35,4 +39,9 @@ dev_server:
   start: "npm run dev"
   url: "http://localhost:5173"
 feature_loop:
-  suite_keys: [executors.test.api, executors.test.e2e, executors.test.mcp]
+  # e2e và mcp GỘP thành một lệnh nối tiếp (browser_suites), không tách hai key
+  # nữa: cả hai đều khởi động Chromium thật, mà vòng nghiệm thu chạy các lệnh
+  # SONG SONG. Ngày 2026-08-05 điều đó làm test:mcp đỏ vì page.waitForFunction
+  # quá trần chờ 20s — bộ đo mất 59,7s trong lúc nghiệm thu so với 41-44s khi
+  # chạy riêng. Độ phủ không đổi, chỉ thôi để hai bộ giành trình duyệt của nhau.
+  suite_keys: [executors.test.api, executors.test.browser_suites]

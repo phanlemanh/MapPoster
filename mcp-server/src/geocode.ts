@@ -1,4 +1,8 @@
-import { searchPlaces, fetchRegionBoundary, reverseGeocode } from '../../src/lib/geocoding';
+import {
+  searchPlaces as searchPlacesUpstream,
+  fetchRegionBoundary as fetchRegionBoundaryUpstream,
+  reverseGeocode as reverseGeocodeUpstream,
+} from '../../src/lib/geocoding';
 import { queryCandidates, relaxedCandidates, requiredCity, normalizeVnQuery } from './vnQuery';
 import { envNumber } from '../config';
 import type { GeoJSONFeatureCollection } from '../../src/types';
@@ -48,6 +52,39 @@ let lastUpstreamAt = 0;
 let queue: Promise<void> = Promise.resolve();
 
 /** Test seam: shrink the rate-limit spacing so suites don't wait a second. */
+/**
+ * Nominatim NGÃ — không phải người gọi sai.
+ *
+ * Ranh giới "pha giải = lỗi người gọi" mà `jobRunner` dùng có một chỗ hở: pha
+ * đó bao luôn một lời gọi ra bên thứ ba. Nominatim trả 503 cho `{location:
+ * "Hà Nội"}` thì đầu vào chẳng có lỗi gì, chỉ là bên ngoài đang hỏng — bảo
+ * người gọi "sửa đầu vào đi" là bảo họ chữa một thứ không bệnh, và họ sẽ KHÔNG
+ * thử lại một yêu cầu mà lẽ ra một giây sau là chạy được.
+ *
+ * Phân biệt nằm ở ĐÂY, tại chỗ duy nhất biết mình vừa gọi ra ngoài mạng:
+ * — mạng hỏng / HTTP không ok  → lỗi này (tại máy chủ)
+ * — mạng ổn nhưng không có kết quả → lỗi thường (tại người gọi)
+ */
+export class GeocodeUpstreamError extends Error {
+  constructor(cause: unknown) {
+    super((cause as Error)?.message ?? String(cause));
+    this.name = 'GeocodeUpstreamError';
+  }
+}
+
+const viaUpstream = async <T>(run: () => Promise<T>): Promise<T> => {
+  try {
+    return await run();
+  } catch (e) {
+    throw e instanceof GeocodeUpstreamError ? e : new GeocodeUpstreamError(e);
+  }
+};
+
+const searchPlaces = (...args: Parameters<typeof searchPlacesUpstream>) => viaUpstream(() => searchPlacesUpstream(...args));
+const fetchRegionBoundary = (...args: Parameters<typeof fetchRegionBoundaryUpstream>) =>
+  viaUpstream(() => fetchRegionBoundaryUpstream(...args));
+const reverseGeocode = (...args: Parameters<typeof reverseGeocodeUpstream>) => viaUpstream(() => reverseGeocodeUpstream(...args));
+
 export function __setRateLimitMs(ms: number): void {
   minSpacingMs = ms;
 }

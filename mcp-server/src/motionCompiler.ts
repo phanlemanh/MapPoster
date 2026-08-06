@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionContext, type MotionScript, type MotionTrack } from '../../src/render/motionScript';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
-import { envNumber, DEFAULT_CLIP_CONCURRENCY } from '../config';
+import { envNumber, DEFAULT_CLIP_CONCURRENCY, DEFAULT_JOB_SLOT_WAIT_MS } from '../config';
 
 export type MotionPreset = 'approach' | 'pushIn' | 'drift';
 export interface PresetOverrides {
@@ -299,26 +299,115 @@ export class ClipConcurrencyError extends Error {
   }
 }
 
+export class ClipSlotWaitTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(
+      `Waited ${timeoutMs}ms for a free clip slot (MAPPOSTER_JOB_SLOT_WAIT_MS) and gave up — the gate is saturated.`,
+    );
+    this.name = 'ClipSlotWaitTimeoutError';
+  }
+}
+
 let clipsInFlight = 0;
+
+interface SlotWaiter {
+  grant(release: () => void): void;
+  /** Đã hết hạn hoặc đã được cấp — bỏ qua khi quét hàng. */
+  settled: boolean;
+}
+
+/** Hàng chờ FIFO. Chỉ lối `acquireClipSlotWaiting` xếp vào đây; lối ném-ngay
+ * không bao giờ chờ, nên hai chính sách dùng chung bộ đếm mà không chung hàng. */
+const waiters: SlotWaiter[] = [];
+
+const limitOf = (env: NodeJS.ProcessEnv): number =>
+  envNumber(env, 'MAPPOSTER_CLIP_CONCURRENCY', DEFAULT_CLIP_CONCURRENCY, { min: 1 });
+
+/** Một hàm nhả dùng-một-lần. Nhả xong thì lập tức đánh thức người chờ kế tiếp,
+ * nếu không người cuối hàng sẽ ngồi đó tới hết hạn dù chỗ đã trống. */
+function makeRelease(env: NodeJS.ProcessEnv): () => void {
+  let released = false;
+  return () => {
+    if (released) return; // idempotent — bên gọi có thể nhả ở nhiều lối ra
+    released = true;
+    clipsInFlight--;
+    pumpWaiters(env);
+  };
+}
+
+function pumpWaiters(env: NodeJS.ProcessEnv): void {
+  const limit = limitOf(env);
+  while (clipsInFlight < limit) {
+    const next = waiters.shift();
+    if (!next) return;
+    if (next.settled) continue; // đã hết hạn và rời hàng — bỏ qua, không tiêu chỗ
+    clipsInFlight++;
+    next.settled = true;
+    next.grant(makeRelease(env));
+  }
+}
 
 /**
  * Reserve one of the shared clip slots, or throw `ClipConcurrencyError`
- * immediately — no internal queueing. Queueing here too would just hide the
- * caller-actionable 429/error result behind an even longer hang, on top of
- * the browser-pool queue that already exists downstream. Returns a release
- * function the caller MUST invoke exactly once, in a `finally`, once the
- * render + encode this slot was reserved for has fully finished.
+ * immediately — no internal queueing. Đây là chính sách của ĐƯỜNG ĐỒNG BỘ
+ * (`/render-clip`, MCP `render_clip`): xếp hàng ở đó chỉ biến một lỗi
+ * caller-actionable thành một cái treo dài hơn. Hành vi KHÔNG đổi so với
+ * trước gói async-job-queue. Returns a release function the caller MUST
+ * invoke exactly once, in a `finally`, once the render + encode this slot was
+ * reserved for has fully finished.
  */
 export function acquireClipSlot(env: NodeJS.ProcessEnv = process.env): () => void {
-  const limit = envNumber(env, 'MAPPOSTER_CLIP_CONCURRENCY', DEFAULT_CLIP_CONCURRENCY, { min: 1 });
+  const limit = limitOf(env);
   if (clipsInFlight >= limit) throw new ClipConcurrencyError(limit);
   clipsInFlight++;
-  let released = false;
-  return () => {
-    if (released) return; // idempotent — a caller may release on multiple exit paths
-    released = true;
-    clipsInFlight--;
-  };
+  return makeRelease(env);
+}
+
+/**
+ * Chính sách của THỢ CHẠY VIỆC: xếp hàng chờ tới lượt, nhưng CÓ HẠN.
+ *
+ * Chờ không hạn không phải là kiên nhẫn — nó là treo vĩnh viễn đội lốt "đang
+ * chờ": một slot rò rỉ thì việc nằm trong hàng mãi mãi, người gọi hỏi lại mãi
+ * vẫn thấy *đang chờ*, và bản ghi hết hạn giữ trước khi kịp chạy. Repo đã trả
+ * giá đúng lớp lỗi này một lần ở `browserPool`'s `PoolAcquireTimeoutError`.
+ */
+export function acquireClipSlotWaiting(
+  { timeoutMs, env = process.env }: { timeoutMs?: number; env?: NodeJS.ProcessEnv } = {},
+): Promise<() => void> {
+  const wait = timeoutMs ?? envNumber(env, 'MAPPOSTER_JOB_SLOT_WAIT_MS', DEFAULT_JOB_SLOT_WAIT_MS, { min: 1 });
+
+  if (clipsInFlight < limitOf(env) && waiters.length === 0) {
+    clipsInFlight++;
+    return Promise.resolve(makeRelease(env));
+  }
+
+  return new Promise<() => void>((resolve, reject) => {
+    const waiter: SlotWaiter = {
+      settled: false,
+      grant: (release) => {
+        clearTimeout(timer);
+        resolve(release);
+      },
+    };
+    const timer = setTimeout(() => {
+      if (waiter.settled) return;
+      // Đánh dấu đã xử xong TẠI CHỖ thay vì tìm-và-xoá khỏi mảng: `pumpWaiters`
+      // bỏ qua mọi waiter `settled`, nên hàng không bao giờ tiêu một chỗ trống
+      // cho người đã bỏ cuộc.
+      waiter.settled = true;
+      reject(new ClipSlotWaitTimeoutError(wait));
+    }, wait);
+    // `unref` để một hạn chờ đang treo không giữ tiến trình sống khi tắt server.
+    timer.unref?.();
+    waiters.push(waiter);
+  });
+}
+
+/** CHỈ dùng trong test: bộ đếm và hàng chờ là trạng thái cấp module, nên hai
+ * test chạy nối nhau sẽ nhiễm nhau nếu không dọn. */
+export function resetClipGateForTests(): void {
+  clipsInFlight = 0;
+  waiters.length = 0;
 }
 
 export interface ClipPreparation {
@@ -355,7 +444,20 @@ export async function prepareClipRender(
   motionInput: unknown,
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<ClipPreparation> {
-  const releaseClipSlot = acquireClipSlot(env);
+  return prepareClipRenderWithSlot(params, motionInput, acquireClipSlot(env), env);
+}
+
+/**
+ * Cùng phần chuẩn bị, nhưng slot do BÊN GỌI cấp. Thợ chạy việc lấy slot bằng
+ * lối chờ (`acquireClipSlotWaiting`) rồi đưa hàm nhả vào đây, nên nó dùng
+ * đúng một đường chuẩn bị với đường đồng bộ thay vì dựng bản sao thứ hai.
+ */
+export async function prepareClipRenderWithSlot(
+  params: RenderMapParams,
+  motionInput: unknown,
+  releaseClipSlot: () => void,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<ClipPreparation> {
   try {
     const parsed = parseMotionParam(motionInput);
     if (!parsed.success) throw new MotionParamError(parsed.error);

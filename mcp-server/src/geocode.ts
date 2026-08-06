@@ -274,11 +274,18 @@ export async function resolveBoundary(place: string, expectCountry?: string): Pr
   await throttle();
   // fetchRegionBoundary THROWS on a transient upstream failure and returns null
   // only for a definitive "no polygon". So a throw here skips the cache write —
-  // an outage must never be memoized as "this region does not exist". Passing the
-  // hit's osm_type/osm_id fetches the polygon of the entity we actually matched.
+  // an outage must never be memoized as "this region does not exist". We pass
+  // `hit`'s osm_type/osm_id so fetchRegionBoundary tries the exact entity we
+  // matched FIRST — but it is not guaranteed to be what the polygon actually
+  // comes from: if that exact lookup yields a non-area (a node/POI, or a
+  // non-multipolygon relation), fetchRegionBoundary silently falls through to
+  // a second `/search?limit=1` on `name, country` and returns THAT entity's
+  // polygon instead. Echoing `hit`'s identity in that case would name an
+  // entity that is not what got drawn — so echo `b`'s own identity, which
+  // `RegionBoundary` now carries precisely because it can differ from `hit`.
   const b = await fetchRegionBoundary(hit);
   const resolved: ResolvedBoundary | null = b
-    ? { geojson: b.geojson, osmType: hit.osmType, osmId: hit.osmId, displayName: hit.displayName, placeRank: hit.placeRank }
+    ? { geojson: b.geojson, osmType: b.osmType, osmId: b.osmId, displayName: b.displayName, placeRank: b.placeRank }
     : null;
   lruSet(boundaryCache, key, resolved);
   return resolved;

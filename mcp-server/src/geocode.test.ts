@@ -12,7 +12,13 @@ const searchItem = {
   display_name: 'Hanoi, Vietnam', boundingbox: ['20.9', '21.1', '105.7', '105.9'],
   address: { city: 'Hanoi', country: 'Vietnam' },
 };
-const boundaryItem = { display_name: 'Quận 3, HCMC', geojson: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] } };
+const boundaryItem = {
+  osm_type: 'relation',
+  osm_id: 1234,
+  place_rank: 18,
+  display_name: 'Quận 3, HCMC',
+  geojson: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+};
 
 beforeEach(() => __setRateLimitMs(0));
 afterEach(() => { vi.unstubAllGlobals(); __resetGeoCache(); });
@@ -205,6 +211,57 @@ describe('resolveBoundary', () => {
     expect(urls.some((u) => u.includes('/search?') && u.includes('District 3, Ho Chi Minh City'))).toBe(true);
     // the polygon came from the relation we matched, not from a second global name search
     expect(urls.some((u) => u.includes('/lookup?') && u.includes('R1234'))).toBe(true);
+  });
+
+  it('echoes the identity of the entity the polygon actually came from — not the hit — when the exact lookup falls through (R1-IMPORTANT)', async () => {
+    // fetchRegionBoundary (src/lib/geocoding.ts) first tries an EXACT lookup on
+    // the matched hit's own osm_type/osm_id. If that entity turns out not to be
+    // an area (a node/POI, or a non-multipolygon relation), it silently falls
+    // through to a second `/search?limit=1` on `name, country` and returns
+    // THAT entity's polygon instead — a DIFFERENT OSM object than `hit`.
+    // Echoing `hit`'s identity in that case names an entity that is not what
+    // got drawn; the identity must come from whichever entity produced the
+    // polygon.
+    const fallbackMatch = {
+      osm_type: 'relation',
+      osm_id: 5555,
+      place_rank: 16,
+      display_name: 'District 3 (fallback match), Ho Chi Minh City, Vietnam',
+      geojson: boundaryItem.geojson,
+    };
+    const urls: string[] = [];
+    const fn = vi.fn(async (url?: string) => {
+      const u = decodeURIComponent(String(url));
+      urls.push(u);
+      if (u.includes('/lookup?') && u.includes('R1234')) {
+        // the exact lookup for `hit` (district3, R1234) resolves to a non-area
+        // entity — no `geojson` field, so toBoundary() rejects it and
+        // fetchRegionBoundary falls through to the name search below.
+        return { ok: true, json: async () => [{ osm_type: 'node', osm_id: 1234, display_name: 'District 3 (a node, not an area)' }] } as unknown as Response;
+      }
+      if (u.includes('/search?') && u.includes('District 3, Vietnam')) {
+        // fetchRegionBoundary's own fallback: `[hit.name, hit.country].join(', ')`
+        return { ok: true, json: async () => [fallbackMatch] } as unknown as Response;
+      }
+      if (u.includes('/search?') && u.includes('District 3, Ho Chi Minh City')) {
+        // the searchLadder canonicalisation that produces `hit` in the first place
+        return { ok: true, json: async () => [district3] } as unknown as Response;
+      }
+      return { ok: true, json: async () => [] } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    const b = await resolveBoundary('Quận 3, HCMC');
+    expect(b?.geojson.features[0].geometry.type).toBe('Polygon');
+    // identity is the FALLBACK entity's (5555 / "fallback match"), never
+    // `hit`'s (1234 / "District 3, Ho Chi Minh City, Vietnam")
+    expect(b).toMatchObject({
+      osmType: 'relation',
+      osmId: 5555,
+      displayName: 'District 3 (fallback match), Ho Chi Minh City, Vietnam',
+      placeRank: 16,
+    });
+    expect(urls.some((u) => u.includes('/lookup?') && u.includes('R1234'))).toBe(true); // it did try the exact entity first
   });
 
   it('rejects a region hit that lands outside the city the query named', async () => {

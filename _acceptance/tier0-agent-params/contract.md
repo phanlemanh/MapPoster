@@ -31,7 +31,7 @@ Source input: prompt (phiên 2026-08-06) · spec `docs/superpowers/specs/2026-08
 
 ## Criteria
 
-- AC-1: Given một lời gọi `render_map` mang `layers`, `detail` và `font` hợp lệ, When `resolveConfig` chạy, Then `RenderConfig` nhận đúng ba giá trị đó (không bị nuốt, không bị thay mặc định).
+- AC-1: Given một lời gọi `render_map` mang `layers`, `detail` và `font` hợp lệ, When `resolveConfig` chạy, Then `RenderConfig` nhận đúng cả ba giá trị đó verbatim.
 - AC-2: Given một lời gọi mang **cả** `labels` **lẫn** `layers.roadLabels`, When `resolveConfig` chạy, Then lời gọi bị **từ chối** với thông điệp nêu rõ hai trường cùng đặt một công tắc — không được tự chọn bên thắng.
 - AC-3: Given input ngoài miền (`detail` > 1, `font` lạ, khoá layer lạ, giá trị layer không phải boolean), When `resolveConfig` chạy, Then mỗi trường hợp bị **từ chối** kèm thông điệp nêu tên trường và giá trị sai; `detail = 0` và `detail = 1` (biên hợp lệ) vẫn **được nhận**.
 - AC-4: Given `highlight.regions` chứa cả ba dạng (chuỗi trần, `{name,color}`, `{geojson,color}`), When `resolveConfig` chạy, Then mỗi region mang đúng màu của riêng nó và region không khai màu nhận `null` (rơi về màu chung); một màu sai định dạng ở **bất kỳ** phần tử nào làm cả lời gọi bị từ chối.
@@ -43,7 +43,7 @@ Source input: prompt (phiên 2026-08-06) · spec `docs/superpowers/specs/2026-08
 - AC-10: Given agent gọi `list_formats`, When tool trả về, Then `4k` xuất hiện **đúng một lần**, mỗi mục mang `aspect`/`category` đúng loại thật của nó, mục in mang `print`, mục không in **không có** khoá `print`.
 - AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.
 - AC-12: Given `camera.pitch` ngoài `0..60`, When `resolveConfig` chạy, Then bị **từ chối**; và Given `camera.bearing` âm hoặc ngoài `0..360` (ví dụ `-45`), Then **không** bị từ chối mà được **normalize** (`-45` → `315`) — bound bearing sẽ là gỡ một năng lực MapLibre đang chạy được.
-- AC-13: Given `camera.bearing` khác 0 kèm `motion.preset`, When preset được compile, Then **mọi** keyframe sinh ra mang bearing đó; và Given config **không** có bearing, Then script compile ra **y hệt** như trước gói này (bất biến determinism không bị động).
+- AC-13: Given `camera.bearing` khác 0 kèm `motion.preset`, When preset được compile, Then **mọi** keyframe sinh ra mang bearing đó; và Given config thiếu bearing, Then script compile ra **y hệt** như trước gói này (giữ bất biến determinism).
 - AC-14: Given `render_animation` được gọi với `delivery: 'url'`, When tool trả về, Then **không** có khối ảnh base64 nội tuyến nào; và Given output vượt `MAPPOSTER_CLIP_MAX_BYTES` ở định dạng thứ hai của `format: 'both'`, Then lời gọi bị từ chối và **mọi** file đã ghi trước đó (kể cả file đầu đã hợp lệ) bị xoá khỏi sink.
 - AC-15: Given một region tên gọi phải đi qua nhánh fallback của `fetchRegionBoundary` (lookup chính xác không ra vùng), When `resolved.highlights.regions[i]` trả về, Then identity (`osmType`/`osmId`/`displayName`/`placeRank`) là của entity **thực sự sinh ra polygon**, không phải của search hit ban đầu.
 

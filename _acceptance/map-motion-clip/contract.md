@@ -5,7 +5,7 @@ slug: map-motion-clip
 owner: phanlemanh@gmail.com
 risk_tier: T3
 surfaces: [api, sdk]
-status: signed-off
+status: implemented
 approved_by: manh
 approved_at: 2026-08-04
 time_human_minutes: {gate1: 15, gate2: 5}

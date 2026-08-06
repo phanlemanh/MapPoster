@@ -1,7 +1,7 @@
 import { resolveLocation, resolveBoundary, resolveCountryAt } from './geocode';
 import { LAYOUTS } from '../../src/data/layouts';
 import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
-import type { FontKey, GeoJSONFeatureCollection, LayerState, MarkerIconKey } from '../../src/types';
+import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
 import { FONTS } from '../../src/data/fonts';
 
@@ -73,6 +73,28 @@ function assertDetail(d: number): number {
 function assertFont(key: string): FontKey {
   if (FONTS.some((f) => f.key === key)) return key as FontKey;
   throw new Error(`Unknown font: ${key}. Known fonts: ${FONTS.map((f) => f.key).join(', ')}`);
+}
+
+/** Mirror `layerStateSchema` in tools.ts — do not let the two drift. */
+const LAYER_KEYS: LayerKey[] = ['landcover', 'buildings', 'water', 'parks', 'roads', 'rail', 'aeroway', 'roadLabels'];
+
+/**
+ * `layers` is spread straight into `applyRenderConfig`'s `{ ...ALL_LAYERS_ON,
+ * ...(cfg.layers ?? {}) }` merge, producing a `LayerState` (typed
+ * `Record<LayerKey, boolean>`). Bound it here as well as at the Zod boundary —
+ * every runtime guard in this file exists because the boundary can be
+ * bypassed (`makeTools` is called directly).
+ */
+function assertLayers(value: Partial<LayerState>): Partial<LayerState> {
+  for (const [key, v] of Object.entries(value)) {
+    if (!LAYER_KEYS.includes(key as LayerKey)) {
+      throw new Error(`Unknown layer: ${key}. Known layers: ${LAYER_KEYS.join(', ')}`);
+    }
+    if (typeof v !== 'boolean') {
+      throw new Error(`Invalid layer value for ${key}: ${JSON.stringify(v)} (must be a boolean)`);
+    }
+  }
+  return value;
 }
 
 export function formatSize(format?: FormatInput): { width: number; height: number } {
@@ -203,6 +225,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   if (params.labels !== undefined && params.layers?.roadLabels !== undefined) {
     throw new Error('Pass either labels or layers.roadLabels, not both — they set the same switch');
   }
+  const layers = params.layers != null ? assertLayers(params.layers) : undefined;
   const detail = params.detail != null ? assertDetail(params.detail) : undefined;
   const font = params.font != null ? assertFont(params.font) : undefined;
 
@@ -286,8 +309,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     highlight,
     markers: markers.length ? markers : undefined,
     layers:
-      params.layers || params.labels
-        ? { ...(params.layers ?? {}), ...(params.labels ? { roadLabels: true } : {}) }
+      layers || params.labels
+        ? { ...(layers ?? {}), ...(params.labels ? { roadLabels: true } : {}) }
         : undefined,
     detail,
     font,

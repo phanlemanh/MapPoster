@@ -224,4 +224,13 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 1.5 })).rejects.toThrow(/invalid detail/i);
     await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, font: 'Comic Sans' as never })).rejects.toThrow(/unknown font/i);
   });
+
+  it('rejects an unknown layer key and a non-boolean layer value (Zod-bypass guard)', async () => {
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, layers: { foo: true } as never }),
+    ).rejects.toThrow(/unknown layer/i);
+    await expect(
+      resolveConfig({ location: { lng: 106.7, lat: 10.78 }, layers: { buildings: 'yes' } as never }),
+    ).rejects.toThrow(/invalid layer/i);
+  });
 });

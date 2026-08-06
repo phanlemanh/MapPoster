@@ -46,6 +46,8 @@ export interface RenderMapParams {
   routes?: RouteInput[];
   /** Geometry questions answered from the resolved config — no extra network. */
   measure?: { pairs?: [number, number][] };
+  /** Encoder knobs. mp4-only — GIF ignores crf. */
+  output?: { quality?: 'draft' | 'standard' | 'high' };
   /** Per-layer visibility. Mutually exclusive with `labels` for roadLabels. */
   layers?: Partial<LayerState>;
   /** 0..1 map detail (road-width ramp; minor roads appear strictly above 0.12). */

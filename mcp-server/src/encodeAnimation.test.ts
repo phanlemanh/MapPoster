@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeArgs, ffmpegBin, checkFfmpegAvailable } from './encodeAnimation';
+import { encodeArgs, ffmpegBin, checkFfmpegAvailable, type EncodeOpts } from './encodeAnimation';
 
 describe('encodeArgs', () => {
   it('GIF: scales, palettegen/paletteuse in one graph, loops forever', () => {

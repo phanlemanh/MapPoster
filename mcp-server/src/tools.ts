@@ -7,6 +7,7 @@ import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
+import type { EncodeOpts } from './encodeAnimation';
 import { FONTS } from '../../src/data/fonts';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';

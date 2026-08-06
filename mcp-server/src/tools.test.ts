@@ -275,6 +275,31 @@ describe('render_animation', () => {
       delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
     }
   });
+
+  it('rolls back an already-written gif when format "both" busts the cap on the mp4 output', async () => {
+    const partialEncode = vi.fn(async (_f: Buffer[], opts: { format: 'gif' | 'mp4'; outPath: string }) => {
+      // gif lands under the cap; mp4 (checked second, per `wanted` order) busts it —
+      // keyed off opts.format rather than call order so the test doesn't depend on
+      // which format the implementation happens to encode first.
+      await fs.writeFile(opts.outPath, Buffer.alloc(opts.format === 'mp4' ? 64 : 5));
+      return opts.outPath;
+    });
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    try {
+      const t = makeTools({ render, renderAnimation, encodeAnimation: partialEncode, sinkDir, defaultDelivery: 'both' });
+      const res = await t.render_animation({
+        location: { lng: 106.7, lat: 10.78 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+        animation: { frames: 4, format: 'both' },
+      });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      const leftovers = (await fs.readdir(sinkDir)).filter((f) => f.endsWith('.gif') || f.endsWith('.mp4'));
+      expect(leftovers).toHaveLength(0); // the already-accepted gif must be rolled back, not just the mp4 that tripped the cap
+    } finally {
+      delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    }
+  });
 });
 
 describe('render_clip', () => {

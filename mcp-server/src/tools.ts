@@ -326,7 +326,11 @@ const cameraSchema = z
   .object({
     center: z.tuple([lng, lat]).optional(),
     zoom: zoomLevel.optional(),
-    bearing: z.number().min(0).max(360).optional(),
+    // No range bound: resolveConfig normalizes any finite bearing to [0,360)
+    // (lerpAngle already uses that convention) rather than rejecting it —
+    // MapLibre renders e.g. bearing: -45 correctly, so refusing it here would
+    // be a regression, not a fix.
+    bearing: z.number().finite().optional(),
     pitch: z.number().min(0).max(60).optional(),
   })
   .optional();

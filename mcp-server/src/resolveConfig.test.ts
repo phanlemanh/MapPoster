@@ -218,11 +218,28 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 500, lat: 0 }] } })).rejects.toThrow(/invalid longitude/i);
   });
 
-  it('bounds camera bearing to 0..360 and pitch to 0..60', async () => {
+  it('bounds camera pitch to 0..60 (MapLibre maxPitch — 85 used to be accept-then-discard)', async () => {
     await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 200 } })).rejects.toThrow(/invalid pitch/i);
-    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: -5 } })).rejects.toThrow(/invalid bearing/i);
-    const cfg = await resolveConfig({ location: 'HCMC', camera: { bearing: 45, pitch: 30 } });
-    expect(cfg.camera).toMatchObject({ bearing: 45, pitch: 30 });
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -1 } })).rejects.toThrow(/invalid pitch/i);
+  });
+
+  it('normalizes bearing to [0,360) instead of rejecting out-of-range values (F3)', async () => {
+    // MapLibre renders `bearing: -45` correctly today, and lerpAngle
+    // (src/render/motionMath.ts) already normalizes to [0,360) — rejecting it
+    // here would be a regression, not a fix. Normalize instead.
+    const cfg = await resolveConfig({ location: 'HCMC', camera: { bearing: -45, pitch: 30 } });
+    expect(cfg.camera).toMatchObject({ bearing: 315, pitch: 30 });
+
+    const wrapped = await resolveConfig({ location: 'HCMC', camera: { bearing: 405 } });
+    expect(wrapped.camera.bearing).toBe(45);
+
+    const exact = await resolveConfig({ location: 'HCMC', camera: { bearing: 45 } });
+    expect(exact.camera.bearing).toBe(45);
+  });
+
+  it('still rejects a non-finite bearing', async () => {
+    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: Infinity } })).rejects.toThrow(/invalid bearing/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: NaN } })).rejects.toThrow(/invalid bearing/i);
   });
 
   it('passes layers, detail and font through to the render config', async () => {

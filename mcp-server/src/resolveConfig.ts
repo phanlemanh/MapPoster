@@ -70,9 +70,20 @@ function assertZoom(zoom: number): number {
   return zoom;
 }
 
-function assertBearing(b: number): number {
-  if (!Number.isFinite(b) || b < 0 || b > 360) throw new Error(`Invalid bearing: ${b} (must be between 0 and 360)`);
-  return b;
+/**
+ * Bearing has no engine-imposed range: MapLibre renders `bearing: -45`
+ * correctly today, and `lerpAngle` (src/render/motionMath.ts) already
+ * normalizes an arbitrary angle to `[0,360)` for the clip-motion path.
+ * Rejecting anything outside 0..360 (as an earlier version of this function
+ * did) is a regression — a caller passing a perfectly valid `-45` gets a
+ * refusal instead of a picture. Normalize instead, so every consumer of
+ * `RenderConfig.camera.bearing` sees the same `[0,360)` convention lerpAngle
+ * already uses. Non-finite input is still rejected — there is no angle to
+ * normalize it to.
+ */
+function normalizeBearing(b: number): number {
+  if (!Number.isFinite(b)) throw new Error(`Invalid bearing: ${b} (must be a finite number)`);
+  return ((b % 360) + 360) % 360;
 }
 
 /** 60, không phải 85: maxPitch mặc định của MapLibre là 60 — nhận 85 rồi để engine clamp là nhận-rồi-vứt. */
@@ -298,7 +309,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
   if (params.camera?.center) assertLngLat(params.camera.center[0], params.camera.center[1]);
   if (params.camera?.zoom != null) assertZoom(params.camera.zoom);
-  if (params.camera?.bearing != null) assertBearing(params.camera.bearing);
+  const bearing = params.camera?.bearing != null ? normalizeBearing(params.camera.bearing) : undefined;
   if (params.camera?.pitch != null) assertPitch(params.camera.pitch);
 
   // Validate everything cheap BEFORE the first network call: a bad theme or
@@ -430,7 +441,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     : undefined;
 
   return {
-    camera: { center, zoom, bearing: cam.bearing, pitch: cam.pitch },
+    camera: { center, zoom, bearing, pitch: cam.pitch },
     size,
     theme,
     chrome,

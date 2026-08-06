@@ -181,7 +181,7 @@ export function makeTools(deps: ToolDeps) {
           // still, exactly as it does for the other image tools.
           const name = fileNameFor(cfg);
           const outPath = path.join(deps.sinkDir, `${name}.mp4`);
-          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+          const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
           let bytes: number;
           try {

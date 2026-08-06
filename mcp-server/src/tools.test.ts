@@ -289,6 +289,19 @@ describe('render_clip', () => {
     expect(textJson(res).motion.restAtSec).toBeCloseTo(3.9, 3);
   });
 
+  it('echoes the compiled MotionScript so agents can inspect and tweak it', async () => {
+    const res = await clipTools().render_clip({
+      location: { lng: 105.85, lat: 21.03, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.03 }] },
+      motion: { preset: 'pushIn' },
+    });
+    const j = textJson(res);
+    expect(j.motion.script).toBeDefined();
+    expect(j.motion.script.fps).toBe(j.clip.fps);
+    expect(Array.isArray(j.motion.script.camera)).toBe(true);
+    expect(j.motion.script.camera.length).toBeGreaterThan(1);
+  });
+
   it('forces chrome clean on the config handed to renderClip even when the caller asks for poster (AC-9)', async () => {
     await clipTools().render_clip({ location: 'HCMC', chrome: 'poster', ...point, motion: { preset: 'pushIn' } });
     expect(lastCfg?.chrome).toBe('clean');

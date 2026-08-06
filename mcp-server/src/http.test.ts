@@ -364,7 +364,7 @@ interface ClipResBody {
   error?: string;
   clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
   settle?: { base64: string; format: string; width: number; height: number };
-  motion?: { preset?: string; restAtSec: number };
+  motion?: { preset?: string; restAtSec: number; script?: { fps: number; camera: unknown[] } };
   resolved?: { center: [number, number] };
   clipError?: string;
 }
@@ -403,6 +403,7 @@ describe('POST /render-clip', () => {
     expect(body.settle?.format).toBe('png');
     expect(body.motion?.preset).toBe('pushIn');
     expect(body.motion?.restAtSec).toBeCloseTo(3.9, 3);
+    expect(Array.isArray(body.motion?.script?.camera)).toBe(true);
     expect(body.resolved?.center).toBeDefined();
     expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
     expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report

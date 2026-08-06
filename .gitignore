@@ -35,3 +35,6 @@ coverage
 
 # transient backup from stdioChannel.test.ts (if a test worker is killed mid-run)
 /dist.__stdiotest_bak
+
+# ảnh demo Tier 0 — sinh lại bằng scripts/demo-tier0.ts, không cần versioned
+_acceptance/tier0-agent-params/demo/

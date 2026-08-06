@@ -3,19 +3,81 @@
   "scope_plain": "Chưa làm phần giữ việc sống sót qua khởi động lại máy chủ, chưa gọi ngược khi xong, chưa huỷ việc, chưa màn hình xem hàng đợi — để dành cho vòng sau.",
   "decisions": [],
   "decisions_plain": [
-    { "id": "d-20260805T010154Z-1137", "p": "KHÔNG làm phần giữ việc sống sót qua khởi động lại — đổi lại chưa phải chốt chuyện hạ tầng và tiền ngay vòng đầu, nhưng máy chủ khởi động lại là mọi mã việc thành vô danh." },
-    { "id": "d-20260805T010154Z-1274", "p": "Dùng đúng một chỗ giữ trần số việc chạy cùng lúc cho cả đường cũ lẫn đường mới — đổi lại phải sửa một tệp đang phục vụ thật, nên có một tiêu chí riêng khoá hành vi cũ lại." },
-    { "id": "d-20260805T010154Z-1411", "p": "Bỏ hai lối thay thế là thợ tự thử lại theo đồng hồ và biến mọi thứ thành việc — đổi lại thứ tự phục vụ kiểm được và đường đang chạy không bị đổi ngầm." },
-    { "id": "d-20260805T010154Z-1548", "p": "Đường gọi cũ KHÔNG được hưởng hàng chờ — đổi lại không có thay đổi ngầm nào ở thứ đang chạy thật, nhưng ai muốn hết bị từ chối thì phải dọn sang lối mới." },
-    { "id": "d-20260805T010154Z-1685", "p": "Cất kết quả xuống đĩa thay vì giữ trong bộ nhớ — đổi lại máy chủ không phình theo số việc, nhưng phải tự dọn tệp khi hết hạn." },
-    { "id": "d-20260805T010154Z-1822", "p": "KHÔNG làm phần gọi ngược khi xong, dù các sản phẩm cùng loại đều có — đổi lại bên tiêu thụ phải tự hỏi lại theo nhịp." },
-    { "id": "d-20260805T010154Z-1959", "p": "KHÔNG theo cách báo kết quả của chuẩn HTTP chung, mà giữ đúng nếp trả lời sẵn có của repo — đổi lại quen thuộc với người trong nhà, hơi lạ với một khách hàng tổng quát." },
-    { "id": "d-20260805T011100Z-2096", "p": "Chỉ một bộ phận được phép chạm đĩa, cả lúc ghi lẫn lúc xoá — đổi lại phần sổ sách kiểm thử được rất nhanh, nhưng việc dọn tệp phụ thuộc vào bộ phận đó còn sống." },
-    { "id": "d-20260805T011100Z-2233", "p": "Chờ quá hạn thì báo hỏng chứ không tự thử lại — đổi lại sự cố không bị che, nhưng một đợt tắc ngắn cũng giết việc đáng lẽ chạy được và người gọi phải gửi lại." },
-    { "id": "d-20260805T032458Z-3011", "p": "Trần hàng chờ chỉ đếm việc ĐANG CHỜ, không đếm việc đã xong — đổi lại một loạt việc vừa xong không chặn người gửi mới, nhưng bộ nhớ có thể phình giữa hai lượt dọn." },
-    { "id": "d-20260805T033836Z-4021", "p": "Gửi thân yêu cầu quá khổ vào đường gọi CŨ nay nhận mã lỗi tử tế thay vì đứt kết nối — đổi lại ba cửa hưởng đúng một luật, NHƯNG đây là thay đổi hành vi ở đường đang chạy thật, ngược ràng buộc anh chốt ở Cổng 1." },
-    { "id": "d-20260805T040127Z-5017", "p": "Phân biệt lỗi tại ai theo vị trí trong luồng thay vì theo chữ trong thông điệp — đổi lại hai lối gọi thôi bất đồng về cùng một đầu vào, nhưng sự cố hạ tầng xảy ra đúng lúc phân giải đầu vào sẽ bị tính là lỗi người gọi." },
-    { "id": "d-20260805T042459Z-6023", "p": "KHÔNG sửa code để chiều một bộ đo đỏ vì tranh chấp tài nguyên — đổi lại không nới trần chờ của một bài kiểm có sẵn chỉ để làm đẹp bảng điểm, nhưng phải tốn một vòng nghiệm thu nữa." },
-    { "id": "d-20260805T071657Z-7029", "p": "Hai bộ đo cùng cần trình duyệt nay chạy nối tiếp thay vì tranh nhau — đổi lại độ phủ giữ nguyên và mọi việc sau của kho này được hưởng, nhưng khi đỏ thì phải đọc kỹ hơn mới biết đỏ ở đâu." }
+    {
+      "id": "d-20260805T010154Z-1137",
+      "p": "KHÔNG làm phần giữ việc sống sót qua khởi động lại — đổi lại chưa phải chốt chuyện hạ tầng và tiền ngay vòng đầu, nhưng máy chủ khởi động lại là mọi mã việc thành vô danh."
+    },
+    {
+      "id": "d-20260805T010154Z-1274",
+      "p": "Dùng đúng một chỗ giữ trần số việc chạy cùng lúc cho cả đường cũ lẫn đường mới — đổi lại phải sửa một tệp đang phục vụ thật, nên có một tiêu chí riêng khoá hành vi cũ lại."
+    },
+    {
+      "id": "d-20260805T010154Z-1411",
+      "p": "Bỏ hai lối thay thế là thợ tự thử lại theo đồng hồ và biến mọi thứ thành việc — đổi lại thứ tự phục vụ kiểm được và đường đang chạy không bị đổi ngầm."
+    },
+    {
+      "id": "d-20260805T010154Z-1548",
+      "p": "Đường gọi cũ KHÔNG được hưởng hàng chờ — đổi lại không có thay đổi ngầm nào ở thứ đang chạy thật, nhưng ai muốn hết bị từ chối thì phải dọn sang lối mới."
+    },
+    {
+      "id": "d-20260805T010154Z-1685",
+      "p": "Cất kết quả xuống đĩa thay vì giữ trong bộ nhớ — đổi lại máy chủ không phình theo số việc, nhưng phải tự dọn tệp khi hết hạn."
+    },
+    {
+      "id": "d-20260805T010154Z-1822",
+      "p": "KHÔNG làm phần gọi ngược khi xong, dù các sản phẩm cùng loại đều có — đổi lại bên tiêu thụ phải tự hỏi lại theo nhịp."
+    },
+    {
+      "id": "d-20260805T010154Z-1959",
+      "p": "KHÔNG theo cách báo kết quả của chuẩn HTTP chung, mà giữ đúng nếp trả lời sẵn có của repo — đổi lại quen thuộc với người trong nhà, hơi lạ với một khách hàng tổng quát."
+    },
+    {
+      "id": "d-20260805T011100Z-2096",
+      "p": "Chỉ một bộ phận được phép chạm đĩa, cả lúc ghi lẫn lúc xoá — đổi lại phần sổ sách kiểm thử được rất nhanh, nhưng việc dọn tệp phụ thuộc vào bộ phận đó còn sống."
+    },
+    {
+      "id": "d-20260805T011100Z-2233",
+      "p": "Chờ quá hạn thì báo hỏng chứ không tự thử lại — đổi lại sự cố không bị che, nhưng một đợt tắc ngắn cũng giết việc đáng lẽ chạy được và người gọi phải gửi lại."
+    },
+    {
+      "id": "d-20260805T032458Z-3011",
+      "p": "Trần hàng chờ chỉ đếm việc ĐANG CHỜ, không đếm việc đã xong — đổi lại một loạt việc vừa xong không chặn người gửi mới, nhưng bộ nhớ có thể phình giữa hai lượt dọn."
+    },
+    {
+      "id": "d-20260805T033836Z-4021",
+      "p": "Gửi thân yêu cầu quá khổ vào đường gọi CŨ nay nhận mã lỗi tử tế thay vì đứt kết nối — đổi lại ba cửa hưởng đúng một luật, NHƯNG đây là thay đổi hành vi ở đường đang chạy thật, ngược ràng buộc anh chốt ở Cổng 1."
+    },
+    {
+      "id": "d-20260805T040127Z-5017",
+      "p": "Phân biệt lỗi tại ai theo vị trí trong luồng thay vì theo chữ trong thông điệp — đổi lại hai lối gọi thôi bất đồng về cùng một đầu vào, nhưng sự cố hạ tầng xảy ra đúng lúc phân giải đầu vào sẽ bị tính là lỗi người gọi."
+    },
+    {
+      "id": "d-20260805T042459Z-6023",
+      "p": "KHÔNG sửa code để chiều một bộ đo đỏ vì tranh chấp tài nguyên — đổi lại không nới trần chờ của một bài kiểm có sẵn chỉ để làm đẹp bảng điểm, nhưng phải tốn một vòng nghiệm thu nữa."
+    },
+    {
+      "id": "d-20260805T071657Z-7029",
+      "p": "Hai bộ đo cùng cần trình duyệt nay chạy nối tiếp thay vì tranh nhau — đổi lại độ phủ giữ nguyên và mọi việc sau của kho này được hưởng, nhưng khi đỏ thì phải đọc kỹ hơn mới biết đỏ ở đâu."
+    },
+    {
+      "id": "d-20260805T090141Z-8011",
+      "p": "Anh xử 12 lỗi ngoài hợp đồng thành ba nhóm: hai cái sửa ngay, một cái tách việc riêng, chín cái ghi hạn chế rồi ship — đổi lại chỉ động vào thứ ảnh hưởng hành vi thật, nhưng phải mở lại vòng nghiệm thu sau khi đã đạt."
+    },
+    {
+      "id": "d-20260805T090141Z-8148",
+      "p": "Không nhận một việc dựng clip khi biết trước nó sẽ phải ngồi chờ — đổi lại việc dựng ảnh thôi bị kẹt sau nó, nhưng thêm một con số phải giữ khớp với vòng thợ."
+    },
+    {
+      "id": "d-20260805T090141Z-8285",
+      "p": "Tách phần đọc cấu hình ra thành một mảnh riêng để kiểm được — đổi lại câu hỏi 'núm này có tác dụng thật không' trở thành một bài kiểm chạy được, chứ không còn là lời hứa trong tài liệu."
+    },
+    {
+      "id": "d-20260805T092412Z-9017",
+      "p": "Dịch vụ tra toạ độ bên ngoài ngã thì báo là lỗi máy chủ, không đổ cho người gọi — đổi lại họ biết nên thử lại thay vì đi sửa một yêu cầu vốn không sai."
+    },
+    {
+      "id": "d-20260805T092412Z-9154",
+      "p": "Kết quả clip ở đường mới mang đủ thời lượng và số khung mỗi giây như đường cũ — đổi lại bên tiêu thụ dọn sang không mất dữ liệu trong im lặng."
+    }
   ]
 }

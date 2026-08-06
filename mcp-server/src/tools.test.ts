@@ -241,6 +241,40 @@ describe('render_animation', () => {
     const res = await tools().render_animation({ location: 'HCMC', ...point });
     expect(res.isError).toBe(true);
   });
+
+  it('honours delivery for the preview still (url → no inline base64)', async () => {
+    const res = await animTools().render_animation({
+      location: { lng: 106.7, lat: 10.78 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      animation: { frames: 4 },
+      delivery: 'url',
+    });
+    expect(res.isError).toBeFalsy();
+    expect(imageBlocks(res)).toHaveLength(0); // trước fix: luôn 1 block inline
+    expect(textJson(res).image.path).toMatch(/-preview\.png$/);
+  });
+
+  it('refuses an animation over MAPPOSTER_CLIP_MAX_BYTES and removes the file', async () => {
+    const bigEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
+      await fs.writeFile(opts.outPath, Buffer.alloc(64)); // stat.size = 64
+      return opts.outPath;
+    });
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '10';
+    try {
+      const t = makeTools({ render, renderAnimation, encodeAnimation: bigEncode, sinkDir, defaultDelivery: 'both' });
+      const res = await t.render_animation({
+        location: { lng: 106.7, lat: 10.78 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+        animation: { frames: 4, format: 'gif' },
+      });
+      expect(res.isError).toBe(true);
+      expect(textJson(res).error).toMatch(/MAPPOSTER_CLIP_MAX_BYTES/);
+      const leftovers = (await fs.readdir(sinkDir)).filter((f) => f.endsWith('.gif'));
+      expect(leftovers).toHaveLength(0);
+    } finally {
+      delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    }
+  });
 });
 
 describe('render_clip', () => {

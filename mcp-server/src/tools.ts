@@ -104,6 +104,7 @@ export function makeTools(deps: ToolDeps) {
     async render_animation(
       params: RenderMapParams & {
         animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string };
+        delivery?: DeliveryMode;
       },
     ): Promise<ToolResult> {
       try {
@@ -126,7 +127,8 @@ export function makeTools(deps: ToolDeps) {
         });
 
         const name = fileNameFor(cfg);
-        const outputs: { format: 'gif' | 'mp4'; path: string }[] = [];
+        const cap = envNumber(process.env, 'MAPPOSTER_CLIP_MAX_BYTES', DEFAULT_CLIP_MAX_BYTES, { min: 1 });
+        const outputs: { format: 'gif' | 'mp4'; path: string; bytes: number }[] = [];
         const wanted: ('gif' | 'mp4')[] = format === 'both' ? ['gif', 'mp4'] : [format];
         for (const f of wanted) {
           const outPath = await deps.encodeAnimation(pngs, {
@@ -136,14 +138,24 @@ export function makeTools(deps: ToolDeps) {
             // full-size 256-color GIFs are enormous; default to half-width unless told otherwise
             gifWidth: f === 'gif' ? (anim.gifWidth ?? Math.min(540, cfg.size.width)) : undefined,
           });
-          outputs.push({ format: f, path: outPath });
+          const { size: bytes } = await fs.stat(outPath);
+          if (bytes > cap) {
+            // Cùng chính sách với render_clip (Finding C): file quá cỡ trong sinkDir
+            // bền vững sẽ tích tụ mãi mãi nếu không xoá tại đây.
+            await fs.rm(outPath, { force: true }).catch(() => {});
+            for (const o of outputs) await fs.rm(o.path, { force: true }).catch(() => {});
+            return fail(`animation ${f} is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower frames/fps or size`);
+          }
+          outputs.push({ format: f, path: outPath, bytes });
         }
 
-        // a mid-sequence frame as inline preview so the caller sees the effect
+        // Trước đây preview LUÔN inline bất kể `delivery` — schema quảng cáo
+        // delivery (renderMapShape) rồi handler lờ nó đi.
         const preview = pngs[Math.floor(pngs.length / 2)];
+        const image = await deliver(preview, `${name}-preview`, mode(params.delivery), { sinkDir: deps.sinkDir });
         return ok(
-          { animation: { outputs, frames, fps, width: cfg.size.width, height: cfg.size.height, loop: true }, resolved: resolvedOf(cfg) },
-          [{ base64: preview.toString('base64') }],
+          { image, animation: { outputs, frames, fps, width: cfg.size.width, height: cfg.size.height, loop: true }, resolved: resolvedOf(cfg) },
+          [image],
         );
       } catch (e) {
         return fail((e as Error).message ?? String(e));
@@ -387,7 +399,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
         'Render a looping radar-pulse animation (GIF and/or MP4) around highlight points — expanding rings mark the location. Requires highlight.points.',
       inputSchema: { ...renderMapShape, animation: animationSchema },
     },
-    (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string } }) =>
+    (a: RenderMapParams & { animation?: { frames?: number; fps?: number; format?: 'gif' | 'mp4' | 'both'; gifWidth?: number; rings?: number; radiusScale?: number; color?: string }; delivery?: DeliveryMode }) =>
       t.render_animation(a),
   );
   s.registerTool(

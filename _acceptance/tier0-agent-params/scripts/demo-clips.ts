@@ -1,13 +1,15 @@
 /**
  * Tier 0 — chứng minh phần CHUYỂN ĐỘNG bằng video thật.
  *
- * Năm clip, mỗi clip trả lời một câu:
+ * Sáu clip, mỗi clip trả lời một câu:
  *   C1 approach   — bay vào rồi VẼ DẦN ranh giới vùng
  *   C2 pushIn     — đẩy vào một điểm, có nhịp pulse
  *   C3 drift      — trôi chậm, dùng làm nền
  *   C4/C5 bearing — CẶP ĐỐI CHỨNG cho bug đã vá: cùng preset, cùng mọi thứ,
  *                   chỉ khác camera.bearing 0 vs 45. TRƯỚC gói này hai clip
  *                   này ra GIỐNG HỆT nhau vì compiler nuốt mất bearing.
+ *   C6 radar      — render_animation: đường output THỨ TƯ, nơi Task 7 vá hai
+ *                   defect (delivery bị lờ đi, và thiếu giới hạn dung lượng)
  *
  * Chạy trong TIẾN TRÌNH MỚI — server MCP trong .mcp.json sống lâu, tsx nạp
  * source một lần lúc khởi động nên phiên dài render bằng code trước nhánh.
@@ -104,6 +106,10 @@ async function main(): Promise<void> {
   console.log(`\n  ${differs ? '✓' : '✗'} cặp bearing KHÁC NHAU thật: ${fp0} vs ${fp45}`);
   console.log(`     ${differs ? 'Trước gói này hai vân tay sẽ TRÙNG — compiler nuốt mất camera.bearing.' : 'TRÙNG NHAU — bug chưa được vá!'}`);
 
+  // ── render_animation — đường output THỨ TƯ, nơi có 2 bug của Task 7 ──────
+  console.log('\nrender_animation (radar pulse) — đường output thứ tư\n');
+  const animOk = await animation();
+
   // ── trang xem ────────────────────────────────────────────────────────────
   const card = (c: typeof clips[number]): string =>
     `<figure><video src="${c.file}" autoplay loop muted playsinline></video>
@@ -129,17 +135,92 @@ code{font-family:ui-monospace,monospace;color:#7bd88f}
 <div class="g">${clips.slice(0, 3).map(card).join('')}</div>
 
 <h2>Bug đã vá — cặp đối chứng bearing</h2>
-<div class="pair">${clips.slice(3).map(card).join('')}</div>
+<div class="pair">${clips.slice(3, 5).map(card).join('')}</div>
 <div class="proof">Vân tay nội dung mọi khung hình: <code>${fp0}</code> so với <code>${fp45}</code> — ${differs ? 'KHÁC NHAU' : 'TRÙNG NHAU'}.
 Hai clip này chỉ khác đúng một tham số. Trước gói này bộ biên dịch preset sinh keyframe không mang <code>bearing</code>,
-nên <code>camera.bearing</code> bị nuốt im lặng và hai vân tay sẽ trùng nhau.</div>`;
+nên <code>camera.bearing</code> bị nuốt im lặng và hai vân tay sẽ trùng nhau.</div>
+
+<h2>Đường output thứ tư — render_animation</h2>
+<div class="pair">${clips.slice(5).map(card).join('')}</div>
+<div class="proof">Đây là đường DUY NHẤT trước đây <b style="display:inline">không có</b> giới hạn dung lượng, mà nó ghi thẳng vào sink bền vững —
+file quá cỡ tích tụ vĩnh viễn. Nó cũng quảng cáo tham số <code>delivery</code> trong schema rồi lờ đi, luôn nhét ảnh base64 vào response.
+Cả hai đã vá, kèm cú dọn ngược: khi định dạng thứ hai bục giới hạn, file đầu <b style="display:inline">đã ghi xong</b> cũng bị xoá.</div>
+`;
 
   await fs.writeFile(path.join(OUT, 'clips.html'), html);
 
   console.log(`\n${'─'.repeat(72)}`);
   console.log(`CLIP: ${clips.length} video → _acceptance/tier0-agent-params/demo/clips.html`);
   console.log('─'.repeat(72));
-  process.exit(differs ? 0 : 1);
+  process.exit(differs && animOk ? 0 : 1);
+}
+
+/**
+ * `render_animation` là đường output THỨ TƯ (ngoài render_map / render_clip /
+ * jobs) và là nơi Task 7 vá hai defect:
+ *   1. schema quảng cáo `delivery` rồi handler LỜ ĐI — preview luôn inline base64
+ *   2. đây là đường DUY NHẤT không có MAPPOSTER_CLIP_MAX_BYTES, mà nó ghi thẳng
+ *      vào sink BỀN VỮNG → file quá cỡ tích tụ vĩnh viễn
+ * Ba phép thử dưới đây chứng minh cả hai, cộng cú rollback đa-file.
+ */
+async function animation(): Promise<boolean> {
+  const { makeTools } = await import('../../../mcp-server/src/tools');
+  const params: RenderMapParams = {
+    location: HK,
+    format: SIZE,
+    theme: 'midnight-blue',
+    highlight: { points: [{ lng: HK.lng, lat: HK.lat, icon: 'circle', color: '#e8b04b', size: 40 }] },
+  };
+  const text = (r: { content: { type: string; text?: string }[] }): Record<string, never> =>
+    JSON.parse(r.content.find((c) => c.type === 'text')!.text!);
+  const images = (r: { content: { type: string }[] }): number => r.content.filter((c) => c.type === 'image').length;
+  let ok = true;
+
+  // (1) sinh thật GIF + MP4 — delivery 'both' nên preview VẪN inline (mặc định không đổi)
+  const t = makeTools({
+    render: deps.render,
+    renderAnimation: deps.renderAnimation,
+    encodeAnimation: deps.encodeAnimation,
+    sinkDir: OUT,
+    defaultDelivery: 'both',
+  });
+  const res = text(await t.render_animation({ ...params, animation: { frames: 24, fps: 12, format: 'both' } }) as never) as never as {
+    animation: { outputs: { format: string; path: string; bytes: number }[]; frames: number; fps: number };
+  };
+  for (const o of res.animation.outputs) {
+    const dest = path.join(OUT, `C6-radar.${o.format}`);
+    await fs.rename(o.path, dest);
+    console.log(`  ✓ C6-radar.${o.format.padEnd(18)} ${res.animation.frames} khung @${res.animation.fps}fps · ${(o.bytes / 1024).toFixed(0)} KB · trường 'bytes' cũng là mới`);
+  }
+  clips.push({
+    file: 'C6-radar.mp4',
+    title: 'render_animation',
+    note: 'radar pulse quanh điểm — đường output thứ tư, sinh cả GIF lẫn MP4',
+    meta: `${res.animation.frames} khung @${res.animation.fps}fps · ${(res.animation.outputs.find((o) => o.format === 'mp4')!.bytes / 1024).toFixed(0)} KB`,
+  });
+
+  // (2) BUG ĐÃ VÁ: delivery 'url' phải KHÔNG còn khối ảnh inline nào
+  const tUrl = makeTools({ render: deps.render, renderAnimation: deps.renderAnimation, encodeAnimation: deps.encodeAnimation, sinkDir: OUT, defaultDelivery: 'both' });
+  const urlRes = await tUrl.render_animation({ ...params, animation: { frames: 8, fps: 8 }, delivery: 'url' } as never);
+  const noInline = images(urlRes as never) === 0;
+  console.log(`  ${noInline ? '✓' : '✗'} delivery:'url' → ${images(urlRes as never)} khối ảnh inline   (BUG: trước đây LUÔN inline dù schema hứa delivery)`);
+  ok &&= noInline;
+
+  // (3) BUG ĐÃ VÁ: vượt cap thì từ chối VÀ dọn sạch — kể cả file đầu đã ghi xong
+  const before = (await fs.readdir(OUT)).filter((f) => /^mapposter-.*\.(gif|mp4)$/.test(f)).length;
+  process.env.MAPPOSTER_CLIP_MAX_BYTES = '2048';
+  try {
+    const capRes = await t.render_animation({ ...params, animation: { frames: 12, fps: 8, format: 'both' } });
+    const refused = capRes.isError === true && /MAPPOSTER_CLIP_MAX_BYTES/.test(text(capRes as never)['error' as never] ?? '');
+    const after = (await fs.readdir(OUT)).filter((f) => /^mapposter-.*\.(gif|mp4)$/.test(f)).length;
+    const cleaned = after === before;
+    console.log(`  ${refused ? '✓' : '✗'} vượt cap → bị từ chối`);
+    console.log(`  ${cleaned ? '✓' : '✗'} sink sạch sau khi từ chối       (rollback cả file GIF đã ghi xong trước khi MP4 bục cap)`);
+    ok &&= refused && cleaned;
+  } finally {
+    delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+  }
+  return ok;
 }
 
 main().catch((e) => {

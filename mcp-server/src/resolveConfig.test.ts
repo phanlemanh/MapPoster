@@ -200,6 +200,13 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 500, lat: 0 }] } })).rejects.toThrow(/invalid longitude/i);
   });
 
+  it('bounds camera bearing to 0..360 and pitch to 0..60', async () => {
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 200 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { bearing: -5 } })).rejects.toThrow(/invalid bearing/i);
+    const cfg = await resolveConfig({ location: 'HCMC', camera: { bearing: 45, pitch: 30 } });
+    expect(cfg.camera).toMatchObject({ bearing: 45, pitch: 30 });
+  });
+
   it('passes layers, detail and font through to the render config', async () => {
     const cfg = await resolveConfig({
       location: { lng: 106.7, lat: 10.78 },

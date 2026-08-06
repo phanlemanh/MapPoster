@@ -311,7 +311,12 @@ const highlightSchema = z
   .optional();
 const formatSchema = z.union([z.string().min(1), z.object({ width: dim, height: dim })]).optional();
 const cameraSchema = z
-  .object({ center: z.tuple([lng, lat]).optional(), zoom: zoomLevel.optional(), bearing: z.number().optional(), pitch: z.number().optional() })
+  .object({
+    center: z.tuple([lng, lat]).optional(),
+    zoom: zoomLevel.optional(),
+    bearing: z.number().min(0).max(360).optional(),
+    pitch: z.number().min(0).max(60).optional(),
+  })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
 const layerStateSchema = z

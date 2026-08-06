@@ -74,6 +74,13 @@ describe('compileMotion', () => {
     expect(compileMotion('drift', cfg(), { fps: 12 }).fps).toBe(12);
   });
 
+  it('seeds cfg.camera.bearing into every compiled keyframe (production bug: bearing silently dropped)', () => {
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom: 14.5, bearing: 45 } });
+    const s = compileMotion('pushIn', c);
+    expect(s.camera.length).toBeGreaterThan(1);
+    for (const k of s.camera) expect(k.bearing).toBe(45);
+  });
+
   // --- Boundary-value tests across the legal zoom/longitude domain (Findings 1-5) ---
   // The suite above only ever exercises zoom 14.5 / lng 106.7, which is why
   // none of the arithmetic overflows below were caught before.

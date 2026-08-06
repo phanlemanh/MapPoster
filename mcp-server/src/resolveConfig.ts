@@ -70,6 +70,17 @@ function assertZoom(zoom: number): number {
   return zoom;
 }
 
+function assertBearing(b: number): number {
+  if (!Number.isFinite(b) || b < 0 || b > 360) throw new Error(`Invalid bearing: ${b} (must be between 0 and 360)`);
+  return b;
+}
+
+/** 60, không phải 85: maxPitch mặc định của MapLibre là 60 — nhận 85 rồi để engine clamp là nhận-rồi-vứt. */
+function assertPitch(p: number): number {
+  if (!Number.isFinite(p) || p < 0 || p > 60) throw new Error(`Invalid pitch: ${p} (must be between 0 and 60)`);
+  return p;
+}
+
 function assertDetail(d: number): number {
   if (!Number.isFinite(d) || d < 0 || d > 1) throw new Error(`Invalid detail: ${d} (must be between 0 and 1)`);
   return d;
@@ -248,6 +259,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
   if (params.camera?.center) assertLngLat(params.camera.center[0], params.camera.center[1]);
   if (params.camera?.zoom != null) assertZoom(params.camera.zoom);
+  if (params.camera?.bearing != null) assertBearing(params.camera.bearing);
+  if (params.camera?.pitch != null) assertPitch(params.camera.pitch);
 
   // Validate everything cheap BEFORE the first network call: a bad theme or
   // colour should not cost a Nominatim request against our rate limit.

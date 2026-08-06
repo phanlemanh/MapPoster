@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 9b573fcba6d3d7bd6627736faa390eea27722dcf
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: map-motion-clip
@@ -222,7 +222,7 @@ full compiled `script` in the job/REST clip response (additive field, not a beha
   verdict: PASS
   rationale: |
     Giám khảo giải mã trực tiếp E16-clip.mp4 và soi frame tại t=0/1/2 · 2.5/3.0/3.5 · 4.0/4.3/5.9 giây. (1) t=0–2s toàn cảnh rộng, camera zoom dần, chưa có ranh giới. (2) t=2.5s ranh giới CHỈ hiện phần trên, mép dưới còn gradient; t=3.0s lan rộng; t=3.5s đầy đủ — vẽ dần, không bung đột ngột. (3) t=4.0–5.9s khung gần như giống hệt nhau: camera và vùng tô đứng yên. Ba nhịp đọc ra rành mạch.
-  human_override:
+  human_override: manh 2026-08-06 — XÁC NHẬN — đã xem clip, ba nhịp rành mạch (khung rộng mở đầu, ranh giới vẽ dần, đuôi đứng yên); artefact sinh lại từ cây hiện tại, không mang sang.
 
 - eval: E17
   criterion: AC-14
@@ -231,7 +231,7 @@ full compiled `script` in the job/REST clip response (additive field, not a beha
   verdict: UNCERTAIN
   rationale: |
     Ngoại lệ được ghi tường minh (spec §2.3) và có lý do chính đáng (nghĩa vụ giấy phép OSM). export.test.ts khoá chặt về SỐ LƯỢNG: proxy bắt mọi fillText/strokeText kể cả lệnh chưa viết, assert đúng một phần tử, và chủ động bật showCity/showCountry/showCoords để chứng minh guard text.show không rò. Nhưng khoá KHÔNG ràng buộc NỘI DUNG: assertion so với hằng ATTRIBUTION_TEXT được import, không phải chuỗi licence literal — đổi nội dung hằng đó thì test vẫn xanh.
-  human_override:
+  human_override: manh 2026-08-06 — CHẤP NHẬN có điều kiện — ngoại lệ attribution chính đáng và ghi tường minh; nhận đúng lỗ giám khảo chỉ ra là khoá ràng buộc SỐ LƯỢNG lệnh vẽ chữ chứ không ràng buộc NỘI DUNG (assert so với hằng ATTRIBUTION_TEXT nên đổi hằng đó test vẫn xanh); không chặn gói này vì không đường nào trong diff chạm hằng, phải siết ở gói sau.
 
 ## Lệnh không gắn eval
 

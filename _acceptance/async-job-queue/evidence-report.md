@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: async-job-queue
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 9b573fcba6d3d7bd6627736faa390eea27722dcf
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: async-job-queue
@@ -245,7 +245,7 @@ signature does not carry to this round._
   verdict: UNCERTAIN
   rationale: |
     Ba thiếu sót gọi-ngược/tiến-độ/huỷ-việc được hợp đồng tự lý giải bằng nhu cầu thật nên không chặn dọn sang. Khoản thứ tư khác bản chất: restart làm mã việc vô danh, khiến POST /jobs/status trả cùng một mã lỗi cho "việc mất vì restart" lẫn "mã bịa/đã dọn" (AC-4) — OneHub buộc phải tự chế chính sách gửi lại mà hợp đồng không mô tả. Hai cách đọc đều có cơ sở, thuộc diện người ký quyết.
-  human_override:
+  human_override: manh 2026-08-06 — CHẤP NHẬN vòng đầu — ba thiếu sót gọi-ngược/tiến-độ/huỷ-việc không chặn OneHub dọn sang; rủi ro nhận rõ: sau restart /jobs/status trả cùng mã lỗi cho "việc mất" lẫn "mã bịa" nên OneHub phải tự đặt chính sách gửi lại, không tệ hơn hôm nay; cần hợp đồng riêng cho job bền vững.
 
 - eval: E21
   run_id: minted-async-job-queue-E21-r6

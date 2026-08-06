@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 9b573fcba6d3d7bd6627736faa390eea27722dcf
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: mcp-map-render
@@ -267,7 +267,7 @@ invocation) plus a note on whether this round's diff touched that eval's own ass
   verdict: PASS
   rationale: |
     Ảnh 1080×1920 midnight-blue liền mạch, phủ kín khung, không ô tile trống hay vệt gãy render. Đường phố cam và khối nhà xanh đậm rõ ràng, có dòng attribution góc dưới phải. Ghim trắng chấm đen nằm gần chính giữa khung (≈545,920 trên 1080×1920, tâm là 540,960), khớp toạ độ resolver báo — nổi bật trên nền tối, dùng được làm B-roll.
-  human_override:
+  human_override: manh 2026-08-06 — XÁC NHẬN — đã xem ảnh, Võ Văn Tần vào giữa khung, ghim rõ, tile/đường không vỡ; artefact sinh lại từ cây hiện tại (bản 2026-07-26 đã khác kích thước thật). LƯU Ý: E10 ui-check vẫn mang sang sang vòng thứ hai, chấp nhận vòng này vì diff chỉ thêm field optional render page bỏ qua, vòng sau phải chạy lại thật.
 
 ## Analyst
 

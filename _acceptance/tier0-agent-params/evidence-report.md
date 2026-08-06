@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: f7feedad14dca1d75ebe3aedd75c059a83ce0f27
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: tier0-agent-params

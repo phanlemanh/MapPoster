@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 0201cc3e792cd086de3335d3ae195d73bb5fadfb
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: map-motion-clip
@@ -215,7 +215,7 @@ human_signoff:
   - domain-correctness: PASS — Trích toàn bộ 24 khung từ E16-clip.mp4 (12fps/2s): khung 1-7 là một cú zoom liên tục từ khung rộng toàn thành phố (thấy được bối cảnh, chưa có ranh giới) xuống mức quận; khung 11 bắt được trạng thái ranh giới đang vẽ dở (hình nêm cắt cụt, khớp E16-step2.png) trước khi khung 12-15 mới khép kín hình dạng đầy đủ — tức có bước trung gian thật, không phải bật (0→100%) trong một khung; khung 16-24 (hơn 1/3 clip) đứng yên tuyệt đối với pin "settle". Ba nhịp mở-rộng → vẽ-dần → đứng-yên đọc ra rõ ràng, không phải một đoạn trôi vô hướng.
   - operational-feasibility: PASS — Phân rã 24 khung của E16-clip.mp4 (khớp 3 ảnh step) cho thấy đúng ba nhịp: khung 1 mở ở toàn cảnh thành phố chưa có ranh giới; ranh giới quận không hiện đột ngột mà mờ dần qua ~4 khung liên tiếp (khung 10 chưa có → khung 13 gần như đầy, opacity tăng tuyến tính quan sát được); từ khung ~13-14 đến khung 24 (gần một nửa clip) sai khác pixel giữa các khung liên tiếp gần như bằng 0, tức đuôi đứng yên hoàn toàn. Cả ba nhịp tách bạch rõ ràng, không đọc như một đoạn trôi vô hướng.
   - spec-alignment: PASS — Trích khung từ E16-clip.mp4 (24 khung, 12fps, 2s) cho thấy đủ ba nhịp: khung mở đầu (f01-f10) là toàn cảnh rộng thấy mạng lưới đường và sông của thành phố, chưa có tô ranh giới; từ f11 ranh giới quận bắt đầu xuất hiện và lan rộng dần qua nhiều khung liên tiếp (f12→f15→f18) chứ không bật lên đột ngột; đuôi clip (f21-f24, ~0.33s cuối) các khung giống hệt nhau từng byte (maxdiff=0), tức đứng yên hoàn toàn. Ba khung tĩnh E16-step1/2/3.png cũng khớp đúng trình tự này (toàn cảnh → nửa vẽ ranh giới dạng vệt mờ dần → hoàn chỉnh có marker).
-  human_override:
+  human_override: manh 2026-08-06
 
 - eval: E17
   criterion: AC-14
@@ -226,7 +226,7 @@ human_signoff:
   - domain-correctness: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 kèm lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, nướng pixel để không phụ thuộc bên tiêu thụ tự vẽ lại), và contract AC-9/AC-14 nêu đúng yêu cầu khoá chặt. Test khoá (export.test.ts) dùng Proxy chặn TOÀN BỘ fillText/strokeText (không liệt kê thủ công), assert `textCalls` bằng đúng `[ATTRIBUTION_TEXT]` khi `text.show:false` — nghĩa là bất kỳ chữ nào khác kể cả drawPosterText lỡ gỡ guard trong tương lai đều làm test đỏ, nên đây là một ngoại lệ có kỷ luật chứ không phải lỗ hổng được hợp thức hoá.
   - operational-feasibility: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 (mục "Ba hợp đồng cốt lõi", điểm 3), kèm lý do chính đáng và có ngày quyết định rõ ràng (chủ repo, 2026-08-04): nghĩa vụ giấy phép dữ liệu OSM/OpenFreeMap, độc lập với việc bên tiêu thụ có tự vẽ hay không. Khoá vận hành trong export.test.ts đủ chặt về mặt cơ chế: dùng Proxy bẫy MỌI lệnh fillText/strokeText (không phải allowlist tên hàm cụ thể) và assert bằng-hẳn `textCalls === [ATTRIBUTION_TEXT]` khi `chrome:'clean'`/`text.show:false` — đúng kịch bản rủi ro mà spec nêu (kể cả `drawPosterText` bị gỡ guard sau này) sẽ làm test đỏ ngay. Một khe hở nhỏ còn lại — test không pin nội dung literal của hằng `ATTRIBUTION_TEXT` nên về lý thuyết hằng số này có thể bị đổi nội dung ở mức source — không đủ để lật verdict vì đó là thay đổi code tường minh qua review, không phải đường lách runtime/operational.
   - spec-alignment: PASS — Spec §2 ("Ba hợp đồng cốt lõi" mục 3, dẫn chiếu §2.3 khớp cả trong spec lẫn contract AC-14) ghi tường minh ngoại lệ, nêu lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, độc lập với consumer). Implementation (export.ts) gọi drawAttribution() vô điều kiện với hằng số ATTRIBUTION_TEXT cố định (không nhận input ngoài), tách biệt khỏi khối `if (opts.text.show)` bao các fillText khác. Test khoá bằng Proxy bắt MỌI lệnh fillText/strokeText (không chỉ tên đã biết) và assert textCalls === [ATTRIBUTION_TEXT] khi chrome:'clean' — chặn được cả trường hợp guard tương lai bị gỡ. Ngoại lệ bị giới hạn ở một hằng số cứng, không mở thành cờ "cho phép chữ" chung, nên đây là một ngoại lệ có kiểm soát chứ không phải lỗ hổng.
-  human_override:
+  human_override: manh 2026-08-06
 
 ## Analyst
 

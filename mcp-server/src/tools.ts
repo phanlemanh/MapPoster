@@ -7,6 +7,7 @@ import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
+import { FONTS } from '../../src/data/fonts';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -20,7 +21,9 @@ export interface ToolDeps {
   /** Injected clip primitive (real = renderClipFrames bound to the pool). */
   renderClip?: (config: RenderConfig) => Promise<ClipFrames>;
   /** Injected encoder (real = encodeAnimation / ffmpeg). */
-  encodeAnimation?: (frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => Promise<string>;
+  // Dùng thẳng EncodeOpts thay vì chép lại hình dạng: bản chép sẽ lặng lẽ nuốt
+  // mọi field mới của encoder (đúng cách `quality` suýt không tới nơi).
+  encodeAnimation?: (frames: Buffer[], opts: EncodeOpts) => Promise<string>;
   sinkDir: string;
   defaultDelivery?: DeliveryMode;
 }
@@ -145,6 +148,7 @@ export function makeTools(deps: ToolDeps) {
           const outPath = await deps.encodeAnimation(pngs, {
             fps,
             format: f,
+            quality: params.output?.quality,
             outPath: `${deps.sinkDir}/${name}.${f}`,
             // full-size 256-color GIFs are enormous; default to half-width unless told otherwise
             gifWidth: f === 'gif' ? (anim.gifWidth ?? Math.min(540, cfg.size.width)) : undefined,
@@ -208,7 +212,7 @@ export function makeTools(deps: ToolDeps) {
 
           let bytes: number;
           try {
-            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath, quality: params.output?.quality });
             ({ size: bytes } = await fs.stat(outPath));
           } catch (e) {
             // Same degrade as REST /render-clip (spec §5): frames were already
@@ -313,6 +317,10 @@ export function makeTools(deps: ToolDeps) {
       } catch (e) {
         return fail((e as Error).message);
       }
+    },
+
+    async list_fonts(): Promise<ToolResult> {
+      return ok({ fonts: FONTS });
     },
 
     async list_themes(): Promise<ToolResult> {
@@ -429,6 +437,8 @@ const renderMapShape = {
   detail: z.number().min(0).max(1).optional(),
   font: fontSchema.optional(),
   routes: z.array(routeSchema).optional(),
+  // mp4-only; GIF bỏ qua crf nên núm này vô nghĩa ở nhánh đó (đã nêu trong mô tả tool).
+  output: z.object({ quality: z.enum(['draft', 'standard', 'high']).optional() }).strict().optional(),
   measure: measureSchema,
   delivery: deliverySchema,
 };
@@ -498,6 +508,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     },
     (a: RenderMapParams & { motion?: unknown }) => t.compile_motion(a),
   );
+  s.registerTool('list_fonts', { description: 'List the typefaces render_map accepts, with each one\'s CSS stack and title weight/tracking.', inputSchema: {} }, () => t.list_fonts());
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());
 }

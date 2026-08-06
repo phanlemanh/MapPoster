@@ -274,6 +274,25 @@ describe('discovery tools', () => {
   });
 });
 
+describe('list_fonts (PR #3)', () => {
+  it('exposes every font render_map accepts, with its typographic metadata', async () => {
+    const { fonts } = textJson(await tools().list_fonts());
+    expect(fonts).toHaveLength(6);
+    expect(fonts[0]).toMatchObject({ key: 'Space Grotesk' });
+    expect(typeof fonts[0].stack).toBe('string');
+    expect(typeof fonts[0].titleWeight).toBe('number');
+    expect(typeof fonts[0].uppercaseTitle).toBe('boolean');
+  });
+
+  it('lists ONLY names render_map actually accepts — a listed-but-rejected font is a trap', async () => {
+    const { fonts } = textJson(await tools().list_fonts());
+    for (const f of fonts) {
+      const res = await tools().render_map({ location: { lng: 105.85, lat: 21.02 }, font: f.key });
+      expect(res.isError).toBeFalsy();
+    }
+  });
+});
+
 describe('render_animation', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
 

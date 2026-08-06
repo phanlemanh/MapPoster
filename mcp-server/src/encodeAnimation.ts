@@ -12,7 +12,26 @@ export interface EncodeOpts {
   outPath: string;
   /** GIF only: downscale to this width (256-color GIFs at full poster size are enormous) */
   gifWidth?: number;
+  /**
+   * MP4 only. Turns an oversize rejection from a dead end into a retry the
+   * caller can compute: `draft` trades visible quality for a much smaller file
+   * WITHOUT changing fps, size or content — the three knobs that would change
+   * what the clip actually shows.
+   *
+   * `standard` is the crf this encoder used before the knob existed, so an
+   * omitted value cannot change any current output.
+   */
+  quality?: EncodeQuality;
 }
+
+export type EncodeQuality = 'draft' | 'standard' | 'high';
+
+/** crf: thấp = đẹp + nặng. preset: chậm = nén tốt hơn cùng crf. */
+const QUALITY: Record<EncodeQuality, { crf: string; preset: string }> = {
+  draft: { crf: '28', preset: 'veryfast' },
+  standard: { crf: '20', preset: 'medium' },
+  high: { crf: '16', preset: 'slow' },
+};
 
 /** `ffmpeg` from PATH, overridable for machines that keep it elsewhere. */
 export function ffmpegBin(): string {
@@ -67,6 +86,7 @@ export function encodeArgs(framePattern: string, opts: EncodeOpts): string[] {
       opts.outPath,
     ];
   }
+  const q = QUALITY[opts.quality ?? 'standard'];
   return [
     ...base,
     '-vf',
@@ -75,8 +95,10 @@ export function encodeArgs(framePattern: string, opts: EncodeOpts): string[] {
     'libx264',
     '-pix_fmt',
     'yuv420p',
+    '-preset',
+    q.preset,
     '-crf',
-    '20',
+    q.crf,
     '-movflags',
     '+faststart',
     opts.outPath,

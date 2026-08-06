@@ -1,0 +1,178 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · map-motion-clip</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>Map motion clip — MapPoster sinh clip bản đồ chuyển động (Gói 1)</h1><div class="sub">Trang bằng chứng · <span class="mono">map-motion-clip</span> · tier T3</div>
+<div class="card" style="margin-top:12px"><span class="badge pend">PENDING-JUDGMENT</span>
+<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E1-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E2-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E3-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">map-motion-clip-sweep-local</td><td class="mono">2026-08-06T08:30:41Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E5-r2</td><td class="mono">2026-08-06T08:30:41Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E6-r2</td><td class="mono">2026-08-06T08:30:39Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E7-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E8-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E9-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E10-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E11-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E12-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E13-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E14-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-map-motion-clip-E15-r2</td><td class="mono">2026-08-06T08:30:40Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-13</td><td>judgment</td><td><span class="badge neutral">PASS (PANEL PROPOSAL; AWAITS MANDATORY T3 HUMAN_OVERRIDE)</span></td><td class="mono">—</td><td class="mono">—</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-14</td><td>judgment</td><td><span class="badge neutral">PASS (PANEL PROPOSAL; AWAITS MANDATORY T3 HUMAN_OVERRIDE)</span></td><td class="mono">—</td><td class="mono">—</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E1-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_invariants</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  08:30:40
+   Duration  1.50s (transform 71ms, setup 0ms, import 217ms, tests 7ms, environment 1.03s)</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E2-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_invariants</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E1/E3 (src/render/motionScript.test.ts covers all three
+criteria in one file). Tests 16 passed (16); Duration 1.50s.</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E3-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_invariants</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E1/E2 (src/render/motionScript.test.ts covers all three
+criteria in one file). Tests 16 passed (16); Duration 1.50s.</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · script</h3><p class="crit">AC-4</p>
+<div class="kv"><span>run_id <b>map-motion-clip-sweep-local</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.compiler_domain_sweep</b></span><span>verified_at <b>2026-08-06T08:30:41Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">material errors (clear message, expected): 40
+violations: 0
+OK — no combination produced a self-rejected script or a motionless clip</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-4</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E5-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T08:30:41Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  1 passed (1)
+      Tests  31 passed (31)
+   Start at  08:30:41
+   Duration  1.39s (transform 164ms, setup 0ms, import 226ms, tests 19ms, environment 988ms)</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-5</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E6-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_math</b></span><span>verified_at <b>2026-08-06T08:30:39Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  08:30:39
+   Duration  1.37s (transform 165ms, setup 0ms, import 249ms, tests 4ms, environment 955ms)</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-6</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E7-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+      Tests  7 passed (7)
+   Start at  08:30:40
+   Duration  63.76s (transform 72ms, setup 0ms, import 2.15s, tests 59.67s, environment 1.52s)</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-7</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E8-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  1 passed (1)
+     Tests  49 passed (49)
+  Start at  08:30:40
+  Duration  3.07s (transform 381ms, setup 0ms, import 1.67s, tests 174ms, environment 927ms)</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-10</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E9-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E8/E10/E13/E15 (mcp-server/src/http.test.ts covers all
+five criteria in one file). Tests 49 passed (49); Duration 3.07s.</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-8</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E10-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E8/E9/E13/E15 (mcp-server/src/http.test.ts). Tests 49
+passed (49); Duration 3.07s.</pre>
+</div>
+<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-8</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E11-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  1 passed (1)
+      Tests  32 passed (32)
+   Start at  08:30:40
+   Duration  2.13s (transform 371ms, setup 0ms, import 537ms, tests 199ms, environment 1.06s)</pre>
+</div>
+<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-9</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E12-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.text_free</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">RUN  v4.1.10 /Users/manh-macmini/dev/map
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  08:30:40
+   Duration  1.37s (transform 140ms, setup 0ms, import 266ms, tests 10ms, environment 2.08s)</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-11</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E13-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E8/E9/E10/E15 (mcp-server/src/http.test.ts). Tests 49
+passed (49); Duration 3.07s.</pre>
+</div>
+<div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-11</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E14-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E11 (mcp-server/src/tools.test.ts). Tests 32 passed
+(32); Duration 2.13s.</pre>
+</div>
+<div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-12</p>
+<div class="kv"><span>run_id <b>minted-map-motion-clip-E15-r2</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T08:30:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Same suite run as E8/E9/E10/E13 (mcp-server/src/http.test.ts). Tests 49
+passed (49); Duration 3.07s.</pre>
+</div>
+<div class="card eval" id="E16"><h3><span class="badge neutral">PASS (PANEL PROPOSAL; AWAITS MANDATORY T3 HUMAN_OVERRIDE)</span> &nbsp;E16 · judgment</h3><p class="crit">AC-13</p>
+<div class="kv"><span>judged_by <b>judge panel (fresh context) — 3 lenses</b></span></div>
+<div class="ov">human_override: CHƯA điền (việc của bạn ở Gate 2)</div>
+</div>
+<div class="card eval" id="E17"><h3><span class="badge neutral">PASS (PANEL PROPOSAL; AWAITS MANDATORY T3 HUMAN_OVERRIDE)</span> &nbsp;E17 · judgment</h3><p class="crit">AC-14</p>
+<div class="kv"><span>judged_by <b>judge panel (fresh context) — 3 lenses</b></span></div>
+<div class="ov">human_override: CHƯA điền (việc của bạn ở Gate 2)</div>
+</div>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">E1, E2, E3 (npx vitest run src/render/motionScript.test.ts); E4 (npx tsx
+_acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts); E5 (npx vitest
+run mcp-server/src/motionCompiler.test.ts); E6 (npx vitest run
+src/render/motionMath.test.ts); E7 (npm run test:mcp); E8, E9, E10, E13, E15
+(npx vitest run mcp-server/src/http.test.ts); E11, E14 (npx vitest run
+mcp-server/src/tools.test.ts); E12 (npx vitest run src/lib/export.test.ts
+src/lib/mapStyle.test.ts) — all pass on baseline too (non-discriminating this
+round; these are the same feature-path suites the contract has always relied
+on, not new regressions, so treat as intended coverage rather than something
+to rewrite).</div>
+<h2>Review findings (đã adversarial-verify)</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Severity</th><th>Finding</th><th>Vị trí</th></tr></thead><tbody>
+<tr><td><span class="badge pend">medium</span></td><td>/jobs kiểm `motion` bằng z.union thô, đi vòng qua `parseMotionParam` — đúng cái anti-pattern motionCompiler.ts đã ghi lại là Finding F<div class="note">`motionParamSchema.parse(submit.motion)` gọi thẳng `z.union([presetMotionParamSchema, scriptMotionParamSchema])` (motionCompiler.ts:246).</div></td><td class="mono">line: `mcp-server/src/http.ts:475`</td></tr>
+</tbody></table></div>
+<h2>Vòng verify</h2><ul class="tl"><li>Round 1 (2026-08-04): all 15 machine evals (E1-E15) passed on first run, exit</li><li>0. Judgment items E16/E17 human_override CHẤP NHẬN by manh (2026-08-04);</li><li>verdict reached PASS, verified_commit 06d37e264d3f191b67c4e1960ff64390ed428657.</li><li>Round 2 (this report): downstream commits (async-job-queue integration,</li><li>geocode/http/motionCompiler edits) landed after round 1&#39;s verified_commit,</li><li>making that evidence stale per pre-merge-check&#39;s staleness rule — re-verify</li><li>triggered. All 15 machine evals (E1-E15) re-run against the new tree, exit 0,</li><li>unchanged pass results; additionally the full suite (npm test: 397 passed, 7</li><li>skipped) and npm run test:e2e &amp;&amp; npm run test:mcp (14 + 7 passed) also stayed</li><li>green. Fresh 3-lens judge panel proposes PASS on both E16/E17 with detailed</li><li>frame-by-frame rationale; verdict is PENDING-JUDGMENT pending Gate-2</li><li>human_override on this new round (T3 requires it regardless of judge verdict).</li></ul>
+<h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

@@ -687,6 +687,9 @@ describe('cost metadata (PR #3)', () => {
     expect(j.clipError).toBeDefined();
     expect(typeof j.cost.renderMs).toBe('number');   // render ĐÃ xảy ra, đã tốn tiền
     expect(j.cost.bytes).toBe(0);                     // encode thì không
+    // Nửa should-NOT-fire: không được có khối `clip` khai thành công khi
+    // không có file nào ra đời — cost có mặt KHÔNG được kéo theo clip có mặt.
+    expect(j.clip).toBeUndefined();
   });
 });
 

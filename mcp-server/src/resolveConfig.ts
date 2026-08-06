@@ -11,7 +11,11 @@ export interface RenderMapParams {
   location: string | { lng: number; lat: number; zoom?: number };
   highlight?: {
     regions?: (string | { name: string; color?: string } | { geojson: GeoJSONFeatureCollection; color?: string })[];
-    points?: (string | { lng: number; lat: number })[];
+    points?: (
+      | string
+      | { lng: number; lat: number; icon?: MarkerIconKey; color?: string; size?: number }
+      | { query: string; icon?: MarkerIconKey; color?: string; size?: number }
+    )[];
     color?: string;
     fill?: boolean;
     dim?: boolean;
@@ -159,6 +163,19 @@ export function assertColor(value: string, label = 'color'): string {
   throw new Error(`Invalid ${label}: ${JSON.stringify(value)} — expected a hex colour like "#e8b04b"`);
 }
 
+/**
+ * `drawMarker` does no clamping of its own: a size of 5000 paints over the
+ * whole canvas, a size of 0 is invisible. Bound it here as well as at the Zod
+ * boundary — every runtime guard in this file exists because the boundary can
+ * be bypassed (`makeTools` is called directly).
+ */
+function assertMarkerSize(n: number): number {
+  if (!Number.isFinite(n) || n < 18 || n > 140) {
+    throw new Error(`Invalid highlight.points[].size: ${n} (must be between 18 and 140)`);
+  }
+  return n;
+}
+
 /** List every format name an agent may pass. */
 export function listFormats(): { name: string; width: number; height: number }[] {
   const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
@@ -244,6 +261,21 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     typeof r === 'object' && r.color != null ? assertColor(r.color, 'highlight.regions[].color') : null,
   );
 
+  // Single read of `params.highlight?.points` — same reasoning as `rawRegions`
+  // above: the colour/size pass and the marker loop below both index into the
+  // same array, and that index alignment is load-bearing.
+  const rawPoints = params.highlight?.points ?? [];
+
+  // Validate every per-point colour and size here too, before the base
+  // location lookup below and before the marker loop's per-point
+  // resolveLocation calls (bare-string and {query} forms both hit the
+  // network). Without this a bad size or colour on a later point would only
+  // surface after earlier points already spent a geocoding request.
+  const pointColors = rawPoints.map((p) =>
+    typeof p !== 'string' && p.color != null ? assertColor(p.color, 'highlight.points[].color') : null,
+  );
+  const pointSizes = rawPoints.map((p) => (typeof p !== 'string' && p.size != null ? assertMarkerSize(p.size) : null));
+
   const base = await resolveLocation(params.location);
 
   // Anchor every highlight to the country of the location being rendered. Region
@@ -254,10 +286,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   // let the guard pass everything. Fail closed: if we cannot say what country the
   // map is in, we cannot vouch for a highlight resolved by name.
   const namedHighlight =
-    (params.highlight?.regions ?? []).some((r) => typeof r === 'string' || 'name' in r) ||
-    // 'query' in p prepares for Task 3's {query} point form — added now so this
-    // guard isn't edited twice. Harmless today: no point can be {query}-shaped yet.
-    (params.highlight?.points ?? []).some((p) => typeof p === 'string' || 'query' in p);
+    rawRegions.some((r) => typeof r === 'string' || 'name' in r) ||
+    rawPoints.some((p) => typeof p === 'string' || 'query' in p);
 
   let anchor = base.place.country || undefined;
   if (namedHighlight && !anchor) {
@@ -289,14 +319,21 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const markers: RenderMarker[] = [];
-  for (const p of params.highlight?.points ?? []) {
-    const center = typeof p === 'string' ? (await resolveLocation(p, anchor)).center : assertLngLat(p.lng, p.lat);
+  for (let i = 0; i < rawPoints.length; i++) {
+    const p = rawPoints[i];
+    const opts = typeof p === 'string' ? undefined : p;
+    const center =
+      typeof p === 'string'
+        ? (await resolveLocation(p, anchor)).center
+        : 'query' in p
+          ? (await resolveLocation(p.query, anchor)).center
+          : assertLngLat(p.lng, p.lat);
     markers.push({
       lng: center[0],
       lat: center[1],
-      icon: params.highlight?.pointIcon ?? 'pin',
-      color: color ?? '#ffffff',
-      size: 44,
+      icon: opts?.icon ?? params.highlight?.pointIcon ?? 'pin',
+      color: pointColors[i] ?? color ?? '#ffffff',
+      size: pointSizes[i] ?? 44,
     });
   }
 

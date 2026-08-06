@@ -261,4 +261,48 @@ describe('resolveConfig', () => {
     ).rejects.toThrow(/highlight\.regions\[\]\.color/);
     expect(geocode.resolveBoundary).not.toHaveBeenCalled();
   });
+
+  it('carries per-point icon/color/size and geocodes the query form', async () => {
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: {
+        points: [
+          { lng: 106.7, lat: 10.78, icon: 'star', color: '#ff00ff', size: 60 },
+          { query: 'Bến Thành Market', icon: 'heart' },
+          'Võ Văn Tần',
+        ],
+        pointIcon: 'home',
+        color: '#e8b04b',
+      },
+    });
+    expect(cfg.markers).toHaveLength(3);
+    expect(cfg.markers?.[0]).toMatchObject({ icon: 'star', color: '#ff00ff', size: 60 });
+    expect(cfg.markers?.[1]).toMatchObject({ icon: 'heart', color: '#e8b04b', size: 44 }); // fallback màu chung
+    expect(cfg.markers?.[2]).toMatchObject({ icon: 'home', color: '#e8b04b', size: 44 }); // fallback pointIcon
+  });
+
+  it('rejects out-of-range point size and bad point color', async () => {
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, size: 500 }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.size/);
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, color: 'javascript:x' }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.color/);
+  });
+
+  it('rejects a bad size/colour on a LATER point before any resolveLocation call for a point fires', async () => {
+    // Mirrors the region test above: per-point colour/size are validated in an
+    // up-front pass (ahead of the marker loop's network calls), so a bad value
+    // on a later point is caught before an earlier query-form point ever pays
+    // for a resolveLocation request.
+    vi.mocked(geocode.resolveLocation).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, size: 500 }] },
+      }),
+    ).rejects.toThrow(/highlight\.points\[\]\.size/);
+    // Only the base-location lookup should have fired, never a per-point one.
+    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+  });
 });

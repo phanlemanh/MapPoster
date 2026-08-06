@@ -282,6 +282,11 @@ const zoomLevel = z.number().min(0).max(22);
 const hexColor = z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
 
 const locationSchema = z.union([z.string().min(1), z.object({ lng, lat, zoom: zoomLevel.optional() })]);
+const markerIconSchema = z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']);
+// drawMarker does no clamping of its own — a size of 5000 paints over the
+// whole canvas, a size of 0 is invisible. Mirrored at runtime in resolveConfig
+// (assertMarkerSize) since makeTools can be called directly, bypassing Zod.
+const pointOpts = { icon: markerIconSchema.optional(), color: hexColor.optional(), size: z.number().min(18).max(140).optional() };
 const highlightSchema = z
   .object({
     regions: z
@@ -291,11 +296,17 @@ const highlightSchema = z
         z.object({ geojson: z.any(), color: hexColor.optional() }),
       ]))
       .optional(),
-    points: z.array(z.union([z.string().min(1), z.object({ lng, lat })])).optional(),
+    points: z
+      .array(z.union([
+        z.string().min(1),
+        z.object({ lng, lat, ...pointOpts }),
+        z.object({ query: z.string().min(1), ...pointOpts }),
+      ]))
+      .optional(),
     color: hexColor.optional(),
     fill: z.boolean().optional(),
     dim: z.boolean().optional(),
-    pointIcon: z.enum(['pin', 'heart', 'home', 'star', 'circle', 'square']).optional(),
+    pointIcon: markerIconSchema.optional(),
   })
   .optional();
 const formatSchema = z.union([z.string().min(1), z.object({ width: dim, height: dim })]).optional();

@@ -153,6 +153,37 @@ called it `adminLevel`, but Nominatim's *search* endpoint (used here) does not
 return `admin_level`; `placeRank` is what the API actually gives back, and is
 the useful equivalent for telling "which District 1 did I get."
 
+`camera.focus` frames one specific object instead of the default union
+auto-frame: `{ kind: 'point' | 'region' | 'route', index, paddingPct? }`, where
+`index` points into `highlight.points`, `highlight.regions` or `routes`.
+`paddingPct` (0–200, default 12) widens the framed span before the zoom is
+derived, so a larger value zooms further out. It is **mutually exclusive** with
+`camera.center` / `camera.zoom` — passing both is refused rather than silently
+picking a winner, and an index with nothing at it is refused too.
+
+`output.quality` (`draft` | `standard` | `high` → crf 28 / 20 / 16) trades file
+size against visible quality **without** touching fps, size or duration — the
+knobs that would change what the clip actually shows. It exists so an oversize
+rejection is something a caller can retry against rather than a dead end.
+`standard` is the crf this encoder always used, so omitting it changes nothing.
+**MP4 only**: the GIF branch is palette-based and ignores crf entirely.
+
+Every clip response carries `cost: { frames, renderMs, encodeMs, bytes }` —
+including the encode-failure degrade path, where the frames were rendered and
+paid for even though no file came out. The names carry their units on purpose;
+a bare `time` or `size` is a number a consumer guesses the unit of.
+
+`compile_motion` takes the same inputs as `render_clip` and returns the
+MotionScript that call *would* use — `{ preset?, script, fps, durationSec,
+restAtSec, frames, resolved }` — **without rendering a single frame or taking a
+clip-concurrency slot**. Use it to inspect and tweak motion before paying for a
+clip; a full clip costs minutes, this costs milliseconds. It forces
+`chrome: 'clean'` exactly as the clip path does, so the preview cannot disagree
+with what you get.
+
+`list_fonts` returns `{ fonts: [{key, stack, titleWeight, titleTracking,
+uppercaseTitle}] }` — every name is one `render_map`'s `font` accepts.
+
 `list_themes` returns `{ themes: [{id, name, dark, colors}] }` — `colors` is
 the theme's full 15-key palette (`background, water, waterway, green, landuse,
 park, building, roadHighway, roadMajor, roadMinor, rail, aeroway, boundary,

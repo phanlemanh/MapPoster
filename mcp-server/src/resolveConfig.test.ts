@@ -245,4 +245,20 @@ describe('resolveConfig', () => {
       resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: [{ name: 'District 1', color: 'red' }] } }),
     ).rejects.toThrow(/highlight\.regions\[\]\.color/);
   });
+
+  it('rejects a bad colour on a LATER region before any resolveBoundary call fires', async () => {
+    // The whole reason per-region colours are validated in an up-front pass
+    // (ahead of the region loop's network calls) rather than inline inside the
+    // loop is so a bad colour on a later region is caught before an earlier
+    // region ever pays for a resolveBoundary request. Assert that property
+    // directly, not just the resulting error message.
+    vi.mocked(geocode.resolveBoundary).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { regions: [{ name: 'District 1' }, { name: 'District 2', color: 'red' }] },
+      }),
+    ).rejects.toThrow(/highlight\.regions\[\]\.color/);
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
+  });
 });

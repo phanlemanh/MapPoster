@@ -229,12 +229,18 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const detail = params.detail != null ? assertDetail(params.detail) : undefined;
   const font = params.font != null ? assertFont(params.font) : undefined;
 
+  // Single read of `params.highlight?.regions` — the colour pass and the region
+  // loop below both index into the same array, and that index alignment is
+  // load-bearing. Binding it once removes the implicit invariant that nothing
+  // mutates `params` between two separate reads.
+  const rawRegions = params.highlight?.regions ?? [];
+
   // Validate every per-region colour here too — the region loop below hits the
   // network once per named region (resolveBoundary), so without this a bad
   // colour on region 3 would only surface after regions 1 and 2 already spent
   // a request. Pre-validating up front keeps the same "fail before network"
   // guarantee the global colour and theme checks above already have.
-  const regionColors = (params.highlight?.regions ?? []).map((r) =>
+  const regionColors = rawRegions.map((r) =>
     typeof r === 'object' && r.color != null ? assertColor(r.color, 'highlight.regions[].color') : null,
   );
 
@@ -266,7 +272,6 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const regions: RenderHighlightRegion[] = [];
-  const rawRegions = params.highlight?.regions ?? [];
   for (let i = 0; i < rawRegions.length; i++) {
     const r = rawRegions[i];
     const rColor = regionColors[i];

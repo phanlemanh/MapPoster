@@ -1,0 +1,231 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · tier0-agent-params</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>Tier 0 — mở 12 capability engine đã có qua tham số MCP/REST + 3 bug production</h1><div class="sub">Trang bằng chứng · <span class="mono">tier0-agent-params</span> · tier T2</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E9-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E9-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E9-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E12-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E13-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E1-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E15-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E9-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E17-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E18">E18</a></td><td>AC-11</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E18-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E19">E19</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E19-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+<tr><td><a href="#E20">E20</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">tier0-agent-params-E20-20260806</td><td class="mono">2026-08-06T14:01:29Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given một lời gọi `render_map` mang `layers`, `detail` và `font` hợp lệ, When `resolveConfig` chạy, Then `RenderConfig` nhận đúng cả ba giá trị đó verbatim.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; passes layers, detail and font
+  through to the render config 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given một lời gọi mang **cả** `labels` **lẫn** `layers.roadLabels`, When `resolveConfig` chạy, Then lời gọi bị **từ chối** với thông điệp nêu rõ hai trường cùng đặt một công tắc — không được tự chọn bên thắng.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; merges labels:true into
+  layers.roadLabels but refuses both at once 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given input ngoài miền (`detail` &gt; 1, `font` lạ, khoá layer lạ, giá trị layer không phải boolean), When `resolveConfig` chạy, Then mỗi trường hợp bị **từ chối** kèm thông điệp nêu tên trường và giá trị sai; `detail = 0` và `detail = 1` (biên hợp lệ) vẫn **được nhận**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects out-of-range detail and
+  unknown font 0ms
+✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects an unknown layer key and
+  a non-boolean layer value (Zod-bypass guard) 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `highlight.regions` chứa cả ba dạng (chuỗi trần, `{name,color}`, `{geojson,color}`), When `resolveConfig` chạy, Then mỗi region mang đúng màu của riêng nó và region không khai màu nhận `null` (rơi về màu chung); một màu sai định dạng ở **bất kỳ** phần tử nào làm cả lời gọi bị từ chối.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; carries per-region color through
+  and validates it 0ms
+✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects a bad colour on a LATER
+  region before any resolveBoundary call fires 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `highlight.points` chứa cả ba dạng (chuỗi trần, `{lng,lat,…}`, `{query,…}`), When `resolveConfig` chạy, Then mỗi marker nhận đúng `icon`/`color`/`size` riêng, và marker không khai thì rơi về `highlight.pointIcon` / `highlight.color` / `44` theo thứ tự đó.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; carries per-point icon/color/size
+  and geocodes the query form 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given `highlight.points[].size` nằm ngoài `18..140`, When `resolveConfig` chạy, Then lời gọi bị **từ chối**; và Given `size` đúng bằng biên (`18`, `140`) hoặc `size: 0`, Then biên được **nhận** còn `0` bị **từ chối** (không được coi `0` là &quot;chưa đặt&quot;).</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects out-of-range point size
+  and bad point color 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-7: Given `highlight.points[].icon` hoặc `highlight.pointIcon` là icon lạ, When `resolveConfig` chạy, Then lời gọi bị **từ chối** — **không** được âm thầm rơi về `pin`.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects an unknown per-point icon
+  instead of silently falling back to the default marker 0ms
+✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects an unknown top-level
+  pointIcon instead of silently falling back to the default marker 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-8: Given một lời gọi có input rẻ không hợp lệ (màu/size/icon sai) ở phần tử **thứ hai trở đi**, When `resolveConfig` chạy, Then lời gọi bị từ chối **trước khi** bất kỳ lời gọi mạng Nominatim nào phát ra (`resolveLocation`/`resolveBoundary` không được gọi lần nào).</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects a bad size/colour on a
+  LATER point before any resolveLocation call for a point fires 0ms
+✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; rejects a bad icon on a LATER
+  point before any resolveLocation call for a point fires 1ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-9: Given agent gọi `list_themes`, When tool trả về, Then mỗi theme mang `id`, `name`, `dark` và `colors` đủ 15 khoá — đủ để agent colour-match lớp DOM phủ lên map; số lượng theme không đổi (13).</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E9-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/tools.test.ts &gt; discovery tools &gt; list_themes returns all 13 themes 0ms
+✓ mcp-server/src/tools.test.ts &gt; discovery tools &gt; list_themes exposes the full palette so
+  agents can match overlay colors 1ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-10: Given agent gọi `list_formats`, When tool trả về, Then `4k` xuất hiện **đúng một lần**, mỗi mục mang `aspect`/`category` đúng loại thật của nó, mục in mang `print`, mục không in **không có** khoá `print`.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E9-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/tools.test.ts &gt; discovery tools &gt; list_formats dedupes 4k and carries
+  aspect/category/print 1ms
+✓ mcp-server/src/tools.test.ts &gt; discovery tools &gt; gives every FORMATS entry its own
+  correct category, not a blanket Video (Finding 4) 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E9-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/tools.test.ts &gt; render_clip &gt; echoes the compiled MotionScript so agents
+  can inspect and tweak it 1ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E12-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/http.test.ts &gt; POST /render-clip &gt; 200: đủ khối clip/settle/motion/
+  resolved; chrome bị ép clean 4ms
+ Test Files  1 passed (1)
+      Tests  49 passed (49)</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E13-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/jobRunner.test.ts &gt; createJobRunner — clip và giao ước xuống-cấp (AC-7) &gt;
+  motion echo lại MotionScript đã biên dịch — cùng hình dạng hai đường đồng bộ
+  (tools.ts/http.ts) trả 1ms
+ Test Files  1 passed (1)
+      Tests  22 passed (22)</pre>
+</div>
+<div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-12: Given `camera.pitch` ngoài `0..60`, When `resolveConfig` chạy, Then bị **từ chối**; và Given `camera.bearing` âm hoặc ngoài `0..360` (ví dụ `-45`), Then **không** bị từ chối mà được **normalize** (`-45` → `315`) — bound bearing sẽ là gỡ một năng lực MapLibre đang chạy được.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; bounds camera pitch to 0..60
+  (MapLibre maxPitch — 85 used to be accept-then-discard) 0ms
+✓ mcp-server/src/resolveConfig.test.ts &gt; resolveConfig &gt; normalizes bearing to [0,360)
+  instead of rejecting out-of-range values (F3) 0ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-13: Given `camera.bearing` khác 0 kèm `motion.preset`, When preset được compile, Then **mọi** keyframe sinh ra mang bearing đó; và Given config thiếu bearing, Then script compile ra **y hệt** như trước gói này (giữ bất biến determinism).</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E15-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/motionCompiler.test.ts &gt; compileMotion &gt; seeds cfg.camera.bearing into
+  every compiled keyframe (production bug: bearing silently dropped) 0ms
+ Test Files  1 passed (1)
+      Tests  32 passed (32)</pre>
+</div>
+<div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · test</h3><p class="crit">AC-14: Given `render_animation` được gọi với `delivery: &#39;url&#39;`, When tool trả về, Then **không** có khối ảnh base64 nội tuyến nào; và Given output vượt `MAPPOSTER_CLIP_MAX_BYTES` ở định dạng thứ hai của `format: &#39;both&#39;`, Then lời gọi bị từ chối và **mọi** file đã ghi trước đó (kể cả file đầu đã hợp lệ) bị xoá khỏi sink.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E9-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/tools.test.ts &gt; render_animation &gt; honours delivery for the preview
+  still (url → no inline base64) 1ms
+✓ mcp-server/src/tools.test.ts &gt; render_animation &gt; refuses an animation over
+  MAPPOSTER_CLIP_MAX_BYTES and removes the file 0ms
+✓ mcp-server/src/tools.test.ts &gt; render_animation &gt; rolls back an already-written gif
+  when format &quot;both&quot; busts the cap on the mp4 output 1ms
+ Test Files  1 passed (1)
+      Tests  39 passed (39)</pre>
+</div>
+<div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-15: Given một region tên gọi phải đi qua nhánh fallback của `fetchRegionBoundary` (lookup chính xác không ra vùng), When `resolved.highlights.regions[i]` trả về, Then identity (`osmType`/`osmId`/`displayName`/`placeRank`) là của entity **thực sự sinh ra polygon**, không phải của search hit ban đầu.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E17-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.geocode</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">✓ mcp-server/src/geocode.test.ts &gt; resolveBoundary &gt; echoes the identity of the entity
+  the polygon actually came from — not the hit — when the exact lookup falls through
+  (R1-IMPORTANT) 1ms
+✓ mcp-server/src/geocode.test.ts &gt; resolveBoundary &gt; serves a cache hit from the same
+  object with the full ResolvedBoundary shape, and never re-hits the network 0ms
+ Test Files  1 passed (1)
+      Tests  26 passed (26)</pre>
+</div>
+<div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · script</h3><p class="crit">AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E18-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.tier0_invariants</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">ok   I1  t3_path untouched vs de85baf4 (23 files changed, none in t3_paths)
+ok   I2  MCP render_clip (mcp-server/src/tools.ts) echoes motion.script on its
+  motionOut binding
+ok   I2  REST POST /render-clip (mcp-server/src/http.ts) echoes motion.script on its
+  motionOut binding
+ok   I2  async POST /jobs (mcp-server/src/jobRunner.ts) echoes motion.script on its
+  motionOut binding
+ok   I3  layers guarded by assertLayers (defined: true, called: true)
+ok   I3  camera.bearing normalized (not rejected) — modulo-360 present: true
+tier0-invariants: all invariants hold</pre>
+</div>
+<div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-1: Given một lời gọi `render_map` mang `layers`, `detail` và `font` hợp lệ, When `resolveConfig` chạy, Then `RenderConfig` nhận đúng cả ba giá trị đó verbatim.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E19-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.api</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Test Files  29 passed | 3 skipped (32)
+     Tests  424 passed | 7 skipped (431)
+Duration  2.93s</pre>
+</div>
+<div class="card eval" id="E20"><h3><span class="badge pass">PASS</span> &nbsp;E20 · test</h3><p class="crit">AC-11: Given một clip render qua **bất kỳ** bề mặt nào trong ba (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`), When lời gọi trả về — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, Then response mang `motion.script` là MotionScript **đã compile và đã validate**.</p>
+<div class="kv"><span>run_id <b>tier0-agent-params-E20-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-06T14:01:29Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">MCP_INTEGRATION=1 vitest run --fileParallelism=false mcp-server/src/renderFrame.test.ts
+  mcp-server/src/renderClip.test.ts mcp-server/src/stdioChannel.test.ts
+ Test Files  3 passed (3)
+      Tests  7 passed (7)
+ Duration  49.49s</pre>
+</div>
+<h2>Vòng verify</h2><ul class="tl"><li>Round 1: all 20 evals PASS on first run. No evals failed; nothing returned to</li><li>implementation.</li></ul>
+<h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

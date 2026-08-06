@@ -89,7 +89,8 @@ render_map({
 ```
 
 `layers` toggles `{landcover, buildings, water, parks, roads, rail, aeroway, roadLabels}`
-independently (all on by default, any subset may be passed); `labels` is a
+independently (all on by default except `roadLabels`, which defaults off —
+poster first — any subset may be passed); `labels` is a
 shorthand for `layers.roadLabels` and the two are mutually exclusive — passing
 both is refused, since they set the same switch. `detail` is `0..1` and scales
 road width (0.6×–1.5×); minor roads only appear strictly above `0.12`. `font`
@@ -139,7 +140,7 @@ animate otherwise): `{ frames?, fps?, format?: 'gif'|'mp4'|'both', gifWidth?,
 rings?, radiusScale?, color? }`. It returns `{ image, animation: { outputs:
 [{format, path, bytes}], frames, fps, width, height, loop: true }, resolved
 }`; `image` is the middle frame as a preview still, and — like every other
-still on this server — honours the `delivery` param (inline/file/both). Each
+still on this server — honours the `delivery` param (`both`/`url`/`inline`). Each
 encoded output is checked against `MAPPOSTER_CLIP_MAX_BYTES`; going over it
 deletes every output already written for that call (not just the offending
 one) and returns an error rather than leaving partial files in `MAPPOSTER_SINK`
@@ -187,7 +188,7 @@ silently dropped by the preset compiler — a bug, not a design choice).
 Unlike every other tool here, the clip itself is **written to a file** under
 `MAPPOSTER_SINK` and returned as `clip.path` rather than inlined as base64 —
 a multi-megabyte MP4 would bloat the JSON-RPC stdio channel MCP runs over.
-`delivery` (inline/file/both) still applies to the `settle` still, same as the
+`delivery` (`both`/`url`/`inline`) still applies to the `settle` still, same as the
 other image tools. If the MP4 encoder fails (missing ffmpeg, a corrupt frame),
 the tool never throws the whole call away: the frames were already captured,
 so it degrades to `{ settle, motion, resolved, clipError }` — the settle still

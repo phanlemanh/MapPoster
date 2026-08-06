@@ -183,3 +183,14 @@
 {"ts":"2026-08-06T14:08:32Z","round":17,"evalId":"E8","run_id":"minted-mcp-map-render-E8-r17","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T14:08:32Z","round":17,"evalId":"E9","run_id":"minted-mcp-map-render-E9-r17","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T14:08:32Z","round":17,"evalId":"E11","run_id":"minted-mcp-map-render-E11-r17","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E1","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E2","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E3","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E4","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E5","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E6","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E7","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E8","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E9","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T15:55:18Z","round":18,"evalId":"E10","run_id":"mcp-map-render-E10-20260806","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-06T15:54:02Z","round":18,"evalId":"E11","run_id":"mcp-map-render-E1-20260806","exit_code":0,"cmd":"npm test"}

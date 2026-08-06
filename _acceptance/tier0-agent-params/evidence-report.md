@@ -7,11 +7,40 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: f7feedad14dca1d75ebe3aedd75c059a83ce0f27
-human_signoff: manh 2026-08-06
+verified_commit: 06e4ae166c29aaec9426d2779941e9f3093355ce
+human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+_Round 3 — re-verification of Round 2's three REJECTs. Commit `06e4ae1` adds a new describe block to
+`resolveConfig.test.ts`, "boundary halves the evals claimed but no test proved (verify round 1
+finding)" — the commit message references "verify round 1" because it addresses the FIRST verify round
+that found gaps in this contract (this report's own numbering runs one higher because Round 1 here was
+the original implementation verify, before any staleness re-run). It closes all three: `detail` 0/1
+ACCEPTED (added inline to the existing out-of-range test), marker `size` 18/140 ACCEPTED plus `size: 0`
+REFUSED, and the marker style fallback chain's terminal `'pin'`/`'#ffffff'`/`44`. This round re-ran the
+shared command fresh, confirmed each new assertion exists and passes, and independently negative-
+controlled one of them (the `size: 0` guard) rather than trusting the commit message alone. All 20
+machine evals now pass; this contract has no judgment evals, so per the routing rule it is **PASS**.
+Round 2's REJECT is kept below in Iterations, not erased._
+
+_Round 2 — re-verification. Round 1's evidence (verified_commit `f7feeda`, signed off `manh`
+2026-08-06) went STALE: `feat/routes-measurements` landed downstream commits touching
+`mcp-server/src/resolveConfig.ts` (+179/-lines) and `mcp-server/src/tools.ts` (+46/-lines) after that
+commit — both files this contract's own AC-1..AC-8/AC-11 assertions live in directly. Contract `status`
+downgraded `signed-off` → `implemented` per the staleness guard before this report was written.
+`human_signoff` is cleared — the Round-1 signature does not carry to this round._
+
+_A structural diff review (`git diff f7feeda..HEAD -- mcp-server/src/resolveConfig.ts
+mcp-server/src/tools.ts`) confirms the routes-measurements diff is additive-only against this
+contract's own logic (one renamed-but-equivalent helper, `bboxOfRegions`→`bboxOfGeojsons`; zero
+existing test lines removed in `resolveConfig.test.ts` or `tools.test.ts` — confirmed via
+`git diff ... | grep '^-'`). All 20 of this contract's machine evals were re-run fresh regardless. That
+re-run is what surfaced this round's REJECT: **while re-confirming each eval's `expected` text against
+an actual passing assertion (not just "the suite is green"), three evals turn out to have never had the
+assertion their own `expected` text names — a pre-existing gap from Round 1, not something this round's
+diff introduced, but one this round's stricter check is the first to catch.**_
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -38,289 +67,110 @@ human_signoff: manh 2026-08-06
 
 ## Evidence
 
-- eval: E1
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > passes layers, detail and font
-      through to the render config 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E2
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > merges labels:true into
-      layers.roadLabels but refuses both at once 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
 - eval: E3
-  run_id: tier0-agent-params-E1-20260806
+  run_id: tier0-agent-params-E3-20260806r3
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
+  verified_at: 2026-08-06T16:25:44Z
   output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects out-of-range detail and
-      unknown font 0ms
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects an unknown layer key and
-      a non-boolean layer value (Zod-bypass guard) 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E4
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > carries per-region color through
-      and validates it 0ms
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects a bad colour on a LATER
-      region before any resolveBoundary call fires 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
+    ROUND 3 — closed. Commit `06e4ae1` added two lines INLINE to the existing
+    `it('rejects out-of-range detail and unknown font', ...)` test:
+      await expect(resolveConfig({ ..., detail: 0 })).resolves.toMatchObject({ detail: 0 });
+      await expect(resolveConfig({ ..., detail: 1 })).resolves.toMatchObject({ detail: 1 });
+    Both named boundary values (0 and 1) are now explicitly asserted ACCEPTED, alongside the pre-
+    existing REJECTED cases in the same test. All four clauses of E3's `expected` now have a real
+    assertion. `npx vitest run mcp-server/src/resolveConfig.test.ts`: 53/53 passed (up from 50).
 
 - eval: E5
-  run_id: tier0-agent-params-E1-20260806
+  run_id: tier0-agent-params-E3-20260806r3
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
+  verified_at: 2026-08-06T16:25:44Z
   output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > carries per-point icon/color/size
-      and geocodes the query form 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
+    ROUND 3 — closed. Commit `06e4ae1` added a new test to the "boundary halves..." describe block:
+      it('falls back through the whole marker style chain to its terminal defaults', async () => {
+        const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng, lat }] } });
+        expect(cfg.markers?.[0]).toMatchObject({ icon: 'pin', color: '#ffffff', size: 44 });
+      });
+    A point with NO per-point style AND a `highlight` block with no top-level `pointIcon`/`color` now
+    explicitly proves the chain's terminal link (hard-coded `'pin'`/`'#ffffff'`/`44`) — the one link
+    Round 2 found untested. Combined with the pre-existing per-point→top-level link test, all three
+    links of the fallback chain now have assertions. Same run, 53/53 passed.
 
 - eval: E6
-  run_id: tier0-agent-params-E1-20260806
+  run_id: tier0-agent-params-E3-20260806r3
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
+  verified_at: 2026-08-06T16:25:44Z
   output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects out-of-range point size
-      and bad point color 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E7
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects an unknown per-point icon
-      instead of silently falling back to the default marker 0ms
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects an unknown top-level
-      pointIcon instead of silently falling back to the default marker 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E8
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects a bad size/colour on a
-      LATER point before any resolveLocation call for a point fires 0ms
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > rejects a bad icon on a LATER
-      point before any resolveLocation call for a point fires 1ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E9
-  run_id: tier0-agent-params-E9-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/tools.test.ts > discovery tools > list_themes returns all 13 themes 0ms
-    ✓ mcp-server/src/tools.test.ts > discovery tools > list_themes exposes the full palette so
-      agents can match overlay colors 1ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E10
-  run_id: tier0-agent-params-E9-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/tools.test.ts > discovery tools > list_formats dedupes 4k and carries
-      aspect/category/print 1ms
-    ✓ mcp-server/src/tools.test.ts > discovery tools > gives every FORMATS entry its own
-      correct category, not a blanket Video (Finding 4) 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E11
-  run_id: tier0-agent-params-E9-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/tools.test.ts > render_clip > echoes the compiled MotionScript so agents
-      can inspect and tweak it 1ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E12
-  run_id: tier0-agent-params-E12-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/http.test.ts > POST /render-clip > 200: đủ khối clip/settle/motion/
-      resolved; chrome bị ép clean 4ms
-     Test Files  1 passed (1)
-          Tests  49 passed (49)
-
-- eval: E13
-  run_id: tier0-agent-params-E13-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/jobRunner.test.ts > createJobRunner — clip và giao ước xuống-cấp (AC-7) >
-      motion echo lại MotionScript đã biên dịch — cùng hình dạng hai đường đồng bộ
-      (tools.ts/http.ts) trả 1ms
-     Test Files  1 passed (1)
-          Tests  22 passed (22)
-
-- eval: E14
-  run_id: tier0-agent-params-E1-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > bounds camera pitch to 0..60
-      (MapLibre maxPitch — 85 used to be accept-then-discard) 0ms
-    ✓ mcp-server/src/resolveConfig.test.ts > resolveConfig > normalizes bearing to [0,360)
-      instead of rejecting out-of-range values (F3) 0ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E15
-  run_id: tier0-agent-params-E15-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/motionCompiler.test.ts > compileMotion > seeds cfg.camera.bearing into
-      every compiled keyframe (production bug: bearing silently dropped) 0ms
-     Test Files  1 passed (1)
-          Tests  32 passed (32)
-
-- eval: E16
-  run_id: tier0-agent-params-E9-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/tools.test.ts > render_animation > honours delivery for the preview
-      still (url → no inline base64) 1ms
-    ✓ mcp-server/src/tools.test.ts > render_animation > refuses an animation over
-      MAPPOSTER_CLIP_MAX_BYTES and removes the file 0ms
-    ✓ mcp-server/src/tools.test.ts > render_animation > rolls back an already-written gif
-      when format "both" busts the cap on the mp4 output 1ms
-     Test Files  1 passed (1)
-          Tests  39 passed (39)
-
-- eval: E17
-  run_id: tier0-agent-params-E17-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.test.geocode
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ✓ mcp-server/src/geocode.test.ts > resolveBoundary > echoes the identity of the entity
-      the polygon actually came from — not the hit — when the exact lookup falls through
-      (R1-IMPORTANT) 1ms
-    ✓ mcp-server/src/geocode.test.ts > resolveBoundary > serves a cache hit from the same
-      object with the full ResolvedBoundary shape, and never re-hits the network 0ms
-     Test Files  1 passed (1)
-          Tests  26 passed (26)
-
-- eval: E18
-  run_id: tier0-agent-params-E18-20260806
-  exit_code: 0
-  baseline: red
-  verifier: config:executors.script.tier0_invariants
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    ok   I1  t3_path untouched vs de85baf4 (23 files changed, none in t3_paths)
-    ok   I2  MCP render_clip (mcp-server/src/tools.ts) echoes motion.script on its
-      motionOut binding
-    ok   I2  REST POST /render-clip (mcp-server/src/http.ts) echoes motion.script on its
-      motionOut binding
-    ok   I2  async POST /jobs (mcp-server/src/jobRunner.ts) echoes motion.script on its
-      motionOut binding
-    ok   I3  layers guarded by assertLayers (defined: true, called: true)
-    ok   I3  camera.bearing normalized (not rejected) — modulo-360 present: true
-    tier0-invariants: all invariants hold
-
-- eval: E19
-  run_id: tier0-agent-params-E19-20260806
-  exit_code: 0
-  baseline: green
-  verifier: config:executors.test.api
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-     Test Files  29 passed | 3 skipped (32)
-          Tests  424 passed | 7 skipped (431)
-     Duration  2.93s
-
-- eval: E20
-  run_id: tier0-agent-params-E20-20260806
-  exit_code: 0
-  baseline: green
-  verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T14:01:29Z
-  output: |
-    MCP_INTEGRATION=1 vitest run --fileParallelism=false mcp-server/src/renderFrame.test.ts
-      mcp-server/src/renderClip.test.ts mcp-server/src/stdioChannel.test.ts
-     Test Files  3 passed (3)
-          Tests  7 passed (7)
-     Duration  49.49s
+    ROUND 3 — closed. Commit `06e4ae1` added:
+      it('ACCEPTS marker size exactly at both bounds, and REFUSES 0 rather than reading it as unset',
+        async () => {
+          for (const size of [18, 140]) {
+            const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng, lat, size }] } });
+            expect(cfg.markers?.[0].size).toBe(size);
+          }
+          await expect(resolveConfig({ ...at, highlight: { points: [{ lng, lat, size: 0 }] } }))
+            .rejects.toThrow(/highlight\.points\[\]\.size/);
+        });
+    All three previously-missing clauses now covered: size=18 accepted, size=140 accepted, size=0
+    refused (not silently read as unset). This verifier independently negative-controlled the size=0
+    assertion rather than trusting the commit message: temporarily mutated `resolveConfig.ts:520`'s
+    `p.size != null ? assertMarkerSize(p.size) : null` to the truthy form `p.size ? assertMarkerSize
+    (p.size) : null` (the exact defect class this test guards against — a `size: 0` payload would then
+    silently fall through to the `?? 44` default instead of being rejected) and re-ran this test in
+    isolation against the mutated source: the `size: 0` assertion broke exactly as expected under the
+    mutant (the test surfaced the injected defect, not a green pass). Source was then reverted (`cp`
+    from a pre-edit backup) and the full file re-confirmed green — back to all 53 of 53 tests passing,
+    `git diff` empty. The test is a real discriminator, not a tautology.
 
 ## Analyst
 
-none — every feature eval is red on baseline (discriminates). E19 and E20 are the
-whole-repo regression-floor guards (full Vitest suite / gated MCP integration suite);
-per the skill's baseline guidance these are expected to be green-on-both and are not
-feature-discriminating by design, so they are excluded from this list rather than
-flagged as a finding.
+Baseline: all 18 feature evals (E1-E18) are `red` on the pre-feature diffBase per Round 1's own
+determination (this contract's `mcp-server/**` additions did not exist before it), carried forward
+unchanged per this round's instructions (T2 stale-refresh rounds carry baseline forward, they do not
+recompute it). E19 (`npm test`) and E20 (`npm run test:mcp`) are the broad regression-floor guards,
+`green` on both trees as expected.
+
+E3, E5, E6 were NOT baseline non-discrimination issues — they were missing assertions, full stop: the
+named clause in each eval's `expected` (an explicit boundary value, or the terminal link of a fallback
+chain) had zero test coverage on EITHER tree. Round 3 closes all three with real assertions, each
+covering exactly the previously-missing clause and nothing more (no unrelated test weakening). The
+implementation itself was correct in all three cases throughout (inclusive Zod/runtime bounds, explicit
+`!= null` guards) — this was always a test debt, not a behavioural regression; Round 3's negative
+control on E6 (mutating the guard and confirming the new test catches it) is the evidence that the new
+tests actually exercise the guards rather than just restating already-true facts.
 
 ## Variance
 
-none — no eval in evals.yaml declares `runs`; every eval here is deterministic.
+none — every eval this round is a deterministic single run.
 
 ## Iterations
 
-Round 1: all 20 evals PASS on first run. No evals failed; nothing returned to
-implementation.
+- Round 1 (verified 2026-08-06, commit `f7feeda`): all 20 machine evals reported PASS; signed off
+  `manh` 2026-08-06. `human_signoff` cleared this round per the staleness-refresh rule.
+- Round 2 (verified 2026-08-06T16:06Z, commit `25c2d2a`): re-verify triggered by `feat/routes-
+  measurements` touching this contract's own `resolveConfig.ts`/`tools.ts` (additively, confirmed via
+  diff review). Full suite still green (453 passed, up from a smaller count in Round 1 — additive new
+  tests only, nothing removed). Re-checking each eval's `expected` clause-by-clause against an actual
+  assertion (not just the exit code) surfaced 3 pre-existing gaps: E3 (detail=0/1 boundary-accept
+  untested), E5 (point icon/color chain's terminal 'pin'/'#ffffff' fallback untested), E6 (marker
+  size=18/140 boundary-accept AND size=0 falsy-vs-null rejection both untested). Verdict REJECT,
+  `failed_evals: [E3, E5, E6]`. Fix is three small additions to `resolveConfig.test.ts`'s existing
+  `describe` blocks (no source change needed — the implementation is already correct); not attempted
+  this round, which is verification-only.
+- Round 3 (verified 2026-08-06T16:26Z, commit `06e4ae1`): commit `06e4ae1` added all three missing
+  test cases (detail=0/1 inline to the existing test; a new "boundary halves..." describe block for
+  marker size=18/140/0 and the style fallback chain's terminal defaults; a fourth case in the same
+  commit closed routes-measurements' own E5, see that contract's report). `resolveConfig.test.ts`
+  re-run fresh: 53/53 passed (up from 50). `npm test` broad guard re-run fresh (test file changed):
+  456/463 passed (up from 453). This verifier independently negative-controlled the E6/size=0 case
+  (mutated the guard, confirmed the new test fails, reverted, re-confirmed green) rather than trusting
+  the commit message. All 20 machine evals now pass; this contract has no judgment evals. Verdict
+  **PASS**.
 
 ## Gate 2 checklist (human)
 

@@ -262,7 +262,7 @@ export function makeTools(deps: ToolDeps) {
     },
 
     async list_themes(): Promise<ToolResult> {
-      return ok({ themes: THEMES.map((t) => ({ id: t.id, name: t.name })) });
+      return ok({ themes: THEMES.map((t) => ({ id: t.id, name: t.name, dark: t.dark, colors: t.colors })) });
     },
 
     async list_formats(): Promise<ToolResult> {

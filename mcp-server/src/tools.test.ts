@@ -181,6 +181,23 @@ describe('discovery tools', () => {
   it('list_themes returns all 13 themes', async () => {
     expect(textJson(await tools().list_themes()).themes).toHaveLength(13);
   });
+  it('list_themes exposes the full palette so agents can match overlay colors', async () => {
+    const { themes } = textJson(await tools().list_themes());
+    expect(themes).toHaveLength(13);
+    expect(themes[0]).toMatchObject({ id: 'midnight-blue', dark: true });
+    expect(themes[0].colors.background).toMatch(/^#/);
+    expect(Object.keys(themes[0].colors)).toContain('accent');
+  });
+
+  it('list_formats dedupes 4k and carries aspect/category/print', async () => {
+    const { formats } = textJson(await tools().list_formats());
+    expect(formats.filter((f: { name: string }) => f.name === '4k')).toHaveLength(1);
+    const tiktok = formats.find((f: { name: string }) => f.name === 'tiktok');
+    expect(tiktok).toMatchObject({ aspect: '9:16', category: 'Video' });
+    const a4 = formats.find((f: { name: string }) => f.name === 'a4');
+    expect(a4.category).toBe('Print');
+    expect(a4.print).toEqual({ w: 210, h: 297, unit: 'mm' });
+  });
 });
 
 describe('render_animation', () => {

@@ -203,11 +203,37 @@ function assertMarkerIcon(key: string, label = 'highlight.points[].icon'): Marke
   throw new Error(`Invalid ${label}: ${key}. Known icons: ${MARKER_ICONS.map((m) => m.key).join(', ')}`);
 }
 
-/** List every format name an agent may pass. */
-export function listFormats(): { name: string; width: number; height: number }[] {
-  const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
-  for (const l of LAYOUTS) out.push({ name: l.id, width: l.width, height: l.height });
-  return out;
+export interface FormatInfo {
+  name: string;
+  width: number;
+  height: number;
+  /** reduced ratio, e.g. '9:16' */
+  aspect: string;
+  category: 'Video' | 'Print' | 'Social' | 'Wallpaper' | 'Web';
+  print?: { w: number; h: number; unit: 'mm' | 'in' };
+}
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+const aspectOf = (w: number, h: number): string => {
+  const g = gcd(w, h);
+  return `${w / g}:${h / g}`;
+};
+
+/** List every format name an agent may pass. FORMATS wins a name collision ('4k' exists in both). */
+export function listFormats(): FormatInfo[] {
+  const out = new Map<string, FormatInfo>();
+  for (const [name, s] of Object.entries(FORMATS)) {
+    out.set(name, { name, ...s, aspect: aspectOf(s.width, s.height), category: 'Video' });
+  }
+  for (const l of LAYOUTS) {
+    if (out.has(l.id)) continue;
+    out.set(l.id, {
+      name: l.id, width: l.width, height: l.height,
+      aspect: aspectOf(l.width, l.height), category: l.category,
+      ...(l.print ? { print: l.print } : {}),
+    });
+  }
+  return [...out.values()];
 }
 
 function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, number, number] | null {

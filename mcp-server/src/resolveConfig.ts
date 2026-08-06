@@ -4,6 +4,7 @@ import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
 import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
 import { FONTS } from '../../src/data/fonts';
+import { MARKER_ICONS } from '../../src/data/markers';
 
 export type FormatInput = string | { width: number; height: number };
 
@@ -176,6 +177,21 @@ function assertMarkerSize(n: number): number {
   return n;
 }
 
+/**
+ * Reject an unknown marker icon rather than fall back to the default.
+ *
+ * `getMarkerIcon` answers `MARKER_ICONS[0]` ('pin') for anything it doesn't
+ * recognise, and the agent calling this server never sees the image — so
+ * `icon: 'rocket'` would silently render a pin with no error and no signal.
+ * Same defect class as `assertTheme` above; bound it here as well as at the
+ * Zod boundary — every runtime guard in this file exists because the
+ * boundary can be bypassed (`makeTools` is called directly).
+ */
+function assertMarkerIcon(key: string, label = 'highlight.points[].icon'): MarkerIconKey {
+  if (MARKER_ICONS.some((m) => m.key === key)) return key as MarkerIconKey;
+  throw new Error(`Invalid ${label}: ${key}. Known icons: ${MARKER_ICONS.map((m) => m.key).join(', ')}`);
+}
+
 /** List every format name an agent may pass. */
 export function listFormats(): { name: string; width: number; height: number }[] {
   const out = Object.entries(FORMATS).map(([name, s]) => ({ name, ...s }));
@@ -245,6 +261,10 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const layers = params.layers != null ? assertLayers(params.layers) : undefined;
   const detail = params.detail != null ? assertDetail(params.detail) : undefined;
   const font = params.font != null ? assertFont(params.font) : undefined;
+  const pointIcon =
+    params.highlight?.pointIcon != null
+      ? assertMarkerIcon(params.highlight.pointIcon, 'highlight.pointIcon')
+      : undefined;
 
   // Single read of `params.highlight?.regions` — the colour pass and the region
   // loop below both index into the same array, and that index alignment is
@@ -275,6 +295,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     typeof p !== 'string' && p.color != null ? assertColor(p.color, 'highlight.points[].color') : null,
   );
   const pointSizes = rawPoints.map((p) => (typeof p !== 'string' && p.size != null ? assertMarkerSize(p.size) : null));
+  const pointIcons = rawPoints.map((p) => (typeof p !== 'string' && p.icon != null ? assertMarkerIcon(p.icon) : null));
 
   const base = await resolveLocation(params.location);
 
@@ -321,7 +342,6 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const markers: RenderMarker[] = [];
   for (let i = 0; i < rawPoints.length; i++) {
     const p = rawPoints[i];
-    const opts = typeof p === 'string' ? undefined : p;
     const center =
       typeof p === 'string'
         ? (await resolveLocation(p, anchor)).center
@@ -331,7 +351,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     markers.push({
       lng: center[0],
       lat: center[1],
-      icon: opts?.icon ?? params.highlight?.pointIcon ?? 'pin',
+      icon: pointIcons[i] ?? pointIcon ?? 'pin',
       color: pointColors[i] ?? color ?? '#ffffff',
       size: pointSizes[i] ?? 44,
     });

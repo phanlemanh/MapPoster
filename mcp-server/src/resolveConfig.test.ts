@@ -305,4 +305,31 @@ describe('resolveConfig', () => {
     // Only the base-location lookup should have fired, never a per-point one.
     expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
   });
+
+  it('rejects an unknown per-point icon instead of silently falling back to the default marker', async () => {
+    // getMarkerIcon() answers MARKER_ICONS[0] ('pin') for anything it doesn't
+    // know, and the agent never sees the rendered image — the same defect
+    // class assertTheme's comment describes for `theme`.
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: [{ lng: 106.7, lat: 10.78, icon: 'rocket' as never }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.icon/);
+  });
+
+  it('rejects an unknown top-level pointIcon instead of silently falling back to the default marker', async () => {
+    await expect(
+      resolveConfig({ location: 'HCMC', highlight: { points: ['x'], pointIcon: 'rocket' as never } }),
+    ).rejects.toThrow(/highlight\.pointIcon/);
+  });
+
+  it('rejects a bad icon on a LATER point before any resolveLocation call for a point fires', async () => {
+    vi.mocked(geocode.resolveLocation).mockClear();
+    await expect(
+      resolveConfig({
+        location: 'Ho Chi Minh City',
+        highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, icon: 'rocket' as never }] },
+      }),
+    ).rejects.toThrow(/highlight\.points\[\]\.icon/);
+    // Only the base-location lookup should have fired, never a per-point one.
+    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+  });
 });

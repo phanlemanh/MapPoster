@@ -71,7 +71,7 @@ server to pick it up, rebuild explicitly — a stale `dist/` is served silently:
 npx vite build
 ```
 
-Tools: `render_map`, `render_variants`, `render_animation`, `render_clip`, `geocode_place`, `list_themes`, `list_formats`. Example call:
+Tools: `render_map`, `render_variants`, `render_animation`, `render_clip`, `compile_motion`, `geocode_place`, `list_themes`, `list_formats`, `list_fonts`. Example call:
 
 ```jsonc
 render_map({
@@ -141,8 +141,10 @@ an unknown `theme` refuses rather than falling back to the default.
 
 `camera.pitch` is bounded `0..60` (MapLibre's default `maxPitch` — passing 85
 used to be accepted and then silently clamped by the engine, which is
-accept-then-discard) and `camera.bearing` is bounded `0..360`; both were
-previously unbounded.
+accept-then-discard). `camera.bearing` is **normalized, not bounded**: any
+finite angle is wrapped into `[0,360)`, so `-45` renders as `315` rather than
+being refused. Bounding it would have removed a capability MapLibre already
+supports; only a non-finite value is rejected.
 
 `resolved.highlights.regions[i]` echoes which named entity the server actually
 matched: `{bbox, center, osmType, osmId, displayName, placeRank}` for a

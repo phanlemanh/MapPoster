@@ -1,75 +1,144 @@
-# Review Findings: mcp-map-render (Round 14)
+# Review Findings: mcp-map-render (Round 16)
 
-Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this
-file). Feeds the Gate 2 decision card alongside `evidence-report.md`. Zero findings survived this
-round's finder pass — the first fully clean adversarial review in this feature's 14-round history.
-No review pass died mid-way in the run that produced this content (see "Review incomplete" at the
-bottom).
+Informational — **not** hook-enforced (no `acceptance-evidence-gate.js` shape applies to this file).
+Feeds the Gate 2 decision card alongside `evidence-report.md`.
 
-Verified at commit `6c3d36b7ffb3d241516883b6f998514e482a25f3` (`feature/easy-setup`).
+Verified at commit `f7b1d6c4ea056d30ddd61df185dc87ed0c74566f` (current `HEAD`).
 
-**Context vs. Round 13:** Round 13's review surfaced 3 findings on the fix that closed Round 12's HIGH
-(the stdio-transport stdout leak) — 1 MEDIUM already reviewed and knowingly accepted as risk
-(`ensureDist.ts`'s build is synchronous and now blocks the `initialize` handshake instead of corrupting
-it), 1 MEDIUM (`test:mcp` raced two integration test files over the same on-disk `dist/`, able to
-spuriously fail one or silently false-pass the other), and 1 LOW (the new integration test destructively
-renamed the real workspace `dist/`, restored only in `finally`). The human (manh) chose to fix the two
-closable findings and to knowingly accept the synchronous-build MEDIUM (`decisions.jsonl`
-`d-20260711T023000Z-63001` through `-63003`).
+**Trigger and scope:** this round's own S4 verify was triggered by staleness — since Round 15's pin
+(`06d37e2`), 10 files under `mcp-server/` changed (`git diff 06d37e2..f7b1d6c --stat -- src/
+mcp-server/`: `config.ts`, `geocode.ts`, `http.ts` + `http.test.ts`, two brand-new modules
+`jobStore.ts`/`jobRunner.ts` + their tests, and `motionCompiler.ts` + its test), dominated by a separate,
+later feature — `async-job-queue` (`POST /jobs` / `POST /jobs/status`, a background job runner; its own
+`_acceptance/async-job-queue/` contract, already signed off `manh` at round 5 per `git log`:
+`14c5d17 signoff: manh CHẤP NHẬN async-job-queue (round 5)`). Unlike Round 15's trigger, this one touches
+`geocode.ts` and `http.ts` directly — files this contract's own criteria live in — so this round ran a
+full fresh adversarial review (both `bugs` and `conventions` finder lenses) rather than skip it as Round
+15 did. Every finding below survived: none maps to any AC of THIS contract (`contract.md`'s own "Out of
+scope" section already excludes `render_sequence`/`render_clip` and their supporting async job-queue
+infrastructure — Phase 2/3). All 13 are filed under "Ngoài hợp đồng" for a human to accept as known-limits
+or spin into `async-job-queue`'s own contract/follow-up.
 
-Commit `6c3d36b` ("run the integration files serially and stop the stdio test false-passing") closes both:
+## Trong hợp đồng
 
-- **MEDIUM #2 (race) — CLOSED.** `package.json`'s `test:mcp` script gained `--fileParallelism=false`,
-  forcing `mcp-server/src/renderFrame.test.ts` and `mcp-server/src/stdioChannel.test.ts` to run one after
-  another instead of Vitest 4's default concurrent-file execution. Verified: `npm run test:mcp` re-run
-  independently this round reports `Test Files 2 passed (2)` / `Tests 4 passed (4)` in 11.14s with no
-  interleaved output between the two files' build/rename/rebuild phases (confirmed by direct re-run, not
-  just trusted from the prior machine-results snapshot). `stdioChannel.test.ts` additionally now asserts
-  `!existsSync(dist)` immediately before spawning the server — if the serialization guarantee ever
-  regresses and `dist/` is present when it shouldn't be, the test fails loudly instead of silently
-  false-passing without exercising the build path — and asserts the spawned child's stderr contains
-  `"render harness not built yet"` (`mcp-server/src/ensureDist.ts:53`'s own log line, confirmed present at
-  that line by direct grep), positively proving the real build branch ran rather than merely inferring it
-  from clean stdout.
-- **LOW #3 (destructive rename) — CLOSED.** `.gitignore` gained `/dist.__stdiotest_bak`. The rename/restore
-  mechanism in `stdioChannel.test.ts` (`renameSync`/`finally`) is otherwise unchanged — this closes the
-  "could pollute a commit" tail risk, not the rename itself, which remains an accepted minor deviation from
-  the suite's isolated-temp-dir convention (low blast radius: opt-in behind `MCP_INTEGRATION=1`, and the
-  backup is a rebuildable directory).
-- **MEDIUM #1 (synchronous build blocks handshake) — NOT re-flagged, carried forward as an already-accepted
-  risk.** `ensureDist.ts:54` is unchanged this round (`git diff 5487f68 6c3d36b -- mcp-server/src/
-  ensureDist.ts` is empty). The human explicitly reviewed and accepted this tradeoff in Round 13
-  (`decisions.jsonl` `d-20260711T023000Z-63003`: "build-before-serve is a deliberate tradeoff; Claude
-  Code's own init timeout is generous; the alternative — a lazy build on first render — only relocates the
-  blocking window"). This round's fresh finder pass ran against the full HEAD (not just the diff) and
-  independently found nothing new on top of it, so it is listed here for continuity/traceability, not as a
-  Round-14 finding requiring its own adversarial-verify cycle.
+None. No finding this round maps to any AC of `mcp-map-render` — every finding sits inside the separate
+`async-job-queue` feature's own surface (`POST /jobs`, `jobStore.ts`, `jobRunner.ts`) or that feature's
+interaction with `geocode.ts`'s `reverseGeocode`/`README.md`'s doc coverage, none of it reachable through
+this contract's own synchronous `render_map` / `render_variants` / `geocode_place` / `list_themes` /
+`list_formats` tools.
 
-`git diff 5487f68 6c3d36b --stat` confirms the source-level change this round is scoped to exactly three
-files: `.gitignore`, `mcp-server/src/stdioChannel.test.ts`, and `package.json`. This round's finder passes
-(`bugs` and `conventions` lenses) targeted that scoped diff plus a fresh look at the rest of the
-`mcp-server/` surface, and reported zero new issues.
+## Ngoài hợp đồng — người quyết ở Gate 2
 
-**Note for Gate 2:** this round's overall verdict is PENDING-JUDGMENT, and no finding (new or carried
-forward) is the reason — that verdict is driven entirely by this contract's `risk_tier: T3` mandating a
-direct human verdict on judgment item E12 (AC-12), independent of code-review findings, and no prior
-`human_override` carries forward to this round's freshly-pinned commit (`6c3d36b`).
+Các lỗi dưới đây là thật, nhưng nằm ngoài phạm vi đã duyệt ở Cổng 1 — người quyết, máy không tự sửa.
 
-## Findings
+- **`/jobs` validates `motion` với `motionParamSchema` (z.union) thay vì `parseMotionParam` — đúng
+  anti-pattern mà motionCompiler.ts ghi là Finding F**
+  Người dùng thấy gì: Khi gửi yêu cầu tạo hoạt ảnh qua cách gửi việc theo hàng đợi mới, người dùng có thể
+  nhận thông báo lỗi khó hiểu hơn so với khi gửi trực tiếp, gây khó khăn khi cần sửa lại yêu cầu.
+  file: `mcp-server/src/http.ts`
+  severity: high
+  Đề xuất: new-contract
 
-None. This round's finder pass (both `bugs` and `conventions` lenses) surfaced zero new findings against a
-diff limited to `package.json`'s `test:mcp` script, `.gitignore`, and `stdioChannel.test.ts`'s strengthened
-assertions — and a fresh look at the surrounding `mcp-server/` surface turned up nothing else. The one open
-item from Round 13 that remains genuinely open (`ensureDist.ts:54`'s synchronous build) is not listed as a
-finding here because it is unchanged code the human already adversarially-reviewed and knowingly accepted
-in Round 13 (`decisions.jsonl` `d-20260711T023000Z-63003`) — see the Context section above for its full
-detail and status.
+- **MAPPOSTER_MAX_QUEUED_JOBS chỉ chặn việc ĐANG CHỜ — bản ghi đã kết thúc giữ nguyên `params` (tối đa
+  8 MiB) suốt 30 phút, không có trần tổng**
+  Người dùng thấy gì: Nếu có nhiều yêu cầu bị lỗi dồn dập, máy chủ có thể hết bộ nhớ và ngừng phục vụ mọi
+  yêu cầu tạo ảnh/video, dù hệ thống vẫn báo hàng đợi còn chỗ.
+  file: `mcp-server/src/jobStore.ts`
+  severity: high
+  Đề xuất: new-contract
+
+- **Nominatim `/reverse` sập vẫn bị gắn `errorKind: 'input'` — hàng rào GeocodeUpstreamError còn hở
+  đúng một lỗ**
+  Người dùng thấy gì: Khi dịch vụ định vị bên ngoài tạm thời gặp sự cố, người dùng có thể bị báo nhầm là
+  địa chỉ họ nhập sai và được yêu cầu tự sửa lại, trong khi chỉ cần thử lại sau vài phút là được.
+  file: `mcp-server/src/geocode.ts`
+  severity: high
+  Đề xuất: new-contract
+
+- **README không được cập nhật cho 2 cửa REST mới, 4 núm env mới và các status code mới — và vẫn khẳng
+  định điều ngược lại**
+  Người dùng thấy gì: Người vận hành đọc tài liệu hướng dẫn sẽ không biết tới các tuỳ chọn cấu hình và
+  cách gọi mới của hệ thống hàng đợi việc, dễ cấu hình sai hoặc bỏ sót khi triển khai.
+  file: `README.md`
+  severity: high
+  Đề xuất: known-limits
+
+- **Kết quả parse ở biên bị vứt đi — sổ việc lưu `submit.params` thô, phá parse-don't-validate mà
+  `/render` đang theo**
+  Người dùng thấy gì: Hiện chưa gây lỗi cho người dùng, nhưng nếu sau này luật kiểm tra dữ liệu thay đổi,
+  yêu cầu gửi qua cách nhận việc hàng đợi có thể bị xử lý khác với yêu cầu gửi trực tiếp mà không ai được
+  cảnh báo.
+  file: `mcp-server/src/http.ts`
+  severity: medium
+  Đề xuất: known-limits
+
+- **Tên tệp artifact của job dùng bộ đếm cấp module — trùng tên và ghi đè im lặng sau mỗi lần khởi động
+  lại**
+  Người dùng thấy gì: Sau khi máy chủ khởi động lại, tệp kết quả của một yêu cầu mới có thể ghi đè lên
+  tệp của yêu cầu cũ mà không báo, khiến người dùng có thể nhận nhầm nội dung không phải của mình.
+  file: `mcp-server/src/jobRunner.ts`
+  severity: medium
+  Đề xuất: new-contract
+
+- **`/jobs/status` nuốt lỗi đọc artifact và trả `ok:true, status:"done"` không nội dung, không lý do**
+  Người dùng thấy gì: Khi tệp kết quả bị mất hoặc lỗi, người dùng vẫn nhận thông báo 'đã xong' nhưng
+  không có ảnh/video kèm theo và không biết cần làm gì tiếp theo.
+  file: `mcp-server/src/http.ts`
+  severity: medium
+  Đề xuất: new-contract
+
+- **Tham số vị trí thứ sáu của `startHttpServer`, gọi kèm ba `undefined` liên tiếp**
+  Người dùng thấy gì: Không ảnh hưởng trực tiếp tới người dùng hiện tại; rủi ro nằm ở khả năng đội phát
+  triển vô tình cấu hình sai khi sửa mã trong tương lai, có thể gây lỗi vận hành khó phát hiện.
+  file: `mcp-server/src/http.ts`
+  severity: low
+  Đề xuất: known-limits
+
+- **JSDoc trong geocode.ts bị mồ côi — chú thích của `__setRateLimitMs` giờ đứng trước class mới**
+  Người dùng thấy gì: Không ảnh hưởng người dùng cuối; chỉ gây khó hiểu cho người đọc mã nguồn sau này.
+  file: `mcp-server/src/geocode.ts`
+  severity: low
+  Đề xuất: known-limits
+
+- **Nominatim outage in the country-anchor lookup is still classified errorKind:'input' — the AC-6 fix
+  misses reverseGeocode**
+  Người dùng thấy gì: Khi dịch vụ định vị bên ngoài tạm thời gặp sự cố, người dùng có thể bị báo nhầm là
+  dữ liệu họ nhập sai và được yêu cầu tự sửa lại, trong khi chỉ cần thử lại sau vài phút là được.
+  file: `mcp-server/src/geocode.ts`
+  severity: high
+  Đề xuất: new-contract
+
+- **MAPPOSTER_MAX_QUEUED_JOBS does not bound memory — terminal records keep the caller's full params for
+  the whole 30-min TTL, unbounded in count**
+  Người dùng thấy gì: Nếu có nhiều yêu cầu bị lỗi dồn dập, máy chủ có thể hết bộ nhớ và ngừng phục vụ mọi
+  yêu cầu tạo ảnh/video, dù hệ thống vẫn báo hàng đợi còn chỗ.
+  file: `mcp-server/src/jobStore.ts`
+  severity: high
+  Đề xuất: new-contract
+
+- **/jobs/status swallows artifact read failures and answers ok:true, status:'done' with no payload and
+  no error**
+  Người dùng thấy gì: Khi tệp kết quả bị mất hoặc lỗi, người dùng vẫn nhận thông báo 'đã xong' nhưng
+  không có ảnh/video kèm theo và không biết cần làm gì tiếp theo.
+  file: `mcp-server/src/http.ts`
+  severity: medium
+  Đề xuất: new-contract
+
+- **sweep() deletes the record before its files and swallows the rm error — a failed delete orphans the
+  file permanently, with no signal**
+  Người dùng thấy gì: Nếu việc xoá tệp tạm thất bại, tệp kết quả cũ có thể tồn đọng mãi trên kho lưu trữ
+  dùng chung mà không ai biết, có thể làm đầy dung lượng theo thời gian.
+  file: `mcp-server/src/jobRunner.ts`
+  severity: medium
+  Đề xuất: new-contract
 
 ## Chưa adversarial-verify (refuter chết)
 
-none — there are no findings this round to carry an `unverified: true` flag; the finder pass itself
-completed cleanly with an empty result set.
+none — không có finding nào round này mang cờ `unverified: true`; cả hai lượt tìm (`bugs` và
+`conventions`) hoàn tất đầy đủ, không có lượt nào chết giữa chừng.
 
 ## Review incomplete (finder chết)
 
-none — in the run that produced this content, no review pass failed to complete.
+none — trong lượt chạy tạo ra nội dung này, không có lượt review nào không hoàn tất.
+
+Cụm ngoài vùng phủ: cluster: n-a (không đo được — không eval nào khai paths, hoặc dưới ngưỡng cụm).

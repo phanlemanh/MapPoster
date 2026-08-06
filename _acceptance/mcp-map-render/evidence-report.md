@@ -1,20 +1,20 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 06d37e264d3f191b67c4e1960ff64390ed428657
-human_signoff: manh (2026-08-04) — verdict đưa trong phiên; commit do Claude thực hiện theo chỉ thị của manh
+verified_commit: f7b1d6c4ea056d30ddd61df185dc87ed0c74566f
+human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
 
-_Round 15 — verified 2026-08-04T06:35:01Z (UTC) at commit `06d37e264d3f191b67c4e1960ff64390ed428657` on
-`feat/render-deploy`._
+_Round 16 — verified 2026-08-06T09:00:00Z (UTC) at commit `f7b1d6c4ea056d30ddd61df185dc87ed0c74566f`,
+current `HEAD`._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -27,331 +27,294 @@ _Round 15 — verified 2026-08-04T06:35:01Z (UTC) at commit `06d37e264d3f191b67c
 | E7 | AC-7 | test | PASS |
 | E8 | AC-8 | test | PASS |
 | E9 | AC-9 | test | PASS |
-| E10 | AC-10 | ui-check | PASS |
+| E10 | AC-10 | ui-check | NOT RE-VERIFIED this round — Round 15's evidence carried, unrefreshed (see Evidence below) |
 | E11 | AC-11 | test | PASS |
-| E12 | AC-12 | judgment | UNCERTAIN — not scored this round; awaits mandatory direct human verdict (T3) |
+| E12 | AC-12 | judgment | UNCERTAIN — panel proposes PASS (3/3 lenses); T3 mandates direct `human_override`, not yet supplied |
 
-> **PENDING-JUDGMENT — this is a fresh S4 verify round (Round 15), run because the evidence pinned at
-> commit `6c3d36b` (Round 14, last signed off `87b23ec` on branch `feature/easy-setup`) went STALE: 42
-> files under `src/` and `mcp-server/` changed since then, including this feature's own shared core
-> (`renderFrame.ts`, `http.ts`, `tools.ts`, `browserPool.ts`).** Those changes are overwhelmingly commits
-> from a SEPARATE, later feature/contract on this branch — `map-motion-clip` (camera-motion mp4 clips via
-> a new `render_clip` tool / `POST /render-clip` endpoint / `motionCompiler.ts` / `encodeAnimation.ts`,
-> its own `_acceptance/map-motion-clip/` contract, explicitly OUT OF SCOPE for this contract per
-> `contract.md`'s "Out of scope" section: "`render_clip` (mp4 via ffmpeg) — Phase 3") — but because it
-> extends the same shared files (`renderFrame.ts` gained a frame-sequence path; `http.ts` gained
-> `/render-clip` alongside the existing `/render`; `tools.ts` gained the `render_clip` tool registration
-> alongside `render_map`/`render_variants`/etc.; `browserPool.ts` gained an acquire-timeout + concurrency
-> gate shared by both REST and MCP), this contract's own still-image evals needed a fresh, independent
-> re-run against the CURRENT tree rather than being waved through on Round 14's evidence. All 12 evals were
-> re-executed this round: E1–E9 and E11 via `npm test` (**338 passed | 7 skipped (345)**, up from 203 | 4 in
-> Round 14 — the delta is almost entirely new `map-motion-clip` test files, e.g. `motionCompiler.test.ts`,
-> `encodeAnimation.test.ts`, `renderClip.test.ts`, `motionMath.test.ts`, `motionScript.test.ts`, plus a
-> handful of `geocoding.ts`/`smoothGeojson.ts` additions; nothing in the count regressed for this
-> contract's own surface); E10 via a dedicated ad-hoc `ui-check` Playwright probe (see Evidence below) —
-> deliberately a NEW location/theme (Hanoi Old Quarter, `midnight-azure`, `chrome:clean`) never used by any
-> prior round's probe, independently byte-decoding the returned PNG's IHDR to confirm exact 1080×1920; and
-> `npm run test:mcp` (**3 test files, 7 passed**, up from 4 in Round 14 — the new file is
-> `renderClip.test.ts`, a `map-motion-clip` integration test riding the same `test:mcp` script) as
-> corroboration that the real headless-browser render path (shared by both features) is intact. The full
-> `npm run test:e2e` suite is **14/14 green** (up from 11/11 in Round 14 — 3 new specs in
-> `e2e/render-mode.spec.ts` covering `map-motion-clip` motion behaviour; the original AC-10-covering spec
-> and all `e2e/mapposter.spec.ts` specs are unchanged and green). No machine eval for THIS contract failed.
-> **Per this round's explicit instructions, E12 (AC-12, judgment) was NOT scored by this verify pass** —
-> `risk_tier: T3` mandates a direct human verdict on every judgment item regardless of any panel's opinion,
-> so this round records it as UNCERTAIN/awaiting-human rather than proposing a verdict of its own.
-> `evidence/E12-example.png` itself is unchanged since commit `433e7ea` (Round 3) — this round's diff does
-> not touch poster compositing or point-highlight rendering, only adds the separate, out-of-scope clip
-> pipeline alongside it. Round 14's `human_signoff` (`manh`, 2026-07-11) was tied to commit `6c3d36b` and
-> does NOT carry over to this round's freshly-pinned `06d37e2` per the same rule applied every round since
-> Round 8 ("chữ ký phải áp lại sau khi verify xong") — cleared in this round's frontmatter accordingly.
-> **This round did not run a full adversarial code-review pass** (out of scope for this VERIFY-only
-> instruction set — see Iterations below for what this round did and did not check) — Gate 2 should note
-> that Round 14 was the last round with a completed adversarial review (zero findings) and none of the
-> 42 changed files were reviewed against THIS contract's criteria beyond the eval suite re-run documented
-> here.
+> **PENDING-JUDGMENT — Round 16 is a fresh S4 verify, run because the evidence pinned at commit `06d37e2`
+> (Round 15, last signed off `manh` on `feat/render-deploy`) went STALE again: 10 files under
+> `mcp-server/` changed since (`git diff 06d37e2..f7b1d6c --stat -- src/ mcp-server/`: `config.ts`,
+> `geocode.ts`, `http.ts` + `http.test.ts`, two brand-new modules `jobStore.ts`/`jobRunner.ts` + their
+> tests, and `motionCompiler.ts` + its test — 1,661 insertions, 26 deletions).** Unlike Round 15's trigger
+> (`map-motion-clip` touching this contract's shared files only incidentally), this round's trigger is a
+> separate later feature, `async-job-queue` (`POST /jobs` / `POST /jobs/status`; its own
+> `_acceptance/async-job-queue/` contract, already signed off `manh` at round 5) — but it touches
+> `geocode.ts` and `http.ts` DIRECTLY, files this contract's own AC-2/AC-4/AC-6/AC-11 assertions live in,
+> so a full independent re-run of this contract's own evals was warranted rather than waved through. All
+> 10 of this contract's `npm test`-mapped evals (E1–E9, E11) were re-executed fresh: **397 passed | 7
+> skipped (404)**, up from 338 | 7 in Round 15 — the +59 delta is almost entirely new
+> `jobStore.test.ts`/`jobRunner.test.ts`/expanded `http.test.ts` coverage for the out-of-scope
+> `async-job-queue` feature, plus a small `motionCompiler.test.ts` addition for the sibling
+> `map-motion-clip` contract; nothing in this contract's own coverage shrank. `npm run test:e2e && npm
+> run test:mcp` (run as one serialized pipeline command, per commit `aa2dc56` folding the two
+> browser-driving suites together) exited 0. Zero machine evals for THIS contract failed.
+> **E10 (AC-10, ui-check) was NOT re-executed this round** — no ui-check run, no fresh `run_id`, and no
+> new evidence frames were supplied or captured (the 4 PNGs under `evidence/` are still Round 15's,
+> dated Aug 4); rather than invent a run_id or claim a screenshot never taken, E10 is recorded as
+> not-re-verified, carrying Round 15's last-known-good result forward as **unrefreshed** evidence — see
+> the Evidence section and Gate 2 checklist below.
+> **E12 (AC-12, judgment) received a fresh 3-lens judge panel** this round (domain-correctness /
+> operational-feasibility / spec-alignment), all three unanimously proposing PASS against a freshly
+> supplied evidence frame. Per `risk_tier: T3` that proposal is advisory only — every judgment item still
+> requires a direct human `human_override`, not supplied this round, so E12 stays UNCERTAIN and the
+> overall verdict is PENDING-JUDGMENT, not PASS.
+> **A fresh adversarial review pass ran this round** (Round 15 explicitly skipped review) and surfaced 13
+> findings — all real, all routed to `review-findings.md` under "Ngoài hợp đồng": every one sits inside
+> `async-job-queue`'s own surface (`POST /jobs`, `jobStore.ts`, `jobRunner.ts`) or that feature's
+> interaction with `geocode.ts`'s `reverseGeocode`/README doc coverage, none of it reachable through THIS
+> contract's own synchronous `render_map` / `render_variants` / `geocode_place` tools, and `contract.md`'s
+> own "Out of scope" section already excludes the async job-queue infrastructure (Phase 2/3) from this
+> contract. Zero findings map to any AC here; none is a machine-eval regression (all 11 of this
+> contract's own machine evals still pass clean against the parts of `geocode.ts`/`http.ts` this round's
+> diff DID touch — additive alongside the existing synchronous paths, not a modification of them).
 
 ## Evidence
 
-_Round 15 is a re-verify triggered by staleness, not by a review finding: 42 files under `src/` and
-`mcp-server/` changed since Round 14's `6c3d36b` pin — almost all of it the separate, later
-`map-motion-clip` feature (its own contract under `_acceptance/map-motion-clip/`, explicitly out of scope
-for THIS contract). Because that feature extends shared files this contract also depends on
-(`renderFrame.ts`, `http.ts`, `tools.ts`, `browserPool.ts`), every eval below was independently re-executed
-against the current tree (`06d37e2`) rather than carried forward. `git diff 6c3d36b..HEAD --stat -- src/
-mcp-server/` shows 42 files changed, 4427 insertions, 119 deletions — the still-image render/geocode/highlight
-core this contract owns (`resolveConfig.ts`, `geocode.ts`, `mapStyle.ts`'s highlight layers, `deps.ts`) is
-present in that diff only incidentally (`resolveConfig.ts` +3 lines, `deps.ts` +32/-lines refactored for the
-shared pool, `renderFrame.ts` +136 lines) — all additive, adding a frame-sequence/clip code path alongside
-the existing still-image path, not modifying it — confirmed behaviorally by every eval below passing clean._
+_Round 16's diff (`git diff 06d37e2..f7b1d6c --stat -- src/ mcp-server/`) touches this contract's own
+files only in `geocode.ts` (+39/-lines: a new `GeocodeUpstreamError`/`viaUpstream` wrapper feeding the
+out-of-scope `/jobs` error-classification path) and `http.ts` (+152/-lines: the new `POST /jobs` /
+`POST /jobs/status` routes added alongside the existing `/render` route, not replacing it) — both
+additive. `config.ts` gained two new env knobs for the job queue only. `jobStore.ts`/`jobRunner.ts` are
+brand-new files with no callers inside this contract's own tool surface. `motionCompiler.ts` belongs to
+the sibling `map-motion-clip` contract. Every claim below is checked against `npm test`'s aggregate tail
+(shared run, all evals below ran in the same invocation) plus, where relevant, a note on whether this
+round's diff touched that eval's own assertions._
 
 - eval: E1
-  run_id: mcp-map-render-E1-20260804-063501
+  run_id: minted-mcp-map-render-E1-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
     `npm test` (vitest) aggregate tail:
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
-    (up from 203 passed | 4 skipped in Round 14 — delta is almost entirely new map-motion-clip test files;
-    AC-1's own resolve/render assertions, e.g. resolveConfig.test.ts / renderFrame.test.ts's still-image
-    cases, are present and green in this run.)
-    Corroborating (integration depth, real build + real headless browser) — `npm run test:mcp`:
-      Test Files  3 passed (3)
-           Tests  7 passed (7)
-        Start at  13:34:13
-        Duration  41.62s (transform 34ms, setup 0ms, import 824ms, tests 39.79s, environment 737ms)
-    (up from 4 tests/2 files in Round 14 — the new file is renderClip.test.ts, a map-motion-clip
-    integration test riding the same script; renderFrame.test.ts's still-image integration case is
-    unchanged and green.)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
+    (up from 338 passed | 7 skipped in Round 15 — the +59 delta is new async-job-queue and
+    motionCompiler coverage; this contract's own render_map "returns a PNG for a place" assertions,
+    e.g. resolveConfig.test.ts / renderFrame.test.ts's still-image cases, are present and green,
+    unaffected by this round's diff — neither file appears in `git diff 06d37e2..f7b1d6c`.)
 
 - eval: E2
-  run_id: mcp-map-render-E2-20260804-063501
+  run_id: minted-mcp-map-render-E2-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    Region-highlight path (`resolveConfig.ts`'s `resolveBoundary`, `mapStyle.ts`'s highlight layers, the
-    >16 KB / GeoJSON-bound behaviour) — `mapStyle.ts` itself changed (+65/-lines) this round's cumulative
-    diff but only to add clip-motion-related style hooks (confirmed via `git diff 6c3d36b..HEAD --
-    src/lib/mapStyle.ts`); `mapStyle.test.ts`'s AC-2 highlight-layer assertions are present and green.
+    Named-place geocoding + structured-error-on-miss path — `geocode.ts` DID change this round
+    (+39/-lines: a new `GeocodeUpstreamError`/`viaUpstream` wrapper around `searchPlaces`/
+    `fetchRegionBoundary`/`reverseGeocode`, feeding the out-of-scope `/jobs` error-classification path
+    only). `geocode.test.ts`'s AC-2 resolve/miss assertions against `geocode_place` and `render_map`'s
+    own synchronous call sites are present and green in this run — the new wrapper is additive around
+    the existing throw sites, not a modification of them.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E3
-  run_id: mcp-map-render-E3-20260804-063501
+  run_id: minted-mcp-map-render-E3-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    Point-highlight / auto-zoom / camera-override (`lockMap`) path — `resolveConfig.test.ts`'s AC-3 cases
-    are present and green in this round's `npm test` run.
+    Named-region highlight resolve/throw path — `resolveConfig.test.ts`'s AC-3 cases are present and
+    green; `resolveConfig.ts` itself does not appear in this round's changed-file list.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E4
-  run_id: mcp-map-render-E4-20260804-063501
+  run_id: minted-mcp-map-render-E4-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    `geocode.ts` (Nominatim memoization/rate-limit/bounded-LRU) and `config.ts`'s `envNumber` startup
-    validation — `geocode.ts` gained a small addition this round's cumulative diff (`geocode.test.ts` +30
-    lines) but `git diff 6c3d36b..HEAD -- mcp-server/src/geocode.ts` shows no removal/modification of the
-    memoization or rate-limit logic, only additive test coverage; AC-4's should-not-fire-pair and
-    non-memoized-transient-failure assertions are present and green.
+    Coordinate/zoom/dimension boundary rejection, incl. variant parity — `resolveConfig.test.ts` /
+    `tools.test.ts`'s AC-4 boundary cases are present and green; neither `resolveConfig.ts` nor
+    `tools.ts` appears in this round's changed-file list (only `geocode.ts`/`http.ts`/`config.ts`
+    changed on the mcp-server side, all for the out-of-scope job queue).
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E5
-  run_id: mcp-map-render-E5-20260804-063501
+  run_id: minted-mcp-map-render-E5-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    `render_variants` / `browserPool.ts` / `deps.ts` (pool discard/health, boundary guards, stale-frame
-    reuse guard) — `browserPool.ts` changed materially this round's cumulative diff (+50/-lines: an
-    acquire-timeout + concurrency gate shared by REST and MCP, landed for the map-motion-clip feature's
-    clip rendering, per commit `b5f6e77` "chặn pool starvation bằng acquire timeout + gate concurrency clip
-    dùng chung REST/MCP") — this is exactly the kind of shared-core change this re-verify round exists to
-    catch. `browserPool.test.ts`'s discard/health/pool-cap assertions (this contract's own regression
-    coverage from Rounds 1/8) are present and green in this run, and `tools.test.ts`'s `render_variants`
-    boundary-guard cases are present and green — no regression observed.
+    Browser-pool page-pool cap/no-hang path — `browserPool.test.ts`'s AC-5 pool-cap assertions are
+    present and green; `browserPool.ts` does not appear in this round's changed-file list.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E6
-  run_id: mcp-map-render-E6-20260804-063501
+  run_id: minted-mcp-map-render-E6-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    listTools (stdio + HTTP) / Host-Origin refusal / loopback-default / body-cap — `http.ts` and `tools.ts`
-    both changed materially this round's cumulative diff (`http.ts` +245/-lines, `tools.ts` +240/-lines):
-    `http.ts` gained `POST /render-clip` alongside the existing `POST /render`, and `tools.ts` gained the
-    `render_clip` MCP tool registration alongside `render_map`/`render_variants`/`geocode_place`/
-    `list_themes`/`list_formats` — additive routes/tools, not a modification of the existing ones (confirmed
-    via `git diff 6c3d36b..HEAD -- mcp-server/src/http.ts mcp-server/src/tools.ts`, and via `http.test.ts`'s
-    AC-6 listTools/Host-Origin/body-cap assertions and `tools.test.ts`'s tool-set assertions, both present
-    and green — the tool/route set `render_map` etc. still lists exactly as AC-6 requires, `render_clip`
-    is additive alongside it, not a replacement).
+    Nominatim rate-limit serialization — `http.ts` DID change materially this round (+152/-lines: the
+    new `POST /jobs` / `POST /jobs/status` routes were added ALONGSIDE the existing `POST /render` /
+    `GET /tools` etc., not replacing them, confirmed via `git diff 06d37e2..f7b1d6c -- mcp-server/src/
+    http.ts`). `http.test.ts`'s AC-6 serialization assertions and `geocode.test.ts`'s rate-limiter
+    cases are present and green in this run — this contract's own request path is unaffected by the
+    new job-queue routes sitting next to it.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
-    Corroborating (integration depth, real stdio process, real `vite build`, real JSON-RPC handshake) —
-    `npm run test:mcp`:
-      Test Files  3 passed (3)
-           Tests  7 passed (7)
-        Start at  13:34:13
-        Duration  41.62s (transform 34ms, setup 0ms, import 824ms, tests 39.79s, environment 737ms)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
+    Corroborating (integration depth, real build + real headless browser + real transport) —
+    `npm run test:e2e && npm run test:mcp` (run as one serialized pipeline command):
+         Tests  7 passed (7)
+      Start at  09:49:41
+      Duration  44.33s (transform 35ms, setup 0ms, import 848ms, tests 42.22s, environment 983ms)
 
 - eval: E7
-  run_id: mcp-map-render-E7-20260804-063501
+  run_id: minted-mcp-map-render-E7-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    Delivery (base64 + path, sink-dir file existence, PNG decode) — AC-7's `tools.test.ts` cases are
-    present and green in this round's `npm test` run.
+    Cache memoizes answers, not transient failures — `geocode.test.ts`'s AC-7 memoization/
+    non-memoized-transient-failure cases are present and green; this round's new
+    `GeocodeUpstreamError`/`viaUpstream` wrapper in `geocode.ts` sits around the synchronous
+    `searchPlaces`/`fetchRegionBoundary` throw sites this AC's own tests exercise, additive, not a
+    behaviour change to them.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E8
-  run_id: mcp-map-render-E8-20260804-063501
+  run_id: minted-mcp-map-render-E8-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    `list_formats` / custom-dims / boundary-rejection — AC-8's `tools.test.ts` / `resolveConfig.test.ts`
-    cases are present and green in this round's `npm test` run.
+    Two different configs on a pooled page render two different results — `browserPool.test.ts` /
+    `renderFrame.test.ts`'s AC-8 stale-frame-reuse-guard cases are present and green; neither file
+    appears in this round's changed-file list.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E9
-  run_id: mcp-map-render-E9-20260804-063501
+  run_id: minted-mcp-map-render-E9-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    `chrome`/theme/highlight-color validation and `resolved` echo — `mapStyle.ts` gained the AC-9
-    text-free/attribution-exception guard for the NEW clip feature (commit `a3247f5` "chốt attribution là
-    ngoại lệ chữ-pixel DUY NHẤT được phép trên clip") on top of this contract's own pre-existing
-    chrome=clean/poster still-image guard; `mapStyle.test.ts`'s still-image AC-9 cases (chrome=clean -> no
-    title overlay; chrome=poster -> title overlay present; unknown theme refused; non-hex highlight.color
-    refused) are present and green, unaffected by the clip-specific addition.
+    `list_themes` / `list_formats` data-availability — `tools.test.ts`'s AC-9 catalogue assertions are
+    present and green; `tools.ts` does not appear in this round's changed-file list.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E10
-  run_id: mcp-map-render-E10-20260804-063306
-  exit_code: 0
-  baseline: n-a
-  verifier: config:executors.test.e2e
-  verified_at: 2026-08-04T06:35:01Z
-  screenshot: evidence/E10-step1.png
-  observed: |
-    Đọc trực tiếp cả 3 frame vừa lưu bằng Read (ảnh thật, không suy từ lệnh hay từ mô tả có sẵn). Probe
-    round này CỐ Ý dùng địa điểm/theme mới, chưa từng dùng ở round nào trước (Hanoi Old Quarter,
-    theme midnight-azure, chrome=clean, zoom 13):
-
-    E10-step1.png: nền đen toàn khung (viewport rộng hơn khung poster dọc nên có viền đen 2 bên), khung
-    poster-frame tỉ lệ dọc (tiktok 1080:1920) căn giữa. Bên trong: bản đồ khu Phố Cổ Hà Nội đã hiển thị đầy
-    đủ — sông Hồng uốn khúc đặc trưng bên phải khung, lưới phố cổ dày đặc dạng ô bàn cờ ở trung tâm-dưới,
-    tất cả vẽ bằng nét xanh dương sáng (azure) nổi trên nền navy đậm đặc trưng theme midnight-azure. Có dòng
-    attribution "© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre" ở đáy khung. KHÔNG có
-    modal onboarding, KHÔNG có sidebar/search bar/nút bấm nào che phủ — khớp chính xác Expected
-    "no onboarding".
-
-    E10-step2.png: byte-for-byte giống hệt E10-step1.png (392379 bytes cả hai) — nghĩa là bản đồ đã render
-    xong TRƯỚC KHI script kịp chụp bước 1 (tiles tải và __mapposter xuất hiện đủ nhanh trong lần chạy này),
-    không phải một mâu thuẫn: cả hai frame đều hợp lệ so với Expected — không có onboarding ở cả hai, và
-    frame sau await api.ready + renderFrame() (step2) tiếp tục xác nhận bản đồ đã vẽ đầy đủ, không có
-    onboarding xuất hiện muộn.
-
-    E10-step3.png: trang bằng chứng tự dựng (nền đen), tiêu đề "E10 step3 — decoded PNG IHDR dimensions",
-    dòng chữ MÀU XANH LÁ "measured: 1080x1920 — expected: 1080x1920 — MATCH" ngay bên dưới, kèm ảnh PNG
-    THẬT đã giải mã hiển thị full-bleed (cùng nội dung Phố Cổ Hà Nội giống step1/2, không có viền đen
-    letterbox vì đây là kích thước gốc 1080×1920), và dòng chú thích
-    "run_id=mcp-map-render-E10-20260804-063306 bytes=1827946" — bytes khớp chính xác kích thước file thật
-    của `evidence/E10-rendered-output.png` (1827946 byte, đã kiểm bằng `ls -la` độc lập).
-
-    Không có mâu thuẫn nào giữa 3 frame và Expected trong bất kỳ chi tiết nào.
-  output: |
-    New probe — Hanoi Old Quarter / midnight-azure / chrome:clean, zoom 13 — deliberately different from
-    every prior round's fixture (HCMC/midnight-blue rounds 1-6/12-14, Đà Nẵng/ocean round 7, Hội An/sandstone
-    round 8, Nha Trang/ruby round 9), captured via a temporary ad-hoc Playwright spec
-    (`e2e/_verify-e10-ui-check.spec.ts`) since no dedicated `capture.ui` executor is configured in
-    `_acceptance/config.yaml`; the temp spec file was deleted immediately after the run (`git status`
-    confirms `e2e/` is clean — only the 4 evidence PNGs + run-log.jsonl changed).
-    `npx playwright test e2e/_verify-e10-ui-check.spec.ts` — 1 passed (4.8s), exit 0 (asserts
-    result.w===1080, result.h===1920, isPng, AND independently decodes the returned base64 PNG's IHDR bytes
-    at offsets 16/20 to confirm width===1080/height===1920 — a second, byte-level check independent of the
-    JS object's self-reported dims).
-    Corroborating — full `npm run test:e2e` run (all 14 specs, not just render-mode.spec.ts), tail:
-      ✓  11 [chromium] › e2e/render-mode.spec.ts:93:1 › render mode: headless renderFrame yields exact
-    target dims, no onboarding (AC-10) (1.7s)
-
-      14 passed (41.5s)
-    (up from 11/11 in Round 14 — the 3 new specs are map-motion-clip motion-frame tests in the same file;
-    the original AC-10 spec and all 10 e2e/mapposter.spec.ts specs are unchanged and green.)
+  status: NOT RE-VERIFIED THIS ROUND
+  note: |
+    No ui-check run was supplied in this round's machine-results, no fresh `run_id` was minted for E10
+    (absent from this round's run_id map), and no new evidence frames were captured — every file under
+    `_acceptance/mcp-map-render/evidence/` is still Round 15's, dated Aug 4. Per this round's own
+    instructions (never mint/invent a run_id, never fabricate a screenshot/observed description), E10 is
+    left unrun rather than asserted PASS on invented evidence.
+    Last known-good evidence: `run_id: mcp-map-render-E10-20260804-063306`, commit `06d37e2` (Round 15),
+    `exit_code: 0`, `evidence/E10-step1.png` → `step2.png` → `step3.png`, independently byte-decoded PNG
+    IHDR confirming 1080×1920, no onboarding visible in any frame (full detail in Round 15's own entry
+    below under `## Iterations`).
+    Risk assessment for carrying it forward unrefreshed: this round's diff does not touch
+    `renderFrame.ts`, `src/render/**`, or any app-page source AC-10 exercises — only `geocode.ts` (a
+    new out-of-scope error wrapper), `http.ts` (new job-queue routes added alongside, not replacing,
+    the existing render route), `config.ts` (new job-queue env knobs), and the brand-new `jobStore.ts`/
+    `jobRunner.ts`/`motionCompiler.ts`, none of which the AC-10 end-to-end render page depends on.
+    Believed low-risk, but **not independently proven this round** — flagged for Gate 2 below rather than
+    silently treated as still-PASS.
 
 - eval: E11
-  run_id: mcp-map-render-E11-20260804-063501
+  run_id: minted-mcp-map-render-E11-r16
   exit_code: 0
-  baseline: n-a
+  baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-04T06:35:01Z
+  verified_at: 2026-08-06T09:00:00Z
   output: |
-    Ungeocodable-location / invalid-dims structured-error path — AC-11's `tools.test.ts` cases are present
-    and green in this round's `npm test` run.
+    Ungeocodable-location / invalid-dims structured-error path (never a silently-empty PNG) —
+    `tools.test.ts`'s AC-11 cases are present and green; `tools.ts` does not appear in this round's
+    changed-file list.
     `npm test` aggregate tail (shared run):
-          Tests  338 passed | 7 skipped (345)
-       Start at  13:31:01
-       Duration  3.13s (transform 1.63s, setup 0ms, import 7.35s, tests 4.26s, environment 16.98s)
+         Tests  397 passed | 7 skipped (404)
+      Start at  09:48:50
+      Duration  4.29s (transform 3.50s, setup 0ms, import 12.92s, tests 4.77s, environment 25.73s)
 
 - eval: E12
+  judged_by: judge panel (fresh context) — 3 lenses, unanimous proposal PASS
+  proposal: PASS
+  votes:
+  - domain-correctness: PASS — Ảnh 1080×1920 hiển thị bản đồ midnight-blue rõ nét: đường phố (cam) và
+    khối nhà (xanh đậm) vẽ liền mạch, không vỡ tile, không ô trống. Điểm ghim (point highlight) đặt gần
+    chính giữa khung dọc, nổi bật rõ trên nền tối — hợp lý cho một địa chỉ cụ thể tại Quận 3, HCMC. Không
+    có chữ/overlay lạc lõng; nhãn "VIETNAM" + tọa độ ở góc dưới nhỏ gọn, khớp với chế độ chrome:"clean"
+    (không có city-title lớn) — bố cục sạch, dùng được làm B-roll video.
+  - operational-feasibility: PASS — Ảnh 1080x1920 hiển thị marker trắng tương phản cao đặt gần tâm khung,
+    lưới đường màu vàng cam liền mạch không có lỗi vỡ tile hay chồng chữ, layout sạch (nhãn địa danh +
+    tọa độ góc dưới trái, attribution nhỏ góc dưới phải, không có phần tử lạc lõng/placeholder). Về khả
+    năng vận hành cho một tác tử AI dùng làm B-roll: vị trí đánh dấu khớp tọa độ hiển thị (10.7759°N,
+    106.6894°E — đúng khu vực Quận 3, HCMC), vùng highlight rõ ràng dễ nhận diện ở kích thước video dọc.
+    Ba tiêu chí của AC-12 (căn giữa, highlight rõ, tile/road không vỡ) đều được thỏa mãn trực quan.
+  - spec-alignment: PASS — Ảnh 1080x1920 hiển thị lưới đường màu vàng cam sắc nét trên nền xanh đậm
+    (theme midnight-blue), marker (pin trắng) đặt gần tâm khung hình một cách rõ ràng và dễ đọc, không có
+    lỗi tile vỡ/thiếu hay artefact lạ; nhãn "VIETNAM" + toạ độ ở dưới là chữ nhỏ, không phải city-title
+    lớn nên phù hợp chrome:clean mặc định (AC-9). Bố cục sạch, vùng highlight điểm nổi bật rõ, đáp ứng
+    đúng mô tả AC-12 (vị trí đúng chỗ, highlight rõ, tile/đường không vỡ) — dùng được làm B-roll cho
+    video.
   verdict: UNCERTAIN
-  judged_by: not scored this round — this VERIFY round's own instructions require judgment evals under a
-    T3 contract to await a direct human verdict rather than be scored/proposed by the verify subagent
   rationale: |
-    `evidence/E12-example.png` is unchanged since commit `433e7ea` (Round 3) — `git log -1 --oneline --
-    _acceptance/mcp-map-render/evidence/E12-example.png` confirms no commit has touched it since. This
-    round's diff (since `6c3d36b`) does not touch poster compositing or point-highlight rendering for the
-    still-image path; it is dominated by the separate, out-of-scope map-motion-clip feature added
-    alongside it in the same shared files. No new judge-panel opinion is offered this round; a prior
-    round's judge-panel PASS (3/3 lenses, Round 14) exists in this report's git history for reference but
-    is not carried forward as this round's finding.
-  human_override: manh (2026-08-04) — CHẤP NHẬN. Round 15 chứng minh 42 file đổi không làm hồi quy feature này; giới hạn 'chưa review đối kháng trên diff mới' đã đọc và chấp nhận.
-  # ^ Required before this item can become a direct human PASS — and, since overall verdict is
-  # PENDING-JUDGMENT, before overall PASS. This contract's risk_tier T3 mandates a direct human verdict on
-  # EVERY judgment eval. Round 14's `human_signoff` (manh, 2026-07-11) was tied to commit `6c3d36b` and
-  # does NOT carry over to this round's freshly-pinned `06d37e2` per the same rule applied every round
-  # since Round 8 ("chữ ký phải áp lại sau khi verify xong").
+    The panel is unanimous (3/3 PASS, no dissent) against a freshly supplied evidence frame. Per this
+    contract's `risk_tier: T3`, a panel proposal is advisory only — EVERY judgment item mandates a direct
+    human verdict before it can count as PASS, regardless of how the panel voted. No `human_override` was
+    supplied this round, so E12 remains UNCERTAIN and the overall verdict is PENDING-JUDGMENT.
+  human_override:
 
 ## Analyst
 
-No `diffBase` A/B run was performed this round (`baseline: n-a` on every eval above) — this round's scope
-was a straight re-verify of the current tree (`06d37e2`) against Round 14's staleness trigger (42 changed
-`src/`/`mcp-server/` files), not a fresh discrimination audit against a pre-feature base. Gate 2 should treat
-Round 14's own Analyst finding (E1–E9, E11 non-discriminating against the pre-`mcp-server/` `diffBase`, for
-the structural reason that the whole `mcp-server/` package is net-new on that base) as still representative
-of the underlying architecture — nothing this round changed that.
+Non-discriminating evals this round: `npm test` (E1, E2, E3, E4, E5, E6, E7, E8, E9, E11) is green on
+BOTH the current tree (`f7b1d6c`) and the pre-feature `diffBase` — every one of this contract's 10
+`npm test`-mapped evals passes regardless of this round's diff, for the same structural reason flagged
+since Round 4: this contract's own render/geocode/highlight surface (`resolveConfig.ts`, `mapStyle.ts`,
+`renderFrame.ts`, `browserPool.ts`, `tools.ts`'s render tools) is untouched by everything that changed
+since the baseline split point (this round's actual diff — `geocode.ts`'s new error wrapper, `http.ts`'s
+new job-queue routes, the brand-new `jobStore.ts`/`jobRunner.ts`, and the sibling contract's
+`motionCompiler.ts` — is all additive, alongside the existing code these evals exercise, not a
+modification of it). This is an artifact of how `diffBase` is drawn for this contract, not a weakness in
+this round's specific assertions; none of E1–E9/E11's `expected` text was rewritten this round, and Gate
+2 should keep treating it the same way prior rounds' identical finding has been treated (informational,
+not a request to rewrite the evals).
 
-`npm run test:e2e` and `npm run test:mcp` are not listed as their own eval ids here: neither is assigned to
-any eval in this round's machine-results map — they appear only as corroborating text inside the E1/E6/E10
-blocks above.
+`npm run test:e2e` and `npm run test:mcp` are not listed as their own eval ids here — this round's
+machine-results map assigns them no eval id (`evals: []`), so per the rule they appear only as
+corroborating text inside E6's block above, not as a separate table row.
 
 ## Variance
 
-none — every eval this round is deterministic, single run (1/1); no flaky/racy variance observed across
-the captured commands (`npm test`, `npm run test:e2e`, `npm run test:mcp`, the ad-hoc `ui-check:E10` probe
-each exited 0 on their one recorded run this round).
+none — no eval this round carries a `runs > 1` stochastic marker; every command this round (`npm test`,
+the combined `npm run test:e2e && npm run test:mcp` pipeline) is a deterministic single run (1/1), and
+none showed pass_rate variance or flakiness across its one recorded execution.
 
 ## Iterations
 
@@ -972,30 +935,87 @@ each exited 0 on their one recorded run this round).
   adversarial review (zero findings, the first fully clean pass in the feature's history). Gate 2 should
   weigh that the 42-file diff since then (dominated by `map-motion-clip`) has NOT been adversarially
   reviewed against this contract's own criteria — only proven not to regress it via the eval suite.
+- Round 16 (verified 2026-08-06T09:00:00Z, commit `f7b1d6c4ea056d30ddd61df185dc87ed0c74566f`): Triggered
+  by staleness again, not by a review finding — since Round 15's pin (`06d37e2`), 10 files under
+  `mcp-server/` changed (`git diff 06d37e2..f7b1d6c --stat -- src/ mcp-server/`: `config.ts`, `geocode.ts`,
+  `http.ts` + `http.test.ts`, two brand-new modules `jobStore.ts`/`jobRunner.ts` + their tests, and
+  `motionCompiler.ts` + its test — 1,661 insertions, 26 deletions). Unlike Round 15's trigger
+  (`map-motion-clip` touching this contract's shared files only incidentally), this round's trigger is a
+  SEPARATE later feature, `async-job-queue` (`POST /jobs` / `POST /jobs/status`, a background job runner —
+  its own `_acceptance/async-job-queue/` contract, already signed off `manh` at round 5 per
+  `git log`: `14c5d17 signoff: manh CHẤP NHẬN async-job-queue (round 5)`) — but this time it touches
+  `geocode.ts` and `http.ts` DIRECTLY, files this contract's own AC-2/AC-4/AC-6/AC-11 assertions live in,
+  not merely a dependency two layers down. A full independent re-run was warranted. All 10 of this
+  contract's `npm test`-mapped evals (E1–E9, E11) were re-executed fresh against `f7b1d6c`: **397 passed | 7
+  skipped (404)** (up from 338 | 7 in Round 15 — the +59 delta is almost entirely the new
+  `jobStore.test.ts`/`jobRunner.test.ts`/expanded `http.test.ts` coverage for the out-of-scope
+  `async-job-queue` feature, plus a small `motionCompiler.test.ts` addition for the sibling `map-motion-clip`
+  contract; nothing in the delta is this contract's own coverage shrinking). `npm run test:e2e && npm run
+  test:mcp` (run as a single pipeline command, not split per-eval — consistent with commit `aa2dc56`
+  "ci(acceptance): gộp hai bộ đo dùng trình duyệt thành một lệnh nối tiếp" folding the two browser-driving
+  suites into one serialized command) exited 0. Zero machine evals for THIS contract failed; none carry a
+  `runs > 1` stochastic marker this round, so `## Variance` is empty. **E10 (AC-10, ui-check) was NOT
+  re-executed this round** — this round's supplied machine-results map contains no ui-check run, no fresh
+  `run_id`, and no new evidence frames were captured under `_acceptance/mcp-map-render/evidence/` (the 4
+  PNGs there are still Round 15's, timestamped `Aug 4`); rather than fabricate a run_id or claim a screenshot
+  that was never taken, this round records E10 as **not re-verified**, carrying Round 15's last-known-good
+  result (`run_id: mcp-map-render-E10-20260804-063306`, commit `06d37e2`) forward as unrefreshed evidence —
+  flagged explicitly for Gate 2 below, since `render_map`'s render page itself was not touched by this
+  round's diff (only `geocode.ts`/`http.ts`'s job-queue additions and `motionCompiler.ts`), so the risk is
+  believed low but is not independently proven this round. **E12 (AC-12, judgment) DID receive a fresh
+  3-lens judge panel this round** (domain-correctness / operational-feasibility / spec-alignment), all three
+  proposing PASS against a newly-supplied evidence frame (a 1080×1920 midnight-blue point-highlight render
+  over Quận 3, HCMC) — unanimous, no dissent. Per this contract's `risk_tier: T3`, that panel proposal is
+  advisory only: EVERY judgment item still requires a direct `human_override`, and none was supplied this
+  round (Round 15's item was left UNCERTAIN too, for the same structural reason, and no signoff exists for
+  `f7b1d6c` regardless), so E12 stays UNCERTAIN and the overall verdict is **PENDING-JUDGMENT**, not PASS.
+  **A fresh adversarial review pass ran this round** (unlike Round 15, which explicitly skipped review) and
+  surfaced 13 findings, all real, all filed to `review-findings.md` under "Ngoài hợp đồng" — none maps to
+  any AC of THIS contract: every one sits in `POST /jobs`/`jobStore.ts`/`jobRunner.ts` (the `async-job-queue`
+  feature's own surface, explicitly Phase-2/3 territory per `contract.md`'s "Out of scope" — `render_sequence`
+  / `render_clip` and their supporting async infrastructure), in `README.md`'s doc coverage of that same
+  infrastructure, or (for two of them) in the interaction between that infrastructure and `geocode.ts`'s
+  `reverseGeocode` wrapper reached only via the `/jobs` code path, not via this contract's own synchronous
+  `render_map`/`geocode_place` tools. Severities: 6 HIGH (unvalidated `motion` reaching a different error
+  shape than the sync path; unbounded terminal-job memory retention; a Nominatim `/reverse` outage
+  mis-classified as caller input error — reported independently by both the `conventions` and `bugs` review
+  lenses, twice each for the memory and geocode findings; stale README), 5 MEDIUM (a discarded parse result
+  in `/jobs`; job-artifact filename collision across restarts; `/jobs/status` silently swallowing artifact
+  read failures — again independently reported by both lenses; `sweep()` orphaning files on a failed `rm`),
+  2 LOW (an awkward 6-arg `startHttpServer` call site; an orphaned JSDoc comment). Because every one of the
+  13 is scoped to `async-job-queue`'s own surface and none is a regression on THIS contract's 11
+  machine-verified criteria (all still pass, and the diff to `geocode.ts`/`http.ts` that DOES touch this
+  contract's own code — the reverse-geocode wrapper and the request-body plumbing shared by `/render` and
+  `/jobs` — is additive alongside the existing synchronous paths, not a modification of them, confirmed by
+  every E1–E11 eval passing clean against it), none blocks this round's machine verdict; they are routed to
+  Gate 2 as out-of-scope-but-real per the "Ngoài hợp đồng" protocol, for a human to accept as known-limits or
+  spin into a new contract. `## Analyst`: this round's own `npm test` run is green on both `f7b1d6c` (HEAD)
+  and the pre-feature `diffBase` for E1–E9 and E11 — non-discriminating for the same structural reason
+  flagged since Round 4 (this contract's own surface is untouched by what changed since the last baseline
+  split point); Gate 2 should keep treating that as an artifact of how the baseline is drawn, not as a
+  weakness in this round's specific assertions, none of which were rewritten this round.
 
 ## Gate 2 checklist (human)
 
-- [ ] Read the table + spot-check 1-2 evidence blocks (E10's 3-frame slideshow —
-      `evidence/E10-step1.png` → `step2.png` → `step3.png` — is a good one to open; independently
-      re-verified this round with a byte-level PNG IHDR decode, not just the page's self-reported dims;
-      note step1/step2 are byte-identical this round because tiles finished loading before the first
-      screenshot fired — both frames independently satisfy "no onboarding")
-- [ ] Personally verify judgment item **E12** (AC-12) against `evidence/E12-example.png` (unchanged since
-      Round 3, commit `433e7ea`) — this round did NOT propose a panel score, so there is no prior opinion
-      to merely ratify; judge it fresh, then fill its
-      `human_override: <name> <date>` line. Round 14's signoff (`manh`, PASS, 2026-07-11) was tied to
-      commit `6c3d36b` and does not carry over automatically — this round pins `verified_commit` to
-      `06d37e2`, so the T3 mandate for a direct human verdict on EVERY judgment item applies fresh here too
-- [ ] **Note the review gap**: this round did not run a fresh adversarial code-review pass (out of scope
-      for this VERIFY-only round). Round 14 (commit `6c3d36b`) was the last round with a completed
-      adversarial review and found zero findings. Since then, 42 files under `src/` and `mcp-server/`
-      changed — dominated by the separate `map-motion-clip` feature extending shared files this contract
-      also depends on (`renderFrame.ts`, `http.ts`, `tools.ts`, `browserPool.ts`, notably
-      `browserPool.ts`'s new acquire-timeout + concurrency gate from commit `b5f6e77`). This round's eval
-      suite proves no REGRESSION on this contract's own criteria, but does not constitute a fresh
-      adversarial review of the new shared-file behaviour. Decide whether Gate 2 wants one before signoff,
-      or accepts the eval-only proof as sufficient for this re-pin.
-- [ ] Once E12's `human_override` is filled: upgrade `verdict` to `PASS` (this write is when the hook
-      re-validates evidence + overrides)
+- [ ] Read the table + spot-check 1-2 evidence blocks
+- [ ] **Note the E10 gap**: this round did NOT re-run the AC-10 ui-check — no ui-check result was
+      supplied, no run_id was minted, and no new frames were captured (`evidence/E10-step{1,2,3}.png`
+      are still Round 15's, dated Aug 4). This round's own diff does not touch the render page or
+      `renderFrame.ts`/`src/render/**`, so the risk of it being stale is believed low, but it is NOT
+      independently proven this round. Decide whether Gate 2 accepts Round 15's unrefreshed evidence as
+      sufficient for this re-pin, or wants a fresh E10 probe before signoff.
+- [ ] Personally verify judgment item **E12** (AC-12) — a fresh 3/3-lens panel proposes PASS against a
+      newly supplied evidence frame this round (see rationale/votes above), but that proposal is
+      advisory only under `risk_tier: T3`. Judge it directly, then fill its
+      `human_override: <name> <date>` line. No prior round's override carries forward to this round's
+      freshly-pinned `f7b1d6c4ea056d30ddd61df185dc87ed0c74566f`.
+- [ ] Read `review-findings.md`'s "Ngoài hợp đồng — người quyết ở Gate 2" section: 13 real findings this
+      round (6 HIGH, 5 MEDIUM, 2 LOW), all scoped to the separate `async-job-queue` feature's own surface
+      (`POST /jobs`, `jobStore.ts`, `jobRunner.ts`) or its interaction with `geocode.ts`'s
+      `reverseGeocode` — none maps to any AC of THIS contract (`contract.md`'s own "Out of scope" already
+      excludes the async job-queue infrastructure). Decide known-limits vs. new-contract per item; this
+      does not block THIS contract's own machine verdict.
+- [ ] Once E12's `human_override` is filled (and Gate 2 is satisfied on the E10 gap above): upgrade
+      `verdict` to `PASS` (this write is when the hook re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in `contract.md` only once the
       verdict reaches PASS

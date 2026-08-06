@@ -1,0 +1,5 @@
+# Ảnh/clip demo sinh lại được bằng scripts/demo-tier0.ts và scripts/demo-clips.ts.
+# Đặt quy tắc TẠI ĐÂY chứ không ở .gitignore gốc: `_acceptance/**` nằm trong
+# risk_tiers.t1_skip_globs, nên sửa file này không làm hết hiệu lực bằng chứng —
+# còn sửa .gitignore ở gốc thì có (đã thử, gate chặn đúng).
+demo/

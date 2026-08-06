@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveConfig, formatSize, summarizeHighlights, assertColor, assertGeojson, MAX_GEOJSON_BYTES, FORMATS } from './resolveConfig';
+import { resolveConfig, formatSize, summarizeHighlights, summarizeRoutes, summarizeMeasures, assertColor, assertGeojson, MAX_GEOJSON_BYTES, FORMATS } from './resolveConfig';
 import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
@@ -373,5 +373,129 @@ describe('resolveConfig', () => {
     ).rejects.toThrow(/highlight\.points\[\]\.icon/);
     // Only the base-location lookup should have fired, never a per-point one.
     expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+  });
+});
+
+describe('routes', () => {
+  const lineFc = (coords: [number, number][]) => ({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }],
+  });
+
+  it('accepts both route forms and fills style defaults from the theme', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [
+        { coords: [[105.85, 21.02], [105.86, 21.02]], color: '#ff0000', width: 8 },
+        { geojson: lineFc([[105.8, 21.0], [105.81, 21.01]]) },
+      ],
+    });
+
+    expect(cfg.routes).toHaveLength(2);
+    expect(cfg.routes?.[0]).toMatchObject({ color: '#ff0000', width: 8 });
+    expect(cfg.routes?.[1]).toMatchObject({ width: 4 });
+    expect(cfg.routes?.[1].color).toBe('#e8b04b'); // accent của midnight-blue
+  });
+
+  it('summarises each route with a length name that says WHICH measurement it is', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.85, 21.02], [105.86, 21.02], [105.86, 21.03]] }],
+    });
+    const [r] = summarizeRoutes(cfg);
+
+    expect(r.pointCount).toBe(3);
+    expect(r.bbox).toEqual([105.85, 21.02, 105.86, 21.03]);
+    expect(r.lengthKm).toBeGreaterThan(2);
+    expect('km' in r).toBe(false); // tên trần bị cấm — không nói được đo kiểu gì
+  });
+
+  it('frames on routes when there is no region and no point', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.0, 21.0], [106.0, 22.0]] }],
+    });
+
+    expect(cfg.camera.center[0]).toBeCloseTo(105.5, 3);
+    expect(cfg.camera.center[1]).toBeCloseTo(21.5, 3);
+  });
+
+  it('rejects a route with fewer than two coords, a bad colour, or a width out of range', async () => {
+    const at = { location: { lng: 105.85, lat: 21.02 } };
+    const ok: [number, number][] = [[105.85, 21.02], [105.86, 21.02]];
+    await expect(resolveConfig({ ...at, routes: [{ coords: [[105.85, 21.02]] }] } as never)).rejects.toThrow(/routes\[\]\.coords/);
+    await expect(resolveConfig({ ...at, routes: [{ coords: ok, color: 'red' }] } as never)).rejects.toThrow(/routes\[\]\.color/);
+    await expect(resolveConfig({ ...at, routes: [{ coords: ok, width: 99 }] } as never)).rejects.toThrow(/routes\[\]\.width/);
+    await expect(resolveConfig({ ...at, routes: [{}] } as never)).rejects.toThrow(/exactly one of/);
+  });
+
+  it('caps TOTAL inline geometry, not merely each payload on its own', async () => {
+    // 40 tuyến × 20 000 điểm = 310 KiB mỗi tuyến (thoải mái dưới cap-mỗi-payload
+    // 2 MiB) nhưng cộng lại 12,1 MiB — vượt cap tổng 8 MiB. Đây chính là lỗ mà
+    // cap-mỗi-payload một mình không bịt được.
+    const big = () => ({ coords: Array.from({ length: 20000 }, (_, i) => [105 + i * 1e-6, 21] as [number, number]) });
+    await expect(
+      resolveConfig({ location: { lng: 105.85, lat: 21.02 }, routes: Array.from({ length: 40 }, big) } as never),
+    ).rejects.toThrow(/total inline GeoJSON/i);
+  });
+
+  it('lets a single large-but-legal payload through — the total cap is not a stealth per-payload cap', async () => {
+    // Nửa còn lại: 1 tuyến 310 KiB phải ĐƯỢC NHẬN. Không có test này thì một cap
+    // tổng đặt quá thấp vẫn "xanh" ở test trên.
+    const one = { coords: Array.from({ length: 20000 }, (_, i) => [105 + i * 1e-6, 21] as [number, number]) };
+    const cfg = await resolveConfig({ location: { lng: 105.85, lat: 21.02 }, routes: [one] } as never);
+    expect(cfg.routes).toHaveLength(1);
+  });
+});
+
+describe('measure', () => {
+  it('measures point pairs as straight-line distance plus a bearing', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      highlight: { points: [{ lng: 105.8342, lat: 21.0278 }, { lng: 106.6297, lat: 10.8231 }] },
+      measure: { pairs: [[0, 1]] },
+    });
+    const m = summarizeMeasures(cfg);
+
+    expect(m.pairs[0]).toMatchObject({ from: 0, to: 1 });
+    expect(m.pairs[0].straightLineKm).toBeGreaterThan(1132);
+    expect(m.pairs[0].straightLineKm).toBeLessThan(1143);
+    expect(m.pairs[0].bearingDeg).toBeGreaterThan(90);  // Hà Nội → TP.HCM là hướng nam
+    expect(m.pairs[0].bearingDeg).toBeLessThan(270);
+    expect('km' in m.pairs[0]).toBe(false);
+  });
+
+  it('refuses a pair pointing at a point that does not exist', async () => {
+    await expect(
+      resolveConfig({
+        location: { lng: 105.85, lat: 21.02 },
+        highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+        measure: { pairs: [[0, 5]] },
+      }),
+    ).rejects.toThrow(/measure\.pairs/);
+  });
+
+  it('reports region area with holes SUBTRACTED, plus span and centroid', async () => {
+    const outer = [[105.0, 21.0], [105.1, 21.0], [105.1, 21.1], [105.0, 21.1], [105.0, 21.0]];
+    const hole = [[105.04, 21.04], [105.06, 21.04], [105.06, 21.06], [105.04, 21.06], [105.04, 21.04]];
+    const withHole = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [outer, hole] } }] };
+    const solid = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [outer] } }] };
+
+    const holed = summarizeMeasures(await resolveConfig({ location: { lng: 105.05, lat: 21.05 }, highlight: { regions: [{ geojson: withHole }] } }));
+    const full = summarizeMeasures(await resolveConfig({ location: { lng: 105.05, lat: 21.05 }, highlight: { regions: [{ geojson: solid }] } }));
+
+    expect(holed.regions[0].areaKm2).toBeLessThan(full.regions[0].areaKm2);
+    expect(holed.regions[0].spanKm.ew).toBeGreaterThan(9);
+    expect(holed.regions[0].centroid?.[0]).toBeCloseTo(105.05, 2);
+  });
+
+  it('summarises route length under the routes key too', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.85, 21.02], [105.9, 21.02]] }],
+    });
+    const m = summarizeMeasures(cfg);
+    expect(m.routes[0]).toMatchObject({ index: 0 });
+    expect(m.routes[0].lengthKm).toBeGreaterThan(4);
   });
 });

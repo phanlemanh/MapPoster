@@ -2,11 +2,21 @@ import { resolveLocation, resolveBoundary, resolveCountryAt } from './geocode';
 import { LAYOUTS } from '../../src/data/layouts';
 import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
 import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
-import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker } from '../../src/render/renderConfig';
+import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker, RenderRoute } from '../../src/render/renderConfig';
+import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, centroidOf, spanKmOf, type LngLat } from './geometry';
 import { FONTS } from '../../src/data/fonts';
 import { MARKER_ICONS } from '../../src/data/markers';
 
 export type FormatInput = string | { width: number; height: number };
+
+/** One polyline to draw. Exactly one of `geojson` / `coords` — the Zod layer
+ * refines that, and `resolveRoutes` re-checks it for callers who bypass Zod. */
+export interface RouteInput {
+  geojson?: GeoJSONFeatureCollection;
+  coords?: [number, number][];
+  color?: string;
+  width?: number;
+}
 
 export interface RenderMapParams {
   location: string | { lng: number; lat: number; zoom?: number };
@@ -30,6 +40,9 @@ export interface RenderMapParams {
   placeName?: string;
   /** Show names along major roads (motorway/trunk/primary/secondary). Off by default: poster first. */
   labels?: boolean;
+  routes?: RouteInput[];
+  /** Geometry questions answered from the resolved config — no extra network. */
+  measure?: { pairs?: [number, number][] };
   /** Per-layer visibility. Mutually exclusive with `labels` for roadLabels. */
   layers?: Partial<LayerState>;
   /** 0..1 map detail (road-width ramp; minor roads appear strictly above 0.12). */
@@ -191,6 +204,23 @@ export function assertGeojson(value: unknown, label = 'highlight.regions[].geojs
   return gj;
 }
 
+/**
+ * Cap TỔNG hình học nội tuyến, ngoài cap MỖI payload.
+ *
+ * `MAX_GEOJSON_BYTES` chặn một FeatureCollection khổng lồ, nhưng 40 tuyến mỗi
+ * tuyến 1,9 MiB thì lọt qua từng cái một rồi cộng lại thành 76 MiB đi thẳng vào
+ * trang render. Đường MCP stdio KHÔNG có cap body nào, nên đây là chốt duy nhất.
+ */
+export const MAX_TOTAL_GEOJSON_BYTES = 8 * 1024 * 1024;
+
+/** Khớp `coalesce`-fallback của mapStyle (line-width 4) khi caller không khai. */
+const DEFAULT_ROUTE_WIDTH = 4;
+
+function assertRouteWidth(n: number): number {
+  if (!Number.isFinite(n) || n < 1 || n > 16) throw new Error(`Invalid routes[].width: ${n} (must be between 1 and 16)`);
+  return n;
+}
+
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 /**
@@ -266,7 +296,14 @@ export function listFormats(): FormatInfo[] {
   return [...out.values()];
 }
 
-function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, number, number] | null {
+/**
+ * Bbox bao mọi toạ độ trong danh sách FeatureCollection.
+ *
+ * Flatten đệ quy MÙ là CỐ Ý: bbox không cần biết đâu là outer ring, đâu là lỗ,
+ * đâu là LineString — mọi toạ độ đều phải nằm trong khung. Diện tích thì ngược
+ * lại và KHÔNG được tái dùng hàm này (xem `geometry.ts`).
+ */
+function bboxOfGeojsons(list: (GeoJSONFeatureCollection | undefined)[]): [number, number, number, number] | null {
   let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
   const visit = (geom: { type: string; coordinates: unknown }) => {
     const flat = (arr: unknown): void => {
@@ -277,8 +314,112 @@ function bboxOfRegions(regions: RenderHighlightRegion[]): [number, number, numbe
     };
     flat(geom.coordinates);
   };
-  for (const r of regions) for (const f of r.geojson?.features ?? []) if (f.geometry) visit(f.geometry);
+  for (const gj of list) for (const f of gj?.features ?? []) if (f.geometry) visit(f.geometry);
   return isFinite(w) ? [w, s, e, n] : null;
+}
+
+/**
+ * Biến `RouteInput` của caller thành `RenderRoute` cụ thể (geojson + màu + độ dày).
+ * `theme` truyền vào để lấy accent làm màu mặc định — giữ tuyến hợp tông với bản đồ
+ * thay vì đóng cứng một màu.
+ */
+export function resolveRoutes(inputs: RouteInput[] | undefined, themeId: string): RenderRoute[] {
+  const accent = THEMES.find((t) => t.id === themeId)?.colors.accent ?? '#e8b04b';
+  return (inputs ?? []).map((r) => {
+    const hasGeojson = r.geojson != null;
+    const hasCoords = r.coords != null;
+    if (hasGeojson === hasCoords) {
+      throw new Error('Invalid routes[]: pass exactly one of routes[].geojson or routes[].coords');
+    }
+    const geojson = hasCoords ? coordsToLineString(r.coords as [number, number][]) : assertGeojson(r.geojson, 'routes[].geojson');
+    return {
+      geojson,
+      color: r.color != null ? assertColor(r.color, 'routes[].color') : accent,
+      width: r.width != null ? assertRouteWidth(r.width) : DEFAULT_ROUTE_WIDTH,
+    };
+  });
+}
+
+function coordsToLineString(coords: [number, number][]): GeoJSONFeatureCollection {
+  if (!Array.isArray(coords) || coords.length < 2) {
+    throw new Error(`Invalid routes[].coords: needs at least 2 positions, got ${Array.isArray(coords) ? coords.length : 0}`);
+  }
+  for (const c of coords) assertLngLat(c[0], c[1]);
+  return {
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }],
+  };
+}
+
+/** Mọi toạ độ của một tuyến, theo thứ tự vẽ — dùng để đo chiều dài. */
+function routeCoords(gj: GeoJSONFeatureCollection | undefined): LngLat[] {
+  const out: LngLat[] = [];
+  for (const f of gj?.features ?? []) {
+    const g = f?.geometry;
+    if (g?.type === 'LineString') out.push(...(g.coordinates as LngLat[]));
+    else if (g?.type === 'MultiLineString') for (const part of g.coordinates as LngLat[][]) out.push(...part);
+  }
+  return out;
+}
+
+export interface ResolvedRoute {
+  bbox: [number, number, number, number] | null;
+  /** Chiều dài polyline — tổng các đoạn, KHÔNG phải đường chim bay đầu-cuối. */
+  lengthKm: number;
+  pointCount: number;
+}
+
+export function summarizeRoutes(cfg: RenderConfig): ResolvedRoute[] {
+  return (cfg.routes ?? []).map((r) => ({
+    bbox: bboxOfGeojsons([r.geojson]),
+    lengthKm: polylineLengthMeters(routeCoords(r.geojson)) / 1000,
+    pointCount: routeCoords(r.geojson).length,
+  }));
+}
+
+export interface ResolvedMeasures {
+  /** Đường chim bay giữa hai điểm highlight — KHÔNG phải quãng đường đi. */
+  pairs: { from: number; to: number; straightLineKm: number; bearingDeg: number }[];
+  routes: { index: number; lengthKm: number }[];
+  regions: { index: number; areaKm2: number; spanKm: { ew: number; ns: number }; centroid: LngLat | null }[];
+}
+
+/**
+ * Trả lời các câu hỏi hình học từ config ĐÃ resolve — không tốn thêm lời gọi mạng.
+ *
+ * Tên trường nói rõ PHÉP ĐO: `straightLineKm` (chim bay) khác hẳn quãng đường đi,
+ * `lengthKm` là tổng polyline. Một trường tên `km` trần sẽ được phía tiêu thụ đọc
+ * thành "khoảng cách" rồi in lên video — đó là cách một con số đúng trở thành một
+ * khẳng định sai.
+ */
+export function summarizeMeasures(cfg: RenderConfig): ResolvedMeasures {
+  const markers = cfg.markers ?? [];
+  const pairs = (cfg.measure?.pairs ?? []).map(([a, b]) => {
+    const p1: LngLat = [markers[a].lng, markers[a].lat];
+    const p2: LngLat = [markers[b].lng, markers[b].lat];
+    return { from: a, to: b, straightLineKm: haversineMeters(p1, p2) / 1000, bearingDeg: initialBearingDeg(p1, p2) };
+  });
+
+  const routes = (cfg.routes ?? []).map((r, index) => ({
+    index,
+    lengthKm: polylineLengthMeters(routeCoords(r.geojson)) / 1000,
+  }));
+
+  const regions = (cfg.highlight?.regions ?? []).map((r, index) => {
+    const bbox = bboxOfGeojsons([r.geojson]);
+    const areaM2 = (r.geojson?.features ?? []).reduce(
+      (acc: number, f: { geometry?: { type: string; coordinates: unknown } }) => acc + geometryAreaM2(f?.geometry),
+      0,
+    );
+    return {
+      index,
+      areaKm2: areaM2 / 1_000_000,
+      spanKm: bbox ? spanKmOf(bbox) : { ew: 0, ns: 0 },
+      centroid: bbox ? ([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] as LngLat) : null,
+    };
+  });
+
+  return { pairs, routes, regions };
 }
 
 export interface ResolvedHighlights {
@@ -302,7 +443,7 @@ export interface ResolvedHighlights {
  */
 export function summarizeHighlights(cfg: RenderConfig): ResolvedHighlights {
   const regions = (cfg.highlight?.regions ?? []).map((r) => {
-    const bbox = bboxOfRegions([r]);
+    const bbox = bboxOfGeojsons([r.geojson]);
     const center: [number, number] | null = bbox ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : null;
     return {
       bbox,
@@ -439,12 +580,36 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     });
   }
 
+  const routes = resolveRoutes(params.routes, theme);
+
+  // Cap TỔNG: từng payload đã qua MAX_GEOJSON_BYTES, nhưng nhiều payload hợp lệ
+  // cộng lại vẫn đủ giết trang render. Tính sau khi resolve để đo đúng thứ sẽ đi
+  // qua dây, không phải thứ caller gửi.
+  const totalBytes = [...regions.map((r) => r.geojson), ...routes.map((r) => r.geojson)]
+    .reduce((acc, gj) => acc + Buffer.byteLength(JSON.stringify(gj)), 0);
+  if (totalBytes > MAX_TOTAL_GEOJSON_BYTES) {
+    throw new Error(`Invalid request: total inline GeoJSON is ${totalBytes} bytes, over the ${MAX_TOTAL_GEOJSON_BYTES}-byte limit`);
+  }
+
+  // Chỉ số trỏ vào markers ĐÃ resolve, nên phải kiểm sau vòng markers. Từ chối
+  // thay vì lặng lẽ bỏ cặp sai: agent không nhìn thấy ảnh, một phép đo biến mất
+  // là một phép đo không thể phát hiện.
+  for (const pair of params.measure?.pairs ?? []) {
+    const [a, b] = pair;
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a >= markers.length || b >= markers.length) {
+      throw new Error(`Invalid measure.pairs entry [${a}, ${b}]: index out of range (${markers.length} point(s) available)`);
+    }
+  }
+
   const cam = params.camera ?? {};
   let center = cam.center ?? base.center;
   let zoom = cam.zoom ?? base.zoom;
   if (cam.zoom == null) {
-    if (regions.length) {
-      const bbox = bboxOfRegions(regions);
+    // Chỉ có tuyến mà không có vùng/điểm thì vẫn phải ôm được tuyến — nếu không
+    // một lời gọi route-only sẽ khung vào tâm thành phố và tuyến nằm ngoài mép.
+    const framed = regions.length ? regions.map((r) => r.geojson) : routes.length ? routes.map((r) => r.geojson) : null;
+    if (framed) {
+      const bbox = bboxOfGeojsons(framed);
       if (bbox) {
         if (!cam.center) center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
         zoom = zoomFromSpan(Math.max(Math.abs(bbox[3] - bbox[1]), Math.abs(bbox[2] - bbox[0])));
@@ -467,6 +632,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     place: params.placeName ? { ...base.place, name: params.placeName } : base.place,
     highlight,
     markers: markers.length ? markers : undefined,
+    routes: routes.length ? routes : undefined,
+    measure: params.measure,
     layers:
       layers || params.labels
         ? { ...(layers ?? {}), ...(params.labels ? { roadLabels: true } : {}) }

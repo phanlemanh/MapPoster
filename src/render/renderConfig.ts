@@ -58,6 +58,8 @@ export interface RenderConfig {
   };
   markers?: RenderMarker[];
   routes?: RenderRoute[];
+  /** Echoed back through `resolved.measures`; the render page ignores it. */
+  measure?: { pairs?: [number, number][] };
   /** Motion clip script — the static renderFrame() path ignores this field. */
   motion?: MotionScript;
 }

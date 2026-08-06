@@ -397,6 +397,14 @@ describe('routes', () => {
     expect(cfg.routes?.[1].color).toBe('#e8b04b'); // accent của midnight-blue
   });
 
+  it('leaves routes UNDEFINED when the call has none — not an empty array', async () => {
+    // Nửa suppression của AC-1: một mảng rỗng sẽ đi qua dây tới applyRenderConfig
+    // và tới resolvedOf, làm response phình thêm khoá cho mọi lời gọi không dùng.
+    const cfg = await resolveConfig({ location: { lng: 105.85, lat: 21.02 } });
+    expect(cfg.routes).toBeUndefined();
+    expect(summarizeRoutes(cfg)).toEqual([]);
+  });
+
   it('summarises each route with a length name that says WHICH measurement it is', async () => {
     const cfg = await resolveConfig({
       location: { lng: 105.85, lat: 21.02 },

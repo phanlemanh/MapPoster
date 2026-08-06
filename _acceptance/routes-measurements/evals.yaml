@@ -1,0 +1,161 @@
+schema_version: 1
+feature_slug: routes-measurements
+
+# Mọi tiêu chí ở đây đều kiểm được bằng máy: gói này là bề mặt API + một lớp
+# toán hình học, không có bề mặt web UI (surfaces: [api]) và không có phán đoán
+# nghiệp vụ. Vì vậy không có eval `judgment` lẫn `ui-check`, và eval design bị
+# bỏ theo §2b của skill.
+#
+# Nửa suppression (quy tắc b) nằm trong `expected` và được gọi tên rõ, để người
+# đọc file này phân biệt được eval should-fire với eval should-NOT-fire.
+
+evals:
+  # --- AC-1 / AC-2 / AC-3 / AC-4 — nhận tuyến và từ chối tuyến hỏng ---------
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; cả dạng coords lẫn dạng geojson đều thành RenderConfig.routes với geojson/color/width cụ thể"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E19
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-EMIT — lời gọi không có routes để cfg.routes UNDEFINED, không phải mảng rỗng (mảng rỗng sẽ đi qua dây và làm response phình khoá cho mọi lời gọi)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; SHOULD-NOT-ACCEPT — entry mang CẢ HAI coords và geojson bị từ chối với /exactly one of/"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-ACCEPT — entry rỗng {} (không coords, không geojson) cũng bị từ chối"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; tuyến không khai style nhận color = accent của midnight-blue (#e8b04b) và width = 4"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; coords 1 vị trí, color 'red', width 99 đều bị TỪ CHỐI kèm tên trường; width biên 1 và 16 được NHẬN"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-5 — tầng store, gồm nửa chống rò ---------------------------------
+  - id: E6
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.apply_render_config
+    expected: "exit 0; store nhận RouteItem id 'rt-0'; và SHOULD-CLEAR — config sau không có tuyến thì store về [], không rò giữa hai lần render"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-6 — cap tổng, cả hai nửa -----------------------------------------
+  - id: E7
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; 40 tuyến × 310 KiB = 12,1 MiB bị TỪ CHỐI (mỗi tuyến vẫn dưới cap-mỗi-payload 2 MiB); và SHOULD-ACCEPT — một tuyến 310 KiB đơn lẻ được nhận"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-7 — auto-frame ----------------------------------------------------
+  - id: E8
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; lời gọi chỉ có routes cho camera.center vào giữa phạm vi tuyến, không phải toạ độ location"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-8 / AC-9 / AC-11 — các phép đo ------------------------------------
+  - id: E9
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; resolved.routes mang bbox + pointCount + lengthKm; lengthKm là tổng đoạn, không phải chim bay"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; cặp Hà Nội→TP.HCM cho straightLineKm trong 1132..1143 (great-circle thật là 1137,89 km) và bearingDeg hướng nam"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E11
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; polygon CÓ LỖ cho areaKm2 nhỏ hơn polygon đặc cùng ranh ngoài, kèm spanKm và centroid"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.geometry
+    expected: "exit 0; lớp toán nền: haversine khớp Vincenty, polyline > chim bay trên đường gấp khúc, diện tích TRỪ LỖ và độc lập chiều quay ring, span đo dọc vĩ tuyến giữa"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-10 — chỉ số measure sai -------------------------------------------
+  - id: E13
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-DROP — measure.pairs [[0,5]] với 1 điểm bị TỪ CHỐI kèm /measure.pairs/, không lặng lẽ bỏ cặp"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-12 — không phình response -----------------------------------------
+  - id: E14
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; SHOULD-NOT-EMIT — lời gọi không dùng routes/measure thì resolved KHÔNG có hai khoá đó; và lời gọi có routes thì resolved.routes xuất hiện"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-13 / AC-14 — bất biến toàn kho ------------------------------------
+  - id: E15
+    criterion: AC-13
+    executor: script
+    cmd: config:executors.script.routes_invariants
+    expected: "exit 0; I1 t3_path (export.ts, mapStyle.ts) không đổi dòng nào vs merge-base; I2 mọi guard vừa định-nghĩa-vừa-được-gọi và cap tổng/kiểm chỉ số được SO SÁNH thật; I3 không có tên số đo trần"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E20
+    criterion: AC-14
+    executor: script
+    cmd: config:executors.script.routes_invariants
+    expected: "exit 0; I3 — không tên số đo trần (km/distance/area/length/span) trong resolveConfig.ts lẫn geometry.ts, và bốn tên đủ nghĩa (lengthKm, straightLineKm, areaKm2, spanKm) đều có mặt"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # --- Tới pixel: bằng chứng end-to-end -------------------------------------
+  - id: E16
+    criterion: AC-1
+    executor: script
+    cmd: config:executors.script.routes_demo
+    expected: "exit 0; 5 render thật + 9 phép kiểm số đo, gồm 'polyline dài hơn chim bay hai đầu' và 'diện tích trừ lỗ đúng ~16%' — chứng minh tuyến đi hết đường tới pixel"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # --- Hàng rào hồi quy ------------------------------------------------------
+  - id: E17
+    criterion: AC-13
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; toàn bộ Vitest xanh — tham số mới không phá hành vi nào đang có"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E18
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; MCP integration có gác — vite build thật, PNG và clip thật qua Chromium headless"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

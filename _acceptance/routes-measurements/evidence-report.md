@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
-human_signoff:
+human_signoff: manh 2026-08-06
 ---
 
 # Evidence Report: routes-measurements

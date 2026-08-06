@@ -207,6 +207,25 @@ describe('discovery tools', () => {
     expect(a4.category).toBe('Print');
     expect(a4.print).toEqual({ w: 210, h: 297, unit: 'mm' });
   });
+
+  it('gives every FORMATS entry its own correct category, not a blanket Video (Finding 4)', async () => {
+    // A hardcoded `category: 'Video'` for every FORMATS entry mislabeled
+    // square/story/portrait (all image-first social formats) as Video, and
+    // shadowed the Wallpaper '4k' from LAYOUTS with a mislabeled Video '4k' —
+    // an agent filtering category === 'Social' got nothing for tiktok/story.
+    const { formats } = textJson(await tools().list_formats());
+    const byName = (name: string) => formats.find((f: { name: string }) => f.name === name);
+
+    expect(byName('tiktok').category).toBe('Video'); // genuinely video-first
+    expect(byName('landscape').category).toBe('Video'); // genuinely video-first
+    expect(byName('story').category).toBe('Social'); // 1080x1920, an Instagram/FB Story format
+    expect(byName('square').category).toBe('Social'); // 1080x1080, an Instagram square post
+    expect(byName('portrait').category).toBe('Social'); // 1080x1350, Instagram's 4:5 portrait post ratio
+    // '4k' wins the name collision with LAYOUTS's Desktop 4K Wallpaper entry
+    // (identical 3840x2160) — its category must match what it dedupes away,
+    // not be silently relabeled Video.
+    expect(byName('4k').category).toBe('Wallpaper');
+  });
 });
 
 describe('render_animation', () => {

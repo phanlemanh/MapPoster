@@ -47,6 +47,25 @@ export const FORMATS: Record<string, { width: number; height: number }> = {
   '4k': { width: 3840, height: 2160 },
 };
 
+/**
+ * Category per `FORMATS` entry, judged on what each preset actually is rather
+ * than inherited wholesale from a single 'Video' default (Finding 4: that
+ * default mislabeled every image-first social preset, and hid the Wallpaper
+ * '4k' this table dedupes away behind a mislabeled Video one). Uses the same
+ * vocabulary `LAYOUTS` uses (`LAYOUT_CATEGORIES`), plus 'Video' where a
+ * preset is genuinely video-first.
+ */
+const FORMAT_CATEGORY: Record<keyof typeof FORMATS, FormatInfo['category']> = {
+  tiktok: 'Video', // vertical short-form video
+  story: 'Social', // 1080x1920 — an Instagram/Facebook Story post
+  square: 'Social', // 1080x1080 — an Instagram square post
+  landscape: 'Video', // horizontal video (e.g. YouTube)
+  portrait: 'Social', // 1080x1350 — Instagram's 4:5 portrait post ratio
+  // Wins the name collision with LAYOUTS's Desktop 4K Wallpaper entry
+  // (identical 3840x2160) — its category must match what it dedupes away.
+  '4k': 'Wallpaper',
+};
+
 /** Max edge, matching the WebGL canvas budget the layouts are designed against. */
 export const MAX_EDGE = 4096;
 
@@ -234,7 +253,7 @@ const aspectOf = (w: number, h: number): string => {
 export function listFormats(): FormatInfo[] {
   const out = new Map<string, FormatInfo>();
   for (const [name, s] of Object.entries(FORMATS)) {
-    out.set(name, { name, ...s, aspect: aspectOf(s.width, s.height), category: 'Video' });
+    out.set(name, { name, ...s, aspect: aspectOf(s.width, s.height), category: FORMAT_CATEGORY[name as keyof typeof FORMATS] });
   }
   for (const l of LAYOUTS) {
     if (out.has(l.id)) continue;

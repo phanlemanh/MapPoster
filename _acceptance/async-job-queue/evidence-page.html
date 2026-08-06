@@ -30,166 +30,167 @@ ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}u
 .tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
 </style></head><body><div class="wrap">
 <h1>Async job queue — nhận việc render rồi trả mã việc (Gói nền)</h1><div class="sub">Trang bằng chứng · <span class="mono">async-job-queue</span> · tier T2</div>
-<div class="card" style="margin-top:12px"><span class="badge pend">PENDING-JUDGMENT</span>
-<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span></div></div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>manh 2026-08-06</b></span><span>enforcement: <b>strict</b></span></div></div>
 <h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
-<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E1-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E2-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E3-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E4">E4</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E4-r6</td><td class="mono">2026-08-06T14:07:47Z</td></tr>
-<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E5-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E6">E6</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E6-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E7">E7</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E7-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E8">E8</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E8-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E9">E9</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E9-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E10">E10</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E10-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E11">E11</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E11-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E12">E12</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E12-r6</td><td class="mono">2026-08-06T14:08:02Z</td></tr>
-<tr><td><a href="#E13">E13</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E13-r6</td><td class="mono">2026-08-06T14:07:57Z</td></tr>
-<tr><td><a href="#E14">E14</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E14-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E15">E15</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E15-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E16">E16</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E16-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E17">E17</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E17-r6</td><td class="mono">2026-08-06T14:07:47Z</td></tr>
-<tr><td><a href="#E18">E18</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E18-r6</td><td class="mono">2026-08-06T14:07:42Z</td></tr>
-<tr><td><a href="#E19">E19</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E19-r6</td><td class="mono">2026-08-06T14:07:57Z</td></tr>
-<tr><td><a href="#E20">E20</a></td><td>AC-15</td><td>judgment</td><td><span class="badge neutral">UNCERTAIN (UNSCORED — PENDING BLIND JUDGE PANEL)</span></td><td class="mono">—</td><td class="mono">—</td></tr>
-<tr><td><a href="#E21">E21</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E21-r6</td><td class="mono">2026-08-06T14:07:47Z</td></tr>
-<tr><td><a href="#E22">E22</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E22-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E23">E23</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E23-r6</td><td class="mono">2026-08-06T14:07:47Z</td></tr>
-<tr><td><a href="#E24">E24</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E24-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
-<tr><td><a href="#E25">E25</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">minted-async-job-queue-E25-r6</td><td class="mono">2026-08-06T14:07:52Z</td></tr>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E12-20260806</td><td class="mono">2026-08-06T15:54:31Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E13-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
+<tr><td><a href="#E18">E18</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E19">E19</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E13-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
+<tr><td><a href="#E21">E21</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
+<tr><td><a href="#E22">E22</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E23">E23</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
+<tr><td><a href="#E24">E24</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E25">E25</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
+<tr><td><a href="#E20">E20</a></td><td>AC-15</td><td>judgment</td><td><span class="badge neutral">PASS (JUDGE)</span></td><td class="mono">—</td><td class="mono">—</td></tr>
 </tbody></table></div>
 <h2>Chi tiết từng eval</h2>
 <div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E1-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Test Files  1 passed (1)
-Tests  49 passed (49)
-Start at  21:07:42
-Duration  994ms (transform 107ms, setup 0ms, import 569ms, tests 77ms, environment 250ms)</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">`npx vitest run mcp-server/src/http.test.ts`: 49/49 passed. `POST /jobs` → 202 {ok:true,id,status};
+immediate `POST /jobs/status` → 200 with status ∈ {queued,running}. At least one case uses a
+diacritic-bearing Vietnamese place name asserted to survive verbatim through the store and back.</pre>
 </div>
 <div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E2-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1 (mcp-server/src/http.test.ts covers all http-surface criteria in one file).
-Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Malformed body (missing location / zoom out of range / unknown kind) → 400 with a readable message
+(not a raw ZodError); store asserted to stay empty after each case.</pre>
 </div>
 <div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E3-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Queue-full → 429 at the HTTP layer; store record count unchanged.</pre>
 </div>
 <div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-3</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E4-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T14:07:47Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Test Files  1 passed (1)
-Tests  16 passed (16)
-Start at  21:07:47
-Duration  375ms (transform 21ms, setup 0ms, import 31ms, tests 4ms, environment 250ms)</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">`npx vitest run mcp-server/src/jobStore.test.ts`: 16/16 passed. The store rejects at its own cap
+independent of the HTTP layer — `JobQueueFullError` thrown directly from `store.create()`.</pre>
 </div>
 <div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-4</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E5-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2/E3 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Unknown / expired job id → 404 {ok:false} in both cases; no 200-with-empty-status observed.</pre>
 </div>
 <div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-5</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E6-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2/E3/E5 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">End-to-end on a real temp dir: base64 in the status response decodes to the EXACT bytes the worker
+wrote (not test-supplied bytes), with width/height and a `resolved` shape matching `resolvedOf`.</pre>
 </div>
 <div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-5</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E7-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Test Files  1 passed (1)
-Tests  22 passed (22)
-Start at  21:07:52
-Duration  544ms (transform 72ms, setup 0ms, import 111ms, tests 92ms, environment 248ms)</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">`npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed. Worker&#39;s written path matches the
+stored path exactly; status flips to &#39;done&#39; only after the write completes (no ENOENT/empty read
+race at the moment &#39;done&#39; becomes visible).</pre>
 </div>
 <div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-6</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E8-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2/E3/E5/E6 (mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Geocode-failure job and render-throw job both surface as HTTP 200 with status &#39;failed&#39;, with
+distinct caller-vs-server error attribution.</pre>
 </div>
 <div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-7</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E9-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Encoder-throws / over-cap clip job both retain the already-rendered settle image plus a reason;
+neither case loses the still.</pre>
 </div>
 <div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-8</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E10-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">N+K clip jobs against a concurrency cap of N: K queue and run in the exact order received; none
+marked failed for being over capacity.</pre>
 </div>
 <div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-9</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E11-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2/E3/E5/E6/E8 — clip_http and job_http resolve to the identical command
-(mcp-server/src/http.test.ts). Tests 49 passed (49); Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Pre-existing synchronous `/render-clip` 429-at-cap test still green, unmodified by this contract.</pre>
 </div>
 <div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-9</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E12-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T14:08:02Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Test Files  1 passed (1)
-Tests  39 passed (39)
-Start at  21:08:02
-Duration  431ms (transform 48ms, setup 0ms, import 80ms, tests 9ms, environment 249ms)
-(39 vs 32 in round 5 — tier0-agent-params added coverage to tools.test.ts; no shrinkage.)</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E12-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T15:54:31Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">`npx vitest run mcp-server/src/tools.test.ts`: 43/43 passed. MCP `render_clip` still returns the
+same error result at cap as before this contract — no queueing leak to the MCP surface.</pre>
 </div>
 <div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-10</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E13-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T14:07:57Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Test Files  1 passed (1)
-Tests  39 passed (39)
-Start at  21:07:57
-Duration  529ms (transform 64ms, setup 0ms, import 98ms, tests 80ms, environment 254ms)</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E13-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">`npx vitest run mcp-server/src/motionCompiler.test.ts`: 32/32 passed. Waiting acquirers wake in
+FIFO order; slot returned on success/throw/degrade; the old throw-immediately path is unchanged.</pre>
 </div>
 <div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-10</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E14-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Concurrent-run peak measured across a mixed sync+worker scenario never exceeds the configured cap.</pre>
 </div>
 <div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-11</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E15-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10/E14 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">First job throws unexpectedly → marked &#39;failed&#39;; second job still reaches &#39;done&#39;; worker loop
+survives.</pre>
 </div>
 <div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · test</h3><p class="crit">AC-12</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E16-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10/E14/E15 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">On a real temp dir: expired job&#39;s own files are deleted by the worker; a foreign file placed in the
+same sink dir survives cleanup; at least one deleted filename derives from a diacritic place name.</pre>
 </div>
 <div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-12</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E17-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T14:07:47Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E4 (mcp-server/src/jobStore.test.ts). Tests 16 passed (16); Duration 375ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Store emits exactly the expired records then drops them (re-lookup 404s); store module does not
+import `fs` (grep-verified in the test&#39;s own assertion, not just behaviourally).</pre>
 </div>
 <div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · test</h3><p class="crit">AC-13</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E18-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T14:07:42Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E1/E2/E3/E5/E6/E8/E11 (mcp-server/src/http.test.ts). Tests 49 passed (49);
-Duration 994ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">The SAME guard table (no/bad token → 401, oversized body → 413) runs identically across
+`/render`, `/jobs`, `/jobs/status`; store record count unchanged after each blocked case.</pre>
 </div>
 <div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-14</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E19-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T14:07:57Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Same run as E13 (mcp-server/src/motionCompiler.test.ts). Tests 39 passed (39); Duration 529ms.</pre>
-</div>
-<div class="card eval" id="E20"><h3><span class="badge neutral">UNCERTAIN (UNSCORED — PENDING BLIND JUDGE PANEL)</span> &nbsp;E20 · judgment</h3><p class="crit">AC-15</p>
-<div class="kv"><span>judged_by <b>judge-subagent (fresh context, blind)</b></span></div>
-<p class="note"><b>Phán đoán:</b> Ba thiếu sót gọi-ngược/tiến-độ/huỷ-việc được hợp đồng tự lý giải bằng nhu cầu thật nên không chặn dọn sang. Khoản thứ tư khác bản chất: restart làm mã việc vô danh, khiến POST /jobs/status trả cùng một mã lỗi cho &quot;việc mất vì restart&quot; lẫn &quot;mã bịa/đã dọn&quot; (AC-4) — OneHub buộc phải tự chế chính sách gửi lại mà hợp đồng không mô tả. Hai cách đọc đều có cơ sở, thuộc diện người ký quyết.</p>
-<div class="ov">human_override: CHƯA điền (việc của bạn ở Gate 2)</div>
+<div class="kv"><span>run_id <b>async-job-queue-E13-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Fake-clock test: a waiter held past the configured wait deadline is rejected within that deadline
+(not indefinitely) and its queue slot is released.</pre>
 </div>
 <div class="card eval" id="E21"><h3><span class="badge pass">PASS</span> &nbsp;E21 · test</h3><p class="crit">AC-16</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E21-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T14:07:47Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E4/E17 (mcp-server/src/jobStore.test.ts). Tests 16 passed (16); Duration 375ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">All four named clauses individually re-confirmed in `jobStore.test.ts`: `MAPPOSTER_MAX_QUEUED_JOBS`
+changes the cap (line 132), `MAPPOSTER_JOB_TTL_MS` changes the hold window (line 140), empty env
+falls back to default without throwing (line 148-150), and a garbage value fails closed NAMING the
+variable (line 154-156, `toThrow(/MAPPOSTER_MAX_QUEUED_JOBS/)`) — this is the clean version of the
+boundary-completeness pattern the sibling contracts this round found gaps in.</pre>
 </div>
 <div class="card eval" id="E22"><h3><span class="badge pass">PASS</span> &nbsp;E22 · test</h3><p class="crit">AC-17</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E22-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10/E14/E15/E16 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22);
-Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Two workers, clip cap 1: clip A holds the slot, an image job queued behind clip B still reaches
+&#39;done&#39; while B stays &#39;queued&#39; — proven to go red when the fix is reverted (per the test&#39;s own
+comment), not merely asserted forward.</pre>
 </div>
 <div class="card eval" id="E23"><h3><span class="badge pass">PASS</span> &nbsp;E23 · test</h3><p class="crit">AC-17</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E23-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T14:07:47Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E4/E17/E21 (mcp-server/src/jobStore.test.ts). Tests 16 passed (16); Duration 375ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Dequeue skips a rejected candidate and takes the next, without reordering same-kind jobs behind it.</pre>
 </div>
 <div class="card eval" id="E24"><h3><span class="badge pass">PASS</span> &nbsp;E24 · test</h3><p class="crit">AC-6</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E24-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10/E14/E15/E16/E22 (mcp-server/src/jobRunner.test.ts). Tests 22 passed (22);
-Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">Nominatim 503 on a VALID place name → errorKind &#39;server&#39;; network fine but no result → errorKind
+&#39;input&#39;. Both cases distinctly asserted, not conflated.</pre>
 </div>
 <div class="card eval" id="E25"><h3><span class="badge pass">PASS</span> &nbsp;E25 · test</h3><p class="crit">AC-15</p>
-<div class="kv"><span>run_id <b>minted-async-job-queue-E25-r6</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T14:07:52Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same run as E7/E9/E10/E14/E15/E16/E22/E24 (mcp-server/src/jobRunner.test.ts). Tests 22 passed
-(22); Duration 544ms.</pre>
+<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">Async job clip result carries both `durationSec` and `fps` — the same fields the synchronous
+`/render-clip` path returns; no silent field loss for a consumer migrating to the async path.</pre>
 </div>
-<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">E1, E2, E3, E5, E6, E8, E11, E18 (npx vitest run mcp-server/src/http.test.ts); E4, E17, E21, E23
-(npx vitest run mcp-server/src/jobStore.test.ts); E7, E9, E10, E14, E15, E16, E22, E24, E25 (npx
-vitest run mcp-server/src/jobRunner.test.ts); E13, E19 (npx vitest run
-mcp-server/src/motionCompiler.test.ts); E12 (npx vitest run mcp-server/src/tools.test.ts) — same
-green-on-both set as Round 5 (E1,E2,E3,E5,E6,E8,E11,E18,E12,E13,E19); baseline values carried
-forward unchanged per this round&#39;s &quot;re-verification, not new feature&quot; instruction.</div>
-<h2>Vòng verify</h2><ul class="tl"><li>Round 1: All 19 machine evals (E1–E19) exit 0 on HEAD and the E20 judgment panel unanimously proposed PASS; verdict is REJECT because review (see review-findings.md, section &quot;Trong hợp đồng&quot;) found that `isCallerFault` in mcp-server/src/jobRunner.ts:42 misclassifies genuine caller-input failures (bad theme, bad format, bad geojson) as errorKind &#39;server&#39;, violating AC-6&#39;s &quot;phân biệt rõ lỗi tại người gọi hay tại máy chủ&quot; — a defect the existing E8 test does not exercise, since it only covers a genuine server-side throw. Returned to implementation.</li><li>Round 2: E8b (mới, phủ trực tiếp ca phân loại lỗi người gọi ở jobRunner cho AC-6) cùng toàn bộ 19 eval máy còn lại và panel E20 đều xanh, đóng lại phát hiện round 1; nhưng verdict vẫn REJECT vì `npm run test:mcp` (lệnh không gắn eval, phủ tích hợp renderClip.test.ts) exit 1 — timeout 20s tại ca &quot;renders fps×duration frames plus a settle still&quot; (AC-5) — chưa rõ do gói job-queue gây ra hay do môi trường render, cần điều tra trước khi merge.</li><li>Round 3: Điều tra xác nhận nguyên nhân round 2 là tranh chấp tài nguyên trình duyệt giữa hai bộ đo dùng Chromium chạy song song trong chính vòng nghiệm thu, không phải hồi quy của gói (renderClip.test.ts chạy riêng xanh hai lần 43,6s/41,6s, chỉ trong vòng nghiệm thu mới vượt trần 20s ở 59,7s) — không sửa code sản phẩm; thay vào đó feature_loop.suite_keys được gộp thành một lệnh nối tiếp `npm run test:e2e &amp;&amp; npm run test:mcp` (quyết định d-20260805T071657Z-7029), nay exit 0 (7 passed). Toàn bộ 19 eval máy + panel E20 (nay đồng thuận 3-0 PASS, spec-alignment đảo chiều từ FAIL sang PASS sau khi xác nhận contract/design doc đã nêu đích danh khoảng trống &quot;restart xoá mã việc&quot; thoả nhánh thứ hai của AC-15) đều xanh. Verdict: PASS.</li><li>Round 4: Contract mở rộng thêm AC-16 (MAPPOSTER_MAX_QUEUED_JOBS và MAPPOSTER_JOB_TTL_MS phải đổi hành vi thật qua env, môi trường trống rơi về mặc định, giá trị rác fail-closed kèm tên biến) và AC-17 (việc clip đang chờ chỗ clip không được ăn chỗ thợ của việc dựng ảnh xếp sau; rút việc bỏ qua cái bị từ chối mà không đảo thứ tự các việc cùng loại) sau commit 175a936 (&quot;nối dây hai núm cấu hình chết + clip chờ chỗ thôi bỏ đói việc dựng ảnh&quot;). Ba eval mới E21/E22/E23 cùng toàn bộ 20 eval cũ (E1–E19) đều exit 0, hai lệnh regression-guard (`npm test`, `npm run test:e2e &amp;&amp; npm run test:mcp`) vẫn xanh. Panel E20 được chấm lại full-context (không carry từ round 3): domain-correctness và operational-feasibility giữ nguyên PASS, nhưng spec-alignment đảo ngược lại thành FAIL — viện dẫn rằng 404 mơ hồ sau khi restart (gộp ba nghĩa &quot;mã bịa / đã dọn / mất vì restart&quot; làm một) vẫn buộc OneHub tự bịa một chiến lược đối chiếu/gửi-lại mà hai cửa REST không cấp sẵn. Proposal chung của panel là PASS theo đa số 2-1, để người quyết xử lý dissent này ở Gate 2. Verdict: PASS.</li><li>Round 5: Review round 4 (xem review-findings.md của round 4, mục &quot;Trong hợp đồng&quot;) tìm thấy hai khoảng hở thật: (a) `/jobs/status` của đường job làm rớt `durationSec`/`fps` mà `/render-clip` đồng bộ vẫn trả (AC-15), và (b) lỗi Nominatim 503/mạng lỗi trong pha resolve bị gắn nhầm `errorKind: &#39;input&#39;` thay vì `&#39;server&#39;` (AC-6). Cả hai được đóng bằng code + eval mới: E25 (AC-15 — khối clip mang cả `durationSec` và `fps`, đúng những trường `/render-clip` đồng bộ đang trả) và E24 (AC-6 — Nominatim 503 trên địa danh hợp lệ phải cho `errorKind: &#39;server&#39;`, còn mạng ổn mà không có kết quả vẫn là `&#39;input&#39;`, hai ca không được lẫn). Toàn bộ 25 eval máy (E1–E19, E21–E25) exit 0, hai lệnh regression-guard (`npm test`, `npm run test:e2e &amp;&amp; npm run test:mcp`) vẫn xanh. Panel E20 được chấm lại full-context: cả ba lens (domain-correctness, operational-feasibility, spec-alignment) đồng thuận PASS — spec-alignment đảo ngược lại từ FAIL (round 4) sang PASS, khép lại dissent 2-1 còn treo từ round trước, vì hai khoảng hở cụ thể nhất trong bốn thiếu sót của AC-15 nay đã được đóng bằng hợp đồng thay vì chỉ được nêu tên. Verdict: PASS. Signed off `manh` 2026-08-05.</li><li>Round 6 (this report): re-verify triggered because `feat/tier0-agent-params` landed commits touching `resolveConfig.ts`/`tools.ts`/`geocode.ts`/`motionCompiler.ts`/`http.ts`/`jobRunner.ts` after round 5&#39;s `verified_commit` (46a924f) — code changed after evidence was signed, per the staleness rule. All 24 machine evals (E1–E19, E21–E25) re-run fresh against `9b573fc` (24 evals map to 5 distinct suite commands: http.test.ts 49 passed, jobStore.test.ts 16 passed, jobRunner.test.ts 22 passed (up from 21 — tier0-agent-params added a case, no shrinkage), motionCompiler.test.ts 39 passed, tools.test.ts 39 passed up from 32), exit 0 unchanged from round 5&#39;s pass results. Two regression-guard commands stayed green (`npm test`: 424 passed, up from 397; `npm run test:e2e &amp;&amp; npm run test:mcp`: 14+7 passed). E20 (AC-15, judgment) is NOT scored by this verifier — left unfilled for the orchestrator&#39;s blind judge panel, per this round&#39;s instructions (implementation must never judge itself). Verdict: PENDING-JUDGMENT (T2 — all machine evals pass, single judgment eval pending judge).</li></ul>
+<div class="card eval" id="E20"><h3><span class="badge neutral">PASS (JUDGE)</span> &nbsp;E20 · judgment</h3><p class="crit">AC-15</p>
+<div class="kv"><span>judged_by <b>judge-subagent (fresh context, blind)</b></span></div>
+<p class="note"><b>Phán đoán:</b> Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ &#39;OneHub chưa cần&#39; ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.</p>
+<div class="ov ovok">human_override: manh 2026-08-06 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên (&#39;tự lái, không cần hỏi, cho đến khi hoàn tất&#39;) — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS: bốn thiếu sót đều được contract nêu đích danh kèm lý do, và restart-làm-mã-việc-vô-danh vẫn trả 404 đúng luồng AC-4 mà OneHub đã phải xử lý. Rủi ro còn lại vẫn như vòng trước: 404 không phân biệt &#39;việc mất&#39; với &#39;mã bịa&#39;; cần hợp đồng riêng cho job bền vững.</div>
+</div>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values are carried forward unchanged from the prior round per the re-verification instruction
+(not recomputed this round) — E4/E7/E9/E10/E15/E16/E17/E21/E22/E23 were `red` on the prior round&#39;s own
+diffBase determination; carried forward as recorded there. This round&#39;s own diff (routes-measurements,
+landing on files this contract does not depend on) required no baseline recomputation.</div>
+<h2>Vòng verify</h2><ul class="tl"><li>- Prior round: signed off `manh` 2026-08-05, `human_override` CHẤP NHẬN vòng đầu on E20 (UNCERTAIN →</li><li>accepted with named residual risk: post-restart `/jobs/status` returns the same error code for &quot;job</li><li>lost&quot; and &quot;id never existed&quot;, so a consumer must set its own retry policy — not worse than today,</li><li>flagged for a durability-focused follow-up contract).</li><li>- This round (verified 2026-08-06T16:06Z, commit `25c2d2a`): re-verify triggered by `feat/routes-</li><li>measurements` — confirmed via diff that ZERO of this contract&#39;s own source/test files changed. All 24</li><li>machine evals re-run fresh and re-confirmed against their specific `expected` clauses. E20 left</li><li>UNFILLED per this round&#39;s instructions — a prior signature does not carry to a new verification</li><li>round. Verdict PENDING-JUDGMENT.</li><li>- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only — `b4150be` touched a sibling</li><li>contract&#39;s file this contract does not depend on and has no eval command covering, so no fresh eval</li><li>run was performed or needed (all 24 machine-eval blocks above are unchanged from the prior round and</li><li>remain valid: nothing they depend on moved). The coordinator&#39;s own commit `31ad91b` merged a blind</li><li>judge&#39;s PASS verdict into E20 (rationale kept exactly as written, not edited by this verifier).</li><li>`risk_tier: T2` requires `human_override` only on UNCERTAIN judgment items — E20 is PASS, not</li><li>UNCERTAIN — so no override is required for this contract to reach PASS. Verdict **PASS**.</li></ul>
 <h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
 <div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
 <script>

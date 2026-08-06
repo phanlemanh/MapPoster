@@ -127,9 +127,11 @@ always exists.
 **`render_clip` / `POST /render-clip` are synchronous and can take minutes at
 production sizes** (measured: ~1.1s/frame cold at 1080×1920 — spec §3 — so a
 6s/18fps clip is roughly two minutes; the frame budget defaults to
-`MAPPOSTER_MAX_CLIP_FRAMES=288`, i.e. worst case ~5 minutes). A full async job
-queue is a later package, not this one — for now, treat both as **trusted
-internal callers only**, and size timeouts accordingly:
+`MAPPOSTER_MAX_CLIP_FRAMES=288`, i.e. worst case ~5 minutes). Callers that
+don't want to hold a connection open that long should submit the work to
+[`POST /jobs`](#rest-endpoints) instead and poll for it. The two synchronous
+endpoints are unchanged and remain **trusted internal callers only**, so size
+timeouts accordingly:
 
 - The MCP SDK's default client request timeout is **60s** — well under a
   clip's own runtime — so an MCP caller MUST raise its request timeout before
@@ -169,12 +171,32 @@ Clip-only env vars (both REST `/render-clip` and the MCP `render_clip` tool):
 | `MAPPOSTER_CLIP_CONCURRENCY` | 1 | Max clip renders in flight at once, shared by REST `/render-clip` and MCP `render_clip`. Over the limit: REST **429**, `render_clip` its normal error result — same message either way. |
 | `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS` | 10 minutes | How long `pool.acquire()` (browser pages, `MAPPOSTER_POOL`) queues for a free slot before failing with a clear error instead of hanging — see the synchronous-endpoint note above. |
 
+Async job-queue env vars (`POST /jobs`, `POST /jobs/status` — these do **not**
+affect the synchronous endpoints):
+
+| Env var | Default | What it guards |
+|---|---|---|
+| `MAPPOSTER_JOB_WORKERS` | `MAPPOSTER_POOL` (browser-pool size, itself default 2) | How many jobs the runner pulls off the queue at once. Defaulting to the pool size is deliberate: more workers than pages just means the extra workers race each other into `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS`. |
+| `MAPPOSTER_MAX_QUEUED_JOBS` | 50 | Queue depth cap. Over it, `POST /jobs` is refused with **429** and no record is created — an unbounded queue is a scheduled OOM, because every waiting job holds its caller's `params` (which may carry inline GeoJSON). |
+| `MAPPOSTER_JOB_TTL_MS` | 30 minutes | How long a **finished** job is retained. Past it, the sweep drops the record (later polls get **404**) and deletes the files that record listed — records are cheap, `MAPPOSTER_SINK` files are not. |
+| `MAPPOSTER_JOB_SLOT_WAIT_MS` | 10 minutes | How long a worker waits for a free clip slot (`MAPPOSTER_CLIP_CONCURRENCY`) before failing that job as a **server**-side error. Matches `MAPPOSTER_POOL_ACQUIRE_TIMEOUT_MS`: an unbounded wait isn't patience, it's a permanent hang wearing a `queued` badge. |
+
+These four are read through the same `envNumber` validator as every other knob,
+so a garbage value refuses startup and names the variable rather than silently
+falling back to the default. The numbers are **defaults that run**, not
+measured optima — there is no production load to tune against yet. Design:
+`docs/superpowers/specs/2026-08-05-async-job-queue-design.md`.
+
 ### REST endpoints
 
-Alongside the MCP transport, the same HTTP server exposes two plain-REST
+Alongside the MCP transport, the same HTTP server exposes four plain-REST
 endpoints for callers that just want JSON in, image/video out, and don't speak
 JSON-RPC — same `Host`/`Origin` guard and optional bearer token
-(`MAPPOSTER_TOKEN`) as everything else on this server.
+(`MAPPOSTER_TOKEN`) as everything else on this server. Two are synchronous
+(`/render`, `/render-clip`); two submit and poll a job (`/jobs`,
+`/jobs/status`). All four are `POST` — the server answers **405** to every
+other method, and `render.yaml` deliberately declares no health-check path, so
+neither of those decisions had to be reopened to add the job endpoints.
 
 **`POST /render`** — the REST sibling of `render_map`: same input schema, PNG
 returned inline as base64.
@@ -208,7 +230,68 @@ fails after frames were already captured, `/render-clip` degrades the same way
 the MCP tool does: `200 { ok: true, settle, motion, resolved, clipError }`,
 never discarding a settle still that already rendered successfully.
 
-**HTTP status codes** (owner decision, 2026-08-04). Both endpoints answer with
+**`POST /jobs`** — submit a render or clip job and get an id back immediately,
+instead of holding a connection open for the minutes a clip takes. `params` is
+the same `render_map` schema `/render` takes; `motion` is required when
+`kind` is `"clip"` and is the same shape `/render-clip` takes.
+
+```jsonc
+// POST /jobs
+// { "kind": "clip",
+//   "params": { "location": "Hoàn Kiếm Lake, Hanoi", "format": "tiktok" },
+//   "motion": { "preset": "pushIn" } }
+// → 202 { ok: true, id: "…", kind: 'clip', status: 'queued' }
+```
+
+Only the **shape** is checked before the 202 — a bad `kind`, a missing
+`location`, an out-of-range `zoom` are all refused with **400**, and no record
+is created. Geocoding is not, because it is a network call: validating it up
+front would rebuild the very stall this endpoint exists to remove. An
+unresolvable place therefore fails *the job*, not the submission, and surfaces
+on the next poll as `errorKind: 'input'`.
+
+**`POST /jobs/status`** — poll one job by id. The id is usable the instant
+`/jobs` returns it; there is no window where a just-accepted job reads as
+unknown.
+
+```jsonc
+// POST /jobs/status  { "id": "…" }
+// → 200 { ok: true, id, kind, status: 'queued' | 'running' | 'done' | 'failed',
+//         // when done, the artifacts, read off disk and inlined as base64:
+//         image?:  { base64, format: 'png', width, height, bytes },
+//         settle?: { base64, format: 'png', width, height, bytes },
+//         clip?:   { base64, format: 'mp4', width, height, bytes, durationSec, fps },
+//         motion?, resolved?,          // same shapes /render and /render-clip return
+//         // when failed:
+//         error?, errorKind?: 'input' | 'server',
+//         // clip encode failed or exceeded MAPPOSTER_CLIP_MAX_BYTES, settle survives:
+//         clipError? }
+```
+
+A job that ran and failed still answers **200** — the *question* succeeded, and
+the body carries the failure. `errorKind` says whose fault it was: `'input'` is
+the caller's to fix (the 400-shaped failures the sync path would have thrown),
+`'server'` is ours (a dead browser, a clip gate that stayed saturated past
+`MAPPOSTER_JOB_SLOT_WAIT_MS`). Only an id the book has never heard of — or has
+already swept — is **404**. The clip degrade contract carries over unchanged
+from `/render-clip`: if the encode fails or the MP4 is over
+`MAPPOSTER_CLIP_MAX_BYTES`, the settle still that already rendered is still in
+the response, with `clipError` explaining the rest.
+
+**The job book is in memory, and that is the whole durability story.** A
+restart — a deploy, a crash, an OOM — empties it: every id issued before the
+restart becomes unknown, and every poll for one answers **404**, including for
+jobs that had already finished successfully. Any files those jobs wrote are
+orphaned in `MAPPOSTER_SINK` rather than swept, because the records naming them
+are gone. So a caller must be able to resubmit on a `404` and must never treat
+an id as a durable receipt. Durability is a deliberately separate future
+package: it forces an infrastructure choice (Render's persistent disk pins the
+service to a single instance; Redis or Postgres costs money) that this package
+declined to make on the side. See `Out of scope` in
+`_acceptance/async-job-queue/contract.md`.
+
+**HTTP status codes** (owner decision, 2026-08-04; the job endpoints follow the
+same rules and add 202/404). Both synchronous endpoints answer with
 a real status code now, but the response **body shape is unchanged** —
 `{ ok: false, error }` on every failure, exactly as before. This is
 deliberately backward compatible: a consumer that does
@@ -218,20 +301,24 @@ it reads the status or not.
 
 | Status | Meaning | Cause |
 |---|---|---|
-| 200 | success (`ok: true`), or the clip encode-failure degrade (`ok: true, settle, clipError` — a settle still genuinely exists) | |
-| 400 | caller's fault — invalid or unresolvable input | malformed JSON body, a schema violation, geocoding found nothing, an unknown theme, an invalid colour/GeoJSON, an out-of-range zoom/format |
+| 200 | success (`ok: true`), or the clip encode-failure degrade (`ok: true, settle, clipError` — a settle still genuinely exists) | on `/jobs/status`, also every answered poll — including one reporting a *failed* job, because the question itself succeeded |
+| 202 | job accepted, not yet done | `/jobs` only — the record exists and the id is immediately pollable |
+| 400 | caller's fault — invalid or unresolvable input | malformed JSON body, a schema violation, geocoding found nothing, an unknown theme, an invalid colour/GeoJSON, an out-of-range zoom/format. On `/jobs`, the shape violations only — geocoding is deferred to the worker and fails the job instead |
 | 401 | auth | `MAPPOSTER_TOKEN` set and the bearer is missing/wrong |
+| 404 | no such job | `/jobs/status` only — an id that was never issued, or whose record has been swept (`MAPPOSTER_JOB_TTL_MS`, or a restart). The one place the status code describes the question rather than the work |
 | 405 | wrong method | anything but `POST` |
 | 413 | payload too large | body over `MAPPOSTER_HTTP_MAX_BODY` |
 | 422 | well-formed but semantically rejected | a MotionScript invariant violation, an unknown preset, missing `motion`, or the encoded clip over `MAPPOSTER_CLIP_MAX_BYTES` (unchanged from before this decision) |
-| 429 | over the shared clip-concurrency limit | `MAPPOSTER_CLIP_CONCURRENCY` (see above) |
+| 429 | over a capacity limit | synchronously, the shared `MAPPOSTER_CLIP_CONCURRENCY` gate (see above); on `/jobs`, a queue already at `MAPPOSTER_MAX_QUEUED_JOBS`. Jobs *inside* the queue never see 429 — they wait for a clip slot, which is the point of submitting them |
 | 500 | our fault — infrastructure | a browser-pool failure, a page crash, or any other render/encode error that isn't the encode degrade above |
 
 The practical boundary in the code: failures thrown while **resolving**
 params (parsing the body, geocoding, compiling `motion`) are 4xx; failures
 thrown while actually **rendering or encoding** are 5xx. Each handler makes
 that boundary an explicit two-phase `try`/`catch` rather than inferring it
-from an error's message text.
+from an error's message text. On the job path the same boundary survives, one
+layer down: the work no longer has a status code of its own, so 4xx-vs-5xx
+becomes `errorKind: 'input' | 'server'` in the polled body.
 
 The HTTP transport is unauthenticated, so it refuses any request whose `Host` it does not answer to, and any request carrying an `Origin` at all — a server-to-server MCP client sends none, a web page always does. Loopback binding alone would not stop DNS rebinding. A hosted deployment must therefore declare `MAPPOSTER_HTTP_ALLOWED_HOSTS=maps.internal` (and `MAPPOSTER_HTTP_ALLOWED_ORIGINS=https://studio.internal` if a browser calls it); otherwise only loopback `Host` headers are accepted and the server says so on startup. Request bodies are capped at 8 MiB (`MAPPOSTER_HTTP_MAX_BODY`) and refused with `413` — `Host` and `Origin` are trivially forged by exactly the non-browser clients the guard admits, so an unbounded body would OOM the process and take the shared browser pool with it.
 

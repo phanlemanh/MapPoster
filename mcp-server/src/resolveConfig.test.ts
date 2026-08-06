@@ -233,4 +233,16 @@ describe('resolveConfig', () => {
       resolveConfig({ location: { lng: 106.7, lat: 10.78 }, layers: { buildings: 'yes' } as never }),
     ).rejects.toThrow(/invalid layer/i);
   });
+
+  it('carries per-region color through and validates it', async () => {
+    const gj = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[1, 1], [2, 1], [2, 2], [1, 1]]] } }] };
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: { regions: [{ name: 'District 1', color: '#ff0000' }, { geojson: gj, color: '#00ff00' }, 'District 3'] },
+    });
+    expect(cfg.highlight?.regions.map((r) => r.color)).toEqual(['#ff0000', '#00ff00', null]);
+    await expect(
+      resolveConfig({ location: 'Ho Chi Minh City', highlight: { regions: [{ name: 'District 1', color: 'red' }] } }),
+    ).rejects.toThrow(/highlight\.regions\[\]\.color/);
+  });
 });

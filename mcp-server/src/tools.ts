@@ -284,7 +284,13 @@ const hexColor = z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9
 const locationSchema = z.union([z.string().min(1), z.object({ lng, lat, zoom: zoomLevel.optional() })]);
 const highlightSchema = z
   .object({
-    regions: z.array(z.union([z.string().min(1), z.object({ geojson: z.any() })])).optional(),
+    regions: z
+      .array(z.union([
+        z.string().min(1),
+        z.object({ name: z.string().min(1), color: hexColor.optional() }),
+        z.object({ geojson: z.any(), color: hexColor.optional() }),
+      ]))
+      .optional(),
     points: z.array(z.union([z.string().min(1), z.object({ lng, lat })])).optional(),
     color: hexColor.optional(),
     fill: z.boolean().optional(),

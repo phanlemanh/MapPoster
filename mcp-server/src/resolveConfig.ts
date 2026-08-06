@@ -10,7 +10,7 @@ export type FormatInput = string | { width: number; height: number };
 export interface RenderMapParams {
   location: string | { lng: number; lat: number; zoom?: number };
   highlight?: {
-    regions?: (string | { geojson: GeoJSONFeatureCollection })[];
+    regions?: (string | { name: string; color?: string } | { geojson: GeoJSONFeatureCollection; color?: string })[];
     points?: (string | { lng: number; lat: number })[];
     color?: string;
     fill?: boolean;
@@ -229,6 +229,15 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   const detail = params.detail != null ? assertDetail(params.detail) : undefined;
   const font = params.font != null ? assertFont(params.font) : undefined;
 
+  // Validate every per-region colour here too — the region loop below hits the
+  // network once per named region (resolveBoundary), so without this a bad
+  // colour on region 3 would only surface after regions 1 and 2 already spent
+  // a request. Pre-validating up front keeps the same "fail before network"
+  // guarantee the global colour and theme checks above already have.
+  const regionColors = (params.highlight?.regions ?? []).map((r) =>
+    typeof r === 'object' && r.color != null ? assertColor(r.color, 'highlight.regions[].color') : null,
+  );
+
   const base = await resolveLocation(params.location);
 
   // Anchor every highlight to the country of the location being rendered. Region
@@ -239,8 +248,10 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   // let the guard pass everything. Fail closed: if we cannot say what country the
   // map is in, we cannot vouch for a highlight resolved by name.
   const namedHighlight =
-    (params.highlight?.regions ?? []).some((r) => typeof r === 'string') ||
-    (params.highlight?.points ?? []).some((p) => typeof p === 'string');
+    (params.highlight?.regions ?? []).some((r) => typeof r === 'string' || 'name' in r) ||
+    // 'query' in p prepares for Task 3's {query} point form — added now so this
+    // guard isn't edited twice. Harmless today: no point can be {query}-shaped yet.
+    (params.highlight?.points ?? []).some((p) => typeof p === 'string' || 'query' in p);
 
   let anchor = base.place.country || undefined;
   if (namedHighlight && !anchor) {
@@ -255,16 +266,20 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const regions: RenderHighlightRegion[] = [];
-  for (const r of params.highlight?.regions ?? []) {
-    if (typeof r === 'string') {
-      const gj = await resolveBoundary(r, anchor);
+  const rawRegions = params.highlight?.regions ?? [];
+  for (let i = 0; i < rawRegions.length; i++) {
+    const r = rawRegions[i];
+    const rColor = regionColors[i];
+    if (typeof r === 'string' || 'name' in r) {
+      const name = typeof r === 'string' ? r : r.name;
+      const gj = await resolveBoundary(name, anchor);
       // Fail loudly, matching the point path (resolveLocation throws). Silently
       // dropping the region would return a "successful" poster missing the very
       // highlight the caller asked for.
-      if (!gj) throw new Error(`No boundary found for region "${r}"${anchor ? ` in ${anchor}` : ''}`);
-      regions.push({ geojson: gj, color: null });
+      if (!gj) throw new Error(`No boundary found for region "${name}"${anchor ? ` in ${anchor}` : ''}`);
+      regions.push({ geojson: gj, color: rColor });
     } else {
-      regions.push({ geojson: assertGeojson(r.geojson), color: null });
+      regions.push({ geojson: assertGeojson(r.geojson), color: rColor });
     }
   }
 

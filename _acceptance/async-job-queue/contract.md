@@ -162,6 +162,16 @@ ship**. Danh sách chấp nhận, để người sau không tưởng là sót:
   khi tệp dài thêm. Chú thích sai chỗ, không phải hành vi sai.
 - **`_acceptance/config.yaml` có một khoá chạy trùng lệnh với khoá khác**, nên bộ đo HTTP
   chạy hai lần mỗi vòng; và ba dòng mới lệch kiểu trích dẫn với phần còn lại của tệp.
+- **AC-6 còn một lỗ: dịch vụ tra toạ độ ngã ở lối `reverse` vẫn bị tính là lỗi người gọi.**
+  Bản sửa bọc ba lời gọi ra Nominatim để chúng báo "lỗi máy chủ", nhưng `reverseGeocode`
+  **nuốt lỗi HTTP bằng `return null`** thay vì ném (`src/lib/geocoding.ts:373`), nên bộ bọc
+  không bao giờ thấy nó. Chuỗi: `resolveCountryAt` trả null → `resolveConfig` ném lỗi
+  thường → gán `errorKind: 'input'`. Kích hoạt khi người gọi đưa toạ độ tường minh CỘNG
+  một vùng tô sáng gọi theo tên; Nominatim ngã thì họ được bảo đi sửa một yêu cầu vốn
+  không sai. Vòng soi code của `map-motion-clip` round 2 dựng lại được bằng thực nghiệm
+  (chặn `fetch` trả 503). Chấp nhận vì phạm vi hẹp và hậu quả là một trường mô tả lỗi sai,
+  không mất dữ liệu, không sập — và sửa nó làm hết hiệu lực bằng chứng của ba hợp đồng.
+  **Gom vào gói độ bền vòng sau**, vốn đụng lại đúng vùng này.
 
 Tách hợp đồng riêng: **`README.md` chưa có hai cửa mới, chưa có bốn núm mới, và vẫn viết
 "hàng đợi bất đồng bộ là gói sau"** — câu đó bị chính vòng này làm sai. `mcp-server/config.ts`

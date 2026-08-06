@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 06d37e264d3f191b67c4e1960ff64390ed428657
-human_signoff: manh (2026-08-04) — verdict đưa trong phiên; commit do Claude thực hiện theo chỉ thị của manh
+verified_commit: 0201cc3e792cd086de3335d3ae195d73bb5fadfb
+human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
@@ -30,267 +30,236 @@ human_signoff: manh (2026-08-04) — verdict đưa trong phiên; commit do Claud
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | UNCERTAIN (awaits mandatory T3 human_override) |
-| E17 | AC-14 | judgment | UNCERTAIN (awaits mandatory T3 human_override) |
+| E16 | AC-13 | judgment | PASS (panel proposal; awaits mandatory T3 human_override) |
+| E17 | AC-14 | judgment | PASS (panel proposal; awaits mandatory T3 human_override) |
 
 ## Evidence
 
 - eval: E1
-  run_id: map-motion-clip-E1-20260804-062201
+  run_id: minted-map-motion-clip-E1-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-04T06:22:07Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  1 passed (1)
           Tests  16 passed (16)
-       Start at  13:21:52
-       Duration  621ms
+       Start at  08:30:40
+       Duration  1.50s (transform 71ms, setup 0ms, import 217ms, tests 7ms, environment 1.03s)
 
 - eval: E2
-  run_id: map-motion-clip-E2-20260804-062201
+  run_id: minted-map-motion-clip-E2-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-04T06:22:07Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     Same suite run as E1/E3 (src/render/motionScript.test.ts covers all three
-    criteria in one file). Test Files 1 passed (1); Tests 16 passed (16).
+    criteria in one file). Tests 16 passed (16); Duration 1.50s.
 
 - eval: E3
-  run_id: map-motion-clip-E3-20260804-062201
+  run_id: minted-map-motion-clip-E3-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-04T06:22:07Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     Same suite run as E1/E2 (src/render/motionScript.test.ts covers all three
-    criteria in one file). Test Files 1 passed (1); Tests 16 passed (16).
+    criteria in one file). Tests 16 passed (16); Duration 1.50s.
 
 - eval: E4
   run_id: map-motion-clip-sweep-local
   exit_code: 0
+  baseline: green
   verifier: config:executors.script.compiler_domain_sweep
-  verified_at: 2026-08-04T06:22:20Z
+  verified_at: 2026-08-06T08:30:41Z
   output: |
-    run_id: map-motion-clip-sweep-local
-    combinations: 2652 (presets=3 x lngs=4 x zoom 0-22 step 0.1)
-    accepted: 2612
     material errors (clear message, expected): 40
     violations: 0
-    OK -- no combination produced a self-rejected script or a motionless clip
+    OK — no combination produced a self-rejected script or a motionless clip
 
 - eval: E5
-  run_id: map-motion-clip-E5-20260804-062228
+  run_id: minted-map-motion-clip-E5-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-04T06:22:36Z
+  verified_at: 2026-08-06T08:30:41Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  1 passed (1)
-          Tests  25 passed (25)
-       Duration  442ms
+          Tests  31 passed (31)
+       Start at  08:30:41
+       Duration  1.39s (transform 164ms, setup 0ms, import 226ms, tests 19ms, environment 988ms)
 
 - eval: E6
-  run_id: map-motion-clip-E6-20260804-062232
+  run_id: minted-map-motion-clip-E6-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.motion_math
-  verified_at: 2026-08-04T06:22:36Z
+  verified_at: 2026-08-06T08:30:39Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  1 passed (1)
           Tests  16 passed (16)
-       Duration  384ms
+       Start at  08:30:39
+       Duration  1.37s (transform 165ms, setup 0ms, import 249ms, tests 4ms, environment 955ms)
 
 - eval: E7
-  run_id: map-motion-clip-E7-20260804-062246
+  run_id: minted-map-motion-clip-E7-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-04T06:23:38Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
-    MCP_INTEGRATION=1 vitest run --fileParallelism=false
-    mcp-server/src/renderFrame.test.ts mcp-server/src/renderClip.test.ts
-    mcp-server/src/stdioChannel.test.ts
-     Test Files  3 passed (3)
+    RUN  v4.1.10 /Users/manh-macmini/dev/map
           Tests  7 passed (7)
-       Duration  46.74s
+       Start at  08:30:40
+       Duration  63.76s (transform 72ms, setup 0ms, import 2.15s, tests 59.67s, environment 1.52s)
 
 - eval: E8
-  run_id: map-motion-clip-E8-20260804-062344
+  run_id: minted-map-motion-clip-E8-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  1 passed (1)
-          Tests  33 passed (33)
-       Duration  998ms
+         Tests  49 passed (49)
+      Start at  08:30:40
+      Duration  3.07s (transform 381ms, setup 0ms, import 1.67s, tests 174ms, environment 927ms)
 
 - eval: E9
-  run_id: map-motion-clip-E9-20260804-062344
+  run_id: minted-map-motion-clip-E9-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     Same suite run as E8/E10/E13/E15 (mcp-server/src/http.test.ts covers all
-    five criteria in one file). Test Files 1 passed (1); Tests 33 passed (33).
+    five criteria in one file). Tests 49 passed (49); Duration 3.07s.
 
 - eval: E10
-  run_id: map-motion-clip-E10-20260804-062344
+  run_id: minted-map-motion-clip-E10-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
-    Same suite run as E8/E9/E13/E15 (mcp-server/src/http.test.ts). Test Files
-    1 passed (1); Tests 33 passed (33).
+    Same suite run as E8/E9/E13/E15 (mcp-server/src/http.test.ts). Tests 49
+    passed (49); Duration 3.07s.
 
 - eval: E11
-  run_id: map-motion-clip-E11-20260804-062349
+  run_id: minted-map-motion-clip-E11-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  1 passed (1)
           Tests  32 passed (32)
-       Duration  552ms
+       Start at  08:30:40
+       Duration  2.13s (transform 371ms, setup 0ms, import 537ms, tests 199ms, environment 1.06s)
 
 - eval: E12
-  run_id: map-motion-clip-E12-20260804-062357
+  run_id: minted-map-motion-clip-E12-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
     RUN  v4.1.10 /Users/manh-macmini/dev/map
      Test Files  2 passed (2)
           Tests  18 passed (18)
-       Duration  443ms
+       Start at  08:30:40
+       Duration  1.37s (transform 140ms, setup 0ms, import 266ms, tests 10ms, environment 2.08s)
 
 - eval: E13
-  run_id: map-motion-clip-E13-20260804-062344
+  run_id: minted-map-motion-clip-E13-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
-    Same suite run as E8/E9/E10/E15 (mcp-server/src/http.test.ts). Test Files
-    1 passed (1); Tests 33 passed (33).
+    Same suite run as E8/E9/E10/E15 (mcp-server/src/http.test.ts). Tests 49
+    passed (49); Duration 3.07s.
 
 - eval: E14
-  run_id: map-motion-clip-E14-20260804-062349
+  run_id: minted-map-motion-clip-E14-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
-    Same suite run as E11 (mcp-server/src/tools.test.ts). Test Files 1 passed
-    (1); Tests 32 passed (32).
+    Same suite run as E11 (mcp-server/src/tools.test.ts). Tests 32 passed
+    (32); Duration 2.13s.
 
 - eval: E15
-  run_id: map-motion-clip-E15-20260804-062344
+  run_id: minted-map-motion-clip-E15-r2
   exit_code: 0
+  baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-04T06:24:05Z
+  verified_at: 2026-08-06T08:30:40Z
   output: |
-    Same suite run as E8/E9/E10/E13 (mcp-server/src/http.test.ts). Test Files
-    1 passed (1); Tests 33 passed (33).
+    Same suite run as E8/E9/E10/E13 (mcp-server/src/http.test.ts). Tests 49
+    passed (49); Duration 3.07s.
 
 - eval: E16
   criterion: AC-13
   executor: judgment
-  question: >-
-    Clip preset "approach" cho Quan 3, TP.HCM co doc ra ba nhip co nghia
-    (mo rong toan canh -> ve dan ranh gioi quan -> dung yen o duoi) hay
-    khong?
-  inputs: [contract.md, evidence/E16-clip.mp4, evidence/E16-step1.png, evidence/E16-step2.png, evidence/E16-step3.png]
-  artefact_generation: |
-    Started mcp-server/src/http.ts locally (MCP_HTTP_PORT=4181,
-    MAPPOSTER_HTTP_ALLOWED_HOSTS=localhost). POSTed /render-clip with
-    location="Quan 3, TP.HCM", format 360x640, theme midnight-blue,
-    highlight.regions=["Quan 3, TP.HCM"], one highlight point, motion
-    preset=approach fps=12 durationSec=2. Response: HTTP 200,
-    ok:true, motion={preset:"approach", restAtSec:1.4}, clip
-    {fps:12, durationSec:2, bytes:735825}. Decoded clip.base64 to
-    evidence/E16-clip.mp4 (ffprobe confirms 360x640, 12fps, Duration
-    00:00:02.00). Extracted frames with ffmpeg -ss <t> -frames:v 1:
-    step1 at t=0.05s, step2 at t=0.80s, step3 at t=1.80s (chosen after
-    probing t=0.05/0.60/0.80/1.00/1.10/1.40/1.80 to locate the actual
-    regionReveal window, which the compiler places at
-    [0.6s, 1.067s] for this 2s/12fps request -- derived from
-    APPROACH.reveal0=1.8 * k and reveal1=3.2 * k with k=durationSec/6).
-    Server (and its tsx child processes) killed after capture; no
-    stray process left running.
-  observed_step1: |
-    t=0.05s (evidence/E16-step1.png): wide zoomed-out view of the Ho Chi
-    Minh City road network on the midnight-blue theme (dark navy
-    background, amber roads). No district highlight, no pin marker,
-    no attribution text visible in this crop of the frame.
-  observed_step2: |
-    t=0.80s (evidence/E16-step2.png): camera has moved in closer; a
-    partial, wedge/triangle-shaped amber highlight has appeared over
-    part of the district area, growing from one edge rather than being
-    fully present -- this is the boundary reveal caught mid-animation,
-    not yet covering the full district shape seen in step3.
-  observed_step3: |
-    t=1.80s (evidence/E16-step3.png, after restAtSec=1.4s): the full
-    district polygon is now solidly highlighted in amber over the
-    surrounding street grid, with a white teardrop pin marker placed
-    near its center; the framing matches the "close, settled" shot of
-    a resting camera.
-  judged_by: verify subagent (fresh context) -- NOT a substantive judge pass
-  verdict: UNCERTAIN
-  rationale: >-
-    T3 risk tier mandates the human signer's own direct verdict on every
-    judgment item, regardless of what a fresh-context observer sees --
-    this verifier deliberately does not score AC-13. The frames captured
-    above are consistent with the three claimed beats (wide establishing
-    shot -> progressive boundary reveal -> settled close shot with pin),
-    but "does this read as intentional" is the perceptual call reserved
-    for the human per contract.md and the evidence-report-template rules.
-  human_override: manh (2026-08-04) — CHẤP NHẬN. Ba nhịp phân biệt được trên ba khung đã xem: toàn cảnh chưa tô → vùng tô dở hình nêm → vùng khép kín có pin.
+  judged_by: judge panel (fresh context) — 3 lenses
+  proposal: PASS
+  votes:
+  - domain-correctness: PASS — Trích toàn bộ 24 khung từ E16-clip.mp4 (12fps/2s): khung 1-7 là một cú zoom liên tục từ khung rộng toàn thành phố (thấy được bối cảnh, chưa có ranh giới) xuống mức quận; khung 11 bắt được trạng thái ranh giới đang vẽ dở (hình nêm cắt cụt, khớp E16-step2.png) trước khi khung 12-15 mới khép kín hình dạng đầy đủ — tức có bước trung gian thật, không phải bật (0→100%) trong một khung; khung 16-24 (hơn 1/3 clip) đứng yên tuyệt đối với pin "settle". Ba nhịp mở-rộng → vẽ-dần → đứng-yên đọc ra rõ ràng, không phải một đoạn trôi vô hướng.
+  - operational-feasibility: PASS — Phân rã 24 khung của E16-clip.mp4 (khớp 3 ảnh step) cho thấy đúng ba nhịp: khung 1 mở ở toàn cảnh thành phố chưa có ranh giới; ranh giới quận không hiện đột ngột mà mờ dần qua ~4 khung liên tiếp (khung 10 chưa có → khung 13 gần như đầy, opacity tăng tuyến tính quan sát được); từ khung ~13-14 đến khung 24 (gần một nửa clip) sai khác pixel giữa các khung liên tiếp gần như bằng 0, tức đuôi đứng yên hoàn toàn. Cả ba nhịp tách bạch rõ ràng, không đọc như một đoạn trôi vô hướng.
+  - spec-alignment: PASS — Trích khung từ E16-clip.mp4 (24 khung, 12fps, 2s) cho thấy đủ ba nhịp: khung mở đầu (f01-f10) là toàn cảnh rộng thấy mạng lưới đường và sông của thành phố, chưa có tô ranh giới; từ f11 ranh giới quận bắt đầu xuất hiện và lan rộng dần qua nhiều khung liên tiếp (f12→f15→f18) chứ không bật lên đột ngột; đuôi clip (f21-f24, ~0.33s cuối) các khung giống hệt nhau từng byte (maxdiff=0), tức đứng yên hoàn toàn. Ba khung tĩnh E16-step1/2/3.png cũng khớp đúng trình tự này (toàn cảnh → nửa vẽ ranh giới dạng vệt mờ dần → hoàn chỉnh có marker).
+  human_override:
 
 - eval: E17
   criterion: AC-14
   executor: judgment
-  question: >-
-    Is the "clip has no text" invariant's one exception (baked OSM
-    attribution) explicit, license-justified, and locked down against
-    further text leaking into pixels -- or is it a loophole?
-  inputs: [contract.md, docs/superpowers/specs/2026-08-03-map-motion-clip-design.md, src/lib/export.test.ts]
-  supporting_check: |
-    src/lib/export.test.ts:37-38 contains a describe/it block named
-    "composeOverlays -- baked attribution is the ONE permitted
-    pixel-text exception (spec §2.3)" / "draws ONLY the attribution
-    string when chrome is clean (text.show=false, as clips force)".
-    docs/superpowers/specs/2026-08-03-map-motion-clip-design.md exists
-    and is referenced by name from contract.md. This test is part of
-    the E12 (config:executors.test.text_free) suite that passed above
-    (18/18), so the lock-down behavior it asserts is machine-verified;
-    whether the exception's framing/justification is adequate is the
-    human judgment call.
-  judged_by: verify subagent (fresh context) -- NOT a substantive judge pass
-  verdict: UNCERTAIN
-  rationale: >-
-    T3 risk tier mandates the human signer's own direct verdict on every
-    judgment item. Whether the attribution carve-out in src/lib/export.ts
-    (a t3_paths file) is adequately justified and locked down is a
-    legitimacy question, not a machine-checkable fact -- the verifier
-    deliberately does not score AC-14.
-  human_override: manh (2026-08-04) — CHẤP NHẬN. Ngoại lệ attribution là tường minh: ghi ở spec §2.3, có lý do giấy phép OSM, và bị khoá bằng export.test.ts.
+  judged_by: judge panel (fresh context) — 3 lenses
+  proposal: PASS
+  votes:
+  - domain-correctness: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 kèm lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, nướng pixel để không phụ thuộc bên tiêu thụ tự vẽ lại), và contract AC-9/AC-14 nêu đúng yêu cầu khoá chặt. Test khoá (export.test.ts) dùng Proxy chặn TOÀN BỘ fillText/strokeText (không liệt kê thủ công), assert `textCalls` bằng đúng `[ATTRIBUTION_TEXT]` khi `text.show:false` — nghĩa là bất kỳ chữ nào khác kể cả drawPosterText lỡ gỡ guard trong tương lai đều làm test đỏ, nên đây là một ngoại lệ có kỷ luật chứ không phải lỗ hổng được hợp thức hoá.
+  - operational-feasibility: PASS — Ngoại lệ được ghi tường minh tại spec §2.3 (mục "Ba hợp đồng cốt lõi", điểm 3), kèm lý do chính đáng và có ngày quyết định rõ ràng (chủ repo, 2026-08-04): nghĩa vụ giấy phép dữ liệu OSM/OpenFreeMap, độc lập với việc bên tiêu thụ có tự vẽ hay không. Khoá vận hành trong export.test.ts đủ chặt về mặt cơ chế: dùng Proxy bẫy MỌI lệnh fillText/strokeText (không phải allowlist tên hàm cụ thể) và assert bằng-hẳn `textCalls === [ATTRIBUTION_TEXT]` khi `chrome:'clean'`/`text.show:false` — đúng kịch bản rủi ro mà spec nêu (kể cả `drawPosterText` bị gỡ guard sau này) sẽ làm test đỏ ngay. Một khe hở nhỏ còn lại — test không pin nội dung literal của hằng `ATTRIBUTION_TEXT` nên về lý thuyết hằng số này có thể bị đổi nội dung ở mức source — không đủ để lật verdict vì đó là thay đổi code tường minh qua review, không phải đường lách runtime/operational.
+  - spec-alignment: PASS — Spec §2 ("Ba hợp đồng cốt lõi" mục 3, dẫn chiếu §2.3 khớp cả trong spec lẫn contract AC-14) ghi tường minh ngoại lệ, nêu lý do chính đáng (nghĩa vụ giấy phép OSM/OpenFreeMap, độc lập với consumer). Implementation (export.ts) gọi drawAttribution() vô điều kiện với hằng số ATTRIBUTION_TEXT cố định (không nhận input ngoài), tách biệt khỏi khối `if (opts.text.show)` bao các fillText khác. Test khoá bằng Proxy bắt MỌI lệnh fillText/strokeText (không chỉ tên đã biết) và assert textCalls === [ATTRIBUTION_TEXT] khi chrome:'clean' — chặn được cả trường hợp guard tương lai bị gỡ. Ngoại lệ bị giới hạn ở một hằng số cứng, không mở thành cờ "cho phép chữ" chung, nên đây là một ngoại lệ có kiểm soát chứ không phải lỗ hổng.
+  human_override:
 
 ## Analyst
 
-none -- every feature eval (E1-E15) exercises new map-motion-clip code
-paths (motion schema, compiler, math, clip HTTP/MCP surfaces, text-free
-guard); no diffBase baseline was run in this round so discrimination is
-not separately measured, but none of these suites pre-date this feature.
+E1, E2, E3 (npx vitest run src/render/motionScript.test.ts); E4 (npx tsx
+_acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts); E5 (npx vitest
+run mcp-server/src/motionCompiler.test.ts); E6 (npx vitest run
+src/render/motionMath.test.ts); E7 (npm run test:mcp); E8, E9, E10, E13, E15
+(npx vitest run mcp-server/src/http.test.ts); E11, E14 (npx vitest run
+mcp-server/src/tools.test.ts); E12 (npx vitest run src/lib/export.test.ts
+src/lib/mapStyle.test.ts) — all pass on baseline too (non-discriminating this
+round; these are the same feature-path suites the contract has always relied
+on, not new regressions, so treat as intended coverage rather than something
+to rewrite).
 
 ## Variance
 
-none -- every eval in this round is deterministic (runs: 1); no
-providers.invoke / LLM-generator crossing evals in this eval set.
+none — every eval in this round is deterministic (runs: 1); no
+ctx.providers.invoke / LLM-generator crossing evals in this eval set.
 
 ## Iterations
 
-Round 1: all 15 machine evals (E1-E15) passed on first run, exit 0.
-E16/E17 are T3 judgment items awaiting the human signer's direct
-verdict per contract -- verdict is PENDING-JUDGMENT, not PASS.
+Round 1 (2026-08-04): all 15 machine evals (E1-E15) passed on first run, exit
+0. Judgment items E16/E17 human_override CHẤP NHẬN by manh (2026-08-04);
+verdict reached PASS, verified_commit 06d37e264d3f191b67c4e1960ff64390ed428657.
+Round 2 (this report): downstream commits (async-job-queue integration,
+geocode/http/motionCompiler edits) landed after round 1's verified_commit,
+making that evidence stale per pre-merge-check's staleness rule — re-verify
+triggered. All 15 machine evals (E1-E15) re-run against the new tree, exit 0,
+unchanged pass results; additionally the full suite (npm test: 397 passed, 7
+skipped) and npm run test:e2e && npm run test:mcp (14 + 7 passed) also stayed
+green. Fresh 3-lens judge panel proposes PASS on both E16/E17 with detailed
+frame-by-frame rationale; verdict is PENDING-JUDGMENT pending Gate-2
+human_override on this new round (T3 requires it regardless of judge verdict).
 
 ## Gate 2 checklist (human)
 

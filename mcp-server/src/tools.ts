@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
-import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
+import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
@@ -68,6 +68,9 @@ export const resolvedOf = (cfg: RenderConfig) => {
     zoom: cfg.camera.zoom,
     place: cfg.place,
     theme: cfg.theme,
+    // Đường clip ÉP chrome 'clean'; echo nó ra để caller thấy giá trị thật sự
+    // được dùng thay vì giá trị họ gửi.
+    chrome: cfg.chrome,
     highlights: summarizeHighlights(cfg),
     // Chỉ đính kèm khi có dữ liệu: một lời gọi không dùng routes/measure không
     // nên phải trả tiền context cho hai mảng rỗng ở mọi response.
@@ -281,6 +284,37 @@ export function makeTools(deps: ToolDeps) {
       }
     },
 
+    /**
+     * Biên dịch kịch bản chuyển động rồi TRẢ VỀ NGAY — không render khung nào.
+     *
+     * Vòng lặp preset→xem→chỉnh trước đây buộc agent trả tiền một clip đầy đủ
+     * (hàng phút) chỉ để biết preset sinh ra gì. Tool này trả lời cùng câu hỏi
+     * trong mili-giây.
+     *
+     * Dùng lại `prepareClipRenderWithSlot` với callback release RỖNG thay vì
+     * chép lại nhánh parse→resolve→validate: chép là cách hai bề mặt trôi khỏi
+     * nhau, đúng lý do `resolveMotion` từng được trích ra. Không lấy slot vì
+     * không có gì để gác — cổng concurrency bảo vệ vòng đời render+encode, mà
+     * ở đây cả hai đều không xảy ra.
+     */
+    async compile_motion(params: RenderMapParams & { motion?: unknown }): Promise<ToolResult> {
+      try {
+        const prep = await prepareClipRenderWithSlot(params, params.motion, () => {});
+        const frames = Math.round(prep.motion.durationSec * prep.motion.fps);
+        return ok({
+          ...(prep.preset ? { preset: prep.preset } : {}),
+          script: prep.motion,
+          fps: prep.motion.fps,
+          durationSec: prep.motion.durationSec,
+          restAtSec: prep.motion.restAtSec,
+          frames,
+          resolved: resolvedOf(prep.cfg),
+        });
+      } catch (e) {
+        return fail((e as Error).message);
+      }
+    },
+
     async list_themes(): Promise<ToolResult> {
       return ok({ themes: THEMES.map((t) => ({ id: t.id, name: t.name, dark: t.dark, colors: t.colors })) });
     },
@@ -445,6 +479,15 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     (a: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }) => t.render_clip(a),
   );
   s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
+  s.registerTool(
+    'compile_motion',
+    {
+      description:
+        'Compile a motion preset or raw script into the MotionScript render_clip would use, and return it WITHOUT rendering anything. Costs no frames and no clip slot — use it to inspect and tweak motion before paying for a clip.',
+      inputSchema: { ...renderMapShape, motion: motionParamSchema },
+    },
+    (a: RenderMapParams & { motion?: unknown }) => t.compile_motion(a),
+  );
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());
 }

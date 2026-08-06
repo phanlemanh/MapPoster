@@ -376,6 +376,68 @@ describe('render_animation', () => {
   });
 });
 
+describe('compile_motion (PR #3)', () => {
+  // KHÔNG có renderClip/encodeAnimation trong deps: nếu tool đụng tới chúng,
+  // test sẽ nổ chứ không âm thầm đi đường render.
+  const dryTools = () => makeTools({ render, sinkDir, defaultDelivery: 'url' });
+
+  it('returns the compiled script without spending a single render', async () => {
+    render.mockClear();
+    const j = textJson(await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+
+    expect(j.script.camera.length).toBeGreaterThan(1);
+    expect(j.fps).toBe(j.script.fps);
+    expect(j.durationSec).toBe(j.script.durationSec);
+    expect(j.frames).toBe(Math.round(j.script.durationSec * j.script.fps));
+    expect(j.preset).toBe('pushIn');
+    expect(j.resolved.center).toBeDefined();
+    // Toàn bộ lý do tool này tồn tại:
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  it('accepts a raw script, not just a preset', async () => {
+    const script = {
+      // restAtSec phải <= 0.72×durationSec (invariant R) — 2.8 <= 2.88
+      fps: 12, durationSec: 4, restAtSec: 2.8,
+      camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 2.8, center: [105.85, 21.02], zoom: 14, ease: 'easeOut' }],
+      tracks: [],
+    };
+    const j = textJson(await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } }));
+    expect(j.script.fps).toBe(12);
+    expect(j.frames).toBe(48);
+    expect(j.preset).toBeUndefined();
+  });
+
+  it('reports a preset that cannot compile as an error, not an empty script', async () => {
+    const res = await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02 },
+      motion: { preset: 'approach' }, // approach cần highlight.regions
+    });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/approach needs highlight\.regions/);
+  });
+
+  it('forces chrome clean so the preview cannot disagree with what render_clip renders', async () => {
+    const j = textJson(await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      chrome: 'poster',
+      motion: { preset: 'pushIn' },
+    }));
+    expect(j.resolved.chrome).toBe('clean');
+  });
+
+  it('refuses a missing motion param with the same message render_clip uses', async () => {
+    const res = await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 } } as never);
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/motion is required/);
+  });
+});
+
 describe('render_clip', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
   const region = { highlight: { regions: ['District 1'] } };

@@ -26,6 +26,7 @@ executors:
 risk_tiers:
   t1_skip_globs:
     - "**/*.md"
+    - "*.md"
     - "_acceptance/**"
     - ".github/**"
   t3_paths:

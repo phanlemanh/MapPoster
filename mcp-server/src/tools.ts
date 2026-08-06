@@ -374,6 +374,16 @@ const cameraSchema = z
     // be a regression, not a fix.
     bearing: z.number().finite().optional(),
     pitch: z.number().min(0).max(60).optional(),
+    // Chỉ camera vào MỘT đối tượng thay vì auto-frame hợp nhất. Loại trừ với
+    // center/zoom — resolveConfig ném khi có cả hai, không tự chọn bên thắng.
+    focus: z
+      .object({
+        kind: z.enum(['point', 'region', 'route']),
+        index: z.number().int().min(0),
+        paddingPct: z.number().min(0).max(200).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();

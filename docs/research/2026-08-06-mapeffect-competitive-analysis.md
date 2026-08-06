@@ -3,6 +3,25 @@
 **Ngày:** 2026-08-06 · **Phạm vi:** deep research mapeffect.app, đối chiếu năng lực MapPoster,
 đề xuất lộ trình clone rẻ nhất cho sản phẩm **API/MCP-first phục vụ AI Agent**.
 
+> ## ⚠️ ĐÍNH CHÍNH (2026-08-06, sau khi phát hiện cây local lạc hậu)
+>
+> Toàn bộ phân tích dưới đây được thực hiện trên `main` local tại commit `9c11488`,
+> **lạc hậu 25 commit** so với `origin/main` (`1b16a61`). Ba đính chính:
+>
+> 1. **Async job queue KHÔNG còn missing** — `POST /jobs` + `POST /jobs/status`
+>    (`mcp-server/src/jobStore.ts`, `jobRunner.ts`) đã được implement và **ký duyệt**
+>    (hợp đồng `async-job-queue`, round 5). Mọi câu trong tài liệu này nói async queue là
+>    "missing / out-of-scope / L effort" đều SAI. Hệ quả: lập luận "progress notification
+>    rẻ hơn async queue" (§4 mục 4.4) mất phần lớn trọng lượng — vấn đề timeout 60s của
+>    MCP client nay đã có lối giải; progress notification chỉ còn giá trị UX bổ sung.
+> 2. **Nay có BA hợp đồng đã ký**, không phải hai — thêm `async-job-queue`. Thuế
+>    acceptance-gate mỗi PR tăng tương ứng (§7 ước tính theo 2 hợp đồng → cộng thêm 1 bộ eval).
+> 3. **Số dòng đã đổi** ở `geocode.ts`, `motionCompiler.ts`, `http.ts` (3 file này nhận
+>    +130/+152/+39 dòng từ nhánh async-job). `tools.ts` và `resolveConfig.ts` **không đổi**.
+>
+> **Không đổi:** 12 mục Tier 0 vẫn chưa tồn tại upstream, 4 bug production vẫn còn nguyên
+> (đã verify trên `origin/main`). Phần còn lại của phân tích vẫn đứng vững.
+
 **Phương pháp:** teardown trực tiếp trên trình duyệt (accessibility tree, `window.__store`,
 `__map.getStyle()`, regex trên ~560 KB JS bundle) + 22 agent nghiên cứu song song
 (5 recon, 3 inventory, 6 gap-analysis, 6 adversarial verify, 2 synthesis), ~4.5 M token.

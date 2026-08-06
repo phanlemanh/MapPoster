@@ -16,8 +16,9 @@
 - Không `console.log` trong production code.
 - Commit theo conventional commits (`feat:`, `fix:`, `test:`), **không** footer attribution.
 - Sau toàn bộ tasks: `npm run verify` phải xanh (typecheck + Vitest + Playwright).
-- Thuế acceptance-gate là cố định trên PR: mọi thay đổi code làm stale cả hai hợp đồng T3 (`mcp-map-render`, `map-motion-clip`) — gộp toàn bộ Tier 0 vào MỘT PR, không tách.
-- Trước khi code: `bash scripts/pre-merge-check.sh --base main` để chốt baseline stale-set (hiện đang sạch).
+- Thuế acceptance-gate là cố định trên PR: mọi thay đổi code làm stale **BA** hợp đồng đã ký (`mcp-map-render`, `map-motion-clip`, **`async-job-queue`**) — gộp toàn bộ Tier 0 vào MỘT PR, không tách.
+- **Base là `origin/main` (1b16a61), KHÔNG phải local main 9c11488** — local main lạc hậu 25 commit. Nhánh phải tạo từ `origin/main`.
+- Trước khi code: `bash scripts/pre-merge-check.sh --base main` để chốt baseline stale-set.
 
 ---
 
@@ -130,8 +131,8 @@ git commit -m "docs(research): kết quả spike setNow — <GO|NO-GO>, <X>ms/fr
 ## PR #1 — branch `feat/tier0-agent-params`
 
 ```bash
-git checkout main && git checkout -b feat/tier0-agent-params
-bash scripts/pre-merge-check.sh --base main   # baseline: cây sạch
+git fetch origin && git checkout -b feat/tier0-agent-params origin/main
+bash scripts/pre-merge-check.sh --base main   # chốt baseline stale-set
 ```
 
 ### Task 1: `layers` + `detail` + `font` params (Tier 0 #1, #2, #5)
@@ -652,7 +653,7 @@ export function listFormats(): FormatInfo[] {
 `prep.motion` là chính MotionScript — đang bị dùng chỉ để lấy `restAtSec`/`fps` rồi vứt. Echo nó mở vòng lặp preset→inspect→tweak cho agent. 2 dòng + tests.
 
 **Files:**
-- Modify: `mcp-server/src/tools.ts:184`, `mcp-server/src/http.ts:285` (dòng `motionOut`)
+- Modify: `mcp-server/src/tools.ts:184`, `mcp-server/src/http.ts:338` (dòng `motionOut`)
 - Test: `mcp-server/src/tools.test.ts` (describe `render_clip` :229), `mcp-server/src/http.test.ts`
 
 **Interfaces:**
@@ -685,7 +686,7 @@ http.test.ts — tìm test POST /render-clip thành công hiện có, thêm asse
           const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 ```
 
-http.ts:285 (dòng `motionOut` tương ứng):
+http.ts:338 (dòng `motionOut` tương ứng):
 
 ```typescript
             const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
@@ -794,7 +795,7 @@ Và signature: `async render_animation(params: RenderMapParams & { animation?: {
 `resolveBoundary` trả geojson trần → caller không biết ĐÃ match relation nào. Nới kiểu cache là bắt buộc — cache kiểu cũ sẽ trả shape cũ ở lần gọi thứ hai (bug silent).
 
 **Files:**
-- Modify: `mcp-server/src/geocode.ts:41` (cache) + `:209-237` (resolveBoundary), `mcp-server/src/resolveConfig.ts` (caller + `summarizeHighlights` :156-163), `src/render/renderConfig.ts:14-17` (RenderHighlightRegion)
+- Modify: `mcp-server/src/geocode.ts:45` (cache) + `:246-272` (resolveBoundary), `mcp-server/src/resolveConfig.ts` (caller + `summarizeHighlights` :156-163), `src/render/renderConfig.ts:14-17` (RenderHighlightRegion)
 - Modify (mock ripple): `mcp-server/src/resolveConfig.test.ts:12-15`, `mcp-server/src/tools.test.ts:21` — mock `resolveBoundary` phải trả shape mới
 - Test: `mcp-server/src/geocode.test.ts`, `mcp-server/src/resolveConfig.test.ts`
 
@@ -852,7 +853,7 @@ it('returns the same ResolvedBoundary shape on a cache hit (bug: stale cache typ
 
 - [ ] **Step 8.3: Implement**
 
-`geocode.ts`:
+`geocode.ts` (line refs theo origin/main: cache `:45`, `resolveBoundary` `:246`, `lruSet(boundaryCache…)` `:271`):
 
 ```typescript
 export interface ResolvedBoundary {
@@ -864,11 +865,11 @@ export interface ResolvedBoundary {
   placeRank?: number;
 }
 
-// :41 — nới kiểu, `null` vẫn là giá-trị-thật ("không có polygon")
+// :45 — nới kiểu, `null` vẫn là giá-trị-thật ("không có polygon")
 const boundaryCache = new Map<string, ResolvedBoundary | null>();
 ```
 
-Cuối `resolveBoundary` (:225-237):
+Cuối `resolveBoundary` (:262-272):
 
 ```typescript
   const hit = hits.find((h) => h.osmType === 'relation') ?? hits[0];
@@ -882,7 +883,7 @@ Cuối `resolveBoundary` (:225-237):
   return resolved;
 ```
 
-và signature `:209` → `Promise<ResolvedBoundary | null>`.
+và signature `:246` → `Promise<ResolvedBoundary | null>`.
 
 `src/render/renderConfig.ts:14-17`:
 

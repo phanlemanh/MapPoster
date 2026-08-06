@@ -34,8 +34,13 @@ Tool mới: `list_recipes()` (catalog tự mô tả: tên, tham số, thời lư
 ## 3. Không làm (giữ nguyên từ nghiên cứu)
 
 Chữ động/textfx 52 preset, callout 45 preset, media layer, xoá nền AI, âm thanh/803 SFX,
-watermark/tiering, particle FX, mũi tên SDF, đổi theme giữa clip, async job queue
-(progress notification thay thế), Esri/Maxar imagery. Lý do từng mục: nghiên cứu §2D, §6.
+watermark/tiering, particle FX, mũi tên SDF, đổi theme giữa clip, Esri/Maxar imagery.
+Lý do từng mục: nghiên cứu §2D, §6.
+
+**Đính chính 2026-08-06:** async job queue **đã tồn tại** trên `origin/main`
+(`POST /jobs` + `POST /jobs/status`, hợp đồng `async-job-queue` đã ký round 5) — nó không
+nằm trong danh sách "không làm" nữa, và cũng không cần làm. Nay có **ba** hợp đồng đã ký,
+thuế gate mỗi PR tính theo ba.
 
 Ghi nhận ngoài lộ trình: auth `/mcp` là P0 bảo mật đang mở (owner chưa xếp lịch).
 
@@ -60,7 +65,7 @@ Ghi nhận ngoài lộ trình: auth `/mcp` là P0 bảo mật đang mở (owner 
 | **#1** | **Tier 0: 12 param plumbing + 4 bug production** (layers, detail, region color, point icon/color/size, font, list_themes palette, echo motion.script, bound pitch/bearing, seed bearing, render_animation delivery, list_formats dedupe, osm ids + boundaryCache) | 3.0 | nền cho tất cả |
 | #2 | `routes` plumbing + `measure` (haversine/area, file mới `geometry.ts`) | 3.0 | — |
 | #3 | `compile_motion` + `camera.focus` + `list_fonts` + encoder quality + `cost` metadata | 2.5 | — |
-| #4 | Progress notification + cancel (fix MCP 60s timeout, rẻ hơn async queue) | 2.0 | — |
+| #4 | Progress notification + cancel — **cần đánh giá lại**: async job queue đã có upstream nên timeout 60s đã có lối giải; PR này giờ chỉ còn giá trị UX bổ sung cho đường đồng bộ | 2.0 | — |
 | #5 | Road routing OSRM (`route.ts` mới; production self-host, FOSSGIS chỉ để spike) | 3.5 | — |
 | #6 | `resolved.anchors` + `resolved.camera` | 4.5 | `compare-locations` |
 | #7 | Tour preset (van-Wijk densify) + POI catalog 6→23 icon (Material Symbols FILLED, Apache-2.0) + stagger cơ bản | 5.0 | `amenities`, `location-tour` |

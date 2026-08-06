@@ -98,6 +98,37 @@ is one of the six typefaces the **Style** panel offers (see [Features](#features
 below): `Space Grotesk`, `Montserrat`, `Playfair Display`, `Oswald`, `Bebas Neue`,
 `Merriweather`.
 
+`routes` draws polylines over the map. Each entry carries **exactly one** of
+`coords` (an array of `[lng, lat]`, at least two — the form a model emits
+naturally) or `geojson` (a FeatureCollection of `LineString`/`MultiLineString`,
+for forwarding a router or GPX result without unpacking it), plus optional
+`color` (hex) and `width` (`1..16`). Omitted style falls back to the theme's
+`accent` and width `4` — note the accent sits close to the road ramp in most
+themes, so pass an explicit `color` when the route must read as distinct from
+the streets underneath. When a call has routes but no highlight region or
+point, auto-framing follows the routes' extent.
+
+`measure` answers geometry questions from the already-resolved config, with no
+extra network call. `measure.pairs` takes index pairs into `highlight.points`
+(e.g. `[[0, 1]]`); an index with no matching point is refused rather than
+silently dropped. Results arrive under `resolved`:
+
+```jsonc
+"routes":   [{ "bbox": [w,s,e,n], "lengthKm": 6.79, "pointCount": 3 }],
+"measures": {
+  "pairs":   [{ "from": 0, "to": 1, "straightLineKm": 4.77, "bearingDeg": 311.6 }],
+  "routes":  [{ "index": 0, "lengthKm": 6.79 }],
+  "regions": [{ "index": 0, "areaKm2": 96.9, "spanKm": { "ew": 10.4, "ns": 11.1 }, "centroid": [lng, lat] }]
+}
+```
+
+Both keys are omitted entirely when the call uses neither. **The field names
+state which measurement they are, deliberately**: `straightLineKm` is the
+great-circle distance between two points — *not* travel distance along a road —
+while `lengthKm` sums a polyline's own segments. A bare `km` would be read
+downstream as "the distance" and printed onto a video, which is how a correct
+number becomes a false claim. Region area subtracts interior holes.
+
 `highlight.regions[]` and `highlight.points[]` each accept either a bare
 string (geocoded/queried with the defaults) or an object that pins a specific
 colour/icon/size alongside the name — mixing plain strings and objects in the

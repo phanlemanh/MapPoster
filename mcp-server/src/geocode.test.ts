@@ -298,21 +298,28 @@ describe('resolveBoundary', () => {
     expect(fn).toHaveBeenCalledTimes(callsAfterFirst); // no further upstream
   });
 
-  it('returns the same ResolvedBoundary shape on a cache hit (bug: stale cache type)', async () => {
-    // Widening `boundaryCache` to `Map<string, ResolvedBoundary | null>` is the
-    // fix: a cache typed for the old bare-FeatureCollection shape would silently
-    // hand back that stale shape on the second call, with no type error to catch
-    // it (GeoJSONFeatureCollection is `any`). Call twice on the same key — the
-    // second call is served from `boundaryCache` — and assert the shape held.
-    routeFetch(
+  it('serves a cache hit from the same object with the full ResolvedBoundary shape, and never re-hits the network', async () => {
+    // `boundaryCache` is typed `Map<string, ResolvedBoundary | null>`. That
+    // typing is honest and worth keeping, but it is not fixing a runtime bug:
+    // `GeoJSONFeatureCollection` is `any` (src/types.ts), so the OLD map type
+    // already accepted a `ResolvedBoundary` on `lruSet` and handed back the
+    // IDENTICAL object on `lruGet` — there was never a shape mismatch to catch.
+    // `expect(b).toEqual(a)` on that same object reference passes unconditionally
+    // regardless of the Map's declared type, so it could never have failed.
+    // Assert the actual cache contract instead: a second call returns the exact
+    // same object (proving it came from the cache, not a re-fetch) AND the
+    // network is never touched again.
+    const { fn } = routeFetch(
       () => [district3],
       () => [boundaryItem],
     );
     const a = await resolveBoundary('District 1', 'Vietnam');
+    const callsAfterFirst = fn.mock.calls.length;
     const b = await resolveBoundary('District 1', 'Vietnam');
-    expect(b).toEqual(a);
-    expect(b?.geojson.type).toBe('FeatureCollection');
-    expect(b).toMatchObject({ osmType: 'relation', osmId: 1234, displayName: 'District 3, Ho Chi Minh City, Vietnam' });
+    expect(b).toBe(a); // same object reference straight from boundaryCache
+    expect(fn.mock.calls.length).toBe(callsAfterFirst); // no further upstream calls
+    expect(a?.geojson.type).toBe('FeatureCollection');
+    expect(a).toMatchObject({ osmType: 'relation', osmId: 1234, displayName: 'Quận 3, HCMC', placeRank: 18 });
   });
 
   it('rejects a transient failure at the polygon lookup and never caches it (R2-HIGH)', async () => {

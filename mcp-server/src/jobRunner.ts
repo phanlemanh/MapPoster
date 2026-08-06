@@ -138,7 +138,7 @@ export function createJobRunner({
         height: settleOut.height,
         bytes: settle.length,
       };
-      const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec };
+      const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
       const outPath = path.join(deps.sinkDir, `${name}.mp4`);
 
       let bytes: number;

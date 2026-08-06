@@ -256,6 +256,23 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(rec.artifacts.map((a) => a.role).sort()).toEqual(['clip', 'settle']);
   });
 
+  it('motion echo lại MotionScript đã biên dịch — cùng hình dạng hai đường đồng bộ (tools.ts/http.ts) trả', async () => {
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('done');
+    const motion = rec.motion as { preset?: string; restAtSec: number; script?: { fps: number; camera: unknown[] } };
+    expect(motion.preset).toBe('pushIn');
+    expect(motion.script).toBeDefined();
+    expect(Array.isArray(motion.script?.camera)).toBe(true);
+    expect(motion.script?.fps).toBeGreaterThan(0);
+  });
+
   it('encoder nổ → việc vẫn XONG, ảnh tĩnh còn nguyên, kèm lý do; không sót tệp mp4 dở', async () => {
     const store = createJobStore();
     let outPath = '';

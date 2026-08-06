@@ -264,6 +264,9 @@ describe('resolveConfig', () => {
 
   it('rejects out-of-range detail and unknown font', async () => {
     await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 1.5 })).rejects.toThrow(/invalid detail/i);
+    // Nửa NHẬN của biên — eval khai có mà trước đây không hề tồn tại test nào.
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 0 })).resolves.toMatchObject({ detail: 0 });
+    await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, detail: 1 })).resolves.toMatchObject({ detail: 1 });
     await expect(resolveConfig({ location: { lng: 106.7, lat: 10.78 }, font: 'Comic Sans' as never })).rejects.toThrow(/unknown font/i);
   });
 
@@ -373,6 +376,37 @@ describe('resolveConfig', () => {
     ).rejects.toThrow(/highlight\.points\[\]\.icon/);
     // Only the base-location lookup should have fired, never a per-point one.
     expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+  });
+});
+
+describe('boundary halves the evals claimed but no test proved (verify round 1 finding)', () => {
+  const at = { location: { lng: 105.85, lat: 21.02 } };
+
+  it('ACCEPTS marker size exactly at both bounds, and REFUSES 0 rather than reading it as unset', async () => {
+    // `size != null` chứ không phải truthiness: 0 là giá trị khai tường minh và
+    // sai, không phải "chưa đặt". Một cài đặt dùng `size || 44` sẽ im lặng biến
+    // 0 thành 44 — và agent không nhìn thấy ảnh để phát hiện.
+    for (const size of [18, 140]) {
+      const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng: 105.85, lat: 21.02, size }] } });
+      expect(cfg.markers?.[0].size).toBe(size);
+    }
+    await expect(
+      resolveConfig({ ...at, highlight: { points: [{ lng: 105.85, lat: 21.02, size: 0 }] } }),
+    ).rejects.toThrow(/highlight\.points\[\]\.size/);
+  });
+
+  it('falls back through the whole marker style chain to its terminal defaults', async () => {
+    // Điểm không khai gì VÀ highlight không khai gì => 'pin' / '#ffffff' / 44.
+    const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng: 105.85, lat: 21.02 }] } });
+    expect(cfg.markers?.[0]).toMatchObject({ icon: 'pin', color: '#ffffff', size: 44 });
+  });
+
+  it('ACCEPTS route width exactly at both bounds', async () => {
+    const coords: [number, number][] = [[105.85, 21.02], [105.86, 21.02]];
+    for (const width of [1, 16]) {
+      const cfg = await resolveConfig({ ...at, routes: [{ coords, width }] });
+      expect(cfg.routes?.[0].width).toBe(width);
+    }
   });
 });
 

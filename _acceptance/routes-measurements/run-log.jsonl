@@ -66,3 +66,25 @@
 {"ts":"2026-08-07T01:27:55Z","round":6,"evalId":"E16","run_id":"routes-measurements-r6-demo-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
 {"ts":"2026-08-07T01:28:09Z","round":6,"evalId":"E17","run_id":"routes-measurements-r6-npmtest-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T01:28:22Z","round":6,"evalId":"E18","run_id":"routes-measurements-r6-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E1", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E19", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:40Z", "round": 7, "evalId": "E2", "run_id": "routes-measurements-r7-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E3", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E4", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E5", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:48:46Z", "round": 7, "evalId": "E6", "run_id": "routes-measurements-r7-apply_render_config-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E7", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E8", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E9", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E10", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E11", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:48:51Z", "round": 7, "evalId": "E12", "run_id": "routes-measurements-r7-geometry-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 7, "evalId": "E13", "run_id": "routes-measurements-r7-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:40Z", "round": 7, "evalId": "E14", "run_id": "routes-measurements-r7-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T02:50:25Z", "round": 7, "evalId": "E15", "run_id": "routes-measurements-r7-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T02:50:25Z", "round": 7, "evalId": "E20", "run_id": "routes-measurements-r7-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T02:50:35Z", "round": 7, "evalId": "E16", "run_id": "routes-measurements-r7-routes_demo-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts": "2026-08-07T02:49:45Z", "round": 7, "evalId": "E17", "run_id": "routes-measurements-r7-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T02:51:38Z", "round": 7, "evalId": "E18", "run_id": "routes-measurements-r7-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:13:47Z", "round": 8, "evalId": "E17", "run_id": "routes-measurements-r8-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T03:13:57Z", "round": 8, "evalId": "E18", "run_id": "routes-measurements-r8-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}

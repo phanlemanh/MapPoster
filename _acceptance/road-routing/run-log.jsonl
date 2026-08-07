@@ -14,3 +14,21 @@
 {"ts":"2026-08-07T01:26:51Z","round":1,"evalId":"E14","run_id":"road-routing-E2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
 {"ts":"2026-08-07T01:28:09Z","round":1,"evalId":"E15","run_id":"road-routing-E15-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T01:28:22Z","round":1,"evalId":"E16","run_id":"road-routing-E16-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E1", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 2, "evalId": "E2", "run_id": "road-routing-r2-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 2, "evalId": "E3", "run_id": "road-routing-r2-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 2, "evalId": "E4", "run_id": "road-routing-r2-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 2, "evalId": "E5", "run_id": "road-routing-r2-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E6", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E7", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E8", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E9", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E10", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E11", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:46:28Z", "round": 2, "evalId": "E12", "run_id": "road-routing-r2-route-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/route.test.ts"}
+{"ts": "2026-08-07T02:50:05Z", "round": 2, "evalId": "E13", "run_id": "road-routing-r2-routing_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/road-routing/scripts/routing-invariants.ts"}
+{"ts": "2026-08-07T02:46:32Z", "round": 2, "evalId": "E14", "run_id": "road-routing-r2-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T02:49:45Z", "round": 2, "evalId": "E15", "run_id": "road-routing-r2-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T02:51:38Z", "round": 2, "evalId": "E16", "run_id": "road-routing-r2-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:13:47Z", "round": 3, "evalId": "E15", "run_id": "road-routing-r3-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T03:13:57Z", "round": 3, "evalId": "E16", "run_id": "road-routing-r3-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}

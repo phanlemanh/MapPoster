@@ -203,6 +203,76 @@ function fakeDeps(): ToolDeps {
   };
 }
 
+describe('auth: cửa /mcp và luật fail-closed (P0)', () => {
+  let srv: HttpServer | undefined;
+  afterEach(async () => {
+    await srv?.close();
+    srv = undefined;
+    delete process.env.MAPPOSTER_TOKEN;
+  });
+
+  const mcpBody = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+
+  it('gác /mcp bằng CÙNG bearer với /render — trước đây nhánh này không kiểm gì', async () => {
+    process.env.MAPPOSTER_TOKEN = 'secret';
+    srv = await startHttpServer(0, fakeDeps());
+
+    const noAuth = await fetch(srv.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+      body: mcpBody,
+    });
+    expect(noAuth.status).toBe(401);
+
+    const wrong = await fetch(srv.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', authorization: 'Bearer nope' },
+      body: mcpBody,
+    });
+    expect(wrong.status).toBe(401);
+  });
+
+  it('vẫn cho qua khi bearer đúng — cổng không được chặn người gọi hợp lệ', async () => {
+    process.env.MAPPOSTER_TOKEN = 'secret';
+    srv = await startHttpServer(0, fakeDeps());
+    const ok = await fetch(srv.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', authorization: 'Bearer secret' },
+      body: mcpBody,
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('KHÔNG đòi bearer khi không đặt token — dev cục bộ trên loopback vẫn chạy', async () => {
+    // Nửa should-NOT-fire: siết auth không được biến việc chạy thử cục bộ
+    // thành phải cấu hình.
+    srv = await startHttpServer(0, fakeDeps());
+    const res = await fetch(srv.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+      body: mcpBody,
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token', async () => {
+    // Fail-closed. `if (token && ...)` nghĩa là quên đặt token = mở toang, và
+    // production bind 0.0.0.0 (render.yaml) nên đây là cấu hình có thật.
+    await expect(
+      startHttpServer(0, fakeDeps(), '0.0.0.0', { allowedHosts: ['example.com'], allowedOrigins: [] }),
+    ).rejects.toThrow(/MAPPOSTER_TOKEN/);
+  });
+
+  it('cho phép bind ngoài loopback KHI đã có token', async () => {
+    // Phải bind host NGOÀI loopback thật. Bản đầu của test này dùng '127.0.0.1'
+    // — chính là loopback — nên nó chưa bao giờ chạy qua nhánh đang cần chứng
+    // minh, dù vẫn xanh. Đúng kiểu eval khai một độ phủ không tồn tại.
+    process.env.MAPPOSTER_TOKEN = 'secret';
+    srv = await startHttpServer(0, fakeDeps(), '0.0.0.0', { allowedHosts: ['127.0.0.1'], allowedOrigins: [] });
+    expect(srv.url).toContain('/mcp');
+  });
+});
+
 describe('POST /render (REST)', () => {
   let srv: HttpServer | undefined;
   afterEach(async () => {

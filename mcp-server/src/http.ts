@@ -161,6 +161,26 @@ async function jobStatusBody(rec: JobRecord): Promise<Record<string, unknown>> {
  * MAPPOSTER_HTTP_HOST=0.0.0.0, and must then declare the names they answer to in
  * MAPPOSTER_HTTP_ALLOWED_HOSTS (browser callers also need ALLOWED_ORIGINS).
  */
+/**
+ * Một cửa duy nhất cho bearer, dùng cho MỌI route kể cả `/mcp`.
+ *
+ * Trước đây phép kiểm này được chép ở ba chỗ (`/render`, `/render-clip`,
+ * `/jobs`) và nhánh `/mcp` — cửa fall-through, tức cửa nhận mọi thứ còn lại —
+ * KHÔNG có phép kiểm nào. README lại nói bearer áp "as everything else on this
+ * server", nên tài liệu khẳng định một điều mã không làm. Gộp về một hàm để
+ * không thể thêm route mới mà quên gác.
+ *
+ * Trả `true` nghĩa là ĐÃ trả lời 401 và caller phải dừng.
+ */
+function rejectedByBearer(req: http.IncomingMessage, res: http.ServerResponse): boolean {
+  const token = process.env.MAPPOSTER_TOKEN;
+  if (token && req.headers.authorization !== `Bearer ${token}`) {
+    res.writeHead(401).end('unauthorized');
+    return true;
+  }
+  return false;
+}
+
 export async function startHttpServer(
   port = 4181,
   deps: ToolDeps = makeRenderDeps(),
@@ -173,6 +193,19 @@ export async function startHttpServer(
   jobs?: { store: JobStore; runner: JobRunner },
 ): Promise<HttpServer> {
   const allowedHosts = policy.allowedHosts.length ? policy.allowedHosts : LOOPBACK_HOSTS;
+
+  // Fail-closed. `MAPPOSTER_TOKEN` là TUỲ CHỌN, nên quên đặt nó nghĩa là mở
+  // toang — chấp nhận được trên loopback (dev cục bộ), nhưng bind ra ngoài
+  // loopback mà không có token là phơi một server điều khiển trình duyệt và ghi
+  // file ra mạng. Từ chối khởi động thay vì chạy rồi im lặng không gác: một
+  // deployment cấu hình thiếu phải hỏng ồn ào, không được hỏng lặng lẽ.
+  if (!LOOPBACK_HOSTS.includes(host) && !process.env.MAPPOSTER_TOKEN) {
+    throw new Error(
+      `Refusing to start: MAPPOSTER_HTTP_HOST=${host} binds outside loopback but MAPPOSTER_TOKEN is unset. ` +
+        `These tools drive a headless browser and write files — set MAPPOSTER_TOKEN, or bind to 127.0.0.1 for local use.`,
+    );
+  }
+
   const server = http.createServer((req, res) => {
     if (req.method !== 'POST') {
       res.writeHead(405).end('method not allowed');
@@ -204,11 +237,7 @@ export async function startHttpServer(
     // an optional bearer token gates it separately since, unlike /mcp, nothing
     // here requires a client library that could carry MCP auth.
     if (req.url === '/render') {
-      const token = process.env.MAPPOSTER_TOKEN;
-      if (token && req.headers.authorization !== `Bearer ${token}`) {
-        res.writeHead(401).end('unauthorized');
-        return;
-      }
+      if (rejectedByBearer(req, res)) return;
       void (async () => {
         // --- Resolve phase: parsing/validating/geocoding the CALLER's own
         // input. Anything thrown here is the caller's fault (Decision 3) —
@@ -270,11 +299,7 @@ export async function startHttpServer(
     // to 'clean' regardless of what's asked for (AC-9 — no text ever enters
     // a clip frame). Same bearer/body-cap guards as /render above.
     if (req.url === '/render-clip') {
-      const token = process.env.MAPPOSTER_TOKEN;
-      if (token && req.headers.authorization !== `Bearer ${token}`) {
-        res.writeHead(401).end('unauthorized');
-        return;
-      }
+      if (rejectedByBearer(req, res)) return;
       void (async () => {
         // --- Resolve phase: parsing/validating/geocoding/compiling motion —
         // all the CALLER's own input. Anything thrown here is the caller's
@@ -439,11 +464,7 @@ export async function startHttpServer(
     // POST nên luật 405 ở đầu handler không phải nới ra, và quyết định
     // không-khai-healthCheckPath ở render.yaml không phải xem lại.
     if (jobs && (req.url === '/jobs' || req.url === '/jobs/status')) {
-      const token = process.env.MAPPOSTER_TOKEN;
-      if (token && req.headers.authorization !== `Bearer ${token}`) {
-        res.writeHead(401).end('unauthorized');
-        return;
-      }
+      if (rejectedByBearer(req, res)) return;
       const isSubmit = req.url === '/jobs';
       void (async () => {
         let body: unknown;
@@ -512,6 +533,11 @@ export async function startHttpServer(
         else res.writeHead(400).end('invalid json');
         return;
       }
+      // Cửa fall-through: mọi thứ không khớp route nào ở trên rơi vào đây. Đây
+      // CHÍNH LÀ chỗ từng không có phép kiểm nào — bearer gác ba route REST còn
+      // MCP transport thì mở, trong khi production bind 0.0.0.0 (render.yaml).
+      if (rejectedByBearer(req, res)) return;
+
       const mcp = createServer(deps);
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       res.on('close', () => {

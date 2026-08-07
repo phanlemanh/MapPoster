@@ -8,6 +8,12 @@
     "skipLibCheck": true,
     "noEmit": true,
     "strict": true,
+    // An unused `centroidOf` import sat in resolveConfig.ts through every verify
+    // round: tsc says nothing about unused imports unless asked, and `verify`
+    // never runs oxlint. That import was the only trace of a dead function, so
+    // nothing pointed at it. This is the cheap half of the fix — it costs one
+    // flag and caught exactly that one symbol repo-wide.
+    "noUnusedLocals": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "esModuleInterop": true,

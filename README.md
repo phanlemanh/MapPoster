@@ -277,8 +277,31 @@ render_clip({
 // → { clip: { path, bytes, durationSec, fps, width: 1080, height: 1920 },
 //     settle: { path, base64, format: 'png', width, height },
 //     motion: { preset: 'pushIn', restAtSec, script: { /* the fully-compiled MotionScript */ } },
-//     resolved: { center, zoom, place, theme, highlights: {...} } }
+//     resolved: { center, zoom, place, theme, highlights: {...},
+//                 camera:  { center, zoom, bearing, pitch },      // the REST-state camera
+//                 anchors: { points:  [{ index, lng, lat, xPct, yPct, onScreen }],
+//                            regions: [{ index, centroidPct, bboxPct }] } } }
 ```
+
+Every clip response carries `resolved.camera` and `resolved.anchors`: where
+each highlight point and region sits **on the frame**, at the rest state
+(`motion.restAtSec`) — the frame a DOM layer draws its labels over. Measured
+once, right after the settle still is captured; there is deliberately no way to
+ask for anchors at an arbitrary `t` (that would have to move the camera, and
+the tail frames reuse a snapshot taken at `restAtSec`).
+
+Positions are **percentages of the frame, not pixels**, for three reasons and
+the third is the real one: a DOM layer positions with CSS `%` anyway; the same
+anchors work for a 1080 and a 4k render; and the poster frame's two axes are
+rounded independently, so `cssW/cssH ≠ width/height` and **no single scale
+factor exists** — a percentage with its own denominator per axis is exact,
+where a pixel coordinate scaled by one ratio is not. `onScreen: false` marks a
+point outside the frame; its `xPct`/`yPct` are still returned (possibly
+negative or >100) so the caller can draw a direction arrow or skip it.
+`camera.pitch` is always `0` — a clip with a tilted camera is **refused**,
+because a tilted projection turns a region into a trapezoid and `bboxPct`
+would be a plausible-looking lie that an agent, which never sees the image,
+cannot catch.
 
 Every clip response — MCP `render_clip`, REST `POST /render-clip`, and the
 async `/jobs` clip path alike — echoes `motion.script`: the fully-compiled,
@@ -402,6 +425,10 @@ guarantee.
 //     motion: { preset: 'pushIn', restAtSec, script: { /* the fully-compiled MotionScript */ } },
 //     resolved: {...} }
 ```
+
+`resolved` carries `camera` + `anchors` here too — all three clip surfaces (MCP
+`render_clip`, this endpoint, and the async `/jobs` clip path) go through one
+shared builder, so none of them can quietly drift into omitting them.
 
 Unlike the MCP tool, REST returns the clip **inline as base64** rather than a
 file path — a REST caller has no shared filesystem with the server to read a

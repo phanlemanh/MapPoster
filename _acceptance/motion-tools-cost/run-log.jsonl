@@ -21,3 +21,23 @@
 {"ts":"2026-08-07T00:24:30Z","round":2,"evalId":"E16","run_id":"motion-tools-cost-repin-E16-20260807","exit_code":0,"cmd":"npx tsx _acceptance/motion-tools-cost/scripts/motion-tools-invariants.ts"}
 {"ts":"2026-08-07T00:22:55Z","round":2,"evalId":"E19","run_id":"motion-tools-cost-repin-npmtest-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T00:23:59Z","round":2,"evalId":"E20","run_id":"motion-tools-cost-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E1","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E2","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E3","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E4","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E5","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:26:51Z","round":3,"evalId":"E6","run_id":"motion-tools-cost-r3-resolveconfig-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T01:26:51Z","round":3,"evalId":"E7","run_id":"motion-tools-cost-r3-resolveconfig-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T01:26:51Z","round":3,"evalId":"E8","run_id":"motion-tools-cost-r3-resolveconfig-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T01:26:51Z","round":3,"evalId":"E9","run_id":"motion-tools-cost-r3-resolveconfig-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E10","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:15Z","round":3,"evalId":"E11","run_id":"motion-tools-cost-r3-encode-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/encodeAnimation.test.ts mcp-server/src/jobStore.test.ts mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T01:27:15Z","round":3,"evalId":"E12","run_id":"motion-tools-cost-r3-encode-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/encodeAnimation.test.ts mcp-server/src/jobStore.test.ts mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T01:27:15Z","round":3,"evalId":"E13","run_id":"motion-tools-cost-r3-encode-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/encodeAnimation.test.ts mcp-server/src/jobStore.test.ts mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E14","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:06Z","round":3,"evalId":"E15","run_id":"motion-tools-cost-r3-tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T01:27:45Z","round":3,"evalId":"E16","run_id":"motion-tools-cost-r3-invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/motion-tools-cost/scripts/motion-tools-invariants.ts"}
+{"ts":"2026-08-07T01:27:15Z","round":3,"evalId":"E17","run_id":"motion-tools-cost-r3-encode-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/encodeAnimation.test.ts mcp-server/src/jobStore.test.ts mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T01:27:10Z","round":3,"evalId":"E18","run_id":"motion-tools-cost-r3-http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T01:28:09Z","round":3,"evalId":"E19","run_id":"motion-tools-cost-r3-npmtest-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T01:28:22Z","round":3,"evalId":"E20","run_id":"motion-tools-cost-r3-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

@@ -1,17 +1,36 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
-human_signoff: manh 2026-08-07
+verified_commit: 27e1be1a1431055f4b19bbf7734c07eacd5a791c
+human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
+
+_Round 22 — re-verification. `feat/road-routing` landed on top of `f74ede1` (Round 21's
+`verified_commit`), touching `mcp-server/src/resolveConfig.ts` and `mcp-server/src/tools.ts`. `status`
+downgraded `signed-off` → `implemented` per the shared-file staleness guard; `human_signoff` cleared._
+
+_Diff review: this contract's own `browserPool.ts`, `deps.ts`, `geocode.ts`, and the render-mode page
+(`src/render/**`) do NOT appear in `git diff f74ede1..HEAD --stat` at all. `resolveConfig.ts` gained a
+routes-only `route` branch inside `resolveRoutes` (this contract's `render_map`/`render_variants` calls
+never send `routes[]` at all); `tools.ts` gained only the additive `route` field on `routeSchema`, not
+touching `render_map`/`render_variants`/`geocode_place`/`list_themes`/`list_formats` or the HTTP-transport/
+tool-listing guards E6 checks. E1-E9/E11 (`npm test`) and E10 (`npm run test:e2e`) — this contract's two
+broad-guard-mapped evals — were both re-run fresh: `npm test` 493 passed | 7 skipped (up from 475 —
+road-routing's own 18 new tests only), `npm run test:e2e` 14 passed (46.9s), identical to Round 21.
+E10's frames (`evidence/E10-step1.png`, `evidence/E10-step3.png`) were re-opened with a fresh multimodal
+Read this round (not merely carried forward as text) — see the `observed:` field below — confirming the
+same dark-navy no-onboarding first frame and the same HCMC midnight-blue final frame as every prior
+round, since nothing in this round's diff touches the render page. E12's judgment block is carried
+forward byte-for-byte, unedited; `risk_tier: T3` again mandates a direct human verdict on every judgment
+item for THIS round's evidence, so the contract routes to **PENDING-JUDGMENT** again._
 
 _Round 21 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
 merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
@@ -29,7 +48,7 @@ evidence, so the contract routes to **PENDING-JUDGMENT** again._
 
 _Round 20 — re-verification. Round 19's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b`. `git diff
-31ad91b..HEAD --stat` touches `mcp-server/src/{encodeAnimation.ts,http.ts,jobRunner.ts,
+f74ede1..HEAD --stat` touches `mcp-server/src/{encodeAnimation.ts,http.ts,jobRunner.ts,
 resolveConfig.ts,tools.ts}` and their tests — none of `browserPool.ts`, `deps.ts`, `geocode.ts`, or the
 render-mode page (`src/render/**`) this contract's own AC-1..AC-11 primarily depend on. Contract
 `status` downgraded `signed-off` → `implemented` per the staleness guard; `human_signoff` cleared._
@@ -68,128 +87,128 @@ image the prior judge scored._
 ## Evidence
 
 - eval: E1
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
-    ROUND 21 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
-    passed | 7 skipped (482) — identical counts to Round 20, confirming the rebase changed no test
-    content. `render_map('Ho Chi Minh City', format=tiktok)` → PNG 1080×1920, centered on the geocoded
+    ROUND 22 — re-run fresh: `npm test` — Test Files 31 passed | 3 skipped (34); Tests 493 passed | 7
+    skipped (500) — up from 475/482 in Round 21, the delta being exactly road-routing's own 18 new
+    tests. `render_map('Ho Chi Minh City', format=tiktok)` → PNG 1080×1920, centered on the geocoded
     location, confirmed present and passing in this run.
 
 - eval: E2
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — named-region highlight resolve path (`bboxOfGeojsons` call site) unchanged since Round
     18/19; boundary-polygon-size / region-anchoring / GeoJSON shape-check assertions present and green.
 
 - eval: E3
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — named-point highlight / auto-zoom path untouched by this round's diff (only
     `resolveConfig.ts`'s new, separate `camera.focus` branch and `tools.ts`'s new handlers changed).
     AC-3 assertions present and green.
 
 - eval: E4
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
-    Same run — `geocode.ts` does not appear in `git diff 31ad91b..HEAD --stat`. Cache/env-validation
+    Same run — `geocode.ts` does not appear in `git diff f74ede1..HEAD --stat`. Cache/env-validation
     assertions present and green, unaffected.
 
 - eval: E5
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — render-variants / browser-pool path (`browserPool.ts`/`deps.ts`) untouched this round.
     AC-5 assertions present and green.
 
 - eval: E6
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
-    Same run — tool-set parity + HTTP transport guards. `tools.ts` gained new handlers additively (not
-    touching `listTools` or the Host/Origin/body-cap guards this eval checks). Assertions present and
-    green. Corroborating (real build + real headless browser + real transport, re-run fresh this round):
-    `npm run test:e2e`: 14 passed (46.8s). `npm run test:mcp`: 7 passed (Test Files 3 passed).
+    Same run — tool-set parity + HTTP transport guards. `tools.ts` gained only the additive `route`
+    field on `routeSchema` this round (not touching `listTools` or the Host/Origin/body-cap guards this
+    eval checks). Assertions present and green. Corroborating (real build + real headless browser + real
+    transport, re-run fresh this round): `npm run test:e2e`: 14 passed (46.9s). `npm run test:mcp`: 7
+    passed (Test Files 3 passed, Duration 47.04s).
 
 - eval: E7
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — default-delivery base64+path / sink-dir path (`renderFrame.test.ts`) unaffected by this
     round's diff. AC-7 assertions present and green.
 
 - eval: E8
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — `list_formats` preset / custom-dims path unaffected. AC-8 assertions present and green.
 
 - eval: E9
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — `chrome:clean`/`poster` + theme/colour validation path unaffected by this round's diff.
     AC-9 assertions present and green.
 
 - eval: E10
-  run_id: mcp-map-render-repin-teste2e-20260807
+  run_id: mcp-map-render-r22-teste2e-20260807
   exit_code: 0
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-07T00:23:40Z
+  verified_at: 2026-08-07T01:29:17Z
   screenshot: evidence/E10-step1.png
   observed: |
-    ROUND 21 — re-run fresh post-rebase: `npm run test:e2e` — 14 passed (46.8s), including
-    `e2e/render-mode.spec.ts:93` (AC-10), identical to Round 20. Nothing in this round's diff touches
-    the render page or `renderFrame` path, so Round 20's fresh multimodal-Read observation of the
-    frames still stands unchanged rather than being re-read a second time — the frames themselves are
-    byte-identical evidence/ files, unmoved by the rebase.
-    E10-step1.png (per Round 20's multimodal Read, carried forward — frame unchanged): a solid
-    dark-navy 1080×1920 frame with the small "© OpenStreetMap contributors · OpenMapTiles ·
-    OpenFreeMap · MapLibre" attribution line visible bottom-right, and NO onboarding modal or overlay
-    anywhere on the frame — matches "no onboarding modal visible" exactly.
-    E10-step3.png (per Round 20's multimodal Read, carried forward — frame unchanged): a genuine
-    midnight-blue Ho Chi Minh City map — airport runway markings visible upper-left, a wide river
-    winding through the frame in dark blue, dense road network rendered in amber/gold, no city-title
+    ROUND 22 — re-run fresh: `npm run test:e2e` — 14 passed (46.9s), including
+    `e2e/render-mode.spec.ts:93` (AC-10), identical to Round 21. Nothing in this round's diff touches
+    the render page or `renderFrame` path. The frames were re-opened with a fresh multimodal Read this
+    round (not merely carried forward as text):
+    E10-step1.png (freshly re-read this round): a solid dark-navy 1080×1920 frame with the small
+    "© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre" attribution line visible
+    bottom-right, and NO onboarding modal or overlay anywhere on the frame — matches "no onboarding
+    modal visible" exactly.
+    E10-step3.png (freshly re-read this round): a genuine midnight-blue Ho Chi Minh City map — airport
+    runway markings visible upper-left, a wide river winding through the frame in dark blue, dense road
+    network rendered in amber/gold, no city-title
     text overlay (consistent with `chrome:'clean'`), no tile gaps or rendering breakage — matches
     "renderFrame() PNG is exactly 1080×1920" and "config-load → render → dims" for the final frame.
   network_observed: n-a (tool-error: frames read from committed evidence/, not re-captured live this round)
 
 - eval: E11
-  run_id: mcp-map-render-repin-npmtest-20260807
+  run_id: mcp-map-render-r22-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T00:22:55Z
+  verified_at: 2026-08-07T01:28:09Z
   output: |
     Same run — ungeocodable-location / invalid-dims structured-error path unaffected by this round's
     diff. AC-11 assertions present and green.
@@ -203,7 +222,7 @@ image the prior judge scored._
 ## Analyst
 
 Baseline values (`green` for E1-E9, E11) are carried forward unchanged from Round 17/18/19 per the
-re-verification instruction — this round's diff (motion-tools-cost) is additive to shared files and
+re-verification instruction — this round's diff (`feat/road-routing`) is additive to shared files and
 does not recompute this contract's own pre-feature diffBase.
 
 `npm run test:e2e` and `npm run test:mcp` carry no eval id of their own this round — they appear only
@@ -237,6 +256,17 @@ none — every command this round is a deterministic single run.
   multimodal-Read observation. E12's judgment block remains carried forward byte-for-byte, unedited.
   `risk_tier: T3` again mandates a direct human verdict on every judgment item, so the contract routes
   to **PENDING-JUDGMENT** again.
+- Round 22 (verified 2026-08-07T01:29Z, commit `27e1be1`): re-verification triggered by
+  `feat/road-routing` landing on top of Round 21's `verified_commit` (`f74ede1`), touching
+  `mcp-server/src/resolveConfig.ts` and `mcp-server/src/tools.ts`. Diff review confirmed this contract's
+  own `browserPool.ts`/`deps.ts`/`geocode.ts`/render page are untouched; the diff only adds a
+  routes-only branch to `resolveRoutes` and an additive `route` schema field, neither reachable from
+  `render_map`/`render_variants`. E1-E9/E11 (`npm test`) and E10 (`npm run test:e2e`) both re-run fresh
+  (493/500 aggregate, up by road-routing's own tests only; 14/14 e2e); E10's frames re-opened with a
+  fresh multimodal Read this round, confirming the same content as every prior round. E12's judgment
+  block carried forward byte-for-byte, unedited, including its already-filled Round-21 `human_override`.
+  `risk_tier: T3` mandates a direct human verdict on every judgment item for THIS round's evidence
+  regardless of a prior round's override, so the contract routes to **PENDING-JUDGMENT** again.
 
 ## Gate 2 checklist (human)
 

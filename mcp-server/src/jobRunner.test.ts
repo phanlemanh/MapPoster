@@ -342,6 +342,9 @@ describe('createJobRunner — dọn tệp hết hạn (AC-12)', () => {
     await runner.drain();
     const written = store.get(job.id)!.artifacts[0].path;
     await expect(fsp.stat(written)).resolves.toBeDefined();
+    // Và ĐI XUYÊN nghĩa là địa danh còn đọc được trong tên tệp. Đ phải thành d
+    // chứ không được rụng: 'ak-lak' vừa sai tên vừa dễ đụng địa danh khác.
+    expect(path.basename(written)).toContain('dak-lak');
 
     const foreign = path.join(sinkDir, 'mapposter-cua-cong-cu-khac.png');
     await fsp.writeFile(foreign, PNG_1x1);

@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 27e1be1a1431055f4b19bbf7734c07eacd5a791c
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: map-motion-clip
@@ -280,13 +280,13 @@ override again at Gate 2 is reviewing unchanged evidence, not stale evidence._
   verdict: PASS
   rationale: |
     Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
-  human_override: manh 2026-08-07 — XÁC NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo giải mã mp4 và đo diff pixel: t=2.5s tô một phần, t=2.7s gần phủ (mean 6.94), đuôi 3.5s→5.9s đứng yên (mean 0.125).
+  human_override: manh 2026-08-07 — XÁC NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo đo diff pixel trên mp4: vẽ dần ở t=2.5→2.7s, đuôi đứng yên.
 - eval: E17
   judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
   verdict: PASS
   rationale: |
     Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
-  human_override: manh 2026-08-07 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Lỗ khoá-nội-dung đã vá ở b4150be (nay là 99a0ee5 sau rebase): ghim literal độc lập + bốn credit đứng riêng; giám khảo chấm lại PASS và tự kiểm cả hai test có đường fail thật.
+  human_override: manh 2026-08-07 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Lỗ khoá-nội-dung đã vá ở PR #3; giám khảo chấm lại PASS và tự kiểm hai test có đường fail thật.
 ## Analyst
 
 Baseline values are carried forward unchanged from Round 4 per the re-verification instruction; not

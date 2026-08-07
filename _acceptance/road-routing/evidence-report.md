@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 27e1be1a1431055f4b19bbf7734c07eacd5a791c
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: road-routing

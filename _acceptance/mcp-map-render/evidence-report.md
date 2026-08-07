@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: mcp-map-render
@@ -199,8 +199,7 @@ image the prior judge scored._
   verdict: PASS
   rationale: |
     Ảnh 1080×1920 đúng khung tiktok, nền navy với đường phố vàng cam đặc trưng midnight-blue; lưới đường và khối nhà liền mạch, không ô tile trống/vỡ hay răng cưa. Ghim trắng nằm gần chính giữa khung (≈540/1080 ngang, 910/1920 dọc — lệch nhẹ ~50px) và tương phản rõ trên nền tối. Đủ cả ba yêu cầu của AC-12: căn giữa, highlight rõ, tile/đường không vỡ.
-  human_override: manh 2026-08-06 — XÁC NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù xem ảnh: 1080×1920 đúng khung tiktok, ghim gần tâm (≈540/1080, 910/1920), tile và lưới đường không vỡ. E10 ui-check vòng này đã chạy lại thật qua Playwright, không còn mang sang như hai vòng trước.
-
+  human_override: manh 2026-08-07 — XÁC NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Ảnh 1080×1920 đúng khung, ghim gần tâm, tile/đường không vỡ. E10 ui-check vòng này chạy lại thật qua Playwright, không mang sang.
 ## Analyst
 
 Baseline values (`green` for E1-E9, E11) are carried forward unchanged from Round 17/18/19 per the

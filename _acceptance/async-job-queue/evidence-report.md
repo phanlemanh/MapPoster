@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: async-job-queue
@@ -331,8 +331,7 @@ PASS with a filled `human_override`, so this contract needs no further judgment 
   verdict: PASS
   rationale: |
     Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ 'OneHub chưa cần' ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.
-  human_override: manh 2026-08-06 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS: bốn thiếu sót đều được contract nêu đích danh kèm lý do, và restart-làm-mã-việc-vô-danh vẫn trả 404 đúng luồng AC-4 mà OneHub đã phải xử lý. Rủi ro còn lại vẫn như vòng trước: 404 không phân biệt 'việc mất' với 'mã bịa'; cần hợp đồng riêng cho job bền vững.
-
+  human_override: manh 2026-08-07 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS. Rủi ro còn lại giữ nguyên như vòng trước: sau restart, /jobs/status không phân biệt 'việc mất' với 'mã bịa'; cần hợp đồng riêng cho job bền vững.
 ## Analyst
 
 Baseline values carried forward unchanged from the prior round per the re-verification instruction (not

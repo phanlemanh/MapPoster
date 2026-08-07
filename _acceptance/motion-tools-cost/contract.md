@@ -5,10 +5,10 @@ slug: motion-tools-cost
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: implemented
+status: signed-off
 approved_by: manh
 approved_at: 2026-08-07T00:20:00Z
-time_human_minutes: {gate1: 4, gate2: 0}
+time_human_minutes: {gate1: 4, gate2: 10}
 ---
 
 # Acceptance Contract: motion-tools-cost

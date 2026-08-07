@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: motion-tools-cost

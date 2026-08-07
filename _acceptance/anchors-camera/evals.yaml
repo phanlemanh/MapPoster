@@ -6,11 +6,12 @@ feature_slug: anchors-camera
 #
 # LƯU Ý ĐỘ PHỦ, đọc trước khi tin bất kỳ dòng `expected` nào dưới đây:
 #
-# `mcp-server/src/renderFrame.test.ts` chứa HAI khối. Khối cũ bị gate sau
+# `mcp-server/src/renderFrame.test.ts` chứa BA khối. Khối cũ bị gate sau
 # `MCP_INTEGRATION=1` (`describe.skip` khi thiếu biến). Khối "trang giả" thêm ở
-# gói này KHÔNG bị gate và chạy trong `npm test` mặc định — đã kiểm bằng cách
-# chạy thẳng file không đặt biến: 3 pass, 3 skip. Các eval trỏ vào
-# `executors.test.render_frame` nói về khối KHÔNG gate đó.
+# gói này KHÔNG bị gate và chạy trong `npm test` mặc định; khối "trang dùng lại"
+# (F1/AC-5 của mcp-map-render) cũng không gate — đã kiểm bằng cách chạy thẳng
+# tệp không đặt biến: 5 pass, 4 skip. Các eval trỏ vào
+# `executors.test.render_frame` nói về khối "trang giả" KHÔNG gate đó.
 #
 # `executors.test.mcp` là bộ tích hợp gated (trình duyệt thật + build
 # production). Ở các hợp đồng khác cụm "MCP integration có gác" nói về việc BỘ

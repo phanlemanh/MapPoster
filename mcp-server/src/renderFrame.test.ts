@@ -296,3 +296,91 @@ describe('renderClipFrames — nhánh anchorsUnavailable (trang giả)', () => {
     }
   });
 });
+
+/**
+ * KHÔNG gated. Chốt "trang dùng lại nạp lại đúng config" (F1 / AC-5) sống ở
+ * khối integration phía trên, mà khối đó là `describe.skip` dưới `npm test` —
+ * lane của E5 (mcp-map-render) chạy đúng `npm test`, nên phép kiểm ấy được bộ
+ * reporter ghi là SKIPPED và mệnh đề "no stale frame" của E5 không có ai canh
+ * trong chính lane của nó.
+ *
+ * Ở đây trang được thay bằng một `__mapposter` giả nên hai CƠ CHẾ giữ tính
+ * chất đó đo được offline, trong vài mili giây:
+ *   1. id config đi bằng QUERY param — `#configId=` là điều hướng cùng tài
+ *      liệu, trang không nạp lại và trả lại khung của lần render trước.
+ *   2. trang nạp xong phải TỰ KHAI đúng key; khai sai thì ném to tiếng và
+ *      trang bị VỨT khỏi hồ, chứ không trả ảnh sai một cách lặng lẽ.
+ */
+describe('renderFrame — trang dùng lại phải nạp lại đúng config (F1 / AC-5, trang giả)', () => {
+  const PNG_1x1 = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const KEY = 'cfg-key-1';
+
+  function harness(reportedKey: string) {
+    const gotoUrls: string[] = [];
+    const released: unknown[] = [];
+    const discarded: unknown[] = [];
+    (window as unknown as { __mapposter: unknown }).__mapposter = {
+      configKey: reportedKey,
+      ready: Promise.resolve(),
+      renderFrame: async () => ({ dataUrl: `data:image/png;base64,${PNG_1x1.toString('base64')}` }),
+    };
+    const page = {
+      goto: async (url: string) => {
+        gotoUrls.push(url);
+      },
+      waitForFunction: async () => {},
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      evaluate: async (fn: (arg?: unknown) => unknown, arg?: unknown) => fn(arg),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+    const deps = {
+      appUrl: 'http://fake',
+      pool: {
+        acquire: async () => page,
+        release: (p: unknown) => released.push(p),
+        discard: (p: unknown) => discarded.push(p),
+        healthy: () => true,
+        close: async () => {},
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      configStore: { put: () => KEY, get: () => undefined, drop: () => {}, size: () => 0 },
+    };
+    return { gotoUrls, released, discarded, deps };
+  }
+
+  const cfg = (): RenderConfig => ({
+    camera: { center: [106.7, 10.78], zoom: 12 },
+    size: { width: 320, height: 568 },
+    theme: 'midnight-blue',
+    chrome: 'clean',
+    place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+  });
+
+  it('id config đi bằng QUERY param, KHÔNG phải hash — hash là điều hướng cùng tài liệu', async () => {
+    const { gotoUrls, released, discarded, deps } = harness(KEY);
+    const png = await renderFrame(cfg(), deps);
+
+    expect(png.equals(PNG_1x1)).toBe(true);
+    expect(gotoUrls).toHaveLength(1);
+    const url = new URL(gotoUrls[0]);
+    expect(url.searchParams.get('configId')).toBe(KEY);
+    expect(url.hash, 'config trong hash ⇒ trang không nạp lại ⇒ khung cũ').toBe('');
+    // Lần render trót lọt trả trang về hồ, không vứt.
+    expect(released).toHaveLength(1);
+    expect(discarded).toHaveLength(0);
+  });
+
+  it('trang khai SAI key ⇒ ném to tiếng và bị vứt khỏi hồ, không trả khung cũ', async () => {
+    // Đây là chốt thứ hai, độc lập với chốt query param: kể cả khi điều hướng
+    // vì lý do nào đó không nạp lại, hàm vẫn không được trả ảnh của config
+    // trước. Gỡ so sánh `loadedKey !== key` làm ca này đỏ.
+    const { released, discarded, deps } = harness('config-cua-lan-truoc');
+
+    await expect(renderFrame(cfg(), deps)).rejects.toThrow(/stale page/i);
+    expect(discarded).toHaveLength(1);
+    expect(released).toHaveLength(0);
+  });
+});

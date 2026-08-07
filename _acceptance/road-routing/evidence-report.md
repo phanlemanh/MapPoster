@@ -315,3 +315,19 @@ instance. `surfaces: [api]`, contract carries zero `judgment` and zero `ui-check
 - [ ] If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when
       the hook re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract
+
+## Demo (minh hoạ, KHÔNG phải bằng chứng đã verify)
+
+Video dựng **sau** khi hợp đồng đã ký, bằng `_acceptance/scripts/demo-features.ts`.
+Chúng KHÔNG thay thế eval nào và không tham gia vào verdict — mục này để người đọc
+nhìn thấy tính năng chạy, chứ không phải để khẳng định thêm điều gì.
+
+MỘT lời gọi THẬT tới router công cộng (bộ eval thì tuyệt đối không chạm — mọi test stub fetch). Kết quả: 9,98 km · 17 phút · 487 điểm, tuyến gấp khúc theo lưới phố chứ không cắt thẳng.
+
+- Video: `road-routing/demo/index.html` (`routed-line.mp4`)
+- Ba khung mốc (đầu / giữa / nghỉ) nằm cạnh mỗi clip trong `demo/`. Chúng KHÔNG
+  nằm trong `evidence/`: trang bằng chứng chỉ lấy khung cho eval `ui-check`, và
+  khai một `screenshot:` giả trên eval chạy test là nói rằng nó sinh ra ảnh mà
+  nó không sinh — nên `evidence/` giữ đúng nghĩa "thứ đã được verify".
+
+Chạy lại: `MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/scripts/demo-features.ts`

@@ -424,3 +424,19 @@ nothing of this contract's own regressed), `npm run test:mcp` 7/7 (unchanged). V
 - [ ] If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when
       the hook re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract
+
+## Demo (minh hoạ, KHÔNG phải bằng chứng đã verify)
+
+Video dựng **sau** khi hợp đồng đã ký, bằng `_acceptance/scripts/demo-features.ts`.
+Chúng KHÔNG thay thế eval nào và không tham gia vào verdict — mục này để người đọc
+nhìn thấy tính năng chạy, chứ không phải để khẳng định thêm điều gì.
+
+Cặp đối chứng camera.focus: cùng một lời gọi, chỉ khác `index`, khung ôm hai vùng khác nhau.
+
+- Video: `motion-tools-cost/demo/index.html` (`focus-region-0.mp4`, `focus-region-1.mp4`)
+- Ba khung mốc (đầu / giữa / nghỉ) nằm cạnh mỗi clip trong `demo/`. Chúng KHÔNG
+  nằm trong `evidence/`: trang bằng chứng chỉ lấy khung cho eval `ui-check`, và
+  khai một `screenshot:` giả trên eval chạy test là nói rằng nó sinh ra ảnh mà
+  nó không sinh — nên `evidence/` giữ đúng nghĩa "thứ đã được verify".
+
+Chạy lại: `MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/scripts/demo-features.ts`

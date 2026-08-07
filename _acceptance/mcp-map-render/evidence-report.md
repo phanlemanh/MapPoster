@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: affbe6c57401eafaffb7ced1a70c4f7def9d196c
-human_signoff: manh 2026-08-07
+human_signoff: 
 ---
 
 # Evidence Report: mcp-map-render
@@ -40,7 +40,7 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
 | E9 | AC-9 | test | PASS |
 | E10 | AC-10 | ui-check | PASS |
 | E11 | AC-11 | test | PASS |
-| E12 | AC-12 | judgment | UNCERTAIN — prior override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance (owner did NOT re-open E12-example.png) |
+| E12 | AC-12 | judgment | UNCERTAIN — prior override withdrawn, awaits genuine per-item human verdict |
 
 ## Evidence
 
@@ -143,8 +143,8 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Giám khảo mù chấm PASS (nguyên văn): Ảnh 1080×1920 đúng khung tiktok, nền navy với đường phố vàng cam đặc trưng midnight-blue; lưới đường và khối nhà liền mạch, không ô tile trống/vỡ hay răng cưa. Ghim trắng nằm gần chính giữa khung (≈540/1080 ngang, 910/1920 dọc — lệch nhẹ ~50px) và tương phản rõ trên nền tối. Đủ cả ba yêu cầu của AC-12: căn giữa, highlight rõ, tile/đường không vỡ.
   required_evidence:
     - "Chủ repo tự mở evidence/E12-example.png và xác nhận trực tiếp (không qua uỷ quyền phiên) rằng: điểm highlight nằm đúng vị trí địa lý của 'Võ Văn Tần, Quận 3, HCMC', ảnh dùng được làm B-roll video."
-  human_override: manh 2026-08-07 — CHAP NHAN tren bang chung MAY + phan cua giam khao mu. KHONG tu mo lai evidence/E12-example.png de xac nhan vi tri dia ly; viec neu o required_evidence CHUA lam. Chu repo duoc hoi thang va chon co y phuong an nay trong phien 2026-08-07.
-  override_status: "Round 25, two steps. (1) WITHDRAWN: Round 24's human_override self-declared it was applied under a session-blanket authorisation ('tu lai, khong can hoi'), NOT a per-item human review, so it could not be carried forward to newly mint a PASS against commit affbe6c5. (2) RESOLVED at Gate 2 by an explicitly LABELLED owner acceptance: asked directly in the 2026-08-07 session, the repo owner deliberately chose 'accept on machine evidence + blind-judge verdict without re-opening the artifact, and label it as such' over personally re-inspecting E12-example.png. The override line below states exactly that scope — it does NOT claim anyone looked at the render. A later reader can see precisely what backs this verdict."
+  human_override: 
+  override_withdrawn: "Round 24's human_override line self-declared it was applied under a session-blanket authorisation ('tu lai, khong can hoi'), NOT a per-item human review of this judgment item. The repo owner withdrew all such inherited overrides repo-wide in the 2026-08-07 session. T3 requires the owner to personally verify EVERY judgment item on ITS OWN pinned evidence; an attestation that self-documents it was never individually reviewed cannot be carried forward to newly mint a PASS against commit affbe6c5. The judge's rationale is preserved above (verbatim, marked as the judge's words) but the verdict is reset to UNCERTAIN pending a real human look."
 ## Analyst
 
 Every machine eval in this contract runs the shared `npm test` / `npm run test:e2e` commands, which are green on both the diffBase (pre-fix) tree and this round's `affbe6c5` tree for every eval except the fix's own new assertions (format.test.ts, jobRunner.test.ts:347) — none of which back an eval in this contract (they belong to T2/async-job-queue's own test files). Non-discriminating (green on both) with respect to THIS contract's criteria: E1, E2, E3, E4, E5, E6, E7, E8, E9, E11 — expected, since none of AC-1..AC-11 assert filename content or Đ/đ place-name handling; they were re-run in full per this round's "no selective re-pinning" instruction, not because any of them discriminates on this specific fix.

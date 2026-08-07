@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: affbe6c57401eafaffb7ced1a70c4f7def9d196c
-human_signoff: manh 2026-08-07
+human_signoff: 
 ---
 
 # Evidence Report: map-motion-clip
@@ -67,8 +67,8 @@ the only thing standing between this contract and PASS is the owner's own review
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | UNCERTAIN (judge scored PASS; inherited override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance — owner did NOT re-open the artifact) |
-| E17 | AC-14 | judgment | UNCERTAIN (judge scored PASS; inherited override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance — owner did NOT re-open the artifact) |
+| E16 | AC-13 | judgment | UNCERTAIN (judge scored PASS; inherited human_override WITHDRAWN — owner resolves at Gate 2) |
+| E17 | AC-14 | judgment | UNCERTAIN (judge scored PASS; inherited human_override WITHDRAWN — owner resolves at Gate 2) |
 
 ## Evidence
 
@@ -237,8 +237,8 @@ the only thing standing between this contract and PASS is the owner's own review
     Giám khảo mù chấm PASS (nguyên văn): Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
   required_evidence:
     - Chủ repo tự mở `E16-clip.mp4` và xem đủ 6 giây, rồi trả lời: ba nhịp (toàn cảnh → vẽ dần ranh giới → đuôi đứng yên) có đọc ra được không? Nếu có → điền human_override.
-  human_override: manh 2026-08-07 — CHAP NHAN tren bang chung MAY + phan cua giam khao mu. KHONG tu mo lai E16-clip.mp4 de xem; viec neu o required_evidence CHUA lam. Chu repo duoc hoi thang va chon co y phuong an nay trong phien 2026-08-07.
-  override_status: "Round 10, hai bước. (1) RÚT dòng human_override thừa kế: nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc' — điền theo uỷ quyền đứng, không phải người xem từng mục. (2) Chủ repo được hỏi thẳng trong phiên 2026-08-07 và CHỌN CÓ Ý phương án 'chấp nhận mà không mở lại, ghi nhãn rõ' thay vì tự xem lại clip. Dòng override mới ở dưới nói đúng điều đó — nó KHÔNG tuyên bố có người đã xem clip. Người đọc sau biết chính xác cái gì đỡ verdict này."
+  human_override: 
+  override_withdrawn: "Round 10 — dòng human_override thừa kế đã bị RÚT. Nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc' (điền theo uỷ quyền đứng, không phải người xem từng mục). T3 đòi người duyệt ĐÍCH DANH từng mục judgment; một attestation tự khai là không-phải-người-xem không đủ đỡ một PASS mới ghim ở commit mới. Quyết định của chủ repo, phiên 2026-08-07."
 - eval: E17
   judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
   verdict: UNCERTAIN
@@ -246,8 +246,8 @@ the only thing standing between this contract and PASS is the owner's own review
     Giám khảo mù chấm PASS (nguyên văn): Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
   required_evidence:
     - Chủ repo tự đọc hai test khoá ATTRIBUTION_TEXT trong `src/lib/export.test.ts` và spec §2.3, rồi trả lời: ngoại lệ chữ-pixel giấy phép có chính đáng và bị khoá chặt cả SỐ LƯỢNG lẫn NỘI DUNG không? Nếu có → điền human_override.
-  human_override: manh 2026-08-07 — CHAP NHAN tren bang chung MAY + phan cua giam khao mu. KHONG tu doc lai hai test khoa ATTRIBUTION_TEXT va spec §2.3; viec neu o required_evidence CHUA lam. Chu repo duoc hoi thang va chon co y phuong an nay trong phien 2026-08-07.
-  override_status: "Round 10, hai bước, cùng đường với E16: (1) RÚT dòng thừa kế tự khai 'KHONG phai nguoi ky truc tiep xem tung muc'; (2) chủ repo chọn có ý 'chấp nhận mà không đọc lại, ghi nhãn rõ' khi được hỏi thẳng trong phiên 2026-08-07. Override mới nói đúng phạm vi đó."
+  human_override: 
+  override_withdrawn: "Round 10 — dòng human_override thừa kế đã bị RÚT, cùng lý do như E16: nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc'. Quyết định của chủ repo, phiên 2026-08-07."
 ## Analyst
 
 Baseline values carried forward: every machine eval here is green-on-both (the fix in

@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: async-job-queue
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: affbe6c57401eafaffb7ced1a70c4f7def9d196c
-human_signoff: manh 2026-08-07
+human_signoff: 
 ---
 
 # Evidence Report: async-job-queue
@@ -46,7 +46,7 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
 | E17 | AC-12 | test | PASS |
 | E18 | AC-13 | test | PASS |
 | E19 | AC-14 | test | PASS |
-| E20 | AC-15 | judgment | UNCERTAIN (judge scored PASS; inherited override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance — owner did NOT re-read the contract himself) |
+| E20 | AC-15 | judgment | UNCERTAIN (judge scored PASS; inherited human_override WITHDRAWN — owner resolves at Gate 2) |
 | E21 | AC-16 | test | PASS |
 | E22 | AC-17 | test | PASS |
 | E23 | AC-17 | test | PASS |
@@ -231,8 +231,7 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     quyết (phiên 2026-08-07): rút hết, để người duyệt lại từng mục ở Gate 2.
   required_evidence:
     - Chủ repo tự đọc mục Out of scope của contract + luồng AC-4, rồi trả lời: OneHub có phải học thêm khái niệm giao thức nào ngoài gửi-việc/hỏi-việc-theo-nhịp không? Nếu không → điền human_override.
-  override_status: "Vòng 13, hai bước. (1) RÚT dòng thừa kế tự khai 'KHONG phai nguoi ky truc tiep xem tung muc'. (2) GIẢI QUYẾT ở Gate 2 bằng một chấp nhận CÓ GHI NHÃN: được hỏi thẳng trong phiên 2026-08-07, chủ repo chọn có ý phương án 'chấp nhận trên bằng chứng máy + phán của giám khảo mù, không tự đọc lại, và ghi nhãn rõ' thay vì tự đọc lại contract. Dòng override dưới đây nói đúng phạm vi đó — nó KHÔNG tuyên bố có người đã đọc lại. Việc-đọc-lại nêu ở required_evidence vẫn CHƯA ai làm."
-  human_override: manh 2026-08-07 — CHAP NHAN tren bang chung MAY + phan cua giam khao mu. KHONG tu doc lai contract/luong AC-4 de kiem; viec neu o required_evidence CHUA lam. Chu repo duoc hoi thang va chon co y phuong an nay trong phien 2026-08-07.
+  human_override: 
 - eval: E21
   run_id: async-job-queue-r13-job_store-20260807
   exit_code: 0

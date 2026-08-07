@@ -28,7 +28,7 @@ evals:
     criterion: AC-1
     executor: script
     cmd: config:executors.script.anchors_invariants
-    expected: "exit 0; I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và MỌI ca test dùng khung không vuông"
+    expected: "exit 0; I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và CÓ ÍT NHẤT MỘT ca test dùng khung không vuông đủ phân biệt hai công thức (thực tế 4/6; hai ca vuông là ca vùng-rỗng trả null, không đi qua công thức nên không cần phân biệt)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
@@ -49,7 +49,7 @@ evals:
     criterion: AC-4
     executor: test
     cmd: config:executors.test.anchors
-    expected: "exit 0; assertCameraAtRest NÉM khi camera lệch, thông điệp nêu CẢ giá trị đọc được LẪN giá trị kỳ vọng"
+    expected: "exit 0; assertCameraAtRest NÉM khi camera lệch, và thông điệp nêu giá trị ĐỌC ĐƯỢC lẫn KỲ VỌNG — mỗi cái một khẳng định RIÊNG; gỡ sạch ${actual.*} khỏi thông điệp phải làm đỏ (chỉ kiểm giá trị kỳ vọng thì mutation đó vẫn xanh 13/13)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E6
@@ -84,7 +84,7 @@ evals:
     criterion: AC-6
     executor: test
     cmd: config:executors.test.e2e
-    expected: "exit 0; trên MapLibre thật getPitch()===45, hai khung ra PNG thật và KHÁC NHAU — clip nghiêng render thật, không chỉ 'không ném'; rồi anchors() mới từ chối"
+    expected: "exit 0; trên MapLibre thật getPitch()===45, hai khung mang tiền tố data:image/png, khung nghỉ dài >2000 ký tự và KHÁC khung giữa — hơn hẳn 'không ném', nhưng KHÔNG kiểm byte PNG; phần byte do E11 gánh"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E11
@@ -133,7 +133,7 @@ evals:
     criterion: AC-9
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; anchors.points[i].index khớp một-một với resolved.highlights.points[i]"
+    expected: "exit 0; anchors.points[i].index khớp một-một với resolved.highlights.points[i] — hiện CHỈ thử ở n=1; độ phủ n>1 chưa có, ghi ở Out of scope"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E18
@@ -154,5 +154,5 @@ evals:
     criterion: AC-7
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; toàn bộ 527 unit test xanh — hồi quy tổng cho mọi bề mặt sau khi ClipFrames đổi kiểu"
+    expected: "exit 0; 527 test XANH + 9 SKIP (khối gated MCP_INTEGRATION=1, chạy riêng ở E11) trên 33 file — hồi quy tổng sau khi ClipFrames đổi kiểu; con số là 527 pass, KHÔNG phải 536 cùng chạy"
     evidence_required: [run_id, exit_code, verifier, verified_at]

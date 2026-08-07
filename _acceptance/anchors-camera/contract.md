@@ -57,6 +57,7 @@ Chưa quét: anchors cho `routes` (polyline cần chính sách lấy mẫu riên
 - **Không** sửa hệ số một-trục của `drawMarker` (`src/lib/export.ts:188,204,211`) — nó dùng tỉ lệ trục x cho toạ độ y. Hệ quả còn lại: marker **được vẽ** lệch khỏi anchors **được trả về** ~0,1% chiều cao (~2px ở khung 1920). `export.ts` là `t3_path`, sửa kéo theo vòng T3 **và** làm đổi pixel, tức phá bằng chứng determinism byte-identical của `map-motion-clip`. Xếp lịch riêng.
 - **Không** thêm `anchorsAt(t)` — xem plan §3: `jumpTo` để chiếu sẽ để camera lệch khỏi `restBase` đã cache, khiến khung đuôi vẽ marker bằng camera sai lên ảnh nền đúng.
 - **Không** anchors cho `routes`.
+- **Không** phủ tương ứng `index` ở `n > 1`: E17 hiện chỉ thử một điểm. Vòng chấm nêu đúng chỗ này. Sai thứ tự chỉ lộ ra từ hai điểm trở lên, nên đây là khoảng trống thật — ghi ra chứ không giấu sau một dòng `expected` nghe như đã phủ.
 - **Không** hỗ trợ đo anchors khi pitch != 0 — hình chiếu vùng là hình thang, `bboxPct` mất nghĩa.
 
 ## Notes

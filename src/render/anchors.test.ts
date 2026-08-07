@@ -148,7 +148,14 @@ describe('assertCameraAtRest', () => {
     expect(() => assertCameraAtRest(cam({ zoom: 13.26 }), rest, 3.9)).toThrow(/zoom/);
     expect(() => assertCameraAtRest(cam({ center: [106.71, 10.78] }), rest, 3.9)).toThrow(/center/);
     expect(() => assertCameraAtRest(cam({ bearing: 300 }), rest, 3.9)).toThrow(/bearing/);
-    // thông điệp phải mang cả hai camera để người đọc log biết lệch bao nhiêu
+    // Thông điệp phải mang CẢ HAI giá trị để người đọc log biết lệch bao nhiêu.
+    // Khẳng định riêng từng cái: chỉ kiểm giá trị KỲ VỌNG (13.25) thì gỡ sạch
+    // mọi `${actual.*}` khỏi thông điệp vẫn xanh — vòng chấm đã chứng minh đúng
+    // như vậy (13/13 pass sau khi gỡ). Giá trị ĐỌC ĐƯỢC mới là thứ nói cho
+    // người đọc biết camera đang ở đâu.
     expect(() => assertCameraAtRest(cam({ zoom: 13.26 }), rest, 3.9)).toThrow(/13\.25/);
+    expect(() => assertCameraAtRest(cam({ zoom: 13.26 }), rest, 3.9)).toThrow(/13\.26/);
+    expect(() => assertCameraAtRest(cam({ center: [106.71, 10.78] }), rest, 3.9)).toThrow(/106\.71/);
+    expect(() => assertCameraAtRest(cam({ bearing: 300 }), rest, 3.9)).toThrow(/300/);
   });
 });

@@ -1,17 +1,21 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PASS
+verdict: PENDING-JUDGMENT
 failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9a6af0fa05f8f3e7fcebbcddc04f7994ea720ca5
-human_signoff: manh 2026-08-07
+verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
+
+_**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
+
+_Vòng 10 (chạy lại vì stale) — kích hoạt bởi PR `feat/anchors-camera` @ `9c1f9f3`, gói này chạm `mcp-server/src/tools.ts`, `mcp-server/src/http.ts`, `mcp-server/src/jobRunner.ts`, `mcp-server/src/renderFrame.ts` và `src/render/main.tsx` — tệp DÙNG CHUNG, nên bằng chứng của hợp đồng này hết hiệu lực theo commit. Vòng này KHÔNG re-pin suông: **mọi eval máy đều được chạy lại tươi** ở `9c1f9f3` (không eval nào mang kết quả cũ sang), `run_id` mới toàn bộ và có dòng tương ứng trong `run-log.jsonl`. `verified_commit` ghim lại về `9c1f9f367c642465cc720396f9b6aba51f31902f`; `human_signoff` bị XOÁ vì chữ ký cũ thuộc về `9a6af0f`, không được cưỡi sang cây mã mới. Trong bán kính: E7 (bộ tích hợp — `renderClip.test.ts` đổi), E8-E10/E13/E15 (`http.ts`), E11/E14 (`tools.ts`). E12 chạy `export.test.ts`/`mapStyle.test.ts` — hai `t3_path`, và `git diff --name-only` xác nhận cả hai KHÔNG có dòng nào đổi trong PR này, nên bằng chứng pixel byte-identical của hợp đồng này không bị đụng. **T3: hai eval judgment E16/E17 quay về chờ người** — verdict hạ xuống PENDING-JUDGMENT và `human_override` được bỏ trống, vì chữ ký cũ được đóng ở `9a6af0f`; theo luật T3 mọi mục judgment phải có phán quyết người TRỰC TIẾP ở đúng cây mã đang xét. Người ký ở Cổng 2 điền lại._
 
 _Round 9 — re-pin only, triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`, scoped entirely to `mcp-server/src/http.test.ts`: mcp-auth's own E6 fix, rebinding its 'bind outside loopback with a token' test from `'127.0.0.1'` — itself loopback, so the assertion never reached the code path it claimed to cover — to a genuine non-loopback host `'0.0.0.0'`). `git diff e5ce7199..ce0b13e6 --stat` touches only that one test file; no source file changed. Re-ran this contract's broad guards and any eval whose command executes `http.test.ts` (E7, E8, E9, E10, E13, E15); all matched the prior round exactly. Every other eval was NOT re-run — its own source/test files are untouched by this commit — and is re-pinned as-is. `verified_commit` updated to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`; `human_signoff` stays empty._
 
@@ -19,7 +23,9 @@ _Round 8 — re-verification triggered by `fix/mcp-auth` landing on top of Round
 
 _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (token && authorization !== ...)` bearer checks on `/render`, `/render-clip`, `/jobs` are replaced with calls to one shared `rejectedByBearer()` helper implementing byte-identical logic, and a NEW guard call is added on the previously-unguarded `/mcp` fall-through plus a NEW startup-time fail-closed check for non-loopback binds without a token. This contract's own eval commands were re-run fresh against the new commit rather than merely re-pinned, since the shared file is in scope of at least one of them; every run matched the prior round's pass counts exactly — no regression from the refactor._
 
-_Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this round's explicit instructions — not blanked, not re-scored. `risk_tier: T3` mandates a direct human verdict on every judgment item for THIS round's pinned evidence regardless of a prior round's override against a now-superseded commit, so the contract routes to **PENDING-JUDGMENT** this round._
+_(Ghi chú của vòng TRƯỚC, giữ lại làm lịch sử) Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round — not blanked, not re-scored. `risk_tier: T3` mandates a direct human verdict on every judgment item for THIS round's pinned evidence regardless of a prior round's override against a now-superseded commit, so the contract routes to **PENDING-JUDGMENT**._
+
+_**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔNG giữ `human_override` cũ. Chữ ký người ở các mục judgment được đóng ở `9a6af0f`; PR này đổi mã nguồn dùng chung nên chúng bị BỎ TRỐNG để người ký ở Cổng 2 phán quyết lại trên đúng cây `9c1f9f3`. Nội dung phán quyết của giám khảo mù (`verdict` + `rationale`) được giữ nguyên văn — chỉ dòng `human_override` bị xoá._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -44,146 +50,146 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
 ## Evidence
 
 - eval: E1
-  run_id: map-motion-clip-r8-motion_invariants-20260807
+  run_id: map-motion-clip-r10-motion_invariants-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T02:49:12Z
+  verified_at: 2026-08-07T04:51:02Z
   output: |
-    Same run — AC-1 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E2
-  run_id: map-motion-clip-r8-motion_invariants-20260807
+  run_id: map-motion-clip-r10-motion_invariants-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T02:49:12Z
+  verified_at: 2026-08-07T04:51:02Z
   output: |
-    Same run — AC-2 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E3
-  run_id: map-motion-clip-r8-motion_invariants-20260807
+  run_id: map-motion-clip-r10-motion_invariants-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T02:49:12Z
+  verified_at: 2026-08-07T04:51:02Z
   output: |
-    Same run — AC-3 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E4
-  run_id: map-motion-clip-r8-compiler_domain_sweep-20260807
+  run_id: map-motion-clip-r10-compiler_domain_sweep-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.script.compiler_domain_sweep
-  verified_at: 2026-08-07T02:50:55Z
+  verified_at: 2026-08-07T04:51:16Z
   output: |
-    Same run — AC-4 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). combinations: 2652; violations: 0; OK — present and passing.
+    Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. combinations: 2652; violations: 0; OK — present and passing.
 
 - eval: E5
-  run_id: map-motion-clip-r8-motion_compiler-20260807
+  run_id: map-motion-clip-r10-motion_compiler-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T02:48:55Z
+  verified_at: 2026-08-07T04:51:00Z
   output: |
-    Same run — AC-4 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
+    Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E6
-  run_id: map-motion-clip-r8-motion_math-20260807
+  run_id: map-motion-clip-r10-motion_math-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_math
-  verified_at: 2026-08-07T02:49:17Z
+  verified_at: 2026-08-07T04:51:03Z
   output: |
-    Same run — AC-5 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E7
-  run_id: map-motion-clip-r9-mcp-20260807-repin
+  run_id: map-motion-clip-r10-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T03:13:57Z
+  verified_at: 2026-08-07T04:52:19Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 3 passed (3); Tests 7 passed (7); Duration 42.43s — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E8
-  run_id: map-motion-clip-r9-clip_http-20260807-repin
+  run_id: map-motion-clip-r10-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E9
-  run_id: map-motion-clip-r9-clip_http-20260807-repin
+  run_id: map-motion-clip-r10-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E10
-  run_id: map-motion-clip-r9-clip_http-20260807-repin
+  run_id: map-motion-clip-r10-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E11
-  run_id: map-motion-clip-r8-clip_tools-20260807
+  run_id: map-motion-clip-r10-clip_tools-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T04:50:51Z
   output: |
-    Same run — AC-8 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E12
-  run_id: map-motion-clip-r8-text_free-20260807
+  run_id: map-motion-clip-r10-text_free-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-07T02:49:21Z
+  verified_at: 2026-08-07T04:50:55Z
   output: |
-    Same run — AC-9 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 2 passed (2); Tests 19 passed (19) — present and passing.
+    Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 2 passed (2); Tests 19 passed (19) — present and passing.
 
 - eval: E13
-  run_id: map-motion-clip-r9-clip_http-20260807-repin
+  run_id: map-motion-clip-r10-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E14
-  run_id: map-motion-clip-r8-clip_tools-20260807
+  run_id: map-motion-clip-r10-clip_tools-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T04:50:51Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E15
-  run_id: map-motion-clip-r9-clip_http-20260807-repin
+  run_id: map-motion-clip-r10-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E16
   judged_by: judge-subagent (fresh context, blind)
   verdict: PASS
   rationale: |
     Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
-  human_override: manh 2026-08-07 — XAC NHAN — ap theo uy quyen dung cua chu repo trong phien ('tu lai, khong can hoi') — KHONG phai nguoi ky truc tiep xem tung muc. Giam khao do diff pixel tren mp4: ve dan t=2.5->2.7s, duoi dung yen.
+  human_override:
 - eval: E17
   judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
   verdict: PASS
   rationale: |
     Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
-  human_override: manh 2026-08-07 — CHAP NHAN — ap theo uy quyen dung cua chu repo trong phien ('tu lai, khong can hoi') — KHONG phai nguoi ky truc tiep xem tung muc. Lo khoa-noi-dung da va o PR #3; giam khao cham lai PASS.
+  human_override:
 ## Analyst
 
 Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.
@@ -193,6 +199,8 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 10 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`/`renderFrame.ts`. Cả 15 eval máy chạy lại tươi — 15/15 xanh; hai `t3_path` của E12 xác nhận 0 dòng đổi. E16/E17 (judgment, T3) trở lại chờ người: verdict PENDING-JUDGMENT, `human_override` bỏ trống. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 
 Round 9 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E7, E8, E9, E10, E13, E15 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 

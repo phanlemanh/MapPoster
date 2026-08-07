@@ -88,3 +88,23 @@
 {"ts": "2026-08-07T02:51:38Z", "round": 7, "evalId": "E18", "run_id": "routes-measurements-r7-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
 {"ts": "2026-08-07T03:13:47Z", "round": 8, "evalId": "E17", "run_id": "routes-measurements-r8-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T03:13:57Z", "round": 8, "evalId": "E18", "run_id": "routes-measurements-r8-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E1", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 9, "evalId": "E2", "run_id": "routes-measurements-r9-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E3", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E4", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E5", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:51:04Z", "round": 9, "evalId": "E6", "run_id": "routes-measurements-r9-apply_render_config-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E7", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E8", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E9", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E10", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E11", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:58Z", "round": 9, "evalId": "E12", "run_id": "routes-measurements-r9-geometry-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E13", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 9, "evalId": "E14", "run_id": "routes-measurements-r9-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:51:06Z", "round": 9, "evalId": "E15", "run_id": "routes-measurements-r9-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T04:51:16Z", "round": 9, "evalId": "E16", "run_id": "routes-measurements-r9-routes_demo-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts": "2026-08-07T04:48:51Z", "round": 9, "evalId": "E17", "run_id": "routes-measurements-r9-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T04:52:19Z", "round": 9, "evalId": "E18", "run_id": "routes-measurements-r9-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E19", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:51:06Z", "round": 9, "evalId": "E20", "run_id": "routes-measurements-r9-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}

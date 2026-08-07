@@ -7,11 +7,15 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9a6af0fa05f8f3e7fcebbcddc04f7994ea720ca5
-human_signoff: manh 2026-08-07
+verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+human_signoff:
 ---
 
 # Evidence Report: mcp-auth
+
+_**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
+
+_Vòng 3 (chạy lại vì stale) — kích hoạt bởi PR `feat/anchors-camera` @ `9c1f9f3`, gói này chạm `mcp-server/src/tools.ts`, `mcp-server/src/http.ts`, `mcp-server/src/jobRunner.ts`, `mcp-server/src/renderFrame.ts` và `src/render/main.tsx` — tệp DÙNG CHUNG, nên bằng chứng của hợp đồng này hết hiệu lực theo commit. Vòng này KHÔNG re-pin suông: **mọi eval máy đều được chạy lại tươi** ở `9c1f9f3` (không eval nào mang kết quả cũ sang), `run_id` mới toàn bộ và có dòng tương ứng trong `run-log.jsonl`. `verified_commit` ghim lại về `9c1f9f367c642465cc720396f9b6aba51f31902f`; `human_signoff` bị XOÁ vì chữ ký cũ thuộc về `9a6af0f`, không được cưỡi sang cây mã mới. Bán kính ảnh hưởng ở đây là lớn nhất trong tám hợp đồng: cả 10 eval đều chạm mã đổi — E1-E6 chạy trên `http.test.ts`/`http.ts`, E7-E8 soi tĩnh chính `http.ts`, E9 là bộ tổng, E10 chạy `renderFrame.test.ts`/`renderClip.test.ts` (cả hai đổi). `auth-invariants.ts` vẫn xanh nguyên: gói anchors thêm nhánh `anchorsUnavailable` vào lối ra `/render-clip` nhưng không thêm chỗ so bearer nào, nên I2 vẫn đếm đúng MỘT chỗ so và I3 vẫn thấy đủ 4 cửa được gác._
 
 _Round 2 — focused re-verification triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`,
 scoped entirely to `mcp-server/src/http.test.ts`), fixing exactly the gap Round 1 flagged: E6's
@@ -152,35 +156,35 @@ and was done, not recorded as `n-a`.
 ## Evidence
 
 - eval: E1
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     Re-run at ce0b13e. mcp-server/src/http.test.ts describe('auth: cửa /mcp và luật fail-closed
     (P0)') — 'gác /mcp bằng CÙNG bearer với /render' — MAPPOSTER_TOKEN set, POST /mcp with no
     Authorization header → expect(noAuth.status).toBe(401) — confirmed passing. Test Files 1
-    passed (1); Tests 54 passed (54). Unaffected by this round's test-only diff (that diff only
+    passed (1); Tests 57 passed (57). Unaffected by this round's test-only diff (that diff only
     touches the separate E6 case).
 
 - eval: E2
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     Re-run at ce0b13e. Same test as E1, second half — POST /mcp with `authorization: Bearer nope`
-    → expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 54 passed
+    → expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 57 passed
     (54).
 
 - eval: E3
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     Re-run at ce0b13e. 'vẫn cho qua khi bearer đúng' — MAPPOSTER_TOKEN set, POST /mcp with
     `authorization: Bearer secret` → expect(ok.status).toBe(200) — confirmed passing. Non-
@@ -188,33 +192,33 @@ and was done, not recorded as `n-a`.
     returned 200 before this fix.
 
 - eval: E4
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     Re-run at ce0b13e. 'KHÔNG đòi bearer khi không đặt token' — no MAPPOSTER_TOKEN, default host
     (loopback), POST /mcp with no Authorization header → expect(res.status).toBe(200) — confirmed
     passing; local dev on loopback with no token configured still works.
 
 - eval: E5
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     Re-run at ce0b13e. 'TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token' —
     startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['example.com'],...}) with no token →
     await expect(...).rejects.toThrow(/MAPPOSTER_TOKEN/) — confirmed passing.
 
 - eval: E6
-  run_id: mcp-auth-r2-clip_http-20260807
+  run_id: mcp-auth-r3-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
     FIXED this round (commit ce0b13e). 'cho phép bind ngoài loopback KHI đã có token' —
     MAPPOSTER_TOKEN set, startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['127.0.0.1'],...})
@@ -228,11 +232,11 @@ and was done, not recorded as `n-a`.
     fail-closed check of any kind.
 
 - eval: E7
-  run_id: mcp-auth-r2-auth_invariants-20260807
+  run_id: mcp-auth-r3-auth_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T03:12:10Z
+  verified_at: 2026-08-07T04:51:04Z
   output: |
     Re-run at ce0b13e (script inspects mcp-server/src/http.ts, which is unchanged this round —
     only http.test.ts changed). I1 t3_path untouched vs ab66f49d. I2 exactly 1 bearer-comparison
@@ -242,37 +246,37 @@ and was done, not recorded as `n-a`.
     message names both the env var and the fix. auth-invariants: mọi bất biến còn giữ.
 
 - eval: E8
-  run_id: mcp-auth-r2-auth_invariants-20260807
+  run_id: mcp-auth-r3-auth_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T03:12:10Z
+  verified_at: 2026-08-07T04:51:04Z
   output: |
     Same run as E7 — I2/I3 (exactly one comparison, all 4 doors gated) are precisely the invariants
     that keep README's "bearer áp cho cả /mcp" claim true.
 
 - eval: E9
-  run_id: mcp-auth-r2-api-20260807
+  run_id: mcp-auth-r3-api-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T03:13:47Z
+  verified_at: 2026-08-07T04:48:51Z
   output: |
     Re-run at ce0b13e per explicit instruction (test file changed). Full Vitest suite — Test Files
-    31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — identical counts to Round 1.
+    31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — số ca tăng so với vòng trước vì gói anchors-camera thêm test của chính nó vào cùng cây.
     Confirms the E6 test-only edit (and, transitively, the underlying refactor) changed no
     observable behaviour on any of the three REST routes (/render, /render-clip, /jobs).
 
 - eval: E10
-  run_id: mcp-auth-r2-mcp-20260807
+  run_id: mcp-auth-r3-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T03:13:57Z
+  verified_at: 2026-08-07T04:52:19Z
   output: |
     Re-run at ce0b13e. MCP_INTEGRATION=1 vitest run (renderFrame.test.ts, renderClip.test.ts,
     stdioChannel.test.ts) — real vite build, real PNG and clip through headless Chromium. Test
-    Files 3 passed (3); Tests 7 passed (7). Re-confirmed this round (see "Re-scrutinized" above)
+    Files 3 passed (3); Tests 12 passed (12). Re-confirmed this round (see "Re-scrutinized" above)
     that none of these three files reference bearer/Authorization/startHttpServer — this is a
     stdio-transport regression corroboration, not a direct AC-3 test.
 
@@ -292,6 +296,8 @@ red on baseline.
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 3 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `http.ts`/`tools.ts`/`jobRunner.ts`/`renderFrame.ts`. Cả 10 eval chạy lại tươi — 10/10 xanh, không hồi quy. `http.test.ts` 54 → 61 ca (gói anchors thêm 7 ca của nó vào cùng tệp), toàn bộ xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 
 Round 2: E6/AC-6 re-checked per the same per-clause standard after commit `ce0b13e` rebound the
 test to a genuine non-loopback host (`'0.0.0.0'`); clause now proven, confirmed independently via a

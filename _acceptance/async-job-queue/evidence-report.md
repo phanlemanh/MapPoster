@@ -7,11 +7,15 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9a6af0fa05f8f3e7fcebbcddc04f7994ea720ca5
-human_signoff: manh 2026-08-07
+verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+human_signoff:
 ---
 
 # Evidence Report: async-job-queue
+
+_**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
+
+_Vòng 13 (chạy lại vì stale) — kích hoạt bởi PR `feat/anchors-camera` @ `9c1f9f3`, gói này chạm `mcp-server/src/tools.ts`, `mcp-server/src/http.ts`, `mcp-server/src/jobRunner.ts`, `mcp-server/src/renderFrame.ts` và `src/render/main.tsx` — tệp DÙNG CHUNG, nên bằng chứng của hợp đồng này hết hiệu lực theo commit. Vòng này KHÔNG re-pin suông: **mọi eval máy đều được chạy lại tươi** ở `9c1f9f3` (không eval nào mang kết quả cũ sang), `run_id` mới toàn bộ và có dòng tương ứng trong `run-log.jsonl`. `verified_commit` ghim lại về `9c1f9f367c642465cc720396f9b6aba51f31902f`; `human_signoff` bị XOÁ vì chữ ký cũ thuộc về `9a6af0f`, không được cưỡi sang cây mã mới. Đây là hợp đồng bị chạm sâu nhất về mã: `jobRunner.ts` đổi thật (thêm truyền nguyên `clipOut` sang `resolvedOfClip`) — đúng tệp mà chính hợp đồng này ghi là đã HAI LẦN dính lỗi dùng sai biến. E7, E9, E10, E14, E15, E16, E22, E24, E25 chạy trên `jobRunner.test.ts`; E1-E3, E5, E6, E8, E11, E18 trên `http.test.ts`; E12 trên `tools.test.ts`. Tất cả xanh. E20 là eval `judgment` về tính trung thực của contract/design — chủ đề không bị diff này chạm, nên phán quyết mù PASS của vòng trước được mang sang nguyên văn và ghi rõ là carried-forward; `human_override` cũ giữ nguyên vì nó nói về văn bản hợp đồng, không về mã._
 
 _Round 12 — re-pin only, triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`, scoped entirely to `mcp-server/src/http.test.ts`: mcp-auth's own E6 fix, rebinding its 'bind outside loopback with a token' test from `'127.0.0.1'` — itself loopback, so the assertion never reached the code path it claimed to cover — to a genuine non-loopback host `'0.0.0.0'`). `git diff e5ce7199..ce0b13e6 --stat` touches only that one test file; no source file changed. Re-ran this contract's broad guards and any eval whose command executes `http.test.ts` (E1, E2, E3, E5, E6, E8, E11, E18); all matched the prior round exactly. Every other eval was NOT re-run — its own source/test files are untouched by this commit — and is re-pinned as-is. `verified_commit` updated to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`; `human_signoff` stays empty._
 
@@ -52,167 +56,167 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
 ## Evidence
 
 - eval: E1
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E2
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E3
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E4
-  run_id: async-job-queue-r11-job_store-20260807
+  run_id: async-job-queue-r13-job_store-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-07T02:49:07Z
+  verified_at: 2026-08-07T04:50:55Z
   output: |
-    Same run — AC-3 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E5
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E6
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E7
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-5 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E8
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E9
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-7 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E10
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-8 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E11
-  run_id: async-job-queue-r12-clip_http-20260807-repin
+  run_id: async-job-queue-r13-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E12
-  run_id: async-job-queue-r11-clip_tools-20260807
+  run_id: async-job-queue-r13-clip_tools-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T04:50:51Z
   output: |
-    Same run — AC-9 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E13
-  run_id: async-job-queue-r11-motion_compiler-20260807
+  run_id: async-job-queue-r13-motion_compiler-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T02:48:55Z
+  verified_at: 2026-08-07T04:51:00Z
   output: |
-    Same run — AC-10 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
+    Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E14
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-10 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E15
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E16
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-12 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E17
-  run_id: async-job-queue-r11-job_store-20260807
+  run_id: async-job-queue-r13-job_store-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-07T02:49:07Z
+  verified_at: 2026-08-07T04:50:55Z
   output: |
-    Same run — AC-12 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E18
-  run_id: async-job-queue-r12-job_http-20260807-repin
+  run_id: async-job-queue-r13-job_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T04:50:53Z
   output: |
-    Re-pin round 12 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E19
-  run_id: async-job-queue-r11-motion_compiler-20260807
+  run_id: async-job-queue-r13-motion_compiler-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T02:48:55Z
+  verified_at: 2026-08-07T04:51:00Z
   output: |
-    Same run — AC-14 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
+    Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E20
   judged_by: judge-subagent (fresh context, blind)
@@ -221,49 +225,49 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ 'OneHub chưa cần' ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.
   human_override: manh 2026-08-07 — CHAP NHAN — ap theo uy quyen dung cua chu repo trong phien ('tu lai, khong can hoi') — KHONG phai nguoi ky truc tiep xem tung muc. Giam khao mu PASS; rui ro 404 mo ho sau restart giu nguyen.
 - eval: E21
-  run_id: async-job-queue-r11-job_store-20260807
+  run_id: async-job-queue-r13-job_store-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-07T02:49:07Z
+  verified_at: 2026-08-07T04:50:55Z
   output: |
-    Same run — AC-16 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-16 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E22
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-17 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-17 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E23
-  run_id: async-job-queue-r11-job_store-20260807
+  run_id: async-job-queue-r13-job_store-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-07T02:49:07Z
+  verified_at: 2026-08-07T04:50:55Z
   output: |
-    Same run — AC-17 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
+    Cùng lần chạy — khẳng định của AC-17 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E24
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-6 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E25
-  run_id: async-job-queue-r11-job_runner-20260807
+  run_id: async-job-queue-r13-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T04:50:54Z
   output: |
-    Same run — AC-15 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 ## Analyst
 
@@ -274,6 +278,8 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 13 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `jobRunner.ts`/`http.ts`/`tools.ts`. Cả 24 eval máy chạy lại tươi — 24/24 xanh; `jobRunner.test.ts` 22 → 25 ca, `http.test.ts` 54 → 61 ca, tất cả xanh. E20 (judgment) mang sang nguyên văn vì chủ đề của nó là văn bản hợp đồng, không phải mã. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 
 Round 12 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E1, E2, E3, E5, E6, E8, E11, E18 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 

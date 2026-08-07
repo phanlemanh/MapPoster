@@ -27,7 +27,7 @@ evals:
     criterion: AC-3
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; motion.script thô được validate, frames tính đúng, và preset VẮNG MẶT (không bịa ra tên preset cho script tự viết)"
+    expected: "exit 0; nửa NHẬN — motion.script thô hợp lệ cho frames tính đúng và preset VẮNG MẶT (không bịa ra tên preset cho script tự viết); nửa TỪ CHỐI, đo ngay trên compile_motion chứ không mượn lane render_clip — ba script sai khuôn ở BA nhánh check khác nhau (fps ngoài dải Zod, restAtSec vi phạm bất biến R, camera rỗng) đều isError=true, KHÔNG kèm `script` trong phản hồi, câu lỗi là văn xuôi chứ không phải mảng issue Zod. Một hiện thực bỏ hẳn bước validate rồi echo lại input của caller làm lane này ĐỎ"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E4
@@ -78,7 +78,7 @@ evals:
     criterion: AC-10
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; 6 phông kèm stack/titleWeight/uppercaseTitle; và MỌI key liệt kê được render_map chấp nhận — vòng lặp gọi render_map cho từng key, không key nào isError"
+    expected: "exit 0; VÒNG LẶP qua cả 6 phông (không phải fonts[0]) khẳng định đủ NĂM trường AC-10 gọi tên — key/stack/titleWeight/titleTracking/uppercaseTitle — nên một mục thứ tư thiếu trường nào cũng làm lane đỏ; stack phải chứa chính tên phông của mục đó (bắt bảng chép chung) và titleWeight/titleTracking/uppercaseTitle không được là hằng số trá hình; và MỌI key liệt kê được render_map chấp nhận — vòng lặp gọi render_map cho từng key, không key nào isError"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # --- AC-11..AC-13 — encoder quality --------------------------------------
@@ -138,7 +138,7 @@ evals:
     criterion: AC-11
     executor: test
     cmd: config:executors.test.clip_http
-    expected: "exit 0; REST /render-clip: output.quality='high' ĐI TỚI encodeAnimation (spy đọc opts.quality) và response KHÔNG mang clipError — degrade im lặng cũng là 200 nên riêng status không đủ; nửa suppression — bỏ output.quality thì encoder nhận undefined (rơi về standard/crf 20), không phải một giá trị bịa ra. Đây đúng là nhánh mà lỗi block-scope của encodeQuality từng biến thành degrade im lặng"
+    expected: "exit 0; REST /render-clip: output.quality='high' ĐI TỚI encodeAnimation (spy đọc opts.quality) và response KHÔNG mang clipError — degrade im lặng cũng là 200 nên riêng status không đủ; nửa suppression — bỏ output.quality thì encoder nhận ĐÚNG `undefined`, không phải một giá trị bịa ra. KHÔNG khẳng định ở lane này: encoder ở đây là bản giả, không sinh tham số ffmpeg nào, nên phép ánh xạ undefined → standard/crf 20 KHÔNG được chứng minh tại đây — đó là việc của E11 trên encodeAnimation. Lane này chỉ chứng minh giá trị caller khai đi tới đúng seam của encoder. Đây đúng là nhánh mà lỗi block-scope của encodeQuality từng biến thành degrade im lặng"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E19

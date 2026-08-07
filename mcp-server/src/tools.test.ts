@@ -456,12 +456,50 @@ describe('discovery tools', () => {
 
 describe('list_fonts (PR #3)', () => {
   it('exposes every font render_map accepts, with its typographic metadata', async () => {
+    // MỌI mục, không phải `fonts[0]`: bản cũ chỉ soi mục đầu, nên một mục thứ
+    // tư thiếu hẳn `titleWeight` vẫn xanh. Đi theo đúng tiền lệ của
+    // `list_themes` ngay phía trên — vòng lặp qua cả 13 theme.
+    // `titleTracking` được AC-10 gọi tên nhưng trước đây KHÔNG khẳng định nào
+    // trong kho chạm tới; nó vào vòng lặp này cùng bốn trường kia.
     const { fonts } = textJson(await tools().list_fonts());
     expect(fonts).toHaveLength(6);
     expect(fonts[0]).toMatchObject({ key: 'Space Grotesk' });
-    expect(typeof fonts[0].stack).toBe('string');
-    expect(typeof fonts[0].titleWeight).toBe('number');
-    expect(typeof fonts[0].uppercaseTitle).toBe('boolean');
+
+    const keys = new Set<string>();
+    for (const f of fonts as { key: string; stack: string; titleWeight: number; titleTracking: number; uppercaseTitle: boolean }[]) {
+      expect(typeof f.key, f.key).toBe('string');
+      expect(f.key.length, f.key).toBeGreaterThan(0);
+      expect(keys.has(f.key), `trùng key ${f.key}`).toBe(false);
+      keys.add(f.key);
+
+      // stack phải nói về CHÍNH phông đó — một stack chép chung cho cả sáu mục
+      // (lỗi copy-paste kinh điển của bảng này) bị bắt ở đây.
+      expect(typeof f.stack, f.key).toBe('string');
+      expect(f.stack, f.key).toContain(f.key);
+      expect(f.stack, f.key).toMatch(/,\s*(sans-serif|serif|monospace)$/);
+
+      // titleWeight là trọng lượng CSS thật, không phải một số bất kỳ
+      expect(typeof f.titleWeight, f.key).toBe('number');
+      expect(Number.isInteger(f.titleWeight), f.key).toBe(true);
+      expect(f.titleWeight, f.key).toBeGreaterThanOrEqual(100);
+      expect(f.titleWeight, f.key).toBeLessThanOrEqual(900);
+
+      // titleTracking: em, không phải px — dải hẹp quanh 0 phân biệt hai đơn vị
+      expect(typeof f.titleTracking, f.key).toBe('number');
+      expect(Number.isFinite(f.titleTracking), f.key).toBe(true);
+      expect(f.titleTracking, f.key).toBeGreaterThanOrEqual(0);
+      expect(f.titleTracking, f.key).toBeLessThanOrEqual(0.2);
+
+      expect(typeof f.uppercaseTitle, f.key).toBe('boolean');
+    }
+
+    // và ba trường biến thiên KHÔNG phải hằng số trá hình: nếu cả sáu mục cùng
+    // một giá trị thì bảng này không mang thông tin nào cho agent.
+    const distinct = (pick: (f: { titleWeight: number; titleTracking: number; uppercaseTitle: boolean }) => unknown) =>
+      new Set((fonts as { titleWeight: number; titleTracking: number; uppercaseTitle: boolean }[]).map(pick)).size;
+    expect(distinct((f) => f.titleWeight)).toBeGreaterThan(1);
+    expect(distinct((f) => f.titleTracking)).toBeGreaterThan(1);
+    expect(distinct((f) => f.uppercaseTitle)).toBe(2); // có cả true lẫn false
   });
 
   it('lists ONLY names render_map actually accepts — a listed-but-rejected font is a trap', async () => {
@@ -618,6 +656,38 @@ describe('compile_motion (PR #3)', () => {
     // caller đưa vào mới phân biệt được.
     expect(j.restAtSec).toBe(2.8);
     expect(j.preset).toBeUndefined();
+  });
+
+  it('TỪ CHỐI script thô sai khuôn — không echo lại thứ caller đưa vào', async () => {
+    // AC-3 nói script thô "được validate", nhưng ca trên chỉ đưa vào một script
+    // HỢP LỆ rồi đọc lại nó: một hiện thực bỏ hẳn bước validate và echo nguyên
+    // xi input vẫn xanh. Nửa còn thiếu là nửa TỪ CHỐI, và nó phải nằm ở chính
+    // `compile_motion` — ca duy nhất chứng minh được validate hiện sống ở
+    // `render_clip`, một tool khác, nên không chạm tới đường mã AC-3 nói tới.
+    const bad: [string, Record<string, unknown>, RegExp][] = [
+      // fps 999 vi phạm motionScriptSchema (z.number().int().min(12).max(30)) —
+      // ném ZodError THÔ, phải được prettify thành câu đọc được.
+      ['fps ngoài dải', { fps: 999, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }], tracks: [] }, /fps/i],
+      // restAtSec > 0.72×durationSec vi phạm bất biến R — nhánh check KHÁC hẳn
+      // nhánh Zod ở trên, nên phải có ca riêng.
+      ['restAtSec quá muộn', { fps: 12, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 5.9, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /restAtSec/i],
+      // camera rỗng: không có keyframe nào thì không có gì để render.
+      ['camera rỗng', { fps: 12, durationSec: 6, restAtSec: 4, camera: [], tracks: [] }, /camera/i],
+    ];
+
+    for (const [label, script, msg] of bad) {
+      const res = await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } } as never);
+      expect(res.isError, label).toBe(true);
+      const j = textJson(res);
+      // KHÔNG có script trong phản hồi: "từ chối" mà vẫn kèm script là
+      // nhận-rồi-vứt, đúng thứ hợp đồng này từ chối ở mọi chỗ khác.
+      expect(j.script, label).toBeUndefined();
+      expect(typeof j.error, label).toBe('string');
+      expect(j.error, label).toMatch(msg);
+      // và câu lỗi là văn xuôi đọc được, không phải mảng issue của Zod
+      expect(j.error.startsWith('['), label).toBe(false);
+      expect(j.error, label).not.toContain('"code":"invalid_type"');
+    }
   });
 
   it('reports a preset that cannot compile as an error, not an empty script', async () => {

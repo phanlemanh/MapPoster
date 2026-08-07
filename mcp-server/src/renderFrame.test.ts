@@ -64,6 +64,47 @@ suite('renderFrame (integration)', () => {
    * highlighting was broken for anything bigger than a district, and nine review
    * rounds missed it because every eval used "Quận 3" (876 bytes).
    */
+  it('AC-11: layers / detail / font CHẠM TỚI PIXEL THẬT, không dừng ở resolver', async () => {
+    // Ba tham số đầu bảng của hợp đồng Tier-0 không xuất hiện trong BẤT KỲ tệp
+    // nào của `test:mcp` trước đây — chúng chỉ được kiểm ở tầng resolver, tức
+    // "config mang đúng giá trị", chứ chưa ai chứng minh trang render đọc tới.
+    // Phép kiểm mạnh nhất ở lane này: cùng một khung, đổi tham số thì PIXEL
+    // phải khác. Một tham số bị bỏ qua trên đường render cho ra PNG TRÙNG BYTE.
+    const opts = { appUrl: app.url, pool, configStore };
+    const base = baseConfig(600, 600);
+    const png = (cfg: RenderConfig): Promise<Buffer> => renderFrame(cfg, opts);
+
+    const plain = await png(base);
+
+    // NEO CHỐNG PASS RỖNG: mọi khẳng định dưới đây có dạng "hai PNG KHÁC nhau".
+    // Nếu render vốn không xác định thì chúng khác nhau bất kể tham số, và cả ca
+    // test thành vô nghĩa mà vẫn xanh. Chứng minh cùng config cho ra ĐÚNG cùng
+    // byte trước, rồi mọi khác biệt phía sau mới quy được về tham số.
+    expect((await png(base)).equals(plain), 'render KHÔNG xác định — mọi so sánh dưới đây vô nghĩa').toBe(true);
+
+    // layers: tắt nước + đường + nhà thì bức ảnh phải đổi hẳn
+    const noLayers = await png({ ...base, layers: { water: false, roads: false, buildings: false } });
+    expect(noLayers.equals(plain), 'layers không chạm tới pixel').toBe(false);
+
+    // detail: mức chi tiết khác nhau vẽ ra lượng hình khác nhau
+    const coarse = await png({ ...base, detail: 0 });
+    expect(coarse.equals(plain), 'detail không chạm tới pixel').toBe(false);
+
+    // font: đổi mặt chữ phải đổi pixel — nhưng CHỈ khi có chữ trên khung, nên
+    // dùng chrome 'poster' để tiêu đề địa danh thật sự được vẽ.
+    const titled = { ...base, chrome: 'poster' as const };
+    const fontA = await png({ ...titled, font: 'Space Grotesk' });
+    const fontB = await png({ ...titled, font: 'Playfair Display' });
+    expect(fontB.equals(fontA), 'font không chạm tới pixel').toBe(false);
+
+    // và cả bốn vẫn là PNG đúng kích thước — đổi tham số không được làm hỏng khung
+    for (const b of [noLayers, coarse, fontA, fontB]) {
+      expect(b.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      expect(b.readUInt32BE(16)).toBe(600);
+      expect(b.readUInt32BE(20)).toBe(600);
+    }
+  }, 120_000);
+
   it('renders a config far larger than a URL could carry (>16 KB)', async () => {
     const ring: [number, number][] = Array.from({ length: 2_000 }, (_, i) => {
       const t = (i / 2000) * Math.PI * 2;

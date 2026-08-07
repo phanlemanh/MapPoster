@@ -13,7 +13,7 @@ evals:
     criterion: AC-1
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; compile_motion trả script/fps/durationSec/restAtSec/frames/preset/resolved; frames = round(durationSec × fps)"
+    expected: "exit 0; compile_motion trả script/fps/durationSec/restAtSec/frames/preset/resolved — MỖI trường có khẳng định riêng, gồm restAtSec đo bằng hằng số caller đưa vào (2.8) chứ không so với chính nó; frames = round(durationSec × fps)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E2
@@ -138,7 +138,7 @@ evals:
     criterion: AC-11
     executor: test
     cmd: config:executors.test.clip_http
-    expected: "exit 0; REST /render-clip còn nguyên hành vi sau khi nâng encodeQuality ra khỏi try resolve — đây là nhánh mà lỗi block-scope từng biến thành degrade im lặng"
+    expected: "exit 0; REST /render-clip: output.quality='high' ĐI TỚI encodeAnimation (spy đọc opts.quality) và response KHÔNG mang clipError — degrade im lặng cũng là 200 nên riêng status không đủ; nửa suppression — bỏ output.quality thì encoder nhận undefined (rơi về standard/crf 20), không phải một giá trị bịa ra. Đây đúng là nhánh mà lỗi block-scope của encodeQuality từng biến thành degrade im lặng"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E19

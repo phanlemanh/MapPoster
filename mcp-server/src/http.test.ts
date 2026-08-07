@@ -549,6 +549,44 @@ describe('POST /render-clip', () => {
     expect(overBody.resolved?.anchors?.points).toHaveLength(1);
   });
 
+  it('AC-11: output.quality ĐI TỚI encoder trên lối REST, và vắng mặt thì encoder giữ nguyên mặc định cũ', async () => {
+    // Đây chính là nhánh mà `encodeQuality` phải được nâng ra ngoài `try`
+    // resolve (http.ts:327): `params` là block-scope của try đó, còn pha encode
+    // nằm ở try KHÁC. Đọc `params` ở đó là ReferenceError, và vì cả khối encode
+    // nằm trong catch-degrade nên lỗi ấy biến thành 'clip hỏng' IM LẶNG —
+    // response vẫn 200. Không phép kiểm nào của file này từng chạm `quality`,
+    // nên hồi quy đó chạy được trọn vẹn dưới một lane 100% xanh.
+    const seen: (string | undefined)[] = [];
+    const spyDeps = () =>
+      fakeClipDeps({
+        encodeAnimation: async (_frames, opts) => {
+          seen.push(opts.quality);
+          await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+          return opts.outPath;
+        },
+      });
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(0, spyDeps());
+    const withQuality = await postJson(clipUrl(srv), { ...body, output: { quality: 'high' } });
+    expect(withQuality.status).toBe(200); // degrade im lặng cũng là 200 — nên KHÔNG đủ một mình
+    expect(((await withQuality.json()) as ClipResBody).clipError).toBeUndefined();
+    expect(seen).toEqual(['high']);
+    await srv.close();
+
+    // Nửa suppression của AC-11: không khai `quality` thì encoder KHÔNG được
+    // nhận một giá trị bịa ra — nó phải thấy `undefined` và tự rơi về
+    // 'standard' (crf 20), đúng tham số ffmpeg trước khi có núm này.
+    srv = await startHttpServer(0, spyDeps());
+    const withoutQuality = await postJson(clipUrl(srv), body);
+    expect(withoutQuality.status).toBe(200);
+    expect(seen).toEqual(['high', undefined]);
+  });
+
   it('renderer không đo được anchors ⇒ 200 kèm anchorsUnavailable, clip vẫn ra đời (PR #6)', async () => {
     const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
     srv = await startHttpServer(

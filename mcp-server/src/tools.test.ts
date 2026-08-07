@@ -510,6 +510,11 @@ describe('compile_motion (PR #3)', () => {
     expect(j.fps).toBe(j.script.fps);
     expect(j.durationSec).toBe(j.script.durationSec);
     expect(j.frames).toBe(Math.round(j.script.durationSec * j.script.fps));
+    // AC-1 liệt kê `restAtSec` giữa các trường của response, nhưng trước đây
+    // KHÔNG khẳng định nào chạm nó — chuỗi `restAtSec` gần đây chỉ là trường
+    // ĐẦU VÀO của request. Bỏ nó khỏi response thì cả khối vẫn xanh.
+    expect(typeof j.restAtSec).toBe('number');
+    expect(j.restAtSec).toBe(j.script.restAtSec);
     expect(j.preset).toBe('pushIn');
     expect(j.resolved.center).toBeDefined();
     // Toàn bộ lý do tool này tồn tại:
@@ -526,6 +531,10 @@ describe('compile_motion (PR #3)', () => {
     const j = textJson(await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } }));
     expect(j.script.fps).toBe(12);
     expect(j.frames).toBe(48);
+    // Hằng số cứng, KHÔNG phải `j.script.restAtSec`: một hiện thực echo nhầm
+    // `durationSec` (4) hay `fps` vào chỗ này vẫn bằng chính nó, nên chỉ con số
+    // caller đưa vào mới phân biệt được.
+    expect(j.restAtSec).toBe(2.8);
     expect(j.preset).toBeUndefined();
   });
 

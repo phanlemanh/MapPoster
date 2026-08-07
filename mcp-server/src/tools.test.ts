@@ -98,10 +98,32 @@ describe('render_map', () => {
   it('renders and echoes resolved center/place (AC-1)', async () => {
     const res = await tools().render_map({ location: 'HCMC', format: 'tiktok' });
     const j = textJson(res);
+    // `j.image.*` đọc IHDR của CHÍNH buffer renderer trả về (delivery.ts:14),
+    // nhưng renderer giả sinh buffer từ `cfg.size` — vòng khép kín, nên riêng
+    // hai dòng này KHÔNG thể mâu thuẫn với thứ được yêu cầu. Mắt xích thật sự
+    // phân biệt được ở lane này là: `format` có dịch thành `cfg.size` mà
+    // renderer nhận hay không.
+    expect(lastCfg?.size).toEqual({ width: 1080, height: 1920 });
     expect(j.image.width).toBe(1080);
     expect(j.image.height).toBe(1920);
     expect(j.resolved.center).toEqual([106.7, 10.78]);
     expect(imageBlocks(res)).toHaveLength(1);
+  });
+
+  it('AC-1: kích thước trong phản hồi đọc từ PNG THẬT SỰ ra đời, không phải từ cái được YÊU CẦU', async () => {
+    // Mắt xích còn lại của AC-1. Renderer giả mặc định sinh buffer theo
+    // `cfg.size`, nên "yêu cầu 1080×1920 ⇒ phản hồi nói 1080×1920" là một vòng
+    // khép kín — nó đúng kể cả khi phản hồi chỉ echo lại request. Ở đây renderer
+    // CỐ Ý bất đồng: xin tiktok mà trả về một PNG 640×480. Phản hồi phải nói
+    // 640×480 (sự thật của ảnh), không phải 1080×1920 (điều đã hỏi).
+    const liar = vi.fn(async (cfg: RenderConfig) => {
+      lastCfg = cfg;
+      return fakePng(640, 480);
+    });
+    const j = textJson(await makeTools({ render: liar, sinkDir, defaultDelivery: 'both' }).render_map({ location: 'HCMC', format: 'tiktok' }));
+    expect(lastCfg?.size).toEqual({ width: 1080, height: 1920 }); // yêu cầu vẫn tới nơi
+    expect(j.image.width).toBe(640);
+    expect(j.image.height).toBe(480);
   });
 
   it('echoes the resolved theme and highlights, per the tool contract', async () => {
@@ -209,9 +231,19 @@ describe('routes + measure (PR #2)', () => {
 
 describe('render_variants', () => {
   it('renders one image per variant (AC-5)', async () => {
-    const res = await tools().render_variants({ base: { location: 'HCMC', format: 'tiktok' }, variants: [{ theme: 'ocean' }, { theme: 'ruby' }] });
-    expect(textJson(res).count).toBe(2);
-    expect(imageBlocks(res)).toHaveLength(2);
+    render.mockClear();
+    const res = await tools().render_variants({
+      base: { location: 'HCMC', format: 'tiktok' },
+      variants: [{ theme: 'ocean' }, { theme: 'ruby' }, { theme: 'midnight-blue' }],
+    });
+    expect(textJson(res).count).toBe(3);
+    expect(imageBlocks(res)).toHaveLength(3);
+    // "N vào ⇒ N ra" một mình không phân biệt được một hiện thực render đúng
+    // config base N lần rồi trả N bản sao. Mỗi variant phải mang CHÍNH ghi đè
+    // của nó xuống renderer, và ra tới `resolved` mà caller đọc.
+    expect(render).toHaveBeenCalledTimes(3);
+    expect(render.mock.calls.map(([cfg]) => cfg.theme)).toEqual(['ocean', 'ruby', 'midnight-blue']);
+    expect(textJson(res).results.map((r: { resolved: { theme: string } }) => r.resolved.theme)).toEqual(['ocean', 'ruby', 'midnight-blue']);
   });
 
   it('a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)', async () => {

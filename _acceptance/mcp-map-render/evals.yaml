@@ -6,14 +6,14 @@ evals:
     criterion: AC-1
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_map('Ho Chi Minh City', format=tiktok) → PNG 1080×1920, center within ~0.05° of geocoded lng/lat"
+    expected: "exit 0; render_map('HCMC', format=tiktok): format resolves into the cfg.size the renderer actually receives (1080×1920), and the response's dimensions are read from the IHDR of the PNG that CAME BACK, not from what was asked — a renderer that deliberately disagrees (returns 640×480 for a tiktok request) must make the response say 640×480; resolved.center EXACTLY equals the geocoder's [106.7, 10.78] (exact, not a tolerance). Real browser pixels are AC-10/E10's job: this lane's renderer is a stub"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E2
     criterion: AC-2
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has highlight-outline/highlight-fill layers; a region resolved by name is anchored to the country of the location being rendered, including when location is {lng,lat}; a region whose boundary polygon exceeds 16 KB (a whole city, not just a district) renders — the config must not travel in the URL; inline GeoJSON is shape-checked and size-bounded"
+    expected: "exit 0; render_map(highlight.regions=['Quận 3, HCMC']) → resolved config has region FeatureCollection AND built style has that region's highlight layers — highlight-fill + highlight-soft-edge, plus highlight-dim when the spotlight mask is on; there is deliberately NO highlight-outline and mapStyle.test.ts pins its ABSENCE (toBeUndefined) together with line-blur === line-width, so a crisp boundary line reintroduced by a future style change turns the lane red; a region resolved by name is anchored to the country of the location being rendered, including when location is {lng,lat}; a region whose boundary polygon exceeds 16 KB (a whole city, not just a district) renders — the config must not travel in the URL; inline GeoJSON is shape-checked and size-bounded"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
@@ -34,7 +34,7 @@ evals:
     criterion: AC-5
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results; a reused pooled page renders each config fresh (no stale frame); a variant cannot smuggle out-of-range coords/zoom/dims past the boundary guard; a page whose render threw is discarded, not returned to the pool; a dead browser is rebuilt; a transient startup failure is retried, never memoized"
+    expected: "exit 0; render_variants with 3 variant configs ⇒ array of 3 PNG results AND each variant's own override reaches the renderer — the three cfg.theme values handed to render are ['ocean','ruby','midnight-blue'] in order and come back on results[].resolved.theme, so rendering the base config 3 times cannot pass; a reused pooled page renders each config fresh (no stale frame); a variant cannot smuggle out-of-range coords/zoom/dims past the boundary guard; a page whose render threw is discarded, not returned to the pool; a dead browser is rebuilt; a transient startup failure is retried, never memoized"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E6
@@ -48,7 +48,7 @@ evals:
     criterion: AC-7
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; default delivery ⇒ result has base64 AND path; file exists at configured sink dir; PNG decodes"
+    expected: "exit 0; default delivery ⇒ result has base64 AND path; the file lives at the CONFIGURED sink dir (dirname === sinkDir, basename === '<name>.png' — a plain stat() says nothing about where it landed); and both deliverables are the SAME bytes — file on disk === decoded base64 === the buffer handed in, so a truncated or mis-written file cannot pass. NOT claimed: no PNG decoder runs here; the fixture is a 30-byte stub carrying only IHDR width/height. Real PNG signature + IHDR decoding is renderFrame.test.ts under MCP_INTEGRATION=1, outside this contract's lanes"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E8

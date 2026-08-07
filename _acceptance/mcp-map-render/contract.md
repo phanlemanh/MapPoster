@@ -28,7 +28,7 @@ Source input: prompt (brainstorm in this session, Section 1–2 approved)
 ## Criteria
 
 - AC-1: Given a place/address string and a `format`, When `render_map` is called, Then it returns a PNG whose pixel dimensions equal the format's target (e.g. `tiktok` → 1080×1920) and whose map is centered on the geocoded location.
-- AC-2: Given `highlight.regions=["<place>"]`, When `render_map` runs, Then the resolved config carries that region's boundary GeoJSON and the emitted MapLibre style contains the highlight outline/fill layers for it.
+- AC-2: Given `highlight.regions=["<place>"]`, When `render_map` runs, Then the resolved config carries that region's boundary GeoJSON and the emitted MapLibre style contains that region's highlight layers — `highlight-fill` and `highlight-soft-edge`, plus `highlight-dim` when the spotlight mask is on. There is deliberately **no** `highlight-outline`: the edge is fully feathered, and `src/lib/mapStyle.test.ts` pins its ABSENCE (`expect(layer(style, 'highlight-outline')).toBeUndefined()`) alongside `line-blur === line-width`. Earlier wordings of this criterion named `highlight-outline`, i.e. named a layer whose non-existence is the invariant.
 - AC-3: Given `highlight.points=["<address>"]`, When `render_map` runs, Then a marker is placed at the geocoded point and auto-framing sets a street-level zoom (14 ≤ zoom ≤ 17) unless `camera` overrides it.
 - AC-4: Given the same geocode query twice within the cache window, When resolved, Then at most ONE upstream Nominatim request is made; AND given a DIFFERENT query, Then an upstream request IS made (cache does not serve a stale/wrong hit).
 - AC-5: Given `render_variants` with N variant configs, When called, Then it returns N PNGs, one per variant.
@@ -49,6 +49,7 @@ Source input: prompt (brainstorm in this session, Section 1–2 approved)
 - Native (Hướng B) renderer — the `renderFrame` interface is reserved for it, but B is not implemented here.
 - Object storage (S3/GCS) sink — v1 writes to a shared-volume directory; the storage adapter is later.
 - Per-caller auth, quotas, multi-tenancy.
+- **PNG decoding inside this contract's own lanes.** `executors.test.api` runs against a stub renderer whose fixture is a 30-byte buffer carrying only IHDR width/height — nothing here parses a PNG signature, IDAT chunks, or pixels, and E1/E7 no longer claim it. What the unit lanes DO prove: `format` reaches the renderer as `cfg.size`, the reported dimensions are read from the bytes that came back rather than from the request, and the delivered file is byte-identical to the delivered base64. Real pixels are proven twice, elsewhere: E10 (`test:e2e`, real headless Chromium, `renderFrame()` yields exactly 1080×1920) inside this contract, and `renderFrame.test.ts` under `MCP_INTEGRATION=1` (PNG signature `89504e470d0a1a0a` + IHDR 1080×1920) outside it. Wiring a decoder into the unit lane would mean shipping a real PNG fixture and a decoder dependency to re-prove what a real browser already proves — not worth it, but the gap is named rather than left implied.
 
 > Out of scope = scope-truth (Gate 1 duyệt mục này).
 

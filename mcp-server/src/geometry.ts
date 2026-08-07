@@ -70,28 +70,6 @@ export function geometryAreaM2(geom: { type: string; coordinates: unknown } | nu
   return 0;
 }
 
-/** Tâm bbox của mọi toạ độ trong geometry — đủ để đặt nhãn, không phải tâm khối lượng. */
-export function centroidOf(geom: { type: string; coordinates: unknown } | null | undefined): LngLat | null {
-  if (!geom) return null;
-  let w = Infinity;
-  let s = Infinity;
-  let e = -Infinity;
-  let n = -Infinity;
-  const walk = (arr: unknown): void => {
-    if (Array.isArray(arr) && typeof arr[0] === 'number') {
-      const [lng, lat] = arr as number[];
-      if (lng < w) w = lng;
-      if (lng > e) e = lng;
-      if (lat < s) s = lat;
-      if (lat > n) n = lat;
-    } else if (Array.isArray(arr)) {
-      arr.forEach(walk);
-    }
-  };
-  walk(geom.coordinates);
-  return Number.isFinite(w) ? [(w + e) / 2, (s + n) / 2] : null;
-}
-
 /**
  * Bề ngang / bề dọc của một bbox, km.
  *

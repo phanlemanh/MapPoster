@@ -4,7 +4,7 @@ import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
 import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker, RenderRoute } from '../../src/render/renderConfig';
 import { resolveRoute, type RouteMode } from './route';
-import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, centroidOf, spanKmOf, type LngLat } from './geometry';
+import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, spanKmOf, type LngLat } from './geometry';
 import { FONTS } from '../../src/data/fonts';
 import { MARKER_ICONS } from '../../src/data/markers';
 

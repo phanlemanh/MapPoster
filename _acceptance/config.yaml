@@ -36,10 +36,11 @@ executors:
     auth_invariants: "npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"
     anchors_invariants: "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"
   design:
-    # PORTABLE $HOME+glob (not hardcoded home/version): survives plugin upgrades and
-    # multi-machine use (lesson: artifact-platform 2026-07-03 path ping-pong).
+    # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
+    # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2
+    # KHÔNG tồn tại trên máy này — 2 executor chết câm suốt). Glob tự trỏ bản kit mới nhất.
     gate: "node $(ls $HOME/.claude/plugins/cache/*/acceptance-gate/*/scripts/design-gate.mjs | sort -V | tail -1)"
-    # ui_check is a browser-injected asset (runner loads it INTO the page) — PATH only, no `node` prefix.
+    # ui_check = asset browser-inject, KHÔNG prefix `node`.
     ui_check: "$(ls $HOME/.claude/plugins/cache/*/acceptance-gate/*/scripts/design-scan.js | sort -V | tail -1)"
 risk_tiers:
   t1_skip_globs:
@@ -47,6 +48,12 @@ risk_tiers:
     - "*.md"
     - "_acceptance/**"
     - ".github/**"
+    # Bộ gate vendored (đường dẫn CHÍNH XÁC, KHÔNG phải glob): nâng chính cái thước
+    # không được làm hết hạn evidence đã ghim verified_commit — thước đo ≠ product code.
+    - "scripts/pre-merge-check.sh"
+    - "scripts/recheck-evidence.js"
+    - "lib/evidence-core.js"
+    - "lib/gap-probe.js"
   t3_paths:
     - "src/lib/export.ts"
     - "src/lib/mapStyle.ts"

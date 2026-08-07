@@ -385,3 +385,19 @@ none — every eval this round is a deterministic single run.
 - [ ] If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when
       the hook re-validates evidence + overrides)
 - [ ] Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract
+
+## Demo (minh hoạ, KHÔNG phải bằng chứng đã verify)
+
+Video dựng **sau** khi hợp đồng đã ký, bằng `_acceptance/scripts/demo-features.ts`.
+Chúng KHÔNG thay thế eval nào và không tham gia vào verdict — mục này để người đọc
+nhìn thấy tính năng chạy, chứ không phải để khẳng định thêm điều gì.
+
+Tuyến giữ đúng vị trí địa lý xuyên suốt camera bay — vòng verify chỉ chứng minh tới ảnh tĩnh.
+
+- Video: `routes-measurements/demo/index.html` (`routes-in-motion.mp4`)
+- Ba khung mốc (đầu / giữa / nghỉ) nằm cạnh mỗi clip trong `demo/`. Chúng KHÔNG
+  nằm trong `evidence/`: trang bằng chứng chỉ lấy khung cho eval `ui-check`, và
+  khai một `screenshot:` giả trên eval chạy test là nói rằng nó sinh ra ảnh mà
+  nó không sinh — nên `evidence/` giữ đúng nghĩa "thứ đã được verify".
+
+Chạy lại: `MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/scripts/demo-features.ts`

@@ -16,6 +16,28 @@ const baseCfg: RenderConfig = {
 
 const fc = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] } }] };
 
+const line = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[105.85, 21.02], [105.86, 21.03]] } }] };
+
+describe('applyRenderConfig: routes', () => {
+  it('wires cfg.routes into the store so buildMapStyle can draw them', () => {
+    applyRenderConfig({ ...baseCfg, routes: [{ geojson: line, color: '#ff0000', width: 6 }] });
+
+    const routes = usePosterStore.getState().routes;
+    expect(routes).toHaveLength(1);
+    expect(routes[0]).toMatchObject({ id: 'rt-0', name: '', color: '#ff0000', width: 6 });
+    expect(routes[0].geojson).toEqual(line);
+  });
+
+  it('clears routes when a later config carries none, so nothing leaks between renders', () => {
+    // Store dùng chung giữa các lần render trong cùng tiến trình: bỏ trống key
+    // `routes` ở setState sẽ để tuyến của lần trước còn nguyên trên bản đồ sau.
+    applyRenderConfig({ ...baseCfg, routes: [{ geojson: line, color: '#ff0000', width: 6 }] });
+    applyRenderConfig(baseCfg);
+
+    expect(usePosterStore.getState().routes).toEqual([]);
+  });
+});
+
 
 describe('applyRenderConfig: camera', () => {
   it('locks the map so bearing and pitch survive', () => {

@@ -1,6 +1,6 @@
 import { usePosterStore } from '../store/usePosterStore';
 import { DEFAULT_FONT } from '../data/fonts';
-import type { HighlightRegion, LayerState, MarkerItem } from '../types';
+import type { HighlightRegion, LayerState, MarkerItem, RouteItem } from '../types';
 import type { RenderConfig } from './renderConfig';
 
 const ALL_LAYERS_ON: LayerState = {
@@ -33,6 +33,14 @@ export function applyRenderConfig(cfg: RenderConfig): void {
     size: m.size,
   }));
 
+  const routes: RouteItem[] = (cfg.routes ?? []).map((r, i) => ({
+    id: `rt-${i}`,
+    name: '',
+    geojson: r.geojson,
+    color: r.color,
+    width: r.width,
+  }));
+
   const highlightRegions: HighlightRegion[] = (cfg.highlight?.regions ?? []).map((r, i) => ({
     id: `hr-${i}`,
     name: '',
@@ -59,6 +67,10 @@ export function applyRenderConfig(cfg: RenderConfig): void {
     showCountry: showText,
     showCoords: showText,
     markers,
+    // Ghi LUÔN LUÔN, kể cả mảng rỗng: store dùng chung giữa các lần render
+    // trong cùng tiến trình, nên set-có-điều-kiện sẽ để tuyến của lần trước
+    // còn nguyên trên bản đồ sau — đúng lớp lỗi mà `lockMap` từng mắc.
+    routes,
     highlightRegions,
     highlightEnabled: highlightRegions.length > 0,
     highlightFill: cfg.highlight?.fill ?? true,

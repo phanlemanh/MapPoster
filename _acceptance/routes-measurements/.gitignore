@@ -1,0 +1,4 @@
+# Ảnh demo sinh lại được bằng scripts/demo-routes.ts.
+# Đặt quy tắc TẠI ĐÂY chứ không ở .gitignore gốc: `_acceptance/**` nằm trong
+# risk_tiers.t1_skip_globs nên sửa file này không làm hết hiệu lực bằng chứng.
+demo/

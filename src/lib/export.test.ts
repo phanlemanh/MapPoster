@@ -65,4 +65,22 @@ describe('composeOverlays — baked attribution is the ONE permitted pixel-text 
 
     expect(textCalls).toEqual([ATTRIBUTION_TEXT]);
   });
+
+  it('pins the attribution CONTENT to a literal, not just to whatever the constant happens to say', () => {
+    // Khoá ở test trên ràng buộc SỐ LƯỢNG lệnh vẽ chữ (đúng một), nhưng nó so
+    // `textCalls` với chính hằng `ATTRIBUTION_TEXT` được import từ file đang
+    // kiểm — một so sánh TỰ THAM CHIẾU. Đổi nội dung hằng đó thành chuỗi bất kỳ
+    // mà vẫn giữ đúng một lệnh vẽ thì test kia vẫn xanh, và ngoại lệ pixel-text
+    // duy nhất được cấp phép sẽ chở một chuỗi không còn là dòng attribution.
+    //
+    // Ngoại lệ đó tồn tại VÌ nghĩa vụ giấy phép, nên nội dung của nó là một
+    // phần của bất biến, không phải chi tiết cài đặt. Ghim bằng literal độc lập.
+    expect(ATTRIBUTION_TEXT).toBe('© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre');
+
+    // Bốn bên phải được ghi công đứng riêng, để một lần "gọn hoá" chuỗi làm rơi
+    // mất một bên vẫn bị chặn kể cả khi ai đó cập nhật literal ở trên cho khớp.
+    for (const credit of ['OpenStreetMap', 'OpenMapTiles', 'OpenFreeMap', 'MapLibre']) {
+      expect(ATTRIBUTION_TEXT).toContain(credit);
+    }
+  });
 });

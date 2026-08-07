@@ -2,7 +2,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig, listFormats, summarizeHighlights, MAX_EDGE, type RenderMapParams } from './resolveConfig';
+import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
@@ -60,13 +60,21 @@ function fileNameFor(cfg: RenderConfig): string {
  * caller's behalf. Exported so the REST `/render` handler (http.ts) echoes the
  * identical shape instead of hand-rolling a second one that could drift.
  */
-export const resolvedOf = (cfg: RenderConfig) => ({
-  center: cfg.camera.center,
-  zoom: cfg.camera.zoom,
-  place: cfg.place,
-  theme: cfg.theme,
-  highlights: summarizeHighlights(cfg),
-});
+export const resolvedOf = (cfg: RenderConfig) => {
+  const measures = summarizeMeasures(cfg);
+  const hasMeasures = measures.pairs.length > 0 || measures.routes.length > 0 || measures.regions.length > 0;
+  return {
+    center: cfg.camera.center,
+    zoom: cfg.camera.zoom,
+    place: cfg.place,
+    theme: cfg.theme,
+    highlights: summarizeHighlights(cfg),
+    // Chỉ đính kèm khi có dữ liệu: một lời gọi không dùng routes/measure không
+    // nên phải trả tiền context cho hai mảng rỗng ở mọi response.
+    ...(cfg.routes?.length ? { routes: summarizeRoutes(cfg) } : {}),
+    ...(hasMeasures ? { measures } : {}),
+  };
+};
 
 export function makeTools(deps: ToolDeps) {
   const mode = (d?: DeliveryMode): DeliveryMode => d ?? deps.defaultDelivery ?? 'both';
@@ -344,6 +352,26 @@ const layerStateSchema = z
   .strict();
 const fontSchema = z.enum(['Space Grotesk', 'Montserrat', 'Playfair Display', 'Oswald', 'Bebas Neue', 'Merriweather']);
 
+/**
+ * Đúng MỘT trong `geojson` / `coords`. Dạng `coords` là dạng LLM sinh được tự
+ * nhiên; dạng `geojson` để chuyển tiếp output của router/GPX mà không phải bóc.
+ */
+const routeSchema = z
+  .object({
+    geojson: z.any().optional(),
+    coords: z.array(z.tuple([lng, lat])).min(2).optional(),
+    color: hexColor.optional(),
+    width: z.number().min(1).max(16).optional(),
+  })
+  .refine((r) => (r.geojson == null) !== (r.coords == null), {
+    message: 'pass exactly one of routes[].geojson or routes[].coords',
+  });
+
+const measureSchema = z
+  .object({ pairs: z.array(z.tuple([z.number().int().min(0), z.number().int().min(0)])).optional() })
+  .strict()
+  .optional();
+
 const renderMapShape = {
   location: locationSchema,
   highlight: highlightSchema,
@@ -356,6 +384,8 @@ const renderMapShape = {
   layers: layerStateSchema.optional(),
   detail: z.number().min(0).max(1).optional(),
   font: fontSchema.optional(),
+  routes: z.array(routeSchema).optional(),
+  measure: measureSchema,
   delivery: deliverySchema,
 };
 

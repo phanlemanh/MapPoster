@@ -141,6 +141,52 @@ describe('render_map', () => {
   });
 });
 
+describe('routes + measure (PR #2)', () => {
+  it('reaches the render config and echoes resolved.routes with a self-describing length name', async () => {
+    const res = await tools().render_map({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.85, 21.02], [105.86, 21.02], [105.86, 21.03]], color: '#ff0000', width: 8 }],
+    });
+
+    // tới được config => tới được pixel: applyRenderConfig set store.routes và
+    // mapStyle đã dựng layer route-line từ trước.
+    expect(lastCfg?.routes).toHaveLength(1);
+    expect(lastCfg?.routes?.[0]).toMatchObject({ color: '#ff0000', width: 8 });
+
+    const j = textJson(res);
+    expect(j.resolved.routes[0].pointCount).toBe(3);
+    expect(j.resolved.routes[0].lengthKm).toBeGreaterThan(2);
+    expect(j.resolved.routes[0]).not.toHaveProperty('km');
+  });
+
+  it('omits routes and measures entirely when the call uses neither', async () => {
+    const j = textJson(await tools().render_map({ location: { lng: 105.85, lat: 21.02 } }));
+    expect(j.resolved).not.toHaveProperty('routes');
+    expect(j.resolved).not.toHaveProperty('measures');
+  });
+
+  it('echoes straight-line distance and bearing for a requested point pair', async () => {
+    const j = textJson(await tools().render_map({
+      location: { lng: 105.85, lat: 21.02 },
+      highlight: { points: [{ lng: 105.8342, lat: 21.0278 }, { lng: 106.6297, lat: 10.8231 }] },
+      measure: { pairs: [[0, 1]] },
+    }));
+
+    expect(j.resolved.measures.pairs[0].straightLineKm).toBeGreaterThan(1132);
+    expect(j.resolved.measures.pairs[0].straightLineKm).toBeLessThan(1143);
+    expect(j.resolved.measures.pairs[0]).toMatchObject({ from: 0, to: 1 });
+  });
+
+  it('refuses a route that carries both geojson and coords', async () => {
+    const res = await tools().render_map({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.85, 21.02], [105.86, 21.02]], geojson: { type: 'FeatureCollection', features: [] } }],
+    } as never);
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/exactly one of/);
+  });
+});
+
 describe('render_variants', () => {
   it('renders one image per variant (AC-5)', async () => {
     const res = await tools().render_variants({ base: { location: 'HCMC', format: 'tiktok' }, variants: [{ theme: 'ocean' }, { theme: 'ruby' }] });

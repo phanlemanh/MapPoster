@@ -29,6 +29,15 @@ export interface RenderMarker {
   size: number;
 }
 
+/** A polyline drawn over the map. `buildMapStyle` merges every route into one
+ * FeatureCollection carrying per-feature `color`/`width`, so both are concrete
+ * here — the resolver fills the theme accent and the default width. */
+export interface RenderRoute {
+  geojson: GeoJSONFeatureCollection;
+  color: string;
+  width: number;
+}
+
 export type Chrome = 'clean' | 'label' | 'poster';
 
 export interface RenderConfig {
@@ -48,6 +57,9 @@ export interface RenderConfig {
     dim: boolean;
   };
   markers?: RenderMarker[];
+  routes?: RenderRoute[];
+  /** Echoed back through `resolved.measures`; the render page ignores it. */
+  measure?: { pairs?: [number, number][] };
   /** Motion clip script — the static renderFrame() path ignores this field. */
   motion?: MotionScript;
 }

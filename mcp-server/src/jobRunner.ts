@@ -127,7 +127,10 @@ export function createJobRunner({
       prepareClipRenderWithSlot(job.params as RenderMapParams, job.motionInput, release, env),
     );
     try {
-      const { frames, settle, anchors } = await deps.renderClip(cfg);
+      // MỘT đối tượng, truyền NGUYÊN cho `resolvedOfClip` — xem chú thích
+      // cùng chỗ trong tools.ts. Đây là file đã hai lần dính lỗi "sai biến".
+      const clipOut = await deps.renderClip(cfg);
+      const { frames, settle } = clipOut;
       const name = fileNameFor('clip', cfg.place.name);
       const settleOut = await deliver(settle, `${name}-settle`, 'url', { sinkDir: deps.sinkDir });
       const settleArtifact: JobArtifact = {
@@ -153,7 +156,7 @@ export function createJobRunner({
         return {
           status: 'done',
           artifacts: [settleArtifact],
-          resolved: resolvedOfClip(cfg, anchors),
+          resolved: resolvedOfClip(cfg, clipOut),
           motion: motionOut,
           degradeNote: `encode failed: ${(e as Error).message ?? String(e)}`,
         };
@@ -168,7 +171,7 @@ export function createJobRunner({
         return {
           status: 'failed',
           artifacts: [settleArtifact],
-          resolved: resolvedOfClip(cfg, anchors),
+          resolved: resolvedOfClip(cfg, clipOut),
           motion: motionOut,
           error: `clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
           errorKind: 'input',
@@ -187,7 +190,7 @@ export function createJobRunner({
         durationSec: motion.durationSec,
         fps: motion.fps,
       };
-      return { status: 'done', artifacts: [settleArtifact, clipArtifact], resolved: resolvedOfClip(cfg, anchors), motion: motionOut };
+      return { status: 'done', artifacts: [settleArtifact, clipArtifact], resolved: resolvedOfClip(cfg, clipOut), motion: motionOut };
     } finally {
       // Trả chỗ dù kết thúc bằng lối nào. Một slot rò rỉ trong hệ CÓ hàng chờ
       // không phải là chậm — nó là treo vĩnh viễn cho mọi người phía sau.

@@ -12,8 +12,7 @@ import { FONTS } from '../../src/data/fonts';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
-import type { ClipFrames } from './renderFrame';
-import type { ClipAnchors } from '../../src/render/anchors';
+import type { ClipFrames, ClipAnchorsOutcome } from './renderFrame';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
@@ -85,24 +84,31 @@ export const resolvedOf = (cfg: RenderConfig) => {
 };
 
 /**
- * `resolved` cho ĐƯỜNG CLIP: phần chung ở trên, cộng camera nghỉ và vị trí
- * điểm/vùng trên khung mà lần render này ĐO ĐƯỢC.
+ * `resolved` cho ĐƯỜNG CLIP: phần chung ở trên, cộng ĐÚNG MỘT trong hai —
+ * `camera` + `anchors` mà lần render này ĐO ĐƯỢC, hoặc `anchorsUnavailable`
+ * nói vì sao không đo được. Không bao giờ cả hai, không bao giờ không có gì:
+ * một trường vắng mặt là thứ agent không phân biệt được với "không có điểm
+ * nào", vì nó không nhìn thấy ảnh.
  *
- * `anchors` là tham số BẮT BUỘC, và đây là một hàm RIÊNG chứ không phải một
+ * `outcome` là tham số BẮT BUỘC, và đây là một hàm RIÊNG chứ không phải một
  * tham số tuỳ chọn của `resolvedOf`, có chủ ý: cả ba bề mặt (MCP render_clip,
  * REST /render-clip, /jobs) phải gọi hàm này, và bỏ sót nó là lỗi biên dịch
  * chứ không phải một khối `resolved` thiếu trường mà mọi test hành vi vẫn
  * xanh. `jobRunner.ts` đã hai lần dùng sai biến với 22/22 test xanh — kiểu dữ
- * liệu là thứ duy nhất bắt được lớp lỗi đó trước khi nó ra tới caller.
+ * liệu là thứ duy nhất bắt được lớp lỗi đó trước khi nó ra tới caller. Kiểu
+ * `ClipAnchorsOutcome` là union PHÂN BIỆT chứ không phải hai trường optional,
+ * nên trạng thái "vắng cả hai" cũng không dựng lên được.
  *
  * `camera` KHÁC `center`/`zoom` ở trên: hai trường kia là camera trong config
  * (điểm khởi hành), còn `camera` là camera tại `motion.restAtSec` — đúng khung
- * mà `anchors` được chiếu lên, nên hai thứ này luôn đi cùng nhau.
+ * mà `anchors` được chiếu lên, nên hai thứ này luôn đi cùng nhau, và cùng
+ * vắng mặt khi không đo được.
  */
-export const resolvedOfClip = (cfg: RenderConfig, anchors: ClipAnchors) => ({
+export const resolvedOfClip = (cfg: RenderConfig, outcome: ClipAnchorsOutcome) => ({
   ...resolvedOf(cfg),
-  camera: anchors.camera,
-  anchors: { points: anchors.points, regions: anchors.regions },
+  ...(outcome.anchors
+    ? { camera: outcome.anchors.camera, anchors: { points: outcome.anchors.points, regions: outcome.anchors.regions } }
+    : { anchorsUnavailable: outcome.anchorsUnavailable }),
 });
 
 export function makeTools(deps: ToolDeps) {
@@ -227,7 +233,11 @@ export function makeTools(deps: ToolDeps) {
           // trường `time` hay `size` là thứ phía tiêu thụ đoán sai đơn vị rồi
           // hiển thị sai — cùng lớp lỗi với `km` trần ở PR #2.
           const tRender = Date.now();
-          const { frames, settle: settlePng, anchors } = await deps.renderClip(cfg);
+          // MỘT đối tượng, truyền NGUYÊN cho `resolvedOfClip`. Bóc `anchors`
+          // ra thành biến riêng là mở lại đúng khe cho lớp lỗi "sai biến" —
+          // union chỉ giữ được bất biến khi nó không bị tháo rời.
+          const clipOut = await deps.renderClip(cfg);
+          const { frames, settle: settlePng } = clipOut;
           const renderMs = Date.now() - tRender;
 
           // The clip is written to a FILE under sinkDir and never inlined as
@@ -263,7 +273,7 @@ export function makeTools(deps: ToolDeps) {
             return ok({
               settle,
               motion: motionOut,
-              resolved: resolvedOfClip(cfg, anchors),
+              resolved: resolvedOfClip(cfg, clipOut),
               // Khung ĐÃ render — tiền đã tiêu. Nhánh degrade là chỗ caller cần
               // con số này nhất để quyết định thử lại hay hạ quality.
               cost: costOf(encodeMs, 0),
@@ -291,7 +301,7 @@ export function makeTools(deps: ToolDeps) {
             return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
               settle,
               motion: motionOut,
-              resolved: resolvedOfClip(cfg, anchors),
+              resolved: resolvedOfClip(cfg, clipOut),
             });
           }
 
@@ -302,7 +312,7 @@ export function makeTools(deps: ToolDeps) {
             cost: costOf(encodeMs, bytes),
             settle,
             motion: motionOut,
-            resolved: resolvedOfClip(cfg, anchors),
+            resolved: resolvedOfClip(cfg, clipOut),
           });
         } finally {
           // Decision 2: free the shared clip slot regardless of how this call

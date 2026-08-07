@@ -107,13 +107,48 @@ const calls = [...Object.values(CODE).join('\n').matchAll(/\banchors\(([^)]*)\)/
 const withArgs = calls.filter(Boolean);
 note(withArgs.length === 0, 'I2', withArgs.length === 0 ? `${calls.length} lời gọi anchors(), tất cả rỗng` : `lời gọi anchors() MANG tham số: ${withArgs.join(' | ')}`);
 
-// --- I3: cả ba bề mặt thật sự phát ra anchors -------------------------------
-// `resolvedOfClip` bắt buộc tham số anchors — bỏ sót là lỗi biên dịch chứ
+// --- I3: cả ba bề mặt thật sự phát ra MỘT TRONG HAI ------------------------
+// `resolvedOfClip` bắt buộc tham số outcome — bỏ sót là lỗi biên dịch chứ
 // không phải một khối `resolved` thiếu trường mà test hành vi vẫn xanh.
-const requiredParam = /export const resolvedOfClip = \(cfg: RenderConfig, anchors: ClipAnchors\)/.test(toolsSrc);
-note(requiredParam, 'I3', `resolvedOfClip nhận anchors BẮT BUỘC (không dấu ?): ${requiredParam}`);
-const emitsBoth = /camera: anchors\.camera/.test(toolsSrc) && /anchors: \{ points: anchors\.points, regions: anchors\.regions \}/.test(toolsSrc);
-note(emitsBoth, 'I3', `resolvedOfClip phát ra CẢ camera lẫn anchors: ${emitsBoth}`);
+const requiredParam = /export const resolvedOfClip = \(cfg: RenderConfig, outcome: ClipAnchorsOutcome\)/.test(toolsSrc);
+note(requiredParam, 'I3', `resolvedOfClip nhận outcome BẮT BUỘC (không dấu ?): ${requiredParam}`);
+
+// Union PHÂN BIỆT, không phải hai trường optional: `?: never` ở cả hai nhánh là
+// thứ khiến trạng thái "vắng cả hai" không dựng lên được.
+const discriminated =
+  /\{ anchors: ClipAnchors; anchorsUnavailable\?: never \}/.test(frameSrc) && /\{ anchors\?: never; anchorsUnavailable: string \}/.test(frameSrc);
+note(discriminated, 'I3', `ClipAnchorsOutcome là union phân biệt (?: never ở cả hai nhánh): ${discriminated}`);
+
+// CHẠY THẬT, không đọc regex: với mỗi nhánh outcome, khối `resolved` phải mang
+// ĐÚNG MỘT trong hai. Regex không nói được "cả hai" hay "không gì cả" — chỉ
+// gọi hàm mới nói được.
+const { resolvedOfClip } = (await import(path.join(repoRoot, 'mcp-server/src/tools.ts'))) as {
+  resolvedOfClip: (cfg: unknown, outcome: unknown) => Record<string, unknown>;
+};
+const probeCfg = {
+  camera: { center: [106.7, 10.78], zoom: 12 },
+  size: { width: 320, height: 568 },
+  theme: 'midnight-blue',
+  chrome: 'clean',
+  place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+  markers: [{ lng: 106.7, lat: 10.78, icon: 'pin', color: '#f43f5e', size: 32 }],
+};
+const probes: [string, unknown][] = [
+  ['đo được', { anchors: { camera: { center: [106.7, 10.78], zoom: 13, bearing: 0, pitch: 0 }, points: [], regions: [] } }],
+  ['không đo được', { anchorsUnavailable: 'camera.pitch is 30 — anchors require pitch 0.' }],
+];
+for (const [label, outcome] of probes) {
+  const r = resolvedOfClip(probeCfg, outcome);
+  const hasAnchors = 'anchors' in r;
+  const hasReason = 'anchorsUnavailable' in r;
+  note(
+    hasAnchors !== hasReason,
+    'I3',
+    `resolvedOfClip(${label}) phát ra ĐÚNG MỘT: anchors=${hasAnchors}, anchorsUnavailable=${hasReason}`,
+  );
+  // `camera` là số đo của cùng lần đọc anchors — nó phải đi và vắng cùng nhau.
+  note(('camera' in r) === hasAnchors, 'I3', `resolvedOfClip(${label}): camera đi cùng anchors (${'camera' in r})`);
+}
 
 const SURFACES: [string, string][] = [
   ['tools.ts (MCP render_clip)', toolsSrc],
@@ -121,30 +156,43 @@ const SURFACES: [string, string][] = [
   ['jobRunner.ts (/jobs)', jobSrc],
 ];
 for (const [name, src] of SURFACES) {
-  const uses = (src.match(/resolvedOfClip\(cfg, anchors\)/g) ?? []).length;
-  // Mỗi bề mặt có ĐÚNG một lời gọi renderClip, và `anchors` phải được bóc ra
-  // từ chính lời gọi đó — đây là chốt chống lớp lỗi "dùng sai biến".
+  const uses = (src.match(/resolvedOfClip\(cfg, clipOut\)/g) ?? []).length;
+  // Mỗi bề mặt có ĐÚNG một lời gọi renderClip, và outcome của chính lời gọi đó
+  // phải được truyền NGUYÊN — đây là chốt chống lớp lỗi "dùng sai biến".
   const renderCalls = (src.match(/deps\.renderClip\(/g) ?? []).length;
-  const destructured = (src.match(/const \{ frames, settle[^}]*anchors \} = await deps\.renderClip\(cfg\);/g) ?? []).length;
-  note(uses >= 1, 'I3', `${name}: ${uses} lối ra dùng resolvedOfClip(cfg, anchors)`);
+  const bound = (src.match(/const clipOut = await deps\.renderClip\(cfg\);/g) ?? []).length;
+  // Tháo rời union trước khi tới `resolvedOfClip` là mở lại đúng khe đó.
+  const tornApart = /anchors(?:Unavailable)?\s*[,}][^\n]*= await deps\.renderClip\(/.test(src);
+  note(uses >= 1, 'I3', `${name}: ${uses} lối ra dùng resolvedOfClip(cfg, clipOut)`);
   note(
-    renderCalls === 1 && destructured === 1,
+    renderCalls === 1 && bound === 1 && !tornApart,
     'I3',
-    `${name}: ${renderCalls} lời gọi deps.renderClip, ${destructured} chỗ bóc anchors ra từ chính nó (phải là 1/1 — nguồn khác là lớp lỗi "sai biến")`,
+    `${name}: ${renderCalls} lời gọi deps.renderClip, ${bound} chỗ giữ NGUYÊN outcome, tháo rời=${tornApart} (phải là 1/1/false)`,
   );
 }
 
 // Không lối ra clip nào còn dùng resolvedOf(cfg) trần: một khối `resolved`
 // thiếu camera/anchors trên MỘT nhánh degrade là đúng thứ không ai đối chiếu.
 for (const [name, src] of SURFACES) {
-  const clipBody = name.startsWith('tools') ? bodyOf(src, 'async render_clip(') : name.startsWith('jobRunner') ? bodyOf(src, 'async function runClip(') : src.slice(src.indexOf("if (req.url === '/render-clip')"), src.indexOf("if (jobs && (req.url === '/jobs'"));
+  const clipBody = name.startsWith('tools')
+    ? bodyOf(src, 'async render_clip(')
+    : name.startsWith('jobRunner')
+      ? bodyOf(src, 'async function runClip(')
+      : src.slice(src.indexOf("if (req.url === '/render-clip')"), src.indexOf("if (jobs && (req.url === '/jobs'"));
   const bare = (clipBody.match(/resolvedOf\(cfg\)/g) ?? []).length;
   note(bare === 0, 'I3', `${name}: ${bare} lối ra clip còn dùng resolvedOf(cfg) trần (phải là 0)`);
 }
 
-// ClipFrames mang anchors — kiểu là thứ bắt được thiếu sót ở BIÊN DỊCH.
-const clipFramesHasAnchors = /export interface ClipFrames \{[^}]*anchors: ClipAnchors;/s.test(frameSrc);
-note(clipFramesHasAnchors, 'I3', `ClipFrames khai báo anchors bắt buộc: ${clipFramesHasAnchors}`);
+// ClipFrames mang outcome — kiểu là thứ bắt được thiếu sót ở BIÊN DỊCH.
+const clipFramesHasOutcome = /export type ClipFrames = \{[^}]*\} & ClipAnchorsOutcome;/s.test(frameSrc);
+note(clipFramesHasOutcome, 'I3', `ClipFrames giao với ClipAnchorsOutcome: ${clipFramesHasOutcome}`);
+
+// Nhánh không-đo-được BỎ QUA anchors(), không gọi-rồi-nuốt-lỗi: một `catch`
+// quanh anchors() nuốt luôn chốt camera-ở-restAtSec.
+const skipsNotCatches =
+  /if \(anchorsUnavailable !== undefined\) \{\s*return \{ frames, settle, anchorsUnavailable \};/.test(frameSrc) &&
+  !/catch[^\n]*\n[^\n]*anchorsUnavailable/.test(frameSrc);
+note(skipsNotCatches, 'I3', `renderClipFrames BỎ QUA anchors() khi biết trước không đo được (không catch): ${skipsNotCatches}`);
 
 // --- I4: hai mẫu số, và bộ test phân biệt được ------------------------------
 const twoDenominators = /const xPct = \(p\.x \/ frame\.cssW\) \* 100;/.test(anchorsSrc) && /const yPct = \(p\.y \/ frame\.cssH\) \* 100;/.test(anchorsSrc);
@@ -186,9 +234,21 @@ for (const [label, re] of FORBIDDEN) {
   note(!re.test(body), 'I5', `thân anchors() KHÔNG chứa ${label}: ${!re.test(body)}`);
 }
 
-// Gọi ngay SAU lần chụp settle, không có lời gọi nào chen giữa.
-const settleThenAnchors = /const settleUrl: string = await page\.evaluate\([\s\S]*?\}, motion\.restAtSec\);\s*(?:\/\/[^\n]*\n\s*)*const anchors: ClipAnchors = await page\.evaluate\(/.test(frameSrc);
-note(settleThenAnchors, 'I5', `renderFrame.ts gọi anchors() NGAY SAU lần chụp settle: ${settleThenAnchors}`);
+// Gọi ngay SAU lần chụp settle: giữa hai chỗ đó KHÔNG được có lời gọi nào vào
+// trang. Kiểm bằng cách cắt đúng đoạn ở giữa rồi soi, thay vì một regex dài
+// khoá cứng từng dòng — đoạn giữa được phép chứa toán thuần (dựng Buffer,
+// nhánh anchorsUnavailable), nhưng không được chứa một lượt vào trang nào.
+const settleEnd = frameSrc.indexOf('}, motion.restAtSec);');
+const anchorsCall = frameSrc.indexOf('const anchors: ClipAnchors = await page.evaluate(');
+const gap = settleEnd >= 0 && anchorsCall > settleEnd ? frameSrc.slice(settleEnd, anchorsCall) : null;
+const gapClean = gap !== null && !/page\.evaluate|renderMotionFrame|jumpTo|setCamera/.test(stripComments(gap));
+note(
+  gapClean,
+  'I5',
+  gap === null
+    ? 'KHÔNG tìm được cặp settle→anchors trong renderFrame.ts'
+    : `giữa lần chụp settle và anchors() không có lượt vào trang nào (${gap.length} ký tự đệm)`,
+);
 
 console.log('');
 if (failures.length) {

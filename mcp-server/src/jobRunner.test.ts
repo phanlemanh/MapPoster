@@ -316,6 +316,27 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(resolvedOf(b.id).camera.zoom).toBe(resolvedOf(b.id).zoom + 1);
   });
 
+  it('PR #6: renderer không đo được anchors ⇒ việc VẪN xong, resolved mang anchorsUnavailable', async () => {
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    const store = createJobStore();
+    const deps = clipDeps({
+      renderClip: vi.fn(async () => ({ frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchorsUnavailable: REASON })),
+    } as Partial<ToolDeps>);
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.status).toBe('done'); // pitch không làm hỏng việc
+    expect(rec.artifacts.map((a) => a.role).sort()).toEqual(['clip', 'settle']);
+    const resolved = rec.resolved as Record<string, unknown>;
+    expect(resolved.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in resolved).toBe(false);
+    expect('camera' in resolved).toBe(false);
+  });
+
   it('PR #6: degrade encoder và từ chối quá cỡ VẪN mang camera + anchors', async () => {
     const store = createJobStore();
     const degradeDeps = clipDeps({

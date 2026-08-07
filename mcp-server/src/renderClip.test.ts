@@ -110,7 +110,10 @@ suite('renderClipFrames (integration)', () => {
   }, 240_000);
 
   it('trả anchors đo tại restAtSec cùng với khung (PR #6)', async () => {
-    const { anchors } = await renderClipFrames(config, { appUrl: app.url, pool, configStore });
+    const out = await renderClipFrames(config, { appUrl: app.url, pool, configStore });
+    // Union phân biệt: khẳng định nhánh trước rồi mới đọc, thay vì `!` che mắt.
+    expect(out.anchorsUnavailable).toBeUndefined();
+    const anchors = out.anchors!;
 
     // camera nghỉ = keyframe cuối (zoom 13 tại t=1.1, restAtSec=1.4 ⇒ clamp)
     expect(anchors.camera.zoom).toBeCloseTo(13, 6);
@@ -132,11 +135,25 @@ suite('renderClipFrames (integration)', () => {
     expect(y1).toBeGreaterThan(50);
   }, 120_000);
 
-  it('từ chối pitch != 0 TRƯỚC khi tiêu một khung nào, nêu đích danh pitch', async () => {
-    await expect(
-      renderClipFrames({ ...config, camera: { ...config.camera, pitch: 45 } }, { appUrl: app.url, pool, configStore }),
-    ).rejects.toThrow(/pitch/i);
-  });
+  it('pitch != 0: clip VẪN render đủ khung + settle, chỉ anchors vắng mặt kèm lý do', async () => {
+    // `applyRenderConfig` áp pitch lúc nạp trang và `cameraAt` không phát
+    // pitch, nên `jumpTo` mỗi khung KHÔNG reset nó: clip nghiêng là một năng
+    // lực ĐANG CHẠY ĐƯỢC. Từ chối cả clip ở đây sẽ gỡ mất nó.
+    const out = await renderClipFrames(
+      { ...config, camera: { ...config.camera, pitch: 45 } },
+      { appUrl: app.url, pool, configStore },
+    );
+
+    expect(out.frames).toHaveLength(24); // 12 × 2 — đủ khung, không thiếu cái nào
+    for (const f of out.frames) {
+      expect(f.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    }
+    expect(out.settle.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+
+    expect(out.anchors).toBeUndefined();
+    expect(out.anchorsUnavailable).toMatch(/pitch/i);
+    expect(out.anchorsUnavailable).toMatch(/45/);
+  }, 120_000);
 
   it('throws a clear error when config has no motion script', async () => {
     await expect(renderClipFrames({ ...config, motion: undefined }, { appUrl: app.url, pool, configStore })).rejects.toThrow(/no motion/i);

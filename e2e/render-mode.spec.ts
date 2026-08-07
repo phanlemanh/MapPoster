@@ -323,24 +323,39 @@ test('anchors: NỔ TO khi camera không ở restAtSec, thay vì trả toạ đ�
   expect(message).toMatch(/zoom|center/);
 });
 
-test('anchors: pitch != 0 bị TỪ CHỐI, thông điệp nêu đích danh pitch', async ({ page }) => {
+test('anchors: pitch != 0 — KHUNG VẪN RENDER, chỉ anchors() từ chối, nêu đích danh pitch', async ({ page }) => {
+  // Camera nghiêng là một năng lực ĐANG CHẠY ĐƯỢC: `applyRenderConfig` áp pitch
+  // lúc nạp trang và `cameraAt` không phát pitch, nên `jumpTo` mỗi khung không
+  // reset nó. Test này khoá cả hai nửa lại — khung vẫn ra, anchors thì không.
   await page.goto('/render.html?config=' + b64url(anchorsConfig({ pitch: 45 })));
   await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
 
-  const message = await page.evaluate(async () => {
+  const out = await page.evaluate(async () => {
     const api = (window as unknown as MapPosterWindow).__mapposter;
     await api.ready;
-    await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    const mid = await api.renderMotionFrame(0.5);
+    const rest = await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    const pitch = (window as unknown as { __map: { getPitch(): number } }).__map.getPitch();
+    let message: string;
     try {
       api.anchors();
-      return 'KHÔNG NÉM';
+      message = 'KHÔNG NÉM';
     } catch (e) {
-      return (e as Error).message;
+      message = (e as Error).message;
     }
+    return { mid: mid.dataUrl, rest: rest.dataUrl, pitch, message };
   });
 
-  expect(message).toMatch(/pitch/i);
-  expect(message).toMatch(/45/);
+  // nửa "năng lực còn nguyên": map thật sự nghiêng, và cả hai khung đều ra ảnh
+  expect(out.pitch).toBeCloseTo(45, 6);
+  expect(out.mid.startsWith('data:image/png')).toBe(true);
+  expect(out.rest.startsWith('data:image/png')).toBe(true);
+  expect(out.rest.length).toBeGreaterThan(2000);
+  expect(out.rest).not.toBe(out.mid);
+
+  // nửa "chốt còn nguyên": chỉ anchors() từ chối
+  expect(out.message).toMatch(/pitch/i);
+  expect(out.message).toMatch(/45/);
 });
 
 test('motion: verifyAndReapplyGeoAt guards a reverted highlight source even when highlight.fill is false (Finding 1)', async ({ page }) => {

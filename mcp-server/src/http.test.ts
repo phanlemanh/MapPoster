@@ -459,7 +459,7 @@ interface ClipResBody {
   clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
   settle?: { base64: string; format: string; width: number; height: number };
   motion?: { preset?: string; restAtSec: number; script?: { fps: number; camera: unknown[] } };
-  resolved?: { center: [number, number]; zoom: number; camera?: ClipAnchors['camera']; anchors?: { points: ClipAnchors['points']; regions: ClipAnchors['regions'] } };
+  resolved?: { center: [number, number]; zoom: number; camera?: ClipAnchors['camera']; anchors?: { points: ClipAnchors['points']; regions: ClipAnchors['regions'] }; anchorsUnavailable?: string };
   clipError?: string;
 }
 
@@ -544,6 +544,33 @@ describe('POST /render-clip', () => {
     const overBody = (await over.json()) as ClipResBody;
     expect(overBody.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
     expect(overBody.resolved?.anchors?.points).toHaveLength(1);
+  });
+
+  it('renderer không đo được anchors ⇒ 200 kèm anchorsUnavailable, clip vẫn ra đời (PR #6)', async () => {
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          return { frames: [PNG_1x1], settle: PNG_1x1, anchorsUnavailable: REASON };
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      camera: { pitch: 30 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(true);
+    expect(body.clip?.format).toBe('mp4'); // pitch không làm hỏng clip
+    expect(body.resolved?.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in (body.resolved as object)).toBe(false);
+    expect('camera' in (body.resolved as object)).toBe(false);
   });
 
   it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {

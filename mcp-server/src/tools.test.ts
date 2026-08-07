@@ -31,7 +31,7 @@ vi.mock('./geocode', () => ({
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
-import { makeTools, type ToolResult } from './tools';
+import { makeTools, resolvedOfClip, type ToolResult } from './tools';
 import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipAnchors } from '../../src/render/anchors';
@@ -476,6 +476,41 @@ describe('compile_motion (PR #3)', () => {
   });
 });
 
+describe('resolvedOfClip — ĐÚNG MỘT trong hai (PR #6)', () => {
+  const cfg = {
+    camera: { center: [106.7, 10.78] as [number, number], zoom: 12 },
+    size: { width: 320, height: 568 },
+    theme: 'midnight-blue',
+    chrome: 'clean' as const,
+    place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+    markers: [{ lng: 106.7, lat: 10.78, icon: 'pin' as const, color: '#f43f5e', size: 32 }],
+  };
+
+  it('có anchors ⇒ phát camera + anchors, KHÔNG phát anchorsUnavailable', () => {
+    const r = resolvedOfClip(cfg, { anchors: fakeAnchors(cfg) }) as Record<string, unknown>;
+    expect(r.camera).toEqual({ center: [106.7, 10.78], zoom: 13, bearing: 0, pitch: 0 });
+    expect(r.anchors).toBeDefined();
+    expect('anchorsUnavailable' in r).toBe(false);
+  });
+
+  it('không đo được ⇒ phát anchorsUnavailable, KHÔNG phát anchors lẫn camera', () => {
+    const r = resolvedOfClip(cfg, { anchorsUnavailable: 'camera.pitch is 30 — anchors require pitch 0.' }) as Record<string, unknown>;
+    expect(r.anchorsUnavailable).toMatch(/pitch/);
+    expect('anchors' in r).toBe(false);
+    // camera đi cùng anchors: nó là số đo của cùng một lần đọc, không phải
+    // echo lại cfg.camera. Không đo được thì cũng không có camera nghỉ.
+    expect('camera' in r).toBe(false);
+  });
+
+  it('không nhánh nào phát ra CẢ HAI hay KHÔNG GÌ CẢ', () => {
+    const outcomes = [{ anchors: fakeAnchors(cfg) }, { anchorsUnavailable: 'lý do bất kỳ' }];
+    for (const o of outcomes) {
+      const r = resolvedOfClip(cfg, o) as Record<string, unknown>;
+      expect(('anchors' in r) !== ('anchorsUnavailable' in r), JSON.stringify(o).slice(0, 40)).toBe(true);
+    }
+  });
+});
+
 describe('render_clip', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
   const region = { highlight: { regions: ['District 1'] } };
@@ -531,6 +566,46 @@ describe('render_clip', () => {
     // anchors KHÔNG được nuốt phần resolved cũ
     expect(j.resolved.place).toBeDefined();
     expect(j.resolved.highlights.points).toHaveLength(1);
+  });
+
+  it('renderer không đo được anchors ⇒ resolved mang anchorsUnavailable trên MỌI lối ra, không im lặng bỏ trống', async () => {
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    const tiltedClip = vi.fn(async (cfg: RenderConfig) => {
+      lastCfg = cfg;
+      return {
+        frames: [fakePng(cfg.size.width, cfg.size.height)],
+        settle: fakePng(cfg.size.width, cfg.size.height),
+        anchorsUnavailable: REASON,
+      };
+    });
+
+    const okJson = textJson(
+      await makeTools({ render, renderClip: tiltedClip, encodeAnimation, sinkDir, defaultDelivery: 'both' }).render_clip({
+        location: 'HCMC',
+        ...point,
+        motion: { preset: 'pushIn' },
+      }),
+    );
+    // Clip vẫn ra đời — pitch không làm hỏng clip, chỉ làm anchors mất nghĩa.
+    expect(typeof okJson.clip.path).toBe('string');
+    expect(okJson.resolved.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in okJson.resolved).toBe(false);
+    expect('camera' in okJson.resolved).toBe(false);
+
+    const degraded = textJson(
+      await makeTools({
+        render,
+        renderClip: tiltedClip,
+        encodeAnimation: vi.fn(async () => {
+          throw new Error('ffmpeg boom');
+        }),
+        sinkDir,
+        defaultDelivery: 'both',
+      }).render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } }),
+    );
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in degraded.resolved).toBe(false);
   });
 
   it('resolved.anchors.regions theo đúng thứ tự cfg.highlight.regions', async () => {

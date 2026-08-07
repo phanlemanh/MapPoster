@@ -364,8 +364,17 @@ measured optima — there is no production load to tune against yet. Design:
 
 Alongside the MCP transport, the same HTTP server exposes four plain-REST
 endpoints for callers that just want JSON in, image/video out, and don't speak
-JSON-RPC — same `Host`/`Origin` guard and optional bearer token
-(`MAPPOSTER_TOKEN`) as everything else on this server. Two are synchronous
+JSON-RPC — same `Host`/`Origin` guard and same bearer token
+(`MAPPOSTER_TOKEN`) as every other route, **including the `/mcp` transport
+itself**. That was not always true: the bearer check was copied into each REST
+route while the MCP fall-through — the branch that catches everything else —
+had none, so this sentence described a guard the code did not apply. There is
+now one shared check, so a new route cannot be added without one.
+
+`MAPPOSTER_TOKEN` stays optional for loopback use, but the server **refuses to
+start** when `MAPPOSTER_HTTP_HOST` binds outside loopback and no token is set.
+These tools drive a headless browser and write files; a deployment that forgot
+the token should fail loudly at boot rather than serve unauthenticated. Two are synchronous
 (`/render`, `/render-clip`); two submit and poll a job (`/jobs`,
 `/jobs/status`). All four are `POST` — the server answers **405** to every
 other method, and `render.yaml` deliberately declares no health-check path, so

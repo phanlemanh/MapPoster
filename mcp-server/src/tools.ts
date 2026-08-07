@@ -424,15 +424,28 @@ const fontSchema = z.enum(['Space Grotesk', 'Montserrat', 'Playfair Display', 'O
  * Đúng MỘT trong `geojson` / `coords`. Dạng `coords` là dạng LLM sinh được tự
  * nhiên; dạng `geojson` để chuyển tiếp output của router/GPX mà không phải bóc.
  */
+/** Toạ độ hoặc tên địa danh — tên đi qua cùng anchor quốc gia mà highlight dùng. */
+const placeOrCoord = z.union([z.tuple([lng, lat]), z.string().min(1)]);
+
 const routeSchema = z
   .object({
     geojson: z.any().optional(),
     coords: z.array(z.tuple([lng, lat])).min(2).optional(),
+    // Hỏi router đường đi THỰC TẾ. Host router đến từ env, không bao giờ từ đây.
+    route: z
+      .object({
+        from: placeOrCoord,
+        to: placeOrCoord,
+        via: z.array(placeOrCoord).optional(),
+        mode: z.enum(['car', 'moto', 'walk']).optional(),
+      })
+      .strict()
+      .optional(),
     color: hexColor.optional(),
     width: z.number().min(1).max(16).optional(),
   })
-  .refine((r) => (r.geojson == null) !== (r.coords == null), {
-    message: 'pass exactly one of routes[].geojson or routes[].coords',
+  .refine((r) => [r.geojson, r.coords, r.route].filter((v) => v != null).length === 1, {
+    message: 'pass exactly one of routes[].geojson, routes[].coords or routes[].route',
   });
 
 const measureSchema = z

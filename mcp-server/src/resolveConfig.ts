@@ -3,6 +3,7 @@ import { LAYOUTS } from '../../src/data/layouts';
 import { THEMES, DEFAULT_THEME_ID } from '../../src/data/themes';
 import type { FontKey, GeoJSONFeatureCollection, LayerKey, LayerState, MarkerIconKey } from '../../src/types';
 import type { Chrome, RenderCamera, RenderConfig, RenderHighlightRegion, RenderMarker, RenderRoute } from '../../src/render/renderConfig';
+import { resolveRoute, type RouteMode } from './route';
 import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, centroidOf, spanKmOf, type LngLat } from './geometry';
 import { FONTS } from '../../src/data/fonts';
 import { MARKER_ICONS } from '../../src/data/markers';
@@ -14,6 +15,13 @@ export type FormatInput = string | { width: number; height: number };
 export interface RouteInput {
   geojson?: GeoJSONFeatureCollection;
   coords?: [number, number][];
+  /** Hỏi router đường đi THỰC TẾ bám đường. from/to nhận toạ độ hoặc tên địa danh. */
+  route?: {
+    from: [number, number] | string;
+    to: [number, number] | string;
+    via?: ([number, number] | string)[];
+    mode?: RouteMode;
+  };
   color?: string;
   width?: number;
 }
@@ -334,21 +342,47 @@ function bboxOfGeojsons(list: (GeoJSONFeatureCollection | undefined)[]): [number
  * `theme` truyền vào để lấy accent làm màu mặc định — giữ tuyến hợp tông với bản đồ
  * thay vì đóng cứng một màu.
  */
-export function resolveRoutes(inputs: RouteInput[] | undefined, themeId: string): RenderRoute[] {
+export async function resolveRoutes(
+  inputs: RouteInput[] | undefined,
+  themeId: string,
+  anchor?: string,
+): Promise<RenderRoute[]> {
   const accent = THEMES.find((t) => t.id === themeId)?.colors.accent ?? '#e8b04b';
-  return (inputs ?? []).map((r) => {
-    const hasGeojson = r.geojson != null;
-    const hasCoords = r.coords != null;
-    if (hasGeojson === hasCoords) {
-      throw new Error('Invalid routes[]: pass exactly one of routes[].geojson or routes[].coords');
+  const out: RenderRoute[] = [];
+
+  for (const r of inputs ?? []) {
+    const forms = [r.geojson != null, r.coords != null, r.route != null].filter(Boolean).length;
+    if (forms !== 1) {
+      throw new Error('Invalid routes[]: pass exactly one of routes[].geojson, routes[].coords or routes[].route');
     }
-    const geojson = hasCoords ? coordsToLineString(r.coords as [number, number][]) : assertGeojson(r.geojson, 'routes[].geojson');
-    return {
-      geojson,
+
+    const style = {
       color: r.color != null ? assertColor(r.color, 'routes[].color') : accent,
       width: r.width != null ? assertRouteWidth(r.width) : DEFAULT_ROUTE_WIDTH,
     };
-  });
+
+    if (r.route) {
+      // Tên địa danh đi qua ĐÚNG anchor quốc gia mà highlight dùng — nếu không,
+      // "Bến Thành" có thể thành một chỗ trùng tên ở nước khác và tuyến sẽ vắt
+      // ngang địa cầu mà không có lỗi nào.
+      const at = async (v: [number, number] | string, label: string): Promise<[number, number]> =>
+        typeof v === 'string' ? (await resolveLocation(v, anchor)).center : assertLngLat(v[0], v[1]);
+
+      const routed = await resolveRoute({
+        from: await at(r.route.from, 'routes[].route.from'),
+        to: await at(r.route.to, 'routes[].route.to'),
+        via: await Promise.all((r.route.via ?? []).map((v, i) => at(v, `routes[].route.via[${i}]`))),
+        mode: r.route.mode,
+      });
+      out.push({ geojson: routed.geojson, ...style, distanceKm: routed.distanceKm, durationMin: routed.durationMin, provider: routed.provider });
+      continue;
+    }
+
+    const geojson = r.coords ? coordsToLineString(r.coords) : assertGeojson(r.geojson, 'routes[].geojson');
+    out.push({ geojson, ...style });
+  }
+
+  return out;
 }
 
 function coordsToLineString(coords: [number, number][]): GeoJSONFeatureCollection {
@@ -378,6 +412,14 @@ export interface ResolvedRoute {
   /** Chiều dài polyline — tổng các đoạn, KHÔNG phải đường chim bay đầu-cuối. */
   lengthKm: number;
   pointCount: number;
+  /**
+   * Chỉ có khi tuyến đi qua router. `distanceKm` là quãng đường ROUTER báo,
+   * khác `lengthKm` mà ta tự đo trên polyline đã decimate — hai phép đo khác
+   * nhau, cùng tồn tại thay vì gộp làm một con số mập mờ.
+   */
+  distanceKm?: number;
+  durationMin?: number;
+  provider?: string;
 }
 
 export function summarizeRoutes(cfg: RenderConfig): ResolvedRoute[] {
@@ -385,6 +427,9 @@ export function summarizeRoutes(cfg: RenderConfig): ResolvedRoute[] {
     bbox: bboxOfGeojsons([r.geojson]),
     lengthKm: polylineLengthMeters(routeCoords(r.geojson)) / 1000,
     pointCount: routeCoords(r.geojson).length,
+    // Chỉ đính khi tuyến ĐI QUA router — đây là sự thật của router, không phải
+    // thứ suy ra được từ một polyline caller tự vẽ.
+    ...(r.distanceKm != null ? { distanceKm: r.distanceKm, durationMin: r.durationMin, provider: r.provider } : {}),
   }));
 }
 
@@ -594,7 +639,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     });
   }
 
-  const routes = resolveRoutes(params.routes, theme);
+  const routes = await resolveRoutes(params.routes, theme, anchor);
 
   // Cap TỔNG: từng payload đã qua MAX_GEOJSON_BYTES, nhưng nhiều payload hợp lệ
   // cộng lại vẫn đủ giết trang render. Tính sau khi resolve để đo đúng thứ sẽ đi

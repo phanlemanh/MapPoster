@@ -1,0 +1,121 @@
+schema_version: 1
+feature_slug: road-routing
+
+# surfaces: [api] — không bề mặt web UI, không phán đoán nghiệp vụ. Không có
+# eval `judgment` lẫn `ui-check`; eval design bỏ theo §2b của skill.
+#
+# Mọi eval dùng fetch giả — KHÔNG gọi instance OSRM công cộng. Một bộ eval đập
+# vào hạ tầng cộng đồng mỗi lần chạy là chính thứ README cảnh báo đừng làm.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; URL gửi đi chứa overview=full và geometries=geojson; trả LineString kèm km/phút"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; tuyến routed cho resolved.routes[i] mang distanceKm/durationMin/provider BÊN CẠNH lengthKm/bbox/pointCount"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-EMIT — tuyến caller tự vẽ có lengthKm nhưng distanceKm/durationMin/provider UNDEFINED, không phải 0"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-ACCEPT — entry mang cả coords lẫn route bị từ chối kèm /exactly one of/"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; from/to dạng tên gọi resolveLocation với anchor 'Vietnam' — cùng anchor highlight dùng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; URL chứa '1,1;1.5,1.5;2,2' — via nằm giữa from và to, đúng thứ tự"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; OSRM_PROFILE.moto === 'driving' và provider khớp /driving/ — ánh xạ được ghi ra chứ không giấu"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E8
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; SHOULD-NOT-REFETCH — yêu cầu trùng chỉ gọi fetch 1 lần; và SHOULD-REFETCH — khác mode thì gọi 2 lần (mode nằm trong khoá cache)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E9
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; upstream treo bị HUỶ và ném lỗi /timed out/; và mọi fetch mang signal (không signal thì không thể timeout)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; NoRoute ném /no route/i; HTTP 503 ném lỗi nêu MAPPOSTER_OSRM_URL — không trả đường rỗng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E11
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; SHOULD-NOT-FETCH — toạ độ ngoài miền bị từ chối và fetch assert .not.toHaveBeenCalled()"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.route
+    expected: "exit 0; 5000 điểm xuống <= 700, giữ nguyên hai đầu; và SHOULD-NOT-TOUCH — tuyến ngắn giữ nguyên không đổi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E13
+    criterion: AC-13
+    executor: script
+    cmd: config:executors.script.routing_invariants
+    expected: "exit 0; I1 t3_path không đổi; I2 host chỉ từ env MAPPOSTER_OSRM_URL, không chữ ký export nào nhận host/url, toạ độ qua Number(); I3 mọi fetch mang signal + lỗi timeout nêu env; I4 không import export.ts/mapStyle.ts"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E14
+    criterion: AC-14
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; camera.focus kind:'route' ôm đúng tuyến routed"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E15
+    criterion: AC-13
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; toàn bộ Vitest xanh — resolveRoutes chuyển sang async không phá hành vi nào đang có"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E16
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; MCP integration có gác — vite build thật, PNG và clip thật qua Chromium headless"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

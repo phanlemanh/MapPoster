@@ -32,6 +32,7 @@ vi.mock('./geocode', () => ({
 }));
 
 import { makeTools, resolvedOfClip, type ToolResult } from './tools';
+import { listFormats } from './resolveConfig';
 import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipAnchors } from '../../src/render/anchors';
@@ -263,6 +264,34 @@ describe('discovery tools', () => {
     expect(Object.keys(themes[0].colors)).toContain('accent');
   });
 
+  it('MỖI theme trong 13 cái đều đủ id/name/dark và ĐÚNG 15 khoá bảng màu', async () => {
+    // Bản cũ chỉ soi `themes[0]`. Một hồi quy bỏ một khoá bảng màu ở CẢ 13
+    // theme vẫn xanh, và trường `name` mà AC-9 đòi thì không khẳng định nào
+    // chạm tới. "Mỗi cái" và "15 khoá" phải được canh gác đúng như đã hứa.
+    const { themes } = textJson(await tools().list_themes());
+    expect(themes).toHaveLength(13);
+
+    const KEYS = Object.keys(themes[0].colors).sort();
+    expect(KEYS).toHaveLength(15);
+
+    for (const t of themes as { id: string; name: string; dark: boolean; colors: Record<string, string> }[]) {
+      expect(typeof t.id, t.id).toBe('string');
+      expect(t.id.length, t.id).toBeGreaterThan(0);
+      expect(typeof t.name, t.id).toBe('string');
+      expect(t.name.length, t.id).toBeGreaterThan(0);
+      expect(typeof t.dark, t.id).toBe('boolean');
+      // CÙNG bộ khoá cho mọi theme: thiếu một khoá ở một theme là một bản đồ
+      // mất hẳn một lớp khi agent đổi tông, chứ không phải sai lệch thẩm mỹ.
+      expect(Object.keys(t.colors).sort(), t.id).toEqual(KEYS);
+      for (const [k, v] of Object.entries(t.colors)) {
+        expect(v, `${t.id}.${k}`).toMatch(/^#[0-9a-fA-F]{3,8}$/);
+      }
+    }
+    // và có cả theme sáng lẫn tối — `dark` không phải hằng số trá hình
+    const darks = new Set((themes as { dark: boolean }[]).map((t) => t.dark));
+    expect(darks).toEqual(new Set([true, false]));
+  });
+
   it('list_formats dedupes 4k and carries aspect/category/print', async () => {
     const { formats } = textJson(await tools().list_formats());
     expect(formats.filter((f: { name: string }) => f.name === '4k')).toHaveLength(1);
@@ -271,6 +300,56 @@ describe('discovery tools', () => {
     const a4 = formats.find((f: { name: string }) => f.name === 'a4');
     expect(a4.category).toBe('Print');
     expect(a4.print).toEqual({ w: 210, h: 297, unit: 'mm' });
+  });
+
+  it('MỖI mục formats có aspect + category, và `print` VẮNG MẶT hẳn ở layout không in', async () => {
+    // Nửa CÓ MẶT của `print` đã được canh (a4). Nửa còn lại — "key ABSENT, chứ
+    // không phải undefined" — chưa từng có khẳng định nào, mà đó mới là mệnh đề
+    // khó: JSON.stringify nuốt `undefined`, nên một hiện thực gán
+    // `print: undefined` cho mọi mục trông y hệt qua dây, và chỉ `in` phân biệt
+    // được hai thứ đó ở phía object.
+    const { formats } = textJson(await tools().list_formats());
+    expect(formats.length).toBeGreaterThan(0);
+
+    let printed = 0;
+    for (const f of formats as { name: string; aspect: string; category: string; print?: unknown }[]) {
+      expect(typeof f.aspect, f.name).toBe('string');
+      expect(f.aspect, f.name).toMatch(/^\d+:\d+$/);
+      expect(typeof f.category, f.name).toBe('string');
+      expect(f.category.length, f.name).toBeGreaterThan(0);
+
+      if (f.category === 'Print') {
+        printed++;
+        expect(f.print, f.name).toMatchObject({ unit: expect.stringMatching(/^(mm|in)$/) });
+      } else {
+        expect(f.print, f.name).toBeUndefined();
+      }
+    }
+    expect(printed).toBeGreaterThan(0); // có thật mục Print, không phải nhánh chết
+  });
+
+  it('`print` VẮNG MẶT hẳn khỏi object — đo TRƯỚC JSON, vì JSON nuốt undefined', async () => {
+    // Mệnh đề "key ABSENT, không phải undefined" KHÔNG đo được qua `textJson`:
+    // `JSON.stringify` bỏ hẳn mọi giá trị undefined, nên `{print: undefined}`
+    // và object không có khoá `print` ra dây y hệt nhau. Đo ở chính hàm dựng —
+    // đó là nơi khác biệt còn tồn tại, và là nơi mọi consumer trong tiến trình
+    // nhìn thấy nó.
+    const formats = listFormats();
+    let absent = 0;
+    let present = 0;
+    for (const f of formats) {
+      if (f.category === 'Print') {
+        expect(Object.hasOwn(f, 'print'), f.name).toBe(true);
+        present++;
+      } else {
+        // `toBeUndefined()` ở đây sẽ xanh cả với `print: undefined` — chính là
+        // thứ phải loại trừ. Chỉ `hasOwn` phân biệt được.
+        expect(Object.hasOwn(f, 'print'), f.name).toBe(false);
+        absent++;
+      }
+    }
+    expect(present).toBeGreaterThan(0);
+    expect(absent).toBeGreaterThan(0);
   });
 
   it('gives every FORMATS entry its own correct category, not a blanket Video (Finding 4)', async () => {

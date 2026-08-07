@@ -15,7 +15,7 @@ evals:
     criterion: AC-2
     executor: test
     cmd: config:executors.test.job_http
-    expected: "exit 0; thiếu location / zoom ngoài dải / kind lạ đều trả 400 với chuỗi đọc được (KHÔNG phải ZodError thô); và assert sổ việc vẫn rỗng sau mỗi ca — chứng minh không bản ghi nào được tạo"
+    expected: "exit 0; thiếu location / kinh độ ngoài dải / zoom ngoài dải / kind lạ / clip thiếu motion đều trả 400 với chuỗi đọc được (KHÔNG phải ZodError thô); zoom đi vào qua HAI cửa nên có ca cho cả hai — `location.zoom` và `camera.zoom` — kèm cả đầu dưới của dải, nên gỡ bound `min(0).max(22)` khỏi zoomLevel làm lane này ĐỎ; và assert sổ việc vẫn rỗng sau mỗi ca — chứng minh không bản ghi nào được tạo"
     paths: ["mcp-server/src/http.ts", "mcp-server/src/http.test.ts", "mcp-server/src/jobStore.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
@@ -62,7 +62,7 @@ evals:
     executor: test
     cmd: config:executors.test.job_runner
     layer: backend-effect
-    expected: "exit 0; đường dẫn thợ THỰC SỰ ghi ra trùng khít đường dẫn lưu trong bản ghi việc; và trạng thái chỉ lật sang 'done' SAU khi lệnh ghi hoàn tất (đọc tệp ngay lúc thấy 'done' không bao giờ ra ENOENT hay nội dung rỗng)"
+    expected: "exit 0; đường dẫn thợ THỰC SỰ ghi ra trùng khít đường dẫn lưu trong bản ghi việc; và trạng thái chỉ lật sang 'done' SAU khi lệnh ghi hoàn tất — quan sát ĐÚNG khoảnh khắc lật bằng cách bọc `store.finish` rồi đọc tệp SYNC ngay trong đó, chứ không phải sau `drain()` (lúc cả hai sự kiện đã qua thì thứ tự giữa chúng không còn quan sát được): tại thời điểm ấy tệp phải TỒN TẠI và ĐỦ BYTE, so bằng chính buffer thợ ghi chứ không phải một `stat()` không chạm nội dung. Hiện thực gọi finish rồi mới await lần ghi, hoặc để tệp rỗng lúc lật, đều làm lane này ĐỎ"
     paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
@@ -115,7 +115,7 @@ evals:
     criterion: AC-10
     executor: test
     cmd: config:executors.test.clip_slot_lifecycle
-    expected: "exit 0; lối lấy-có-chờ: người chờ được đánh thức theo đúng thứ tự xếp hàng; slot được ĐƯỜNG SẢN XUẤT trả (không phải test tự gọi hàm nhả) khi lời gọi giữ nó kết thúc bằng thành công, bằng ném lỗi, và bằng đường xuống-cấp; đồng thời lối ném-ngay CŨ giữ nguyên hành vi (hết chỗ là ném, không chờ)"
+    expected: "exit 0; lối lấy-có-chờ: người chờ được đánh thức theo đúng thứ tự xếp hàng; slot được ĐƯỜNG SẢN XUẤT trả (không phải test tự gọi hàm nhả) khi lời gọi giữ nó kết thúc bằng thành công, bằng ném lỗi, và bằng đường xuống-cấp; đồng thời lối ném-ngay CŨ giữ nguyên hành vi (hết chỗ là ném, không chờ). Nhánh THÀNH CÔNG chạy thật: `prepareClipRenderWithSlot` nhận đầu vào hợp lệ và `prep` được khẳng định có mặt, không còn bọc trong `if (prep)` sau một `.catch(() => undefined)` — đầu vào cũ luôn reject nên ba khẳng định của nhánh ấy chưa từng được thực thi. Kiểm chứng: nhả slot ngay lúc chuẩn bị xong rồi trả về hàm nhả rỗng làm lane này ĐỎ, còn bản cũ vẫn xanh trước cùng mutant đó"
     paths: ["mcp-server/src/motionCompiler.ts", "mcp-server/src/motionCompiler.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 

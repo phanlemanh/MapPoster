@@ -909,6 +909,12 @@ describe('POST /jobs + POST /jobs/status', () => {
     const bads: unknown[] = [
       { kind: 'render' },                                             // thiếu params
       { kind: 'render', params: { location: { lng: 999, lat: 0 } } }, // kinh độ ngoài dải
+      // AC-2 nói "zoom ngoài dải → 400", nhưng bảng này trước đây chỉ có kinh
+      // độ — không ca nào chạm `zoomLevel` (z.number().min(0).max(22)). Zoom
+      // đi vào qua HAI cửa khác nhau, nên cả hai đều phải có ca:
+      { kind: 'render', params: { location: { lng: 106.7, lat: 10.78, zoom: 99 } } }, // zoom trong location
+      { kind: 'render', params: { location: 'x', camera: { zoom: 99 } } },            // zoom trong camera
+      { kind: 'render', params: { location: 'x', camera: { zoom: -1 } } },            // và đầu dưới của dải
       { kind: 'la-lam', params: { location: 'x' } },                  // loại việc lạ
       { kind: 'clip', params: { location: 'x' } },                    // clip mà thiếu motion
     ];

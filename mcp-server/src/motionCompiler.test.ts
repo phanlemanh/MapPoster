@@ -274,20 +274,34 @@ describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => 
   });
 
   it('slot được ĐƯỜNG SẢN XUẤT giao lại khi chuẩn bị THÀNH CÔNG — kèm trong ClipPreparation', async () => {
+    // NHÁNH CHẾT ĐÃ GỠ: bản cũ truyền `{ script: { fps: 12, durationSec: 1,
+    // camera: [] } }` — script đó KHÔNG BAO GIỜ hợp lệ (durationSec < 2, thiếu
+    // restAtSec, camera rỗng, thiếu tracks), nên `prepareClipRenderWithSlot`
+    // luôn reject, `.catch(() => undefined)` nuốt lỗi, `prep` luôn `undefined`
+    // và cả khối `if (prep)` không bao giờ chạy. Ba khẳng định mang đúng tên
+    // mệnh đề của ca test này là trang trí trong một lane nghiệm thu. Đầu vào
+    // dưới đây HỢP LỆ, và `prep` được khẳng định là có thật thay vì được canh
+    // sau một `if`.
     const release = acquireClipSlot();
     const prep = await prepareClipRenderWithSlot(
-      { location: { lng: 106.7, lat: 10.78 }, size: { width: 540, height: 960 } } as never,
-      { script: { fps: 12, durationSec: 1, camera: [] } },
+      {
+        location: { lng: 106.7, lat: 10.78 },
+        size: { width: 540, height: 960 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      } as never,
+      { preset: 'pushIn' },
       release,
-    ).catch(() => undefined);
+    );
 
-    // Dù nhánh này có đi tới cùng hay không, bất biến là: hết chỗ thì lối
-    // ném-ngay vẫn ném — chỗ không bao giờ bị cấp thừa.
-    if (prep) {
-      expect(prep.releaseClipSlot).toBeTypeOf('function');
-      expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError); // vẫn đang giữ
-      prep.releaseClipSlot();
-    }
+    // Nhánh THÀNH CÔNG thật sự chạy tới đây — không còn `if` nào bọc ngoài.
+    expect(prep).toBeDefined();
+    expect(prep.motion.camera.length).toBeGreaterThan(1); // đã compile ra script thật
+    expect(prep.releaseClipSlot).toBeTypeOf('function');
+    // slot vẫn ĐANG được giữ: chuẩn bị xong không có nghĩa là nhả chỗ, chỗ
+    // phải theo lời gọi cho tới lúc render xong.
+    expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError);
+
+    prep.releaseClipSlot();
     expect(() => acquireClipSlot()).not.toThrow(); // trả rồi thì lấy lại được
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { promises as fsp } from 'node:fs';
+import { promises as fsp, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -119,7 +119,37 @@ describe('createJobRunner — chạy việc', () => {
   });
 
   it("AC-5: trạng thái chỉ lật sang 'done' SAU khi ghi xong — không bao giờ đọc ra ENOENT", async () => {
-    const store = createJobStore();
+    // Đo ĐÚNG LÚC lật, không phải sau `drain()`.
+    //
+    // Bản cũ đọc tệp sau khi `drain()` trả về, tức sau CẢ hai sự kiện — thứ tự
+    // giữa chúng không quan sát được, nên một hiện thực gọi
+    // `store.finish({status:'done'})` RỒI MỚI `await deliver(...)` vẫn xanh.
+    // Và `fsp.stat(...).resolves.toBeDefined()` không hề chạm mệnh đề "nội
+    // dung rỗng": nó không đọc byte nào, không xem cả `size`.
+    //
+    // Bọc `store.finish` là điểm quan sát duy nhất trùng khít khoảnh khắc lật:
+    // mọi thứ hợp đồng hứa phải ĐÃ đúng ngay trước khi nó chạy.
+    const inner = createJobStore();
+    const atFinish: { path: string; bytes: Buffer | Error }[] = [];
+    const store = {
+      ...inner,
+      create: inner.create.bind(inner),
+      get: inner.get.bind(inner),
+      finish: (id: string, patch: Parameters<typeof inner.finish>[1], t: number) => {
+        for (const a of patch.artifacts ?? []) {
+          // readFileSync CỐ Ý: một `await` ở đây nhường lượt cho event loop và
+          // cho phép một lần ghi đang bay về đích trước khi ta nhìn — đúng thứ
+          // phép kiểm này đi loại trừ.
+          try {
+            atFinish.push({ path: a.path, bytes: readFileSync(a.path) });
+          } catch (e) {
+            atFinish.push({ path: a.path, bytes: e as Error });
+          }
+        }
+        return inner.finish(id, patch, t);
+      },
+    } as unknown as ReturnType<typeof createJobStore>;
+
     const runner = createJobRunner({ store, deps: makeDeps(), workers: 1 });
     const job = store.create({ kind: 'render', params: { location: 'Thừa Thiên Huế' }, nowMs: 1 });
 
@@ -128,7 +158,14 @@ describe('createJobRunner — chạy việc', () => {
 
     const rec = store.get(job.id)!;
     expect(rec.status).toBe('done');
-    await expect(fsp.stat(rec.artifacts[0].path)).resolves.toBeDefined();
+
+    // Điểm quan sát thật sự chạy — không phải một khối chết.
+    expect(atFinish).toHaveLength(1);
+    expect(atFinish[0].path).toBe(rec.artifacts[0].path);
+    // NGAY LÚC lật trạng thái: tệp đã tồn tại (không ENOENT) và đã ĐỦ BYTE
+    // (không rỗng, không ghi dở) — cả hai nửa của lời hứa, đo tại chỗ.
+    expect(atFinish[0].bytes, `ENOENT lúc finish: ${String(atFinish[0].bytes)}`).toBeInstanceOf(Buffer);
+    expect(atFinish[0].bytes).toEqual(PNG_1x1);
   });
 
   it('AC-6: địa danh không tra được → hỏng vì NGƯỜI GỌI', async () => {

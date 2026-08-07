@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import type { Map as MlMap } from 'maplibre-gl';
 import { composeOverlays, ATTRIBUTION_TEXT, type ComposeOpts } from './export';
 import { getFont } from '../data/fonts';
+import { applyRenderConfig } from '../render/applyRenderConfig';
+import { usePosterStore } from '../store/usePosterStore';
+import type { RenderConfig } from '../render/renderConfig';
+import { formatCoords } from './format';
 
 /**
  * A fake 2D context that records every `fillText`/`strokeText` call and
@@ -34,36 +38,71 @@ function fakeMap(): MlMap {
   return { getCanvas: () => ({ clientWidth: 1080, width: 1080 }) } as unknown as MlMap;
 }
 
+/**
+ * Cùng phép dựng khối `text` mà trang render dùng thật (`textFromStore` ở
+ * src/render/main.tsx): ĐỌC từ store sau `applyRenderConfig`, không tự khai
+ * `show`. Đây là mắt xích mà AC-9 dựa vào — `chrome:'clean' ⇒ showText false`
+ * (applyRenderConfig.ts:24). Khai thẳng `show: false` ở test thì mắt xích ấy
+ * KHÔNG được đi qua: đổi hằng thành `showText = true` vẫn để lane này xanh
+ * trong khi chữ poster đã bị nướng vào pixel clip.
+ */
+function textFromStore(): ComposeOpts['text'] {
+  const s = usePosterStore.getState();
+  return {
+    city: s.location.name,
+    country: s.location.country,
+    coords: formatCoords(s.location.lat, s.location.lng),
+    show: s.showText,
+    showCity: s.showCity,
+    showCountry: s.showCountry,
+    showCoords: s.showCoords,
+    font: getFont(s.font),
+    color: '#ffffff',
+  };
+}
+
+const posterCfg = (chrome: RenderConfig['chrome']): RenderConfig => ({
+  camera: { center: [105.85, 21.03], zoom: 13 },
+  size: { width: 1080, height: 1920 },
+  theme: 'midnight-blue',
+  chrome,
+  // Nội dung chữ poster ĐƯỢC điền thật: nếu một thay đổi tương lai bỏ chốt
+  // `text.show` (hoặc thêm một lệnh vẽ chữ khác), sẽ có thêm fillText và
+  // khẳng định dưới đây đỏ.
+  place: { name: 'Hanoi', country: 'Vietnam', lat: 21.03, lng: 105.85 },
+});
+
 describe('composeOverlays — baked attribution is the ONE permitted pixel-text exception (spec §2.3)', () => {
-  it('draws ONLY the attribution string when chrome is clean (text.show=false, as clips force)', async () => {
+  it("chrome:'clean' ⇒ chữ DUY NHẤT lên canvas là attribution — đi qua đúng mắt xích chrome→showText", async () => {
     const { ctx, textCalls } = createTextSpyCtx();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ctx as unknown as RenderingContext);
 
-    const base = document.createElement('canvas');
-    // Poster text fields are populated with real content — if a future change
-    // un-guards `drawPosterText` (or adds any other text draw) instead of
-    // gating strictly on `text.show`, this would produce EXTRA fillText
-    // calls and the assertion below would fail.
-    const opts: ComposeOpts = {
-      width: 1080,
-      height: 1920,
-      markers: [],
-      text: {
-        city: 'Hanoi',
-        country: 'Vietnam',
-        coords: "21.03°N 105.85°E",
-        show: false,
-        showCity: true,
-        showCountry: true,
-        showCoords: true,
-        font: getFont('Space Grotesk'),
-        color: '#ffffff',
-      },
-    };
+    // KHÔNG đặt `show` bằng tay: `chrome` là thứ duy nhất được khai ở đây.
+    applyRenderConfig(posterCfg('clean'));
+    expect(usePosterStore.getState().showText, 'chrome clean phải tắt chữ poster').toBe(false);
 
-    await composeOverlays(fakeMap(), base, opts);
+    const opts: ComposeOpts = { width: 1080, height: 1920, markers: [], text: textFromStore() };
+    await composeOverlays(fakeMap(), document.createElement('canvas'), opts);
 
     expect(textCalls).toEqual([ATTRIBUTION_TEXT]);
+  });
+
+  it("ĐỐI CHỨNG: chrome:'poster' đi qua CÙNG đường và vẽ THÊM chữ — nên ca 'clean' không xanh vì canvas câm", async () => {
+    // Không có nửa này, một `composeOverlays` không vẽ gì cả (hoặc một spy hỏng
+    // không ghi nhận được lệnh nào) vẫn làm ca trên xanh. Nửa này bắt buộc cùng
+    // đường mã ấy PHẢI sinh ra chữ khi chrome cho phép.
+    const { ctx, textCalls } = createTextSpyCtx();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ctx as unknown as RenderingContext);
+
+    applyRenderConfig(posterCfg('poster'));
+    expect(usePosterStore.getState().showText).toBe(true);
+
+    const opts: ComposeOpts = { width: 1080, height: 1920, markers: [], text: textFromStore() };
+    await composeOverlays(fakeMap(), document.createElement('canvas'), opts);
+
+    expect(textCalls).toContain(ATTRIBUTION_TEXT);
+    expect(textCalls.length, 'chrome poster phải vẽ chữ poster NGOÀI attribution').toBeGreaterThan(1);
+    expect(textCalls.join('\n')).toContain('Hanoi');
   });
 
   it('pins the attribution CONTENT to a literal, not just to whatever the constant happens to say', () => {

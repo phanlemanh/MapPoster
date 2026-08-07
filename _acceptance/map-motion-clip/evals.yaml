@@ -89,7 +89,7 @@ evals:
     criterion: AC-9
     executor: test
     cmd: config:executors.test.text_free
-    expected: "exit 0; với chrome:'clean' chữ DUY NHẤT vẽ lên canvas là dòng attribution (mọi fillText/strokeText khác làm đỏ); buildMapStyle phát 0 symbol layer khi roadLabels off và đúng ['road-label-major'] khi on"
+    expected: "exit 0; với chrome:'clean' chữ DUY NHẤT vẽ lên canvas là dòng attribution (mọi fillText/strokeText khác làm đỏ) — và `text.show` KHÔNG được khai bằng tay: test gọi applyRenderConfig(chrome:'clean') rồi đọc store đúng như textFromStore() của trang render, nên mắt xích thật `chrome → showText` (applyRenderConfig.ts:24) nằm TRONG lane; đổi hằng đó thành `showText = true` làm lane ĐỎ. Kèm ĐỐI CHỨNG chrome:'poster' đi cùng đường phải vẽ THÊM chữ (>1 lệnh, có 'Hanoi'), nên ca 'clean' không thể xanh vì canvas câm; buildMapStyle phát 0 symbol layer khi roadLabels off và đúng ['road-label-major'] khi on"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # ── AC-11: encoder hỏng → degrade, không sập, không rò file (should-NOT-crash)

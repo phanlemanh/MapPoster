@@ -1,17 +1,54 @@
 ---
 schema_version: 2
 feature_slug: motion-tools-cost
-verdict: PASS
-failed_evals: []
+verdict: REJECT
+failed_evals: [E1, E18]
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: motion-tools-cost
+
+## Vòng 7 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E1 (AC-1) — `restAtSec` nằm trong danh sách `expected` nhưng không có khẳng định nào.**
+
+`expected` viết: *"`compile_motion` trả `script`/`fps`/`durationSec`/**`restAtSec`**/`frames`/
+`preset`/`resolved`; `frames = round(durationSec × fps)`"*.
+
+Khối test (`mcp-server/src/tools.test.ts:430-437`) khẳng định `j.script.camera.length`,
+`j.fps`, `j.durationSec`, `j.frames`, `j.preset`, `j.resolved.center`, và
+`expect(render).not.toHaveBeenCalled()`. **`restAtSec` không xuất hiện trong bất kỳ khẳng
+định nào của khối này** — chuỗi `restAtSec` gần đó (`tools.test.ts:~421`) là một trường ĐẦU
+VÀO của request, không phải phép kiểm trên phản hồi. Xoá `restAtSec` khỏi phản hồi của
+`compile_motion` thì cả 59 ca vẫn xanh.
+
+**E18 (AC-?) — mệnh đề về nhánh `encodeQuality` không có khẳng định trong lane của chính nó.**
+
+`expected` gắn giá trị của lane vào việc nó gác nhánh "sau khi nâng `encodeQuality` ra khỏi
+`try` resolve — nhánh mà lỗi block-scope từng biến thành degrade im lặng". Quét
+`mcp-server/src/http.test.ts` cho `encodeQuality`/`quality` ra **0 kết quả**. Lane này chứng
+minh "không hồi quy" (57/57 xanh) — hoàn toàn hợp lệ như một regression guard — nhưng nó
+không gác cái nhánh mà `expected` nêu tên. (Ghi nhận từ lane kiểm phụ, chưa tự đối chiếu
+từng dòng như E1.)
 
 _**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
 
@@ -49,180 +86,182 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E2
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E3
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E4
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E5
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E6
-  run_id: motion-tools-cost-r6-resolve_config-20260807
+  run_id: motion-tools-cost-r7-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E7
-  run_id: motion-tools-cost-r6-resolve_config-20260807
+  run_id: motion-tools-cost-r7-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E8
-  run_id: motion-tools-cost-r6-resolve_config-20260807
+  run_id: motion-tools-cost-r7-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E9
-  run_id: motion-tools-cost-r6-resolve_config-20260807
+  run_id: motion-tools-cost-r7-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E10
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E11
-  run_id: motion-tools-cost-r6-encode_animation-20260807
+  run_id: motion-tools-cost-r7-encode_animation-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.encode_animation
-  verified_at: 2026-08-07T04:51:01Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.
 
 - eval: E12
-  run_id: motion-tools-cost-r6-encode_animation-20260807
+  run_id: motion-tools-cost-r7-encode_animation-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.encode_animation
-  verified_at: 2026-08-07T04:51:01Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.
 
 - eval: E13
-  run_id: motion-tools-cost-r6-encode_animation-20260807
+  run_id: motion-tools-cost-r7-encode_animation-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.encode_animation
-  verified_at: 2026-08-07T04:51:01Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.
 
 - eval: E14
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E15
-  run_id: motion-tools-cost-r6-clip_tools-20260807
+  run_id: motion-tools-cost-r7-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E16
-  run_id: motion-tools-cost-r6-motion_tools_invariants-20260807
+  run_id: motion-tools-cost-r7-motion_tools_invariants-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.script.motion_tools_invariants
-  verified_at: 2026-08-07T04:51:05Z
+  verified_at: 2026-08-07T05:58:14Z
   output: |
     Cùng lần chạy — khẳng định của AC-16 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I4 ok — motion-tools-invariants: moi bat bien con giu — present and passing.
 
 - eval: E17
-  run_id: motion-tools-cost-r6-job_runner-20260807
+  run_id: motion-tools-cost-r7-job_runner-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T04:50:54Z
+  verified_at: 2026-08-07T05:58:03Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E18
-  run_id: motion-tools-cost-r6-clip_http-20260807
+  run_id: motion-tools-cost-r7-clip_http-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E19
-  run_id: motion-tools-cost-r6-api-20260807
+  run_id: motion-tools-cost-r7-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E20
-  run_id: motion-tools-cost-r6-mcp-20260807
+  run_id: motion-tools-cost-r7-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 ## Analyst
@@ -236,6 +275,8 @@ Baseline `n-a` (carried forward, could not be computed): E16.
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 7 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0. **REJECT trên [E1, E18]**: E1 liệt kê `restAtSec` trong danh sách trường mà `compile_motion` trả, nhưng khối test `tools.test.ts:430-437` không có khẳng định nào trên trường đó; E18 gắn giá trị của lane vào nhánh `encodeQuality`, mà `http.test.ts` không nhắc `encodeQuality`/`quality` một lần nào. Ghi nhận thêm, KHÔNG đánh trượt vì `expected` của chúng trung thực còn AC thì rộng hơn: AC-12 nêu preset `medium` mà `encodeAnimation.test.ts` chỉ khẳng định `veryfast`/`slow`; AC-15 nêu `renderMs > 0` mà test chỉ khẳng định `typeof … === 'number'`; AC-10 nêu `titleTracking` mà không khẳng định nào chạm nó. Và một cảnh báo về I1 của E16: nó đo `git diff mergeBase..HEAD` trên nhánh HIỆN TẠI, mà nhánh này là `feat/anchors-camera` — 39 tệp đổi đều thuộc PR khác, nên I1 hiện không còn đo diff của gói motion-tools nữa. Nó chỉ có sức phân biệt khi chạy trên nhánh của chính gói đó.
 
 Vòng 6 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`/`jobRunner.ts`. Cả 20 eval chạy lại tươi — 20/20 xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 

@@ -1,17 +1,48 @@
 ---
 schema_version: 2
 feature_slug: road-routing
-verdict: PASS
-failed_evals: []
+verdict: REJECT
+failed_evals: [E2]
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: road-routing
+
+## Vòng 5 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E2 (AC-2) — `bbox` và `pointCount` được nêu tên nhưng không được khẳng định ở nhánh routed.**
+
+`expected` viết: *"tuyến routed cho `resolved.routes[i]` mang `distanceKm`/`durationMin`/
+`provider` **BÊN CẠNH** `lengthKm`/`bbox`/`pointCount`"*.
+
+Ca test tương ứng (`mcp-server/src/resolveConfig.test.ts:507-523`, "accepts a route request and
+echoes distance/duration beside the geometry") khẳng định đúng bốn trường:
+`r.distanceKm` (`:516`), `r.durationMin` (`:517`), `r.provider` (`:518`), `r.lengthKm` (`:522`).
+**Không dòng nào chạm `bbox` hay `pointCount`.** Hai trường đó chỉ được khẳng định ở ca tuyến
+do người gọi tự vẽ (`:462-463`, thuộc E9), tức ở nhánh KHÁC.
+
+Rủi ro thực tế thấp — `summarizeRoutes` tính chúng vô điều kiện (`resolveConfig.ts:427-429`) —
+nhưng "rủi ro thấp" không phải tiêu chuẩn: mệnh đề được nêu tên ở nhánh routed thì phải có
+khẳng định ở nhánh routed, nếu không một hiện thực bỏ `bbox` đúng ở nhánh đó vẫn xanh.
 
 _**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
 
@@ -45,145 +76,146 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E2
-  run_id: road-routing-r4-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E3
-  run_id: road-routing-r4-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: road-routing-r4-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: road-routing-r4-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E7
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E8
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E9
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E10
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E11
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E12
-  run_id: road-routing-r4-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:06Z
   output: |
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E13
-  run_id: road-routing-r4-routing_invariants-20260807
+  run_id: road-routing-r5-routing_invariants-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.script.routing_invariants
-  verified_at: 2026-08-07T04:51:05Z
+  verified_at: 2026-08-07T05:58:13Z
   output: |
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I4 ok — routing-invariants: moi bat bien con giu — present and passing.
 
 - eval: E14
-  run_id: road-routing-r4-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E15
-  run_id: road-routing-r4-api-20260807
+  run_id: road-routing-r5-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E16
-  run_id: road-routing-r4-mcp-20260807
+  run_id: road-routing-r5-mcp-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 ## Analyst
@@ -197,6 +229,8 @@ Baseline `n-a` (carried forward, could not be computed): E1, E2, E3, E4, E5, E6,
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 5 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 16 eval chạy lại tươi, 16/16 thoát 0 (`route.test.ts` 13, `resolveConfig.test.ts` 64, script 7 bất biến, `npm test` 527/9/536, `test:mcp` 12/12). **REJECT trên [E2]**: `expected` nêu `bbox`/`pointCount` "bên cạnh" trên nhánh tuyến routed, nhưng ca test ở `resolveConfig.test.ts:507-523` không khẳng định hai trường đó (chúng chỉ được khẳng định ở nhánh tuyến vẽ tay, `:462-463`). Ba eval khác được soi kỹ và GIỮ NGUYÊN PASS dù yếu: E5 (mock luôn trả `country: 'Vietnam'` nên một hằng cứng cũng qua — vẫn phân biệt được với "không có anchor"), E12 (không có cận DƯỚI cho số điểm sau decimate), E14 ("ôm đúng tuyến" thực chất là một `toBeCloseTo` trên `center[0]`). E16 không bị đánh trượt vì lý do như mcp-auth E10, nhưng nó gắn `criterion: AC-1` mà không chứng minh gì về AC-1.
 
 Vòng 4 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3`. Cả 16 eval chạy lại tươi — 16/16 xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 

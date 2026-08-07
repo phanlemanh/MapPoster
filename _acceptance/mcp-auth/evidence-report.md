@@ -1,17 +1,63 @@
 ---
 schema_version: 2
 feature_slug: mcp-auth
-verdict: PASS
-failed_evals: []
+verdict: REJECT
+failed_evals: [E8]
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: mcp-auth
+
+## Vòng 4 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E8 (AC-8) — mệnh đề nhân quả về README không có gì canh gác.**
+
+`expected` viết: *"chạy cùng script — bất biến I2/I3 là thứ **giữ cho câu README** ('bearer
+áp cho cả `/mcp`') tiếp tục đúng thay vì trôi lại thành sai như trước"*. AC-8 thì nói thẳng
+hơn: *"Given README, When đọc phần REST, Then nó mô tả đúng thực tế"*.
+
+`_acceptance/mcp-auth/scripts/auth-invariants.ts` chỉ đọc **một** tệp — `mcp-server/src/http.ts`
+(`:34`, qua `read()` ở `:18`). Không có một lời gọi nào đọc `README.md`; quét cả script cho
+chuỗi `README` không ra kết quả. Hệ quả cụ thể: sửa README trở lại câu SAI cũ ("bearer chỉ áp
+cho REST") thì E8 vẫn thoát 0 và AC-8 vẫn được ghi là đạt. **AC-8 hiện có 0 khẳng định chống
+lưng.** Bản thân README hôm nay đúng (`README.md:413-420`, `:541`) — nhưng đó là may, không
+phải là được gác.
+
+Cách sửa: hoặc thêm một bất biến I5 đọc `README.md` và đối chiếu câu đó với `http.ts`, hoặc
+hạ AC-8 xuống thành mục tài liệu không có eval và nói rõ nó không được canh gác.
+
+### Ngoài ra: HAI sai số trong chính bản ghi bằng chứng của vòng trước (đã sửa ở vòng này)
+
+1. Khối `- eval: E9` ghi `run_id: mcp-auth-r3-api-20260807` với `verified_at` 04:48:51Z (vòng 3,
+   ghim `9c1f9f3`) nhưng phần `output` lại chép *"Re-run at `ce0b13e` … Tests **498** passed | 7
+   skipped (505)"* — số của một vòng KHÁC. `npm test` ở `9c1f9f3` cho `527 passed | 9 skipped
+   (536)`, và khối E15 của `road-routing` — CÙNG một lần gọi `npm test`, cùng dấu thời gian
+   04:48:51Z trong `run-log.jsonl` — ghi đúng 527/9/536. Tức phần `output` của E9 mô tả một lần
+   chạy không phải lần chạy mà `run_id` của nó trỏ tới. Vòng này viết lại theo số đo thật.
+2. Dòng tường thuật của Vòng 3 viết *"`http.test.ts` 54 → **61** ca"*. Số thật là **57**
+   (`Tests 57 passed (57)`, khớp với chính khối E1 của báo cáo này). Vòng này ghi đúng.
+
+Hai lỗi trên không làm lệch verdict, nhưng chúng là đúng thứ `recheck-evidence.js` không bắt
+được (nó kiểm hình dạng và xuất xứ `run_id`, không đọc văn xuôi) — nên phải ghi ra.
 
 _**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
 
@@ -156,11 +202,11 @@ and was done, not recorded as `n-a`.
 ## Evidence
 
 - eval: E1
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Re-run at ce0b13e. mcp-server/src/http.test.ts describe('auth: cửa /mcp và luật fail-closed
     (P0)') — 'gác /mcp bằng CÙNG bearer với /render' — MAPPOSTER_TOKEN set, POST /mcp with no
@@ -169,22 +215,22 @@ and was done, not recorded as `n-a`.
     touches the separate E6 case).
 
 - eval: E2
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Re-run at ce0b13e. Same test as E1, second half — POST /mcp with `authorization: Bearer nope`
     → expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 57 passed
     (54).
 
 - eval: E3
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Re-run at ce0b13e. 'vẫn cho qua khi bearer đúng' — MAPPOSTER_TOKEN set, POST /mcp with
     `authorization: Bearer secret` → expect(ok.status).toBe(200) — confirmed passing. Non-
@@ -192,33 +238,33 @@ and was done, not recorded as `n-a`.
     returned 200 before this fix.
 
 - eval: E4
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Re-run at ce0b13e. 'KHÔNG đòi bearer khi không đặt token' — no MAPPOSTER_TOKEN, default host
     (loopback), POST /mcp with no Authorization header → expect(res.status).toBe(200) — confirmed
     passing; local dev on loopback with no token configured still works.
 
 - eval: E5
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Re-run at ce0b13e. 'TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token' —
     startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['example.com'],...}) with no token →
     await expect(...).rejects.toThrow(/MAPPOSTER_TOKEN/) — confirmed passing.
 
 - eval: E6
-  run_id: mcp-auth-r3-clip_http-20260807
+  run_id: mcp-auth-r4-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     FIXED this round (commit ce0b13e). 'cho phép bind ngoài loopback KHI đã có token' —
     MAPPOSTER_TOKEN set, startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['127.0.0.1'],...})
@@ -232,11 +278,11 @@ and was done, not recorded as `n-a`.
     fail-closed check of any kind.
 
 - eval: E7
-  run_id: mcp-auth-r3-auth_invariants-20260807
+  run_id: mcp-auth-r4-auth_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T04:51:04Z
+  verified_at: 2026-08-07T05:58:13Z
   output: |
     Re-run at ce0b13e (script inspects mcp-server/src/http.ts, which is unchanged this round —
     only http.test.ts changed). I1 t3_path untouched vs ab66f49d. I2 exactly 1 bearer-comparison
@@ -246,33 +292,37 @@ and was done, not recorded as `n-a`.
     message names both the env var and the fix. auth-invariants: mọi bất biến còn giữ.
 
 - eval: E8
-  run_id: mcp-auth-r3-auth_invariants-20260807
+  run_id: mcp-auth-r4-auth_invariants-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T04:51:04Z
+  verified_at: 2026-08-07T05:58:13Z
   output: |
     Same run as E7 — I2/I3 (exactly one comparison, all 4 doors gated) are precisely the invariants
     that keep README's "bearer áp cho cả /mcp" claim true.
 
 - eval: E9
-  run_id: mcp-auth-r3-api-20260807
+  run_id: mcp-auth-r4-api-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
-    Re-run at ce0b13e per explicit instruction (test file changed). Full Vitest suite — Test Files
-    31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — số ca tăng so với vòng trước vì gói anchors-camera thêm test của chính nó vào cùng cây.
-    Confirms the E6 test-only edit (and, transitively, the underlying refactor) changed no
-    observable behaviour on any of the three REST routes (/render, /render-clip, /jobs).
+    Đo lại ở a46aec7 trong vòng 4 — Test Files 33 passed | 2 skipped (35);
+    Tests 527 passed | 9 skipped (536). (Bản ghi vòng 3 ở đúng chỗ này chép nhầm số của một
+    vòng KHÁC — "31 passed | 3 skipped (34); 498 passed | 7 skipped (505)" kèm câu "Re-run at
+    ce0b13e" — trong khi run_id/verified_at của nó trỏ tới lần gọi npm test lúc 04:48:51Z ở
+    9c1f9f3, lần mà khối E15 của road-routing ghi đúng là 527/9/536. Đã sửa.)
+    Xác nhận: gộp ba bản chép về một helper không đổi hành vi quan sát được ở cả ba route
+    REST (/render, /render-clip, /jobs) — không ca nào đỏ.
 
 - eval: E10
-  run_id: mcp-auth-r3-mcp-20260807
+  run_id: mcp-auth-r4-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     Re-run at ce0b13e. MCP_INTEGRATION=1 vitest run (renderFrame.test.ts, renderClip.test.ts,
     stdioChannel.test.ts) — real vite build, real PNG and clip through headless Chromium. Test
@@ -297,7 +347,9 @@ none — every command this round is a deterministic single run.
 
 ## Iterations
 
-Vòng 3 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `http.ts`/`tools.ts`/`jobRunner.ts`/`renderFrame.ts`. Cả 10 eval chạy lại tươi — 10/10 xanh, không hồi quy. `http.test.ts` 54 → 61 ca (gói anchors thêm 7 ca của nó vào cùng tệp), toàn bộ xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
+Vòng 4 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 10 eval chạy lại tươi, 10/10 thoát 0 (`http.test.ts` 57, `npm test` 527/9/536, `test:mcp` 12/12, script 4 bất biến). **REJECT trên [E8]**: `expected` của E8 gắn giá trị của script vào việc nó giữ câu README đúng, nhưng `auth-invariants.ts` chỉ đọc `mcp-server/src/http.ts` — không dòng nào đọc `README.md`, nên AC-8 có 0 khẳng định chống lưng. Đồng thời sửa hai sai số trong bản ghi vòng 3: khối E9 chép số của một vòng khác (498/505 thay vì 527/9/536) và dòng tường thuật ghi `http.test.ts` 61 ca thay vì 57. E7 KHÔNG bị đánh trượt: `expected` của nó nói ">= 4 cửa gọi guard", đúng bằng `guards >= 4` của script và đúng bằng thước CE ghi trong `contract.md` — AC-7 rộng hơn eval, nhưng eval không nói quá. E10 cũng KHÔNG bị đánh trượt: "MCP integration có gác" nói về việc BỘ TEST bị gác sau `MCP_INTEGRATION=1`, không phải nói nó kiểm bearer (đọc theo ghi chú đầu `_acceptance/anchors-camera/evals.yaml`); tuy vậy nó gắn `criterion: AC-3` mà không chứng minh gì về AC-3 — nên ghi là hàng rào hồi quy, không phải bằng chứng của AC-3.
+
+Vòng 3 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `http.ts`/`tools.ts`/`jobRunner.ts`/`renderFrame.ts`. Cả 10 eval chạy lại tươi — 10/10 xanh, không hồi quy. `http.test.ts` xanh toàn bộ (số ca thật là **57**; dòng gốc của vòng 3 ghi "54 → 61" — sai, đã đính chính ở vòng 4). `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 
 Round 2: E6/AC-6 re-checked per the same per-clause standard after commit `ce0b13e` rebound the
 test to a genuine non-loopback host (`'0.0.0.0'`); clause now proven, confirmed independently via a

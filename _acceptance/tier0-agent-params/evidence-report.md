@@ -1,17 +1,62 @@
 ---
 schema_version: 2
 feature_slug: tier0-agent-params
-verdict: PASS
-failed_evals: []
+verdict: REJECT
+failed_evals: [E8, E9, E10, E15, E20]
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+## Vòng 11 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E9 (AC-9) — "13 themes MỖI CÁI có dark + bảng màu 15 khoá" chỉ được kiểm trên `themes[0]`.**
+
+`mcp-server/src/tools.test.ts:258-264`: `toHaveLength(13)`, rồi `themes[0]` `toMatchObject({id:
+'midnight-blue', dark: true})`, `themes[0].colors.background` khớp `/^#/`, và
+`Object.keys(themes[0].colors)).toContain('accent')`. **Không có phép đếm khoá nào** (nên "15
+khoá" không được canh gác) và **không có vòng lặp qua 13 theme** (nên "mỗi cái" không được
+canh gác). Sự thật hôm nay đúng — nhưng một hồi quy bỏ một khoá bảng màu ở CẢ 13 theme vẫn
+xanh. AC-9 còn đòi trường `name`; không khẳng định nào chạm `name`.
+
+**E10 (AC-10) — "KEY ABSENT (not undefined) trên layout không in" không tồn tại như một khẳng định.**
+
+Quét `mcp-server/src/tools.test.ts` cho `print` ra đúng hai dòng: `:266` (tiêu đề ca test) và
+`:273` (`expect(a4.print).toEqual({w:210,h:297,unit:'mm'})`) — cả hai đều là nửa CÓ MẶT. **Không
+có một khẳng định vắng-mặt nào.** Mà "key absent, not undefined" chính là mệnh đề khó và là lý
+do mệnh đề đó được viết ra. Phần "aspect/category đúng per entry" cũng nói quá: 21 mục tồn
+tại, category được khẳng định cho 7, aspect cho 1 (`:270`).
+
+**E8 (AC-8), E15 (AC-13), E20 (AC-?) — ghi nhận từ lane kiểm phụ, cùng lớp lỗi.**
+
+- **E8**: `expected` nói cả `resolveBoundary` **và** `resolveLocation` đều `.not.toHaveBeenCalled()`
+  ("zero Nominatim requests"). Chỉ nửa region làm vậy (`resolveConfig.test.ts:320`); hai nửa
+  point dùng `not.toHaveBeenCalledWith('Bến Thành Market', …)` (`:364`, `:391`) và chú thích của
+  chính ca test nói "Only the base-location lookup should have fired" — tức KHÁC không.
+- **E15**: nửa DETERMINISM ("config không bearing biên dịch ra đúng cùng một object — early
+  return, không dựng lại script") không có ca test nào.
+- **E20**: `expected` nói lane tích hợp chứng minh "các tham số mới chạm tới pixel thật".
+  `layers`/`detail`/`font` — ba tham số đầu bảng của hợp đồng này — không xuất hiện trong bất
+  kỳ tệp nào của `test:mcp`.
 
 _**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
 
@@ -49,180 +94,185 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E2
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E3
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E7
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E8
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E9
-  run_id: tier0-agent-params-r10-clip_tools-20260807
+  run_id: tier0-agent-params-r11-clip_tools-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E10
-  run_id: tier0-agent-params-r10-clip_tools-20260807
+  run_id: tier0-agent-params-r11-clip_tools-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E11
-  run_id: tier0-agent-params-r10-clip_tools-20260807
+  run_id: tier0-agent-params-r11-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E12
-  run_id: tier0-agent-params-r10-clip_http-20260807
+  run_id: tier0-agent-params-r11-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E13
-  run_id: tier0-agent-params-r10-job_runner-20260807
+  run_id: tier0-agent-params-r11-job_runner-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T04:50:54Z
+  verified_at: 2026-08-07T05:58:03Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E14
-  run_id: tier0-agent-params-r10-resolve_config-20260807
+  run_id: tier0-agent-params-r11-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E15
-  run_id: tier0-agent-params-r10-motion_compiler-20260807
+  run_id: tier0-agent-params-r11-motion_compiler-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T04:51:00Z
+  verified_at: 2026-08-07T05:58:09Z
   output: |
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E16
-  run_id: tier0-agent-params-r10-clip_tools-20260807
+  run_id: tier0-agent-params-r11-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E17
-  run_id: tier0-agent-params-r10-geocode-20260807
+  run_id: tier0-agent-params-r11-geocode-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.geocode
-  verified_at: 2026-08-07T04:50:59Z
+  verified_at: 2026-08-07T05:58:08Z
   output: |
     Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 26 passed (26) — present and passing.
 
 - eval: E18
-  run_id: tier0-agent-params-r10-tier0_invariants-20260807
+  run_id: tier0-agent-params-r11-tier0_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.tier0_invariants
-  verified_at: 2026-08-07T04:51:16Z
+  verified_at: 2026-08-07T05:58:23Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — tier0-invariants: all invariants hold — present and passing.
 
 - eval: E19
-  run_id: tier0-agent-params-r10-api-20260807
+  run_id: tier0-agent-params-r11-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E20
-  run_id: tier0-agent-params-r10-mcp-20260807
+  run_id: tier0-agent-params-r11-mcp-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 ## Analyst
@@ -234,6 +284,8 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 11 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0. **REJECT trên [E8, E9, E10, E15, E20]** — năm eval nói quá phần được khẳng định: E9 ("mỗi theme" + "15 khoá" chỉ kiểm `themes[0]`, không đếm khoá), E10 ("KEY ABSENT trên layout không in" không có khẳng định vắng-mặt nào; category 7/21, aspect 1/21), E8 ("zero Nominatim requests" — chỉ nửa region dùng `.not.toHaveBeenCalled()`, hai nửa point còn lại kỳ vọng lời gọi cơ sở CÓ xảy ra), E15 (nửa determinism không có ca test), E20 ("tham số mới chạm pixel thật" — `layers`/`detail`/`font` không xuất hiện trong bất kỳ tệp nào của `test:mcp`). Ghi nhận thêm, không đánh trượt: AC-11 đòi script được vọng lại kể cả ở nhánh degrade và nhánh quá cỡ, nhưng hai nhánh đó chỉ được E18/I2 gác bằng một phép quét MÃ NGUỒN, không phải bằng hành vi.
 
 Vòng 10 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`/`jobRunner.ts`. Cả 20 eval chạy lại tươi — 20/20 xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 

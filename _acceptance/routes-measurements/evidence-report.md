@@ -1,17 +1,57 @@
 ---
 schema_version: 2
 feature_slug: routes-measurements
-verdict: PASS
-failed_evals: []
+verdict: REJECT
+failed_evals: [E1, E16]
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: routes-measurements
+
+## Vòng 10 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E16 (AC-?) — một trong chín "phép kiểm" KHÔNG THỂ fail.**
+
+`expected` khai demo sinh ảnh và chạy "9 phép kiểm số đo". Script chạy đúng, in
+`KIỂM: 9 đạt · 0 trượt`, thoát 0. Nhưng phép kiểm ở
+`_acceptance/routes-measurements/scripts/demo-routes.ts:89` là:
+
+```ts
+check(hkToWest.bearingDeg > 270 || hkToWest.bearingDeg < 360, 'cặp điểm: phương vị tây-bắc', …)
+```
+
+`initialBearingDeg` chuẩn hoá bằng `((… ) + 360) % 360` (`mcp-server/src/geometry.ts:31`), nên
+giá trị trả về LUÔN thuộc `[0, 360)`. Vế `bearingDeg < 360` **luôn đúng**, và vì là `||` nên
+cả biểu thức luôn đúng — với MỌI phương vị, kể cả hướng đông-nam. Ý định rõ ràng là `&&`.
+Vậy thực tế là **8 phép kiểm + 1 no-op**, không phải 9. Đây là đúng nghĩa "khẳng định không
+phân biệt được" mà tiêu chuẩn vòng này loại bỏ.
+
+**E1 (AC-?) — hình học của dạng `geojson` không được chứng minh sống sót qua resolver.**
+
+`expected` khai dạng geojson đi vào `RenderConfig.routes` với **`geojson`**/`color`/`width`.
+`resolveConfig.test.ts:443-444` chỉ khẳng định `width: 4` và `color === '#e8b04b'` cho entry
+dạng geojson; phép đo hình học thật (bbox/pointCount, `:455-466`) chạy trên entry dạng
+**`coords`**. Bỏ trường `geojson` của entry dạng-geojson thì vẫn xanh. (Ghi nhận từ lane kiểm
+phụ, chưa tự đối chiếu từng dòng như E16.)
 
 _**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
 
@@ -49,180 +89,182 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E2
-  run_id: routes-measurements-r9-clip_tools-20260807
+  run_id: routes-measurements-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E3
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: routes-measurements-r9-apply_render_config-20260807
+  run_id: routes-measurements-r10-apply_render_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.apply_render_config
-  verified_at: 2026-08-07T04:51:04Z
+  verified_at: 2026-08-07T05:58:11Z
   output: |
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 10 passed (10) — present and passing.
 
 - eval: E7
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E8
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E9
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E10
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E11
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E12
-  run_id: routes-measurements-r9-geometry-20260807
+  run_id: routes-measurements-r10-geometry-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.geometry
-  verified_at: 2026-08-07T04:50:58Z
+  verified_at: 2026-08-07T05:58:07Z
   output: |
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 12 passed (12) — present and passing.
 
 - eval: E13
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E14
-  run_id: routes-measurements-r9-clip_tools-20260807
+  run_id: routes-measurements-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E15
-  run_id: routes-measurements-r9-routes_invariants-20260807
+  run_id: routes-measurements-r10-routes_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-07T04:51:06Z
+  verified_at: 2026-08-07T05:58:14Z
   output: |
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — routes-invariants: moi bat bien con giu — present and passing.
 
 - eval: E16
-  run_id: routes-measurements-r9-routes_demo-20260807
+  run_id: routes-measurements-r10-routes_demo-20260807
   exit_code: 0
+  verdict: FAIL
   baseline: red
   verifier: config:executors.script.routes_demo
-  verified_at: 2026-08-07T04:51:16Z
+  verified_at: 2026-08-07T05:58:14Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. ANH: 5 render; KIEM: 9 dat - 0 truot — present and passing.
 
 - eval: E17
-  run_id: routes-measurements-r9-api-20260807
+  run_id: routes-measurements-r10-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E18
-  run_id: routes-measurements-r9-mcp-20260807
+  run_id: routes-measurements-r10-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E19
-  run_id: routes-measurements-r9-resolve_config-20260807
+  run_id: routes-measurements-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T04:50:57Z
+  verified_at: 2026-08-07T05:58:05Z
   output: |
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E20
-  run_id: routes-measurements-r9-routes_invariants-20260807
+  run_id: routes-measurements-r10-routes_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-07T04:51:06Z
+  verified_at: 2026-08-07T05:58:14Z
   output: |
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — routes-invariants: moi bat bien con giu — present and passing.
 
@@ -235,6 +277,8 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 10 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0 (`resolveConfig.test.ts` 64, `geometry.test.ts` 12, script bất biến 10 dòng ok, demo `9 đạt · 0 trượt`). **REJECT trên [E1, E16]**: E16 khai "9 phép kiểm số đo" nhưng `demo-routes.ts:89` là `bearingDeg > 270 || bearingDeg < 360`, mà `initialBearingDeg` chuẩn hoá về `[0,360)` nên vế thứ hai luôn đúng — phép kiểm đó không thể fail, thực tế là 8 + 1 no-op (ý định rõ ràng là `&&`); E1 khai hình học dạng `geojson` sống sót qua resolver nhưng chỉ `width`/`color` được khẳng định cho entry dạng đó. Số liệu khác được đo lại và ĐÚNG: 310,4 KiB/tuyến 20k điểm, 12,1 MiB tổng, trần 2 MiB / 8 MiB, 1137,9 km great-circle. Cùng cảnh báo I1 như motion-tools-cost: `routes-invariants.ts` đo diff của nhánh hiện tại, không còn là diff của gói routes.
 
 Vòng 9 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`. Cả 20 eval chạy lại tươi — 20/20 xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 

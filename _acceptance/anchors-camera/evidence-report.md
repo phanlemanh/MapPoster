@@ -1,82 +1,127 @@
 ---
 schema_version: 2
 feature_slug: anchors-camera
-verdict: REJECT
-failed_evals: [E2, E5]
+verdict: PASS
+failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9c1f9f367c642465cc720396f9b6aba51f31902f
+verified_commit: a46aec7a0c2ac7f2c54e6fd8d4ecc442b1814122
 human_signoff:
 ---
 
 # Evidence Report: anchors-camera
 
-_**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
+_Vòng 2 — chạy lại toàn bộ ở `a46aec7` sau khi vòng 1 REJECT trên `[E2, E5]`.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0: commit ghim là tổ tiên của HEAD (ở đây
+nó CHÍNH LÀ HEAD). Cả 20 eval chạy lại tươi, mọi lệnh thoát 0. Nhưng như vòng 1 đã ghi,
+**thoát 0 không phải tiêu chuẩn**: nhiệm vụ là kiểm từng mệnh đề `expected` có thật sự
+được một khẳng định canh gác và khẳng định đó có phân biệt được hay không. Hai lỗ của vòng
+1 đã bịt, và cả hai được kiểm lại bằng đúng phép thử đã đánh trượt chúng. Verdict **PASS**,
+kèm MỘT đính chính chữ nghĩa bắt buộc ở E2 (không đánh trượt — xem dưới)._
 
-_Vòng 1 — nghiệm thu lần đầu cho hợp đồng MỚI này, chạy ở `9c1f9f3` trên nhánh
-`feat/anchors-camera`. Cả 20 eval đều được CHẠY THẬT (không eval nào suy ra từ eval khác).
-Mọi lệnh đều thoát 0. **Nhưng thoát 0 không phải là tiêu chuẩn ở đây**: nhiệm vụ của vòng
-này là kiểm xem mỗi dòng `expected` trong `evals.yaml` có ĐÚNG là thứ mà bộ test khẳng định
-hay không. Hai eval nói quá phần mình chứng minh được, nên verdict là **REJECT** dù không
-một lệnh nào đỏ._
+## Ba phép kiểm lại của vòng 2
 
-## Hai eval bị đánh trượt
+### 1. E5 — đột biến vòng 1 nay LÀM ĐỎ được bộ test
 
-### E2 — "MỌI ca test dùng khung không vuông" là sai, và chính công cụ nói ngược lại
-
-`expected` của E2 viết: *"I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và **MỌI**
-ca test dùng khung không vuông"*.
-
-Nửa đầu đúng và có thật (`anchors-invariants.ts:202`). Nửa sau KHÔNG tồn tại như một khẳng
-định. Script chỉ kiểm `discriminating.length > 0` — tức **ít nhất một** ca, không phải mọi
-ca (`anchors-invariants.ts:213-219`). Và stdout của chính nó trong vòng này in ra:
-
-```
-ok   I4  4/6 ca test có cssW ≠ cssH (vd 1079×1921)
-```
-
-4 trên 6, không phải 6 trên 6. Ca vuông là `anchors.test.ts:79`
-(`regionAnchorOf(0, [], { cssW: 100, cssH: 100 })`).
-
-Nói rõ để người sửa khỏi sửa nhầm: **ca vuông đó hoàn toàn chính đáng** — nó kiểm vùng rỗng
-trả `null`, độ vuông của khung không liên quan. Và tính chất mà AC-1 thật sự cần (tồn tại ca
-phân biệt được) thì ĐANG được canh gác. Lỗi nằm ở **chữ trong `evals.yaml`**, không ở test.
-Cách sửa rẻ nhất là đổi `expected` thành "≥1 ca test dùng khung không vuông"; cách đắt hơn là
-siết script lại cho đúng chữ. Vòng chấm không tự sửa.
-
-### E5 — nửa "giá trị đọc được" không được test nào khẳng định (chứng minh bằng đột biến)
-
-`expected` của E5 viết: *"assertCameraAtRest NÉM khi camera lệch, thông điệp nêu **CẢ giá trị
-đọc được LẪN** giá trị kỳ vọng"*.
-
-Nửa "ném" có thật. Nửa "giá trị đọc được" thì không. Bộ test chỉ ghim **giá trị kỳ vọng**:
-`toThrow(/13\.25/)` (`anchors.test.ts:152`) — `13.25` là `expected.zoom`. Giá trị ĐỌC ĐƯỢC
-(`13.26`) không xuất hiện trong bất kỳ khẳng định nào; các khẳng định còn lại chỉ soi tên
-trường (`/zoom/`, `/center/`, `/bearing/`, `/restAtSec/`).
-
-Kiểm bằng đột biến trong thư mục tạm (KHÔNG sửa repo): chép `anchors.ts` + `anchors.test.ts`
-ra ngoài, bỏ `${actual.*}` khỏi cả ba thông điệp — giữ nguyên phần `${expected.*}`:
-
-```
-  if (Math.abs(actual.zoom - expected.zoom) > EPS) problems.push(`zoom differs from expected ${expected.zoom}`);
-```
-
-Chạy `npx vitest run --root <mutant>`:
+Đột biến chạy trong `git worktree --detach a46aec7` dùng-một-lần (cây làm việc KHÔNG bị
+đụng; `git status --short` rỗng suốt vòng). Trước đột biến, trong worktree:
 
 ```
  Test Files  1 passed (1)
       Tests  13 passed (13)
 ```
 
-13/13 vẫn xanh sau khi mã nguồn thôi in giá trị đọc được. Nghĩa là clause đó **không có
-đường đỏ** — đúng lớp lỗi mà hai vòng trước đã bắt được. Người đọc log sản xuất sẽ không biết
-camera lệch bao nhiêu, mà không test nào kêu.
+Rồi bỏ sạch bốn chỗ nội suy `${actual.*}` khỏi ba thông điệp `problems.push` ở
+`anchors.ts:182,184,185` (`center [${actual.center[0]}, ${actual.center[1]}] ≠ …` →
+`center [, ] ≠ …`, `zoom ${actual.zoom} ≠ …` → `zoom  ≠ …`, tương tự `bearing`):
 
-(Đối chứng dương cho chính bộ đột biến: xem E1 dưới đây — cùng cỗ máy, cùng thư mục tạm, khi
-đột biến vào đúng công thức thì 4 ca đỏ ngay. Nên "13/13 xanh" ở trên là kết luận về độ phủ,
-không phải triệu chứng của một harness hỏng.)
+```
+ FAIL  src/render/anchors.test.ts > assertCameraAtRest > NỔ TO khi camera lệch — zoom, center hay bearing
+AssertionError: expected [Function] to throw error matching /13\.26/ but got 'anchors: map camera is not at restAtS…'
++ Received:
+"anchors: map camera is not at restAtSec=3.9 (zoom  ≠ 13.25). anchors() is read-only and must be called immediately after the settle capture — refusing to return coordinates projected from an unexpected camera."
+ ❯ src/render/anchors.test.ts:157:71
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+```
+
+Cùng đột biến đó ở vòng 1 để **13/13 xanh**. Nay nó đỏ tại dòng khẳng định giá trị ĐỌC
+ĐƯỢC. Nửa clause từng không có đường đỏ nay có.
+
+### 2. Đổi tên `centroidPct` → `bboxCenterPct` sạch và nhất quán trên mọi bề mặt
+
+Quét toàn repo (trừ `node_modules`, `.git`, `dist`, `test-results`) cho chuỗi `centroidPct`
+trả về **đúng một dòng**: `_acceptance/anchors-camera/evidence-report.md` — bản ghi của
+vòng 1. Vòng này viết lại khối E4 theo tên hiện hành nên tên cũ chỉ còn sống trong phần
+tường thuật lịch sử ở mục Iterations, không còn ở chỗ nào mô tả một lần chạy hiện tại.
+Không tệp nguồn / test / e2e / README / contract / evals / script bất biến nào còn tên cũ.
+
+Tên mới thật sự CHẢY qua đường đi, không chỉ được đổi ở chỗ khai báo:
+
+- sinh ra: `src/render/anchors.ts:41` (kiểu `AnchorRegion`) và `:126` (`regionAnchorOf`) —
+  nguồn duy nhất của trường này;
+- đọc trên MapLibre THẬT: `e2e/render-mode.spec.ts:278-279`
+  (`out.anchors.regions[0].bboxCenterPct[0]/[1]` toBeCloseTo 50);
+- JSON của MCP `render_clip`: `mcp-server/src/tools.test.ts:614`
+  (`toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }])`);
+- JSON của REST `POST /render-clip`: `mcp-server/src/http.test.ts:521` (cùng dạng);
+- unit: `src/render/anchors.test.ts:75`.
+
+Nói cho đúng phần bề mặt thứ ba: lối `/jobs` mang trường này về mặt CẤU TRÚC (cả ba bề mặt
+đi qua CÙNG một `resolvedOfClip`, và I3 của E12 gọi THẬT hàm đó rồi khẳng định XOR), nhưng
+fixture của `jobRunner.test.ts:74` đặt `regions: []` nên không có khẳng định trên GIÁ TRỊ
+`bboxCenterPct` ở lối việc. Ghi ra chứ không nói "cả ba bề mặt đều assert".
+
+Chốt biên dịch: `npx tsc -b` và `npx tsc -p mcp-server/tsconfig.json` đều thoát 0 — một tên
+cũ sót lại trong mã TypeScript sẽ là lỗi biên dịch, không phải chuyện đọc mắt.
+
+### 3. E2 / E10 / E17 / E20 — chữ đã sửa, đối chiếu lại với mã
+
+- **E20 ĐÚNG.** `npm test` vòng này: `Test Files 33 passed | 2 skipped (35)`,
+  `Tests 527 passed | 9 skipped (536)`. `expected` nói "527 test XANH + 9 SKIP … trên 33
+  file — con số là 527 pass, KHÔNG phải 536 cùng chạy". Khớp từng con số.
+- **E10 ĐÚNG.** `e2e/render-mode.spec.ts:350-358` khẳng định `getPitch()` toBeCloseTo(45,6),
+  `mid` và `rest` đều `startsWith('data:image/png')`, `rest.length > 2000`,
+  `rest !== mid`, rồi `/pitch/i` và `/45/`. Và `expected` tự nhận "KHÔNG kiểm byte PNG;
+  phần byte do E11 gánh" — đúng: không có phép kiểm magic byte nào trong ca này.
+- **E17 ĐÚNG.** `tools.test.ts:564-568` khẳng định `anchors.points` đúng một phần tử
+  `index: 0` và `highlights.points` dài 1. `expected` nay tự nói "hiện CHỈ thử ở n=1; độ
+  phủ n>1 chưa có, ghi ở Out of scope" — và `contract.md` Out of scope có đúng mục đó.
+  Không còn nói quá.
+- **E2 gần đúng — một mệnh đề phụ SAI.** Xem mục ngay dưới.
+
+## Một sai sót chữ nghĩa còn lại (không đánh trượt, nhưng phải sửa trước khi ký)
+
+`expected` của E2 viết:
+
+> …CÓ ÍT NHẤT MỘT ca test dùng khung không vuông đủ phân biệt hai công thức (thực tế 4/6;
+> **hai ca vuông là ca vùng-rỗng trả null**, không đi qua công thức nên không cần phân biệt)
+
+Phần mang tải đúng và có khẳng định thật (`discriminating.length > 0`,
+`anchors-invariants.ts:213-219`), con số 4/6 khớp stdout. Nhưng mệnh đề phụ sai: liệt kê
+đúng sáu khung mà script bắt được trong `anchors.test.ts` cho thấy hai ca KHÔNG phân biệt
+được là
+
+| dòng | khung | vì sao bị loại | vuông? |
+|---|---|---|---|
+| `anchors.test.ts:53` | `{cssW: 0, cssH: 100}` | `cssW > 0` sai — ca khung suy biến phải NÉM | **không** |
+| `anchors.test.ts:79` | `{cssW: 100, cssH: 100}` | `w !== h` sai — ca vùng rỗng trả `null` | có |
+
+Chỉ **một** ca vuông, không phải hai; và ca còn lại không phải "vùng-rỗng trả null" mà là
+ca khung suy biến. Trớ trêu là chính báo cáo vòng 1 viết đúng ("Ca vuông là
+`anchors.test.ts:79`", số ít) — bản sửa `evals.yaml` đã làm số nhiều hoá nó thành sai.
+
+Vì sao KHÔNG đánh trượt: mệnh đề sai này không nói quá độ phủ. Nó mô tả phần DƯ, và mô tả
+theo hướng nếu có thì là khiêm tốn hơn thực tế, nên không thể khiến người ký tin rằng có
+một chốt không tồn tại. Tiêu chuẩn của vòng chấm là "một mệnh đề chỉ được coi là thoả khi
+có test khẳng định nó VÀ khẳng định đó phân biệt được" — mệnh đề mang tải của E2 thoả cả
+hai. Câu sửa đúng, để người sửa khỏi phải tự soạn:
+
+> …(thực tế 4/6; hai ca còn lại là ca khung suy biến phải ném và ca vùng-rỗng trả null,
+> không đi qua công thức nên không cần phân biệt)
 
 ## Ba nghi vấn còn lại: kiểm xong, KHÔNG có vấn đề
 
@@ -123,9 +168,14 @@ xoá `restBase` nên khung sau được dựng lại từ camera đúng và phé
 tại. Kết quả:
 
 ```
-✓ 1 [chromium] › NEG-E8: một anchors() có jumpTo LÀM LỆCH byte khung đuôi (phép so của E8 phân biệt được) (3.0s)
-  1 passed (4.1s)
+✓ 1 [chromium] › NEG-E8: một anchors() có jumpTo LÀM LỆCH byte khung đuôi (phép so của E8 phân biệt được) (2.8s)
+  1 passed (3.9s)
 ```
+
+_(Chạy lại ở vòng 2 lúc 2026-08-07T05:58:36Z, lệnh
+`npx playwright test --config=_acceptance/anchors-camera/negctrl/playwright.negctrl.config.ts`,
+thoát 0. Đây là ĐỐI CHỨNG ÂM do vòng chấm viết, không phải eval của hợp đồng, nên nó nằm ở
+phần tường thuật chứ không nằm trong danh sách Evidence.)_
 
 Byte lệch thật. Nên `expect(after).toBe(before)` của E8 là một chốt sống, không phải tautology.
 
@@ -165,10 +215,10 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
 | E1 | AC-1 | test | PASS |
-| E2 | AC-1 | script | FAIL — `expected` nói "MỌI ca test dùng khung không vuông"; script chỉ khẳng định ≥1 và tự in "4/6" |
+| E2 | AC-1 | script | PASS — mệnh đề mang tải ("≥1 ca không vuông", 4/6) khớp `discriminating.length > 0`; **kèm một đính chính chữ nghĩa bắt buộc** ở mệnh đề phụ, xem mục riêng |
 | E3 | AC-2 | test | PASS |
 | E4 | AC-3 | test | PASS |
-| E5 | AC-4 | test | FAIL — nửa "giá trị đọc được" không có khẳng định nào; đột biến bỏ nó đi vẫn 13/13 xanh |
+| E5 | AC-4 | test | PASS — `toThrow(/13\.26/)`, `/106\.71/`, `/300/` ghim giá trị ĐỌC ĐƯỢC; đột biến vòng 1 nay làm đỏ 1/13 |
 | E6 | AC-4 | test | PASS |
 | E7 | AC-5 | script | PASS |
 | E8 | AC-5 | test | PASS |
@@ -188,11 +238,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
 ## Evidence
 
 - eval: E1
-  run_id: anchors-camera-r1-anchors-20260807
+  run_id: anchors-camera-r2-anchors-20260807
   exit_code: 0
   baseline: n-a (tệp test mới trong PR này — trên diffBase không tồn tại phép đo nào để so)
   verifier: config:executors.test.anchors
-  verified_at: 2026-08-07T04:50:48Z
+  verified_at: 2026-08-07T05:57:59Z
   output: |
     npx vitest run src/render/anchors.test.ts — Test Files 1 passed (1); Tests 13 passed (13).
     Khung dùng trong file: 1079x1921, 600x1200, 400x800, 1000x2000 — không cái nào vuông.
@@ -200,64 +250,72 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     Tests 4 failed | 9 passed (13). Khẳng định phân biệt được.
 
 - eval: E2
-  run_id: anchors-camera-r1-anchors_invariants-20260807
+  run_id: anchors-camera-r2-anchors_invariants-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: n-a (script mới trong PR này)
   verifier: config:executors.script.anchors_invariants
-  verified_at: 2026-08-07T04:50:49Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
-    Lệnh thoát 0, nhưng `expected` nói quá. Stdout: "ok I4 anchors.ts KHÔNG có hệ số tỉ lệ
-    chung: true" (nửa đầu ĐÚNG) và "ok I4 4/6 ca test có cssW != cssH (vd 1079x1921)" —
-    4/6, trong khi `expected` viết "MỌI ca test dùng khung không vuông". Mã nguồn của chốt
-    là `discriminating.length > 0` (anchors-invariants.ts:213), tức ≥1 chứ không phải mọi.
-    Ca vuông là anchors.test.ts:79 và nó chính đáng (kiểm vùng rỗng trả null). Sai ở chữ
-    trong evals.yaml, không ở test.
+    Chữ của `expected` đã được sửa sau vòng 1 và phần MANG TẢI giờ khớp mã: nó nói "CÓ ÍT
+    NHẤT MỘT ca test dùng khung không vuông", đúng bằng thứ script khẳng định
+    (`discriminating.length > 0`, anchors-invariants.ts:213-219). Stdout vòng này:
+    "ok I4 anchors.ts KHÔNG có hệ số tỉ lệ chung: true" và
+    "ok I4 4/6 ca test có cssW != cssH (vd 1079x1921)" — con số 4/6 trong `expected` khớp
+    chính xác.
+    ĐÍNH CHÍNH BẮT BUỘC (xem mục "Một sai sót chữ nghĩa còn lại"): mệnh đề phụ "hai ca
+    vuông là ca vùng-rỗng trả null" SAI. Hai ca không phân biệt được là
+    anchors.test.ts:53 (`{cssW: 0, cssH: 100}` — khung suy biến phải NÉM, KHÔNG vuông) và
+    anchors.test.ts:79 (`{cssW: 100, cssH: 100}` — vùng rỗng trả null, ca vuông DUY NHẤT).
+    Sai sót này không nói quá độ phủ nên không đánh trượt eval, nhưng phải sửa trước khi ký.
 
 - eval: E3
-  run_id: anchors-camera-r1-anchors-20260807
+  run_id: anchors-camera-r2-anchors-20260807
   exit_code: 0
   baseline: n-a (tệp test mới)
   verifier: config:executors.test.anchors
-  verified_at: 2026-08-07T04:50:48Z
+  verified_at: 2026-08-07T05:57:59Z
   output: |
     Cùng lần chạy E1. anchors.test.ts:37-50 — khung 400x800: điểm x=-40 cho onScreen=false
     NHƯNG xPct=-10, yPct=50 vẫn được trả; điểm y=1200 cho yPct=150. Ca đúng mép (0, 800)
     khẳng định onScreen=true. Phần trăm không bị nuốt, đúng như AC-2 đòi.
 
 - eval: E4
-  run_id: anchors-camera-r1-anchors-20260807
+  run_id: anchors-camera-r2-anchors-20260807
   exit_code: 0
   baseline: n-a (tệp test mới)
   verifier: config:executors.test.anchors
-  verified_at: 2026-08-07T04:50:48Z
+  verified_at: 2026-08-07T05:57:59Z
   output: |
     Cùng lần chạy E1. anchors.test.ts:58-81 — khung 1000x2000, bốn đỉnh (100,200)-(300,600):
-    bboxPct toEqual([10, 10, 30, 30]) đúng cực trị, centroidPct toEqual([20, 20]) nằm trong
-    bbox. Vùng rỗng: regionAnchorOf(0, [], ...) toBeNull() — không bịa hộp rỗng ở gốc.
+    bboxPct toEqual([10, 10, 30, 30]) đúng cực trị, bboxCenterPct toEqual([20, 20]) nằm
+    trong bbox. Vùng rỗng: regionAnchorOf(0, [], ...) toBeNull() — không bịa hộp rỗng ở gốc.
+    (Vòng 1 chép tên cũ `centroidPct` ở đúng chỗ này; `a46aec7` đã đổi tên trường và khối
+    này được viết lại theo tên hiện hành — xem mục Iterations.)
 
 - eval: E5
-  run_id: anchors-camera-r1-anchors-20260807
+  run_id: anchors-camera-r2-anchors-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: n-a (tệp test mới)
   verifier: config:executors.test.anchors
-  verified_at: 2026-08-07T04:50:48Z
+  verified_at: 2026-08-07T05:57:59Z
   output: |
-    Lệnh thoát 0, nhưng nửa sau của `expected` không được canh gác. Nửa "NÉM" có thật
-    (anchors.test.ts:146-153 khẳng định toThrow(/restAtSec/), /zoom/, /center/, /bearing/).
-    Nửa "thông điệp nêu CẢ giá trị đọc được" thì không: khẳng định số duy nhất là
-    toThrow(/13\.25/) — 13.25 là expected.zoom, không phải actual.zoom (13.26). Đột biến
-    ngoài repo bỏ mọi ${actual.*} khỏi ba thông điệp: npx vitest run --root <mutant> cho
-    Test Files 1 passed (1); Tests 13 passed (13) — không ca nào đỏ. Clause không có
-    đường đỏ.
+    Lỗ hổng của vòng 1 đã được bịt và vòng này CHỨNG MINH LẠI bằng chính đột biến đã dùng
+    để đánh trượt nó. anchors.test.ts:156-159 nay ghim CẢ HAI phía, mỗi phía một khẳng
+    định riêng: toThrow(/13\.25/) VÀ toThrow(/13\.26/) (giá trị đọc được), cộng
+    toThrow(/106\.71/) và toThrow(/300/). Đột biến lặp lại trong worktree dùng-một-lần
+    (git worktree --detach a46aec7, KHÔNG đụng cây làm việc): bỏ sạch bốn chỗ nội suy
+    ${actual.*} khỏi ba thông điệp problems.push ở anchors.ts:182,184,185 →
+    "Test Files 1 failed (1); Tests 1 failed | 12 passed (13)", đỏ tại
+    anchors.test.ts:157 với thông điệp "expected [Function] to throw error matching
+    /13\.26/ but got 'anchors: map camera is not at restAtSec=3.9 (zoom  ≠ 13.25)...'".
+    Cùng đột biến ấy ở vòng 1 để 13/13 XANH. Clause nay có đường đỏ thật.
 
 - eval: E6
-  run_id: anchors-camera-r1-e2e-20260807
+  run_id: anchors-camera-r2-e2e-20260807
   exit_code: 0
   baseline: n-a (ca e2e mới)
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-07T04:51:09Z
+  verified_at: 2026-08-07T05:59:16Z
   output: |
     npm run test:e2e — 18 passed (1.0m). Ca "anchors: NỔ TO khi camera không ở restAtSec"
     (render-mode.spec.ts:305): sau renderMotionFrame(1.4), chèn setCamera({center:[0,0],
@@ -266,11 +324,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     và toMatch(/zoom|center/). Trên MapLibre thật, không phải giả lập.
 
 - eval: E7
-  run_id: anchors-camera-r1-anchors_invariants-20260807
+  run_id: anchors-camera-r2-anchors_invariants-20260807
   exit_code: 0
   baseline: n-a (script mới)
   verifier: config:executors.script.anchors_invariants
-  verified_at: 2026-08-07T04:50:49Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy E2. I5 trích được thân anchors() (1744 ký tự) rồi soi bảy cấm: jumpTo,
     gán restBase, gán animBase, gán lastApplied*, setData, setPaintProperty, await — cả
@@ -279,37 +337,23 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     thích trước khi soi).
 
 - eval: E8
-  run_id: anchors-camera-r1-e2e-20260807
+  run_id: anchors-camera-r2-e2e-20260807
   exit_code: 0
   baseline: n-a (ca e2e mới)
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-07T04:51:09Z
+  verified_at: 2026-08-07T05:59:16Z
   output: |
     Cùng lần chạy E6. Ca "anchors: CHỈ ĐỌC — gọi nó xong, khung đuôi vẫn byte-identical"
     (render-mode.spec.ts:287): renderMotionFrame(1.4) → anchors() → renderMotionFrame(1.4),
     khẳng định expect(after).toBe(before) trên dataUrl. Nửa suppression này ĐỎ ĐƯỢC —
-    xem đối chứng âm NEG-E8 ở khối riêng bên dưới.
-
-- eval: NEG-E8
-  run_id: anchors-camera-r1-negctrl-20260807
-  exit_code: 0
-  baseline: n-a (đối chứng âm do vòng chấm viết, không phải eval của hợp đồng)
-  verifier: npx playwright test --config=_acceptance/anchors-camera/negctrl/playwright.negctrl.config.ts
-  verified_at: 2026-08-07T04:59:30Z
-  output: |
-    Đối chứng âm cho E8, mã ở _acceptance/anchors-camera/negctrl/anchors-negctrl.spec.ts
-    (KHÔNG sửa tệp nào của sản phẩm). Chèn __map.jumpTo({center:[106.75,10.82],zoom:13})
-    giữa hai lần renderMotionFrame(1.4) — thẳng vào MapLibre, không qua setCamera, để
-    restBase còn trong cache đúng như một anchors() hư hỏng sẽ để lại. Khẳng định
-    expect(after).not.toBe(before): 1 passed (4.1s). Byte LỆCH thật khi camera bị dời,
-    nên phép so của E8 phân biệt được.
+    xem đối chứng âm NEG-E8 ở mục tường thuật (chạy lại vòng 2, 1 passed).
 
 - eval: E9
-  run_id: anchors-camera-r1-render_frame-20260807
+  run_id: anchors-camera-r2-render_frame-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.render_frame
-  verified_at: 2026-08-07T04:50:50Z
+  verified_at: 2026-08-07T05:57:59Z
   output: |
     npx vitest run mcp-server/src/renderFrame.test.ts — Test Files 1 passed (1); Tests 3
     passed | 3 skipped (6). Ba ca chạy là khối "trang giả" KHÔNG bị gate (ba ca bỏ qua là
@@ -320,11 +364,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     quan sát "không ném".
 
 - eval: E10
-  run_id: anchors-camera-r1-e2e-20260807
+  run_id: anchors-camera-r2-e2e-20260807
   exit_code: 0
   baseline: n-a (ca e2e mới)
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-07T04:51:09Z
+  verified_at: 2026-08-07T05:59:16Z
   output: |
     Cùng lần chạy E6. Ca "anchors: pitch != 0 — KHUNG VẪN RENDER" (render-mode.spec.ts:326):
     __map.getPitch() toBeCloseTo(45, 6) đọc từ MapLibre thật; mid và rest đều
@@ -333,11 +377,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     data-URL, sàn kích thước chỉ áp cho rest — nửa byte-thật do E11 gánh.
 
 - eval: E11
-  run_id: anchors-camera-r1-mcp-20260807
+  run_id: anchors-camera-r2-mcp-20260807
   exit_code: 0
   baseline: n-a (ca mới trong bộ có gác)
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T04:52:19Z
+  verified_at: 2026-08-07T05:55:15Z
   output: |
     npm run test:mcp (MCP_INTEGRATION=1, vite build production + Chromium thật) — Test
     Files 3 passed (3); Tests 12 passed (12); 69.93s. Ca "pitch != 0: clip VẪN render đủ
@@ -348,11 +392,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     byte giải mã, không phải mức chuỗi.
 
 - eval: E12
-  run_id: anchors-camera-r1-anchors_invariants-20260807
+  run_id: anchors-camera-r2-anchors_invariants-20260807
   exit_code: 0
   baseline: n-a (script mới)
   verifier: config:executors.script.anchors_invariants
-  verified_at: 2026-08-07T04:50:49Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy E2. I3 GỌI THẬT: await import('mcp-server/src/tools.ts') rồi chạy
     resolvedOfClip(probeCfg, outcome) cho hai nhánh. Stdout: "resolvedOfClip(đo được) phát
@@ -364,11 +408,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     tháo rời=false, và 0 lối ra còn dùng resolvedOf(cfg) trần.
 
 - eval: E13
-  run_id: anchors-camera-r1-clip_tools-20260807
+  run_id: anchors-camera-r2-clip_tools-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     npx vitest run mcp-server/src/tools.test.ts — Test Files 1 passed (1); Tests 59 passed
     (59). Nhánh CÓ anchors phủ cả ba lối ra: thành công, degrade (encodeAnimation ném
@@ -380,11 +424,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     do I3 (E12) gánh cho cả ba.
 
 - eval: E14
-  run_id: anchors-camera-r1-clip_http-20260807
+  run_id: anchors-camera-r2-clip_http-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T04:50:53Z
+  verified_at: 2026-08-07T05:58:01Z
   output: |
     npx vitest run mcp-server/src/http.test.ts — Test Files 1 passed (1); Tests 57 passed
     (57). Ca "resolved mang camera + anchors trên CẢ BA lối ra: 200, degrade encode, và 422
@@ -394,11 +438,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     clip), anchorsUnavailable toBe REASON, và cả 'anchors' lẫn 'camera' đều không có mặt.
 
 - eval: E15
-  run_id: anchors-camera-r1-job_runner-20260807
+  run_id: anchors-camera-r2-job_runner-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T04:50:54Z
+  verified_at: 2026-08-07T05:58:03Z
   output: |
     npx vitest run mcp-server/src/jobRunner.test.ts — Test Files 1 passed (1); Tests 25
     passed (25). Đúng lớp lỗi mà hợp đồng nêu (jobRunner đã hai lần dùng sai biến): ca
@@ -409,11 +453,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     degrade + quá cỡ vẫn mang camera + anchors.
 
 - eval: E16
-  run_id: anchors-camera-r1-clip_tools-20260807
+  run_id: anchors-camera-r2-clip_tools-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy E13. Chốt "không echo cfg.camera" là thật và có răng: fakeAnchors() dẫn
     xuất camera từ cfg với zoom + 1 (tools.test.ts:54), nên nếu ai đó trả lại cfg.camera
@@ -422,11 +466,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     do ca resolvedOfClip nhánh không đo được gánh: 'camera' in r toBe(false).
 
 - eval: E17
-  run_id: anchors-camera-r1-clip_tools-20260807
+  run_id: anchors-camera-r2-clip_tools-20260807
   exit_code: 0
   baseline: n-a (khối test mới)
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T04:50:51Z
+  verified_at: 2026-08-07T05:58:00Z
   output: |
     Cùng lần chạy E13. j.resolved.anchors.points toEqual([{index: 0, lng: 106.7, lat:
     10.78, xPct: 50, yPct: 50, onScreen: true}]) và j.resolved.highlights.points
@@ -435,11 +479,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     chứng minh gián tiếp ở e2e nhưng không đối chiếu sang highlights.points.
 
 - eval: E18
-  run_id: anchors-camera-r1-anchors_invariants-20260807
+  run_id: anchors-camera-r2-anchors_invariants-20260807
   exit_code: 0
   baseline: n-a (script mới)
   verifier: config:executors.script.anchors_invariants
-  verified_at: 2026-08-07T04:50:49Z
+  verified_at: 2026-08-07T05:58:12Z
   output: |
     Cùng lần chạy E2. I1: "t3_path untouched vs 972a1e4f (19 file đổi)" — src/lib/export.ts
     và src/lib/mapStyle.ts đúng 0 dòng đổi so với merge-base, nên xếp T2 là đúng. I2: bốn
@@ -448,11 +492,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     tham số, hiện thực cũng KHÔNG tham số, và cả 5 lời gọi anchors() trong repo đều rỗng.
 
 - eval: E19
-  run_id: anchors-camera-r1-text_free-20260807
+  run_id: anchors-camera-r2-text_free-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-07T04:50:55Z
+  verified_at: 2026-08-07T05:58:04Z
   output: |
     npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts — Test Files 2 passed
     (2); Tests 19 passed (19), 0 bỏ qua. Bộ không rỗng và không bị bỏ qua toàn phần (đó là
@@ -461,11 +505,11 @@ E18/I1 (`git diff --name-only`: hai `t3_path` đúng 0 dòng đổi). Ghi ở m�
     vào", không chứng minh gì về gói này. Sức nặng thật của AC-10 nằm ở E18/I1.
 
 - eval: E20
-  run_id: anchors-camera-r1-api-20260807
+  run_id: anchors-camera-r2-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T04:48:51Z
+  verified_at: 2026-08-07T05:57:55Z
   output: |
     npm test — Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536);
     3.07s. Con số 527 trong `expected` khớp chính xác số ca XANH. Chín ca bỏ qua là khối
@@ -490,10 +534,48 @@ Cả hai là guard cố ý, không phải eval hỏng.
 
 ## Variance
 
-none — mọi lệnh vòng này đều tất định, chạy một lần, không lệnh nào đi qua
-`ctx.providers.invoke` hay một bộ sinh LLM.
+Không lệnh nào đi qua `ctx.providers.invoke` hay một bộ sinh LLM. Mọi lane Node đều tất
+định, chạy một lần, thoát 0.
+
+**MỘT lane KHÔNG tất định — `config:executors.test.mcp` (E11).** Vòng này phải chạy nó bốn
+lần:
+
+| lần | kết quả | ca đỏ |
+|---|---|---|
+| 1 | `1 failed \| 11 passed (12)`, 88,84 s | `renderClip.test.ts` › "pitch != 0: clip VẪN render đủ khung + settle" |
+| 2 | `1 failed \| 11 passed (12)`, 97,74 s | `renderFrame.test.ts` › "renders a config far larger than a URL could carry (>16 KB)" |
+| 3 | `12 passed (12)`, 87,37 s | — |
+| 4 | `12 passed (12)`, 65,80 s | — |
+
+Cả hai lần đỏ là `TimeoutError: page.waitForFunction: Timeout 20000ms exceeded` ở
+`renderFrame.ts:137`/`:219`, và **hai ca khác nhau** đỏ — dấu hiệu của trần thời gian, không
+phải của một khẳng định hỏng. Hai lần đỏ rơi vào lúc `load average` ~21-28 (bốn lane kiểm
+song song); hai lần xanh chạy khi máy rảnh. Mạng không phải nguyên nhân:
+`curl https://tiles.openfreemap.org/planet` trả 200 trong 0,40 s ngay giữa vòng. Đây đúng là
+rủi ro mà `_acceptance/config.yaml` đã ghi trong chú thích `feature_loop.suite_keys` (trần
+chờ 20 s vỡ khi hai bộ trình duyệt giành nhau). Khối bằng chứng của E11 ghim lần chạy thứ 4
+(05:55:15Z, thoát 0). **Người ký nên biết: lane này không tất định dưới tải; CI chạy song
+song sẽ đỏ giả.** Đây là món nợ vận hành, không phải lỗi của gói anchors-camera.
 
 ## Iterations
+
+Vòng 2 (chạy lại sau REJECT): ghim ở `a46aec7` (tổ tiên của HEAD; ở đây là chính HEAD). Cả
+20 eval chạy lại tươi, 20/20 thoát 0. Hai lỗ của vòng 1 đã bịt và được kiểm lại bằng đúng
+phép thử đã đánh trượt chúng: **E5** — đột biến gỡ sạch `${actual.*}` khỏi ba thông điệp
+nay làm ĐỎ (`1 failed | 12 passed`, đỏ tại `anchors.test.ts:157` trên `/13\.26/`), trong
+khi vòng 1 nó để 13/13 xanh; **E2** — chữ đã đổi từ "MỌI ca" sang "CÓ ÍT NHẤT MỘT ca", khớp
+đúng `discriminating.length > 0`. Đổi tên `centroidPct` → `bboxCenterPct` (`a46aec7`) sạch
+trên mọi bề mặt: quét toàn repo chỉ còn tên cũ ở bản ghi vòng 1 của chính tệp này, và khối
+E4 đã được viết lại theo tên hiện hành nên tên cũ chỉ còn ở phần lịch sử; `tsc -b` và
+`tsc -p mcp-server/tsconfig.json` cùng thoát 0. E10/E17/E20 đối chiếu lại: cả ba đúng với mã
+(527/9/536; E10 tự nhận không kiểm byte PNG; E17 tự nhận chỉ n=1 và Out of scope có mục đó).
+CÒN LẠI MỘT SAI SÓT: mệnh đề phụ của E2 "hai ca vuông là ca vùng-rỗng trả null" sai — chỉ
+MỘT ca vuông (`anchors.test.ts:79`), ca kia là khung suy biến `{cssW: 0, cssH: 100}`
+(`:53`). Không đánh trượt (không nói quá độ phủ, và mệnh đề mang tải có chốt phân biệt
+được), nhưng phải sửa chữ trước khi ký — câu thay thế đã ghi sẵn ở mục riêng.
+Ghi chú vận hành: `npm run test:mcp` (E11) FLAKE dưới tải — hai lần đầu đỏ ở
+`page.waitForFunction` trần 20 s (hai ca KHÁC nhau đỏ), hai lần sau xanh 12/12 khi máy rảnh.
+Không phải hồi quy; xem mục Variance.
 
 Vòng 1: E2 và E5 TRƯỢT — không phải vì lệnh đỏ (cả 20 lệnh đều thoát 0) mà vì `expected` của
 chúng khẳng định thứ không test nào canh gác. E2 nói "MỌI ca test dùng khung không vuông"

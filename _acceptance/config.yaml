@@ -16,6 +16,12 @@ executors:
     # không chấm nổi AC-10, nên E13 chạy cả hai.
     clip_slot_lifecycle: "npx vitest run mcp-server/src/motionCompiler.test.ts mcp-server/src/jobRunner.test.ts"
     clip_http: "npx vitest run mcp-server/src/http.test.ts"
+    # AC-12 có HAI nửa ở HAI tệp, đúng kiểu clip_slot_lifecycle ở trên: nửa
+    # "429 thay vì xếp hàng vô hạn" nằm ở http.test.ts, còn nửa "/render thường
+    # KHÔNG bị treo sau lưng clip" là deadline của pool.acquire — không một
+    # chuỗi `acquire`/`deadline` nào tồn tại trong http.test.ts. E15 chạy cả hai
+    # thay vì để nửa sau không có khẳng định nào trong lane của chính nó.
+    clip_backpressure: "npx vitest run mcp-server/src/http.test.ts mcp-server/src/browserPool.test.ts"
     clip_tools: "npx vitest run mcp-server/src/tools.test.ts"
     text_free: "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"
     job_store: npx vitest run mcp-server/src/jobStore.test.ts

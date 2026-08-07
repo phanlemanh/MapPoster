@@ -67,8 +67,8 @@ the only thing standing between this contract and PASS is the owner's own review
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | UNCERTAIN (judge scored PASS; inherited human_override WITHDRAWN — owner resolves at Gate 2) |
-| E17 | AC-14 | judgment | UNCERTAIN (judge scored PASS; inherited human_override WITHDRAWN — owner resolves at Gate 2) |
+| E16 | AC-13 | judgment | UNCERTAIN (judge scored PASS; inherited override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance — owner did NOT re-open the artifact) |
+| E17 | AC-14 | judgment | UNCERTAIN (judge scored PASS; inherited override withdrawn, then resolved at Gate 2 by LABELLED owner acceptance — owner did NOT re-open the artifact) |
 
 ## Evidence
 
@@ -238,7 +238,7 @@ the only thing standing between this contract and PASS is the owner's own review
   required_evidence:
     - Chủ repo tự mở `E16-clip.mp4` và xem đủ 6 giây, rồi trả lời: ba nhịp (toàn cảnh → vẽ dần ranh giới → đuôi đứng yên) có đọc ra được không? Nếu có → điền human_override.
   human_override: 
-  override_withdrawn: "Round 10 — dòng human_override thừa kế đã bị RÚT. Nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc' (điền theo uỷ quyền đứng, không phải người xem từng mục). T3 đòi người duyệt ĐÍCH DANH từng mục judgment; một attestation tự khai là không-phải-người-xem không đủ đỡ một PASS mới ghim ở commit mới. Quyết định của chủ repo, phiên 2026-08-07."
+  override_status: "Round 10, hai bước. (1) RÚT dòng human_override thừa kế: nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc' — điền theo uỷ quyền đứng, không phải người xem từng mục. (2) Chủ repo được hỏi thẳng trong phiên 2026-08-07 và CHỌN CÓ Ý phương án 'chấp nhận mà không mở lại, ghi nhãn rõ' thay vì tự xem lại clip. Dòng override mới ở dưới nói đúng điều đó — nó KHÔNG tuyên bố có người đã xem clip. Người đọc sau biết chính xác cái gì đỡ verdict này."
 - eval: E17
   judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
   verdict: UNCERTAIN
@@ -247,7 +247,7 @@ the only thing standing between this contract and PASS is the owner's own review
   required_evidence:
     - Chủ repo tự đọc hai test khoá ATTRIBUTION_TEXT trong `src/lib/export.test.ts` và spec §2.3, rồi trả lời: ngoại lệ chữ-pixel giấy phép có chính đáng và bị khoá chặt cả SỐ LƯỢNG lẫn NỘI DUNG không? Nếu có → điền human_override.
   human_override: 
-  override_withdrawn: "Round 10 — dòng human_override thừa kế đã bị RÚT, cùng lý do như E16: nó tự khai 'KHONG phai nguoi ky truc tiep xem tung muc'. Quyết định của chủ repo, phiên 2026-08-07."
+  override_status: "Round 10, hai bước, cùng đường với E16: (1) RÚT dòng thừa kế tự khai 'KHONG phai nguoi ky truc tiep xem tung muc'; (2) chủ repo chọn có ý 'chấp nhận mà không đọc lại, ghi nhãn rõ' khi được hỏi thẳng trong phiên 2026-08-07. Override mới nói đúng phạm vi đó."
 ## Analyst
 
 Baseline values carried forward: every machine eval here is green-on-both (the fix in

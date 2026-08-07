@@ -530,6 +530,13 @@ describe('routes[].route — đường đi thực tế (PR #5)', () => {
     // lengthKm (ta tự đo trên polyline) KHÁC distanceKm (router báo). Hai phép
     // đo khác nhau, phải cùng tồn tại chứ không được gộp thành một con số.
     expect(r.lengthKm).toBeGreaterThan(0);
+    // AC-2 nói "BÊN CẠNH lengthKm/bbox/pointCount". `bbox` và `pointCount`
+    // trước đây chỉ được khẳng định ở nhánh tuyến-vẽ-tay (:472-473), tức nhánh
+    // KHÁC — một hiện thực bỏ hai trường đó đúng ở nhánh routed vẫn xanh. Đo
+    // thẳng vào polyline router trả về (3 điểm, mock ở :24-35) nên con số này
+    // không thể trùng khớp một cách tình cờ với nhánh kia.
+    expect(r.pointCount).toBe(3);
+    expect(r.bbox).toEqual([105.8, 21.0, 105.9, 21.1]);
   });
 
   it('omits distance/duration for a route the caller drew by hand — those are router facts', async () => {

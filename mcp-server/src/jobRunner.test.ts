@@ -75,6 +75,22 @@ function fakeAnchors(cfg: RenderConfig): ClipAnchors {
   };
 }
 
+/**
+ * ĐÚNG MỘT trong `anchors` / `anchorsUnavailable`, đo tại TỪNG lối ra.
+ *
+ * "resolved có anchors" chỉ là nửa khẳng định — nó không loại trừ khối
+ * `resolved` mang CẢ HAI, và khi đó caller không có cách nào biết tin cái nào.
+ * Đo được: cho `resolvedOfClip` phát cả hai ở nhánh đo-được thì tools.test.ts
+ * đỏ 2 ca, còn lane jobRunner này vẫn 28/28 xanh trước khi có chốt này.
+ */
+function expectAnchorsXor(resolved: unknown, label: string): void {
+  const r = (resolved ?? {}) as Record<string, unknown>;
+  const hasAnchors = 'anchors' in r;
+  const hasReason = 'anchorsUnavailable' in r;
+  expect(hasAnchors !== hasReason, `${label}: anchors=${hasAnchors}, anchorsUnavailable=${hasReason}`).toBe(true);
+  expect('camera' in r, `${label}: camera đi cùng anchors`).toBe(hasAnchors);
+}
+
 /** Clip deps that succeed: two frames + a settle still, encoder writes a real file. */
 function clipDeps(over: Partial<ToolDeps> = {}): ToolDeps {
   return makeDeps({
@@ -477,6 +493,8 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     // camera là camera NGHỈ mà renderer đo, không phải `cfg.camera` echo lại
     expect(resolvedOf(a.id).camera.zoom).toBe(resolvedOf(a.id).zoom + 1);
     expect(resolvedOf(b.id).camera.zoom).toBe(resolvedOf(b.id).zoom + 1);
+    expectAnchorsXor(store.get(a.id)!.resolved, 'việc a');
+    expectAnchorsXor(store.get(b.id)!.resolved, 'việc b');
   });
 
   it('PR #6: renderer không đo được anchors ⇒ việc VẪN xong, resolved mang anchorsUnavailable', async () => {
@@ -498,6 +516,7 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(resolved.anchorsUnavailable).toBe(REASON);
     expect('anchors' in resolved).toBe(false);
     expect('camera' in resolved).toBe(false);
+    expectAnchorsXor(resolved, 'không đo được');
   });
 
   it('PR #6: degrade encoder và từ chối quá cỡ VẪN mang camera + anchors', async () => {
@@ -515,6 +534,7 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(store.get(degraded.id)!.degradeNote).toMatch(/encode failed/);
     expect(dRec.camera).toBeDefined();
     expect(dRec.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(store.get(degraded.id)!.resolved, 'degrade encode');
 
     process.env.MAPPOSTER_CLIP_MAX_BYTES = '1';
     const overRunner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
@@ -525,6 +545,7 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(store.get(over.id)!.status).toBe('failed');
     expect(oRec.camera).toBeDefined();
     expect(oRec.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(store.get(over.id)!.resolved, '422 quá cỡ');
   });
 
   it('encoder nổ → việc vẫn XONG, ảnh tĩnh còn nguyên, kèm lý do; không sót tệp mp4 dở', async () => {

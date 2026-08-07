@@ -466,6 +466,24 @@ interface ClipResBody {
   clipError?: string;
 }
 
+/**
+ * ĐÚNG MỘT trong `anchors` / `anchorsUnavailable`, đo tại TỪNG lối ra.
+ *
+ * "resolved có anchors" là một nửa khẳng định: nó không loại trừ việc khối
+ * `resolved` mang CẢ HAI. Phát ra cả hai thì caller không có cách nào biết tin
+ * cái nào — và một `anchors` đã tự khai là không đo được vẫn sẽ bị đọc như số
+ * đo thật. Đo được: cho `resolvedOfClip` phát cả hai ở nhánh đo-được thì
+ * tools.test.ts đỏ 2 ca còn lane REST vẫn 61/61 xanh.
+ */
+function expectAnchorsXor(resolved: ClipResBody['resolved'], label: string): void {
+  const r = (resolved ?? {}) as Record<string, unknown>;
+  const hasAnchors = 'anchors' in r;
+  const hasReason = 'anchorsUnavailable' in r;
+  expect(hasAnchors !== hasReason, `${label}: anchors=${hasAnchors}, anchorsUnavailable=${hasReason}`).toBe(true);
+  // `camera` là số đo của CÙNG lần đọc anchors — đi và vắng cùng nhau.
+  expect('camera' in r, `${label}: camera đi cùng anchors`).toBe(hasAnchors);
+}
+
 describe('POST /render-clip', () => {
   let srv: HttpServer | undefined;
   afterEach(async () => {
@@ -522,6 +540,7 @@ describe('POST /render-clip', () => {
     expect(okBody.resolved?.camera?.zoom).not.toBe(okBody.resolved?.zoom);
     expect(okBody.resolved?.anchors?.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
     expect(okBody.resolved?.anchors?.regions).toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+    expectAnchorsXor(okBody.resolved, '200');
     await srv.close();
 
     // degrade: encoder ngã — khung đã chụp, anchors đã đo, không được vứt đi
@@ -537,6 +556,7 @@ describe('POST /render-clip', () => {
     expect(degraded.clipError).toBeDefined();
     expect(degraded.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
     expect(degraded.resolved?.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(degraded.resolved, 'degrade encode');
     await srv.close();
 
     // 422 quá cỡ: cùng giao ước xuống-cấp
@@ -547,6 +567,34 @@ describe('POST /render-clip', () => {
     const overBody = (await over.json()) as ClipResBody;
     expect(overBody.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
     expect(overBody.resolved?.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(overBody.resolved, '422 quá cỡ');
+  });
+
+  it('nhánh KHÔNG đo được cũng cùng bất biến XOR — và ba lối ra trên không phải cả hai nhánh (PR #6)', async () => {
+    // Ba lối ra của ca trên (200 / degrade / 422) đều thuộc nhánh ĐO ĐƯỢC:
+    // chúng nói lên "phát đúng một" nhưng chỉ chứng kiến MỘT phía của union.
+    // Ca này bổ nhánh còn lại trên chính bề mặt REST.
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchorsUnavailable: REASON };
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), body);
+    expect(res.status).toBe(200); // pitch không làm hỏng clip, chỉ làm anchors mất nghĩa
+    const j = (await res.json()) as ClipResBody;
+    expect(j.resolved?.anchorsUnavailable).toBe(REASON);
+    expectAnchorsXor(j.resolved, '200 không đo được');
   });
 
   it('AC-11: output.quality ĐI TỚI encoder trên lối REST, và vắng mặt thì encoder giữ nguyên mặc định cũ', async () => {

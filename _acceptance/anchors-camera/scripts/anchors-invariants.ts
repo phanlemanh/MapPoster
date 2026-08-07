@@ -37,16 +37,22 @@ const note = (ok: boolean, id: string, msg: string): void => {
  * `anchorsAt(t)` để giải thích vì sao KHÔNG được có nó — đọc cả chú thích thì
  * chính lời giải thích trở thành vi phạm, và cách duy nhất để xanh là xoá lời
  * giải thích. Bỏ chú thích khối và những dòng chỉ chứa chú thích.
+ *
+ * GIỮ NGUYÊN SỐ DÒNG (thay bằng dòng rỗng thay vì xoá): I6 báo vị trí vi phạm
+ * theo `tệp:dòng`, và một số dòng lệch so với tệp thật là một chỉ dẫn sai.
  */
 const stripComments = (s: string): string =>
   s
-    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
     .split('\n')
-    .filter((line) => {
+    .map((line) => {
       const t = line.trim();
-      return !t.startsWith('//') && !t.startsWith('*');
+      return t.startsWith('//') || t.startsWith('*') ? '' : line;
     })
     .join('\n');
+
+/** Số dòng (1-based) của vị trí `at` trong `src`. */
+const lineAt = (src: string, at: number): number => src.slice(0, at).split('\n').length;
 
 /** Thân của một hàm/method bắt đầu tại `header`, cắt bằng cách đếm ngoặc. */
 function bodyOf(src: string, header: string): string {
@@ -256,29 +262,51 @@ note(
 // `it.skip(` vẫn cho exit 0, chỉ tụt số ca. Vòng chấm đã chứng minh đúng vậy:
 // 541 pass / 11 skip mà lane vẫn xanh.
 //
-// Nên mệnh đề "mọi ca skip đều thuộc khối gated" phải có người canh, không thể
-// nằm suông trong `expected` — đó chính là lớp lỗi cả năm vòng chấm đi bịt.
-// Kiểm tĩnh, rẻ: `.skip`/`.only` chỉ được xuất hiện trong các tệp có cổng
-// `MCP_INTEGRATION`, và `.only` thì không được ở đâu cả (nó làm CI chạy đúng
-// một ca rồi báo xanh — im lặng và tệ hơn skip).
-const GATED = ['mcp-server/src/renderFrame.test.ts', 'mcp-server/src/renderClip.test.ts', 'mcp-server/src/stdioChannel.test.ts'];
+// Bản I6 đầu tiên miễn trừ theo TỆP (`if (GATED.includes(f)) continue`) và đó
+// là một lỗ đúng bằng lớp lỗi nó định bịt: `renderFrame.test.ts` có HAI khối,
+// khối gated VÀ khối "trang giả" KHÔNG gate — mà khối sau là bằng chứng DUY
+// NHẤT của AC-6 cho E9. Đặt `it.skip` ở dòng 272 làm ca ấy biến mất trong khi
+// cả invariant lẫn vitest cùng exit 0.
+//
+// Nên không miễn trừ theo tệp, cũng không theo khối: KHÔNG một call site
+// `.skip(`/`.todo(`/`.skipIf(`/`.runIf(` nào được phép ở bất cứ đâu. Cách gác
+// hợp lệ duy nhất là bí danh có điều kiện `const suite = RUN ? describe :
+// describe.skip` — nó KHÔNG sinh ra call site nào, và điều kiện của nó phải
+// đến từ `process.env` (I6c) để không ai tắt cứng một tệp bằng `false ? …`.
+// `.only` thì không được ở đâu cả: nó làm CI chạy đúng một ca rồi báo xanh.
 const testFiles = execFileSync('git', ['ls-files', '*.test.ts', '*.spec.ts'], { cwd: repoRoot, encoding: 'utf8' })
   .split('\n')
   .filter(Boolean);
+const DISABLERS = /\b(it|test|describe)\.(skip|todo|skipIf|runIf)\s*\(/g;
 const skipOffenders: string[] = [];
 const onlyOffenders: string[] = [];
+const gateOffenders: string[] = [];
+let gateAliases = 0;
 for (const f of testFiles) {
   const src = stripComments(read(f));
   if (/\b(it|test|describe)\.only\s*\(/.test(src)) onlyOffenders.push(f);
-  if (GATED.includes(f)) continue;
-  if (/\b(it|test|describe)\.skip\s*\(/.test(src)) skipOffenders.push(f);
+  for (const m of src.matchAll(DISABLERS)) {
+    skipOffenders.push(`${f}:${lineAt(src, m.index ?? 0)} (${m[1]}.${m[2]})`);
+  }
+  // I6c: bí danh gác phải do biến môi trường quyết định, không phải hằng.
+  for (const d of src.matchAll(/const\s+\w+\s*=\s*([^?;\n]+?)\s*\?\s*describe\s*:\s*describe\.skip\s*;/g)) {
+    gateAliases++;
+    const cond = d[1].trim();
+    const fromEnv = /process\.env/.test(cond) || new RegExp(`const\\s+${cond}\\s*=[^\\n]*process\\.env`).test(src);
+    if (!fromEnv) gateOffenders.push(`${f}: điều kiện gác \`${cond}\` không đến từ process.env`);
+  }
 }
 note(
   skipOffenders.length === 0,
   'I6',
   skipOffenders.length
-    ? `test bị TẮT ngoài khối gated: ${skipOffenders.join(', ')} — exit 0 không phân biệt được xanh với bị tắt`
-    : `không .skip nào ngoài ${GATED.length} tệp gated (quét ${testFiles.length} tệp test)`,
+    ? `test bị TẮT tại: ${skipOffenders.join(', ')} — exit 0 không phân biệt được xanh với bị tắt`
+    : `không call site .skip/.todo/.skipIf/.runIf nào (quét ${testFiles.length} tệp test, ${gateAliases} bí danh gác bằng env)`,
+);
+note(
+  gateOffenders.length === 0,
+  'I6',
+  gateOffenders.length ? gateOffenders.join('; ') : `cả ${gateAliases} bí danh gác đều lấy điều kiện từ process.env`,
 );
 note(
   onlyOffenders.length === 0,

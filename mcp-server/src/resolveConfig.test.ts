@@ -21,6 +21,19 @@ vi.mock('./geocode', () => ({
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
+vi.mock('./route', () => ({
+  resolveRoute: vi.fn(async (req: { mode?: string }) => ({
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[105.8, 21.0], [105.85, 21.05], [105.9, 21.1]] } }],
+    },
+    distanceKm: 12.4,
+    durationMin: 28,
+    provider: `osrm/${req.mode === 'walk' ? 'foot' : 'driving'}`,
+    pointCount: 3,
+  })),
+}));
+
 describe('formatSize', () => {
   it('resolves tiktok to 1080×1920 and passes custom dims through', () => {
     expect(formatSize('tiktok')).toEqual({ width: 1080, height: 1920 });
@@ -487,6 +500,67 @@ describe('routes', () => {
     const one = { coords: Array.from({ length: 20000 }, (_, i) => [105 + i * 1e-6, 21] as [number, number]) };
     const cfg = await resolveConfig({ location: { lng: 105.85, lat: 21.02 }, routes: [one] } as never);
     expect(cfg.routes).toHaveLength(1);
+  });
+});
+
+describe('routes[].route — đường đi thực tế (PR #5)', () => {
+  it('accepts a route request and echoes distance/duration beside the geometry', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ route: { from: [105.8, 21.0], to: [105.9, 21.1], mode: 'car' }, color: '#ff0000' }],
+    } as never);
+
+    expect(cfg.routes).toHaveLength(1);
+    expect(cfg.routes?.[0].color).toBe('#ff0000');
+
+    const [r] = summarizeRoutes(cfg);
+    expect(r.distanceKm).toBeCloseTo(12.4, 1);
+    expect(r.durationMin).toBeCloseTo(28, 1);
+    expect(r.provider).toMatch(/osrm/i);
+    // lengthKm (ta tự đo trên polyline) KHÁC distanceKm (router báo). Hai phép
+    // đo khác nhau, phải cùng tồn tại chứ không được gộp thành một con số.
+    expect(r.lengthKm).toBeGreaterThan(0);
+  });
+
+  it('omits distance/duration for a route the caller drew by hand — those are router facts', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[105.8, 21.0], [105.9, 21.1]] }],
+    } as never);
+    const [r] = summarizeRoutes(cfg);
+    expect(r.lengthKm).toBeGreaterThan(0);
+    expect(r.distanceKm).toBeUndefined();
+    expect(r.durationMin).toBeUndefined();
+    expect(r.provider).toBeUndefined();
+  });
+
+  it('refuses an entry carrying more than one of coords/geojson/route', async () => {
+    await expect(
+      resolveConfig({
+        location: { lng: 105.85, lat: 21.02 },
+        routes: [{ coords: [[1, 1], [2, 2]], route: { from: [1, 1], to: [2, 2] } }],
+      } as never),
+    ).rejects.toThrow(/exactly one of/);
+  });
+
+  it('geocodes a named from/to through the same country anchor as highlights', async () => {
+    vi.mocked(geocode.resolveLocation).mockClear();
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      routes: [{ route: { from: 'Bến Thành', to: 'Tân Sơn Nhất' } }],
+    } as never);
+    expect(geocode.resolveLocation).toHaveBeenCalledWith('Bến Thành', 'Vietnam');
+    expect(geocode.resolveLocation).toHaveBeenCalledWith('Tân Sơn Nhất', 'Vietnam');
+    expect(cfg.routes).toHaveLength(1);
+  });
+
+  it('lets camera.focus frame a routed line like any other route', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 100, lat: 10 },
+      routes: [{ route: { from: [105.8, 21.0], to: [105.9, 21.1] } }],
+      camera: { focus: { kind: 'route', index: 0 } },
+    } as never);
+    expect(cfg.camera.center[0]).toBeCloseTo(105.85, 2);
   });
 });
 

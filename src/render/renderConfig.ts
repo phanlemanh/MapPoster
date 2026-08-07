@@ -36,6 +36,10 @@ export interface RenderRoute {
   geojson: GeoJSONFeatureCollection;
   color: string;
   width: number;
+  /** Router facts, echoed into `resolved.routes`; the render page ignores them. */
+  distanceKm?: number;
+  durationMin?: number;
+  provider?: string;
 }
 
 export type Chrome = 'clean' | 'label' | 'poster';

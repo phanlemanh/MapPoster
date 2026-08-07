@@ -15,7 +15,7 @@ beforeEach(() => {
 
 describe('resolveRoute', () => {
   it('asks OSRM for full GeoJSON geometry and returns km/min', async () => {
-    const f = vi.fn(async () => jsonRes(okBody([[105.8, 21.0], [105.9, 21.1]])));
+    const f = vi.fn(async (_url: string, _init?: RequestInit) => jsonRes(okBody([[105.8, 21.0], [105.9, 21.1]])));
     vi.stubGlobal('fetch', f);
 
     const r = await resolveRoute({ from: [105.8, 21.0], to: [105.9, 21.1], mode: 'car' });
@@ -40,7 +40,7 @@ describe('resolveRoute', () => {
   });
 
   it('sends via points in order between from and to', async () => {
-    const f = vi.fn(async () => jsonRes(okBody([[1, 1], [2, 2]])));
+    const f = vi.fn(async (_url: string, _init?: RequestInit) => jsonRes(okBody([[1, 1], [2, 2]])));
     vi.stubGlobal('fetch', f);
     await resolveRoute({ from: [1, 1], via: [[1.5, 1.5]], to: [2, 2] });
     expect(String(f.mock.calls[0][0])).toContain('1,1;1.5,1.5;2,2');
@@ -91,10 +91,11 @@ describe('resolveRoute', () => {
   });
 
   it('passes an AbortSignal on every request — a fetch without one cannot be timed out', async () => {
-    const f = vi.fn(async () => jsonRes(okBody([[1, 1], [2, 2]])));
+    const f = vi.fn(async (_url: string, init?: RequestInit) => { seen = init; return jsonRes(okBody([[1, 1], [2, 2]])); });
+    let seen: RequestInit | undefined;
     vi.stubGlobal('fetch', f);
     await resolveRoute({ from: [1, 1], to: [2, 2] });
-    expect((f.mock.calls[0][1] as { signal?: AbortSignal }).signal).toBeInstanceOf(AbortSignal);
+    expect(seen?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('refuses coordinates outside the valid range before spending a request', async () => {

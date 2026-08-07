@@ -142,7 +142,7 @@ evals:
     criterion: AC-1
     executor: script
     cmd: config:executors.script.routes_demo
-    expected: "exit 0; 5 render thật + 9 phép kiểm số đo — cả 9 đều PHÂN BIỆT ĐƯỢC, gồm 'phương vị tây-bắc' nay là (>270 && <360) chứ không phải (>270 || <360): bearingDeg chuẩn hoá về [0,360) nên vế sau là hằng đúng và `||` biến phép kiểm thành no-op cho MỌI phương vị; cùng 'polyline dài hơn chim bay hai đầu' và 'diện tích trừ lỗ đúng ~16%' — chứng minh tuyến đi hết đường tới pixel"
+    expected: "exit 0; 5 render thật + 14 phép kiểm, cả 14 đều PHÂN BIỆT ĐƯỢC. Năm phép kiểm PIXEL (mới): trước đây `shot()` chỉ render rồi `fs.writeFile` mà KHÔNG khẳng định gì về ảnh — xoá hẳn lớp `route-line` khỏi mapStyle vẫn cho 9/9 xanh. Nay ảnh được GIẢI và ĐẾM pixel đúng mã màu caller đặt: A1 có >500 px #ff4d6d, còn A0 (không tuyến nào) có ĐÚNG 0 px màu đó — nên 'có màu trên ảnh' không thể đến từ nền bản đồ; A2 có pixel riêng cho cả ba màu #ff4d6d/#4fc3ff/#7bd88f, nên một hiện thực tô chung một màu cho cả source cũng đỏ. LƯU Ý VẬN HÀNH: bộ render nạp app từ `dist/`, nên phải `vite build` trước khi chạy demo — dist cũ sẽ giấu mọi thay đổi trong src. Chín phép kiểm số đo giữ nguyên, gồm 'phương vị tây-bắc' là (>270 && <360) chứ không phải (>270 || <360): bearingDeg chuẩn hoá về [0,360) nên vế sau là hằng đúng và `||` biến phép kiểm thành no-op cho MỌI phương vị; cùng 'polyline dài hơn chim bay hai đầu' và 'diện tích trừ lỗ đúng ~16%'"
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
 
   # --- Hàng rào hồi quy ------------------------------------------------------

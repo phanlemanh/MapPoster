@@ -11,11 +11,14 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { makeRenderDeps } from '../../../mcp-server/src/deps';
 import { resolveConfig, summarizeRoutes, summarizeMeasures, type RenderMapParams } from '../../../mcp-server/src/resolveConfig';
+import { countExactColor } from './png-pixels';
 
 const OUT = path.join(process.cwd(), '_acceptance/routes-measurements/demo');
 const SIZE = { width: 640, height: 800 };
 const deps = makeRenderDeps();
 const shots: { file: string; title: string; note: string }[] = [];
+/** PNG của từng khung hình, giữ lại để ĐẾM PIXEL chứ không chỉ ghi ra đĩa. */
+const pixels = new Map<string, Buffer>();
 
 // Bốn điểm quanh Hà Nội — toạ độ tường minh nên KHÔNG cần geocode.
 const HK: [number, number] = [105.8524, 21.0285]; // Hồ Hoàn Kiếm
@@ -27,6 +30,7 @@ async function shot(file: string, title: string, note: string, params: RenderMap
   const cfg = await resolveConfig({ format: SIZE, theme: 'midnight-blue', ...params });
   const png = await deps.render(cfg);
   await fs.writeFile(path.join(OUT, file), png);
+  pixels.set(file, png);
   shots.push({ file, title, note });
   console.log(`  ✓ ${file.padEnd(24)} ${title}`);
 }
@@ -67,6 +71,29 @@ async function main(): Promise<void> {
     location: { lng: 105.0, lat: 20.0 }, // CỐ Ý xa tuyến
     routes: [{ coords: [WEST, LONGBIEN] }],
   });
+
+  // --- Tới PIXEL, không dừng ở "đã ghi ra tệp" -----------------------------
+  // Năm lời gọi `shot()` ở trên render thật rồi `fs.writeFile`, nhưng KHÔNG
+  // khẳng định gì về nội dung ảnh: xoá hẳn lớp `route-line` khỏi mapStyle vẫn
+  // cho 9/9 phép kiểm xanh. Đếm pixel ĐÚNG MÃ MÀU caller đặt là phép đo phân
+  // biệt được — và đối chứng A0 (không tuyến nào) phải bằng 0, để "có màu đó
+  // trên ảnh" không thể đến từ nền bản đồ.
+  console.log('\nPHẦN A2 — tuyến tới PIXEL (đếm màu trên ảnh đã render)\n');
+
+  const px = (file: string, hex: string): number => countExactColor(pixels.get(file)!, hex);
+
+  const a1Route = px('A1-one-route.png', '#ff4d6d');
+  check(a1Route > 500, 'A1: pixel đúng màu tuyến caller đặt', `${a1Route} px #ff4d6d`);
+  const a0Route = px('A0-no-routes.png', '#ff4d6d');
+  check(a0Route === 0, 'A0 (không tuyến): KHÔNG pixel nào màu đó', `${a0Route} px #ff4d6d`);
+
+  // Ba tuyến, ba màu: chứng minh style TỪNG tuyến tới pixel, không phải "có vẽ
+  // một cái gì đó". Một hiện thực dùng chung một màu cho cả source làm hai
+  // trong ba phép kiểm này đỏ.
+  for (const [hex, label] of [['#ff4d6d', 'đỏ'], ['#4fc3ff', 'xanh lam'], ['#7bd88f', 'xanh lá']] as const) {
+    const n = px('A2-multi-route.png', hex);
+    check(n > 300, `A2: tuyến ${label} có pixel riêng`, `${n} px ${hex}`);
+  }
 
   console.log('\nPHẦN B — số đo\n');
 

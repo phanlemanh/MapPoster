@@ -7,8 +7,8 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ce0b13e6de6504aa53d3bc0fe5545f209ec00381
-human_signoff: manh 2026-08-07
+verified_commit: 9a6af0fa05f8f3e7fcebbcddc04f7994ea720ca5
+human_signoff:
 ---
 
 # Evidence Report: mcp-map-render

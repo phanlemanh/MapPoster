@@ -1,14 +1,14 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason: 
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: affbe6c57401eafaffb7ced1a70c4f7def9d196c
-human_signoff: 
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: mcp-map-render
@@ -143,7 +143,7 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Giám khảo mù chấm PASS (nguyên văn): Ảnh 1080×1920 đúng khung tiktok, nền navy với đường phố vàng cam đặc trưng midnight-blue; lưới đường và khối nhà liền mạch, không ô tile trống/vỡ hay răng cưa. Ghim trắng nằm gần chính giữa khung (≈540/1080 ngang, 910/1920 dọc — lệch nhẹ ~50px) và tương phản rõ trên nền tối. Đủ cả ba yêu cầu của AC-12: căn giữa, highlight rõ, tile/đường không vỡ.
   required_evidence:
     - "Chủ repo tự mở evidence/E12-example.png và xác nhận trực tiếp (không qua uỷ quyền phiên) rằng: điểm highlight nằm đúng vị trí địa lý của 'Võ Văn Tần, Quận 3, HCMC', ảnh dùng được làm B-roll video."
-  human_override: 
+  human_override: manh 2026-08-07 — CHAP NHAN tren bang chung MAY + phan cua giam khao mu. KHONG tu mo lai evidence/E12-example.png de xac nhan vi tri dia ly; viec neu o required_evidence CHUA lam. Chu repo duoc hoi thang va chon co y phuong an nay trong phien 2026-08-07.
   override_status: "Round 25, two steps. (1) WITHDRAWN: Round 24's human_override self-declared it was applied under a session-blanket authorisation ('tu lai, khong can hoi'), NOT a per-item human review, so it could not be carried forward to newly mint a PASS against commit affbe6c5. (2) RESOLVED at Gate 2 by an explicitly LABELLED owner acceptance: asked directly in the 2026-08-07 session, the repo owner deliberately chose 'accept on machine evidence + blind-judge verdict without re-opening the artifact, and label it as such' over personally re-inspecting E12-example.png. The override line below states exactly that scope — it does NOT claim anyone looked at the render. A later reader can see precisely what backs this verdict."
 ## Analyst
 

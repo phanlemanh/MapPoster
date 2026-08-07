@@ -108,6 +108,45 @@ themes, so pass an explicit `color` when the route must read as distinct from
 the streets underneath. When a call has routes but no highlight region or
 point, auto-framing follows the routes' extent.
 
+`routes[].route` asks a router for the **actual road-following path** — the one
+thing a language model cannot invent. `{ from, to, via?, mode? }` where `from` /
+`to` / `via[]` each take `[lng, lat]` **or** a place name (names resolve through
+the same country anchor highlights use, so "Bến Thành" cannot silently become a
+same-named place abroad). `mode` is `car` | `moto` | `walk`.
+
+```jsonc
+"routes": [{ "route": { "from": "Bến Thành", "to": "Tân Sơn Nhất", "mode": "car" } }]
+// → resolved.routes[0] = { bbox, lengthKm, pointCount,
+//                          distanceKm: 12.4, durationMin: 28, provider: "osrm/driving" }
+```
+
+`distanceKm` / `durationMin` / `provider` appear **only** for a routed line —
+they are facts the router reported, not something derivable from a polyline the
+caller drew by hand, so a hand-drawn route omits them rather than reporting `0`.
+Note `distanceKm` (router) and `lengthKm` (our own sum over the returned
+polyline) are two different measurements and both are kept.
+
+| `mode` | OSRM profile |
+|---|---|
+| `car` | `driving` |
+| `moto` | `driving` — the public OSRM has no motorcycle profile; the mapping is reported in `provider` rather than pretended away |
+| `walk` | `foot` |
+
+**Operational note.** The default router is `https://routing.openstreetmap.de/routed-car`,
+a public community instance with **no SLA and a fair-use policy** — fine for
+trying this out, not for production. Point `MAPPOSTER_OSRM_URL` at an OSRM you
+host. The host is read from the environment and can never be set by a caller:
+this is the server's first outbound call whose content a caller influences, so a
+caller-supplied host would be an SSRF into the process holding the browser pool.
+
+Every routing request carries a hard timeout (`MAPPOSTER_ROUTE_TIMEOUT_MS`,
+default 8000). That matters because config resolution runs *inside* the clip
+concurrency slot — without it, one hung router would hold the global slot until
+the pool deadline. Geometry longer than 700 points is decimated (endpoints
+kept), so payload size does not scale with trip length. Routes are LRU-cached
+(`MAPPOSTER_ROUTE_CACHE_MAX`) and requests are serialised
+(`MAPPOSTER_ROUTE_MIN_SPACING_MS`), same shape as the geocoder.
+
 `measure` answers geometry questions from the already-resolved config, with no
 extra network call. `measure.pairs` takes index pairs into `highlight.points`
 (e.g. `[[0, 1]]`); an index with no matching point is refused rather than

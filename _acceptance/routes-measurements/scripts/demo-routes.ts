@@ -86,7 +86,11 @@ async function main(): Promise<void> {
 
   const hkToWest = m.pairs[0];
   check(hkToWest.straightLineKm > 3 && hkToWest.straightLineKm < 6, 'cặp điểm: đường chim bay Hoàn Kiếm→Hồ Tây', `straightLineKm=${hkToWest.straightLineKm.toFixed(2)}`);
-  check(hkToWest.bearingDeg > 270 || hkToWest.bearingDeg < 360, 'cặp điểm: phương vị tây-bắc', `bearingDeg=${hkToWest.bearingDeg.toFixed(1)}`);
+  // `&&`, KHÔNG phải `||`. `initialBearingDeg` chuẩn hoá bằng `(… + 360) % 360`
+  // (geometry.ts:31) nên giá trị LUÔN thuộc [0,360): vế `< 360` một mình là
+  // hằng đúng, và với `||` thì cả biểu thức đúng với MỌI phương vị, kể cả
+  // đông-nam. Đó là một no-op đội lốt phép kiểm — 8 phép kiểm chứ không phải 9.
+  check(hkToWest.bearingDeg > 270 && hkToWest.bearingDeg < 360, 'cặp điểm: phương vị tây-bắc', `bearingDeg=${hkToWest.bearingDeg.toFixed(1)}`);
   check(!('km' in hkToWest), 'không có tên số đo trần', 'chỉ straightLineKm / bearingDeg');
 
   // Chiều dài đi theo tuyến PHẢI dài hơn đường chim bay hai đầu tuyến —

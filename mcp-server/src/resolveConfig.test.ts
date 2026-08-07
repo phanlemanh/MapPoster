@@ -452,6 +452,18 @@ describe('routes', () => {
     expect(cfg.routes?.[0]).toMatchObject({ color: '#ff0000', width: 8 });
     expect(cfg.routes?.[1]).toMatchObject({ width: 4 });
     expect(cfg.routes?.[1].color).toBe('#e8b04b'); // accent của midnight-blue
+
+    // AC-1 đòi CẢ HAI dạng cho ra `geojson`/`color`/`width` cụ thể. Trước đây
+    // chỉ style được khẳng định; phép đo hình học thật chạy trên entry dạng
+    // `coords`, nên bỏ hẳn trường `geojson` của entry dạng-geojson vẫn xanh.
+    // Đo hình học của TỪNG dạng, và hai dạng có toạ độ KHÁC nhau nên không thể
+    // xanh nhầm bằng cách đọc sang tuyến kia.
+    const [byCoords, byGeojson] = summarizeRoutes(cfg);
+    expect(byCoords.pointCount).toBe(2);
+    expect(byCoords.bbox).toEqual([105.85, 21.02, 105.86, 21.02]);
+    expect(byGeojson.pointCount).toBe(2);
+    expect(byGeojson.bbox).toEqual([105.8, 21.0, 105.81, 21.01]);
+    expect(cfg.routes?.[1].geojson).toEqual(lineFc([[105.8, 21.0], [105.81, 21.01]]));
   });
 
   it('leaves routes UNDEFINED when the call has none — not an empty array', async () => {

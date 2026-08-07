@@ -8,7 +8,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 535ee8e8b30d8bdadc15c55ecbc5f27c4564f783
-human_signoff:
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: mcp-auth

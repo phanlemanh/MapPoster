@@ -61,14 +61,14 @@ evals:
     criterion: AC-8
     executor: test
     cmd: config:executors.test.route
-    expected: "exit 0; SHOULD-NOT-REFETCH — yêu cầu trùng chỉ gọi fetch 1 lần; và SHOULD-REFETCH — khác mode thì gọi 2 lần (mode nằm trong khoá cache)"
+    expected: "exit 0; SHOULD-NOT-REFETCH — yêu cầu trùng chỉ gọi fetch 1 lần; SHOULD-REFETCH — car→walk gọi 2 lần. Khoá cache mang PROFILE chứ không phải mode (route.ts:146 ghép bằng `profile`), và OSRM_PROFILE đưa car lẫn moto về cùng 'driving' — nên có thêm nửa SHOULD-NOT-REFETCH thứ hai: car→moto vẫn 1 lời gọi và provider trả 'osrm/driving'. Không có nửa đó, ca car→walk một mình xanh với cả hiện thực ghép khoá bằng `mode`, tức không phân biệt được hai cách ghép. Đo được: đổi khoá thành `mode` ⇒ lane exit 1 ('called 2 times, but got 3 times')"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E9
     criterion: AC-9
     executor: test
     cmd: config:executors.test.route
-    expected: "exit 0; upstream treo bị HUỶ và ném lỗi /timed out/; và mọi fetch mang signal (không signal thì không thể timeout)"
+    expected: "exit 0; upstream treo bị HUỶ và ném lỗi /timed out/; và MỌI fetch mang signal (không signal thì không thể timeout) — đo trên BỐN lời gọi đi qua các đường khác nhau (mặc định, profile 'foot', toạ độ khác, có chặng `via`), mỗi cái một khẳng định riêng, thay vì một lời gọi duy nhất như trước: 'mọi' đo trên một mẫu thì một nhánh quên signal vẫn để lane xanh. Đo được: bỏ signal riêng ở nhánh `via` ⇒ lane exit 1 ('lời gọi #3 không mang signal')"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E10

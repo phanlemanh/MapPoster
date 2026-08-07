@@ -1,17 +1,112 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: REJECT
-failed_evals: [E1, E2, E5, E7]
-reason: 
+verdict: PENDING-JUDGMENT
+failed_evals: []
+reason: "E5 nay chốt 'trang dùng lại không trả khung cũ' bằng một khối trang-giả KHÔNG gate, chạy ngay trong npm test: query-param configId và từ chối trang lệch key; cả hai đột biến làm npm test đỏ."
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: b4c1d50c7a9267c9f40c43525e6e17e6183cc637
+verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
 human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
+
+## Vòng 29 — E5 đã vào ĐÚNG lane của nó
+
+Ghim ở `ace12a0`. Cả 11 eval máy chạy lại tươi, **11/11 thoát 0**: `npm test` 547 đạt / 10 bỏ qua /
+0 đỏ · `npm run test:e2e` 18 đạt. **E12 (judgment, T3) giữ PENDING-JUDGMENT, `human_override` để
+TRỐNG** — luật T3 đòi phán quyết NGƯỜI trực tiếp; vòng máy không ký thay.
+
+**E5 — mệnh đề 'trang dùng lại render mỗi config tươi' nay có ca canh TRONG chính lane của E5.** Vòng
+28 trượt vì ca duy nhất canh mệnh đề đó nằm sau `MCP_INTEGRATION=1`, mà lane của E5 là `npm test` —
+không đặt biến ấy, nên ca bị BỎ QUA và không chống lưng gì. `5cbf235` thêm vào
+`renderFrame.test.ts:314` một khối `describe` KHÔNG gate, đo hai cơ chế giữ tính chất đó. Kiểm chứng
+vòng này, cả hai đột biến chạy trên chính `npm test`:
+
+    # (a) cho configId đi bằng hash thay vì query param (điều hướng cùng tài liệu ⇒ trang không nạp lại)
+    mcp-server/src/renderFrame.ts   /render.html?configId=${key}  ->  /render.html#configId=${key}
+    $ npx vitest run                                  -> exit 1   (2 failed | 545 passed | 10 skipped)
+    FAIL  id config đi bằng QUERY param, KHÔNG phải hash — hash là điều hướng cùng tài liệu
+    AssertionError: expected null to be 'cfg-key-1'
+
+    # (b) trang khai SAI configKey không còn bị từ chối
+    gỡ cả 3 chỗ `throw new Error('... (stale page)')`
+    $ npx vitest run                                  -> exit 1   (1 failed | 546 passed | 10 skipped)
+    FAIL  trang khai SAI key ⇒ ném to tiếng và bị vứt khỏi hồ, không trả khung cũ
+    AssertionError: promise resolved "Buffer[ 137, 80, 78, 71, ... ]" instead of rejecting
+
+Cả hai lần đỏ đều xảy ra dưới `npm test` trần — tức ca nằm ĐÚNG trong lane E5, không phải trong bộ
+gated. Xác nhận độc lập rằng khối này không gate: chạy thẳng tệp không đặt biến cho
+`5 passed | 4 skipped (9)` — bốn ca bỏ qua là khối tích hợp cũ, năm ca chạy gồm hai ca mới này.
+
+**Mệnh đề 'bản end-to-end thật sống ở bộ gated và KHÔNG chống lưng cho lane này'** vẫn đúng nguyên văn
+và vẫn kiểm được: `npm test` báo `10 skipped`, trong đó có ca `a reused pooled page renders each config
+fresh` ở `renderFrame.test.ts:176`.
+
+**E12 (judgment)** — verdict và rationale của giám khảo mù giữ NGUYÊN VĂN; `human_override` để trống.
+
+`verified_commit` cập nhật lên `ace12a0` (`git merge-base --is-ancestor ace12a0 HEAD` trả 0 — ở đây nó CHÍNH LÀ HEAD). `human_signoff` để RỖNG — Cổng 2 chờ người ký.
+
+
+## Vòng 28 — E1/E2/E7 đã vá; E5 vá một nửa
+
+Ghim ở `d84857a` (tổ tiên của HEAD). Cả 11 eval máy chạy lại tươi, **11/11 thoát 0**: `npm test`
+542 đạt / 10 bỏ qua / 0 đỏ · `npm run test:e2e` 18 đạt. **E12 (judgment, T3) giữ PENDING-JUDGMENT,
+`human_override` để trống** — luật T3 đòi phán quyết NGƯỜI trực tiếp; vòng máy không ký thay.
+
+**Ba trong bốn eval bị REJECT vòng 26 nay đúng.** E1: `lastCfg.size` được khẳng định 1080×1920
+(`tools.test.ts:106`) và một renderer "nói dối" ép 640×480 vào phản hồi (`:119-126`) — kích thước
+không còn tự-thoả từ `fakePng(cfg.size.*)` nữa; `toEqual([106.7, 10.78])` (`:109`) thay cho mệnh đề
+dung sai cũ. E2: tên layer `highlight-outline` không còn được nêu như một thứ TỒN TẠI — sự VẮNG MẶT
+của nó nay chính là điều được khẳng định (`mapStyle.test.ts:156-159`), cùng `line-blur === line-width`.
+E7: `delivery.test.ts:35-41` khẳng định `dirname`/`basename` của tệp trên sink VÀ byte tệp === base64
+giải mã === buffer đưa vào; phần "không có bộ giải mã PNG nào chạy ở đây" được khai TRUNG THỰC trong
+chính `expected`.
+
+### E5 TRƯỢT — một mệnh đề của nó được canh bằng đúng một ca BỊ BỎ QUA trong lane
+
+`expected` của E5 liệt kê sáu mệnh đề, trong đó có: *"a reused pooled page renders each config fresh
+(no stale frame)"*. Ca duy nhất canh mệnh đề đó là
+`mcp-server/src/renderFrame.test.ts:176` — `'a reused pooled page renders each config fresh, never a
+stale frame (F1 / AC-5)'` — nằm trong `suite`, mà `suite = RUN ? describe : describe.skip` với
+`RUN = process.env.MCP_INTEGRATION === '1'` (`renderFrame.test.ts:14-15`).
+
+`cmd` của E5 là `config:executors.test.api` → `npm test` → `vitest run`, KHÔNG đặt `MCP_INTEGRATION`.
+Chạy lane và đọc reporter JSON:
+
+```
+skipped   a reused pooled page renders each config fresh, never a stale frame (F1 / AC-5)
+```
+
+Không gì khác trong lane render hai lần qua một trang gộp: `browserPool.test.ts` dùng page giả
+(`:170-171`, `:192-197`) và gọi `renderFrame` đúng một lần; khối KHÔNG gated ở
+`renderFrame.test.ts:198` dựng `__mapposter` giả và không tái dùng trang giữa hai config. Nghĩa là
+lỗi stale-frame quay lại sẽ KHÔNG có một khẳng định đỏ nào dưới mệnh đề này, trong lane này.
+
+Đây đúng là lớp khuyết mà E7 của chính tệp này khai trung thực — *"Real PNG signature + IHDR decoding
+is renderFrame.test.ts under MCP_INTEGRATION=1, **outside this contract's lanes**"* — còn E5 thì
+khẳng định thẳng, không kèm điều kiện. Sửa: hoặc gỡ mệnh đề khỏi E5 và trỏ nó sang một eval chạy
+`config:executors.test.mcp`, hoặc thêm lane đó vào E5.
+
+### Hai ghi chú độ phủ cho người ký (KHÔNG đánh trượt)
+
+- **E2**, nửa "một region có polygon vượt 16 KB … **renders**": ca render thật của cấu hình đó cũng
+  nằm sau `describe.skip` (`renderFrame.test.ts:148`). Nửa SAU dấu gạch ngang thì có người canh thật
+  — `browserPool.test.ts:187-203` đẩy config 40 KB qua `renderFrame` và khẳng định `url.length < 200`
+  cùng `not.toContain('pad')`, và `:183` ghim `/render\.html\?configId=[0-9a-f]{32}$/`. Cơ chế được
+  nêu đích danh (config không được đi trong URL) phân biệt được trong lane, nên không trượt; nhưng
+  động từ "renders" thì không có khẳng định nào trong lane.
+- **E11**, mệnh đề "no zero-byte PNG": `tools.test.ts:162-166` chỉ khẳng định `isError === true` và
+  `ok === false`, không kiểm `imageBlocks(res)` (đối lập với `:174`, chỗ có
+  `expect(render).not.toHaveBeenCalled()`). Không trượt vì đột biến hiện thực (nuốt lỗi geocode rồi
+  render poster trắng) sẽ đặt `ok: true` và làm `:165` đỏ.
+- **E10** (ui-check): vấn đề nằm ở BẰNG CHỨNG, không ở câu chữ. `evidence/E10-step1.png` và
+  `E10-step2.png` TRÙNG BYTE (`sha256 3c28279d…` cả hai), nên hai khung không thể hiện một bước
+  "render" khác nhau giữa nạp-config và đo kích thước; và `e2e/render-mode.spec.ts` không chụp màn
+  hình, tức lane `playwright test` không sinh ra hai khung này. Nửa MÁY của E10 thì được ghim đầy đủ
+  ở `e2e/render-mode.spec.ts:93-113`.
 
 ## Vòng 27 — merge main rồi chạy lại; verdict giữ nguyên
 
@@ -131,86 +226,109 @@ _**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔ
 ## Evidence
 
 - eval: E1
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e1-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E2
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e2-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E3
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e3-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E4
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e4-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E5
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e5-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E6
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e6-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E7
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e7-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E8
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e8-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E9
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e9-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E10
-  run_id: mcp-map-render-r26-e2e-20260807
+  run_id: mcp-map-render-r29-e10-20260807
   exit_code: 0
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-07T05:59:16Z
+  verified_at: 2026-08-07T12:19:20Z
   screenshot: evidence/E10-step1.png
   observed: |
     Chạy lại tươi vòng 25 ở `9c1f9f3`: `npm run test:e2e` — 18 xanh (1.0m), gồm e2e/render-mode.spec.ts:93 (AC-10). Số ca tăng 14 → 18 vì gói anchors-camera thêm bốn ca `anchors:` vào chính tệp spec này; ca AC-10 của hợp đồng này không đổi và vẫn xanh. Khung được MỞ LẠI bằng multimodal Read trong vòng này, không chép mô tả cũ:
@@ -219,12 +337,15 @@ _**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔ
   network_observed: n-a (tool-error: frames read from committed evidence/, not re-captured live this round)
 
 - eval: E11
-  run_id: mcp-map-render-r26-api-20260807
+  run_id: mcp-map-render-r29-e11-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 29 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 28 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E12
   judged_by: judge-subagent (fresh context, blind)
@@ -241,6 +362,29 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 29 (chạy lại ở `ace12a0` sau khi E5 được vá): cả 11 eval máy chạy lại tươi, 11/11 thoát 0.
+**PENDING-JUDGMENT** (T3 — chờ `human_override` của người trên E12). E5 hết trượt — `5cbf235` thêm khối
+trang-giả KHÔNG gate ở `renderFrame.test.ts:314`, chạy ngay trong `npm test`; đột biến chuyển `configId`
+sang hash và đột biến gỡ chốt `stale page` đều làm `npm test` exit 1. Mệnh đề "bản gated không chống
+lưng cho lane này" vẫn đúng và vẫn quan sát được qua `10 skipped`. E12 giữ nguyên văn phán quyết mù,
+`human_override` để TRỐNG. `human_signoff` để rỗng.
+
+Vòng 28 (chạy lại ở `d84857a` sau khi E1/E2/E5/E7 được vá): cả 11 eval máy chạy lại tươi, 11/11 thoát
+0 (`npm test` 542/10/0, `npm run test:e2e` 18/18). E12 (judgment, T3) giữ PENDING-JUDGMENT,
+`human_override` để trống. **Ba trong bốn eval nay đúng**: E1 có renderer "nói dối" ép 640×480 nên
+kích thước không còn tự-thoả, cùng `toEqual([106.7, 10.78])`; E2 nêu `highlight-outline` như một thứ
+VẮNG MẶT (đúng bất biến được ghim ở `mapStyle.test.ts:156-159`); E7 khẳng định dirname/basename +
+byte tệp === base64 giải mã === buffer vào, và tự khai là không có bộ giải mã PNG nào chạy.
+**REJECT trên [E5]**: mệnh đề "a reused pooled page renders each config fresh (no stale frame)" chỉ
+có một ca canh — `renderFrame.test.ts:176` — và ca đó nằm sau `describe.skip` khi thiếu
+`MCP_INTEGRATION`; lane của E5 là `npm test`, không đặt biến đó, nên reporter JSON ghi ca ấy
+`skipped`. Không gì khác trong lane render hai lần qua một trang gộp. Ghi nhận thêm, không đánh
+trượt: nửa "một region >16 KB **renders**" của E2 cũng chỉ có ca bị bỏ qua (nửa "config không đi
+trong URL" thì được `browserPool.test.ts:187-203` canh thật); "no zero-byte PNG" của E11 không có
+khẳng định trực tiếp nhưng đột biến hợp lý vẫn làm `:165` đỏ; và bằng chứng ảnh của E10 —
+`E10-step1.png` với `E10-step2.png` TRÙNG BYTE (`sha256 3c28279d…`), mà `e2e/render-mode.spec.ts`
+vốn không chụp màn hình nên lane của E10 không sinh ra hai khung đó.
 
 Vòng 26 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 11 eval máy chạy lại tươi, 11/11 thoát 0 (`npm test` 527/9/536, `npm run test:e2e` 18/18). E12 (judgment, T3) giữ PENDING-JUDGMENT, `human_override` để trống. **REJECT trên [E1, E2, E5, E7]**. Nặng nhất là E2: `expected` — và cả `contract.md` AC-2 — nêu tên layer `highlight-outline`, mà `mapStyle.ts` không hề phát ra layer đó và `mapStyle.test.ts:156` khẳng định nó `toBeUndefined()`; eval nêu tên một thứ mà sự VẮNG MẶT của nó là bất biến được ghim. E5 nói 3 variant, test dùng 2 (`count).toBe(2)`). E1 dựa "PNG 1080×1920" vào `fakePng(cfg.size.width, cfg.size.height)` — một fixture ghi lại chính kích thước được yêu cầu nên không thể mâu thuẫn — và mệnh đề "center within ~0,05°" không có khẳng định dung sai nào; ca kiểm kích thước PNG thật nằm sau `describe.skip`. E7 khai "PNG decodes" mà không có phép giải mã nào. Ghi nhận thêm: AC-6 ("cả hai transport phơi CÙNG một tập tool") không được phân biệt — `transports.test.ts` chỉ `toContain` 5 tên trên mỗi transport, không bao giờ so hai tập với nhau; và ảnh bằng chứng `E10-step1.png`/`E10-step2.png` trùng byte.
 

@@ -1,17 +1,90 @@
 ---
 schema_version: 2
 feature_slug: tier0-agent-params
-verdict: REJECT
-failed_evals: [E8, E9, E10, E15, E20]
-reason: 
+verdict: PASS
+failed_evals: []
+reason: "I3 thôi là danh sách sáu tên cứng: sổ chốt phải khớp mã, mỗi chốt phải được gọi, mỗi nhãn đã đăng ký phải còn ở call site, và 53 tên trường Zod phải khớp bản ghim. Cả ba đột biến expected khai đều exit 1."
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: b4c1d50c7a9267c9f40c43525e6e17e6183cc637
+verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
 human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+## Vòng 14 — I3 thôi là danh sách sáu tên cứng
+
+Ghim ở `ace12a0`. Cả 20 eval chạy lại tươi, **20/20 thoát 0**: `resolveConfig.test.ts` 65 ·
+`tools.test.ts` 65 · `http.test.ts` 62 · `jobRunner.test.ts` 28 · `motionCompiler.test.ts` 34 ·
+`geocode.test.ts` 26 · `tier0-invariants` all invariants hold · `npm test` 547/10/0 · `test:mcp` 15.
+
+**E18 — I3 nay là một SỔ ĐĂNG KÝ, không phải danh sách sáu tên.** Vòng 13 trượt vì hai trường màu do
+chính gói này thêm — `highlight.regions[].color` và `highlight.points[].color` — không nằm trong danh
+sách sáu tên ghim cứng, nên gỡ guard cho chúng vẫn để script exit 0. `259204c` viết lại I3 thành bốn
+mệnh đề: (a) tập chốt suy ra từ `function assert…` trong `resolveConfig.ts` phải BẰNG sổ đăng ký
+(14 chốt), (b) mỗi chốt phải thật sự được GỌI, (c) mỗi chốt nhận nhãn phải còn MỌI nhãn đã đăng ký ở
+call site, (d) 53 tên trường Zod suy ra từ `tools.ts` phải bằng tập ghim. Đúng ba đột biến `expected`
+khai, chạy vòng này:
+
+    # (a) gỡ hai lời gọi assertColor cho hai trường màu của chính gói này
+    $ npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts   -> exit 1
+    FAIL I3  assertColor còn giữ nhãn 'highlight.regions[].color': false
+    FAIL I3  assertColor còn giữ nhãn 'highlight.points[].color': false
+    tier0-invariants: 2 violation(s)
+
+    # (b) thêm trường Zod mới `opacity` vào renderMapShape
+    -> exit 1   FAIL I3  hợp đồng Zod đổi trường: thêm [opacity], bỏ [] — xem lại I3 rồi ghim lại
+
+    # (c) thêm guard `assertOpacity` chưa đăng ký
+    -> exit 1   FAIL I3  sổ chốt lệch mã: chưa đăng ký [assertOpacity], đăng ký thừa []
+
+Mệnh đề (c) là thứ đóng đúng lỗ vòng 13: một chốt dùng chung vẫn được tính là "được gọi" trong khi mất
+ba trên bốn call site — nay mỗi nhãn được đếm riêng.
+
+**Nợ còn lại, ghi nhận chứ không đánh trượt** (và đã được `expected` khai thẳng là NOT claimed): I3
+không suy ra ánh xạ trường → chốt. Một trường MỚI đi kèm một chốt MỚI sẽ qua được cả bốn mệnh đề mà
+không có bằng chứng chốt ấy chạy cho đúng trường ấy. Mệnh đề (d) chặn nó ở mức "không lọt vào mà I3
+không được xem lại", chứ không chứng minh liên kết.
+
+`verified_commit` cập nhật lên `ace12a0` (`git merge-base --is-ancestor ace12a0 HEAD` trả 0 — ở đây nó CHÍNH LÀ HEAD). `human_signoff` để RỖNG — Cổng 2 chờ người ký.
+
+
+## Vòng 13 — năm eval của vòng 11 đã vá thật; lộ ra E18
+
+Ghim ở `d84857a` (tổ tiên của HEAD). Cả 20 eval chạy lại tươi, **20/20 thoát 0**:
+`resolveConfig.test.ts` 65 · `tools.test.ts` 65 · `http.test.ts` 61 · `jobRunner.test.ts` 28 ·
+`motionCompiler.test.ts` 34 · `geocode.test.ts` 26 · `tier0-invariants` all invariants hold ·
+`npm test` 542/10/0 · `test:mcp` 13.
+
+**Năm eval bị REJECT vòng 11 nay đứng vững.** E9: 13 theme, mỗi theme có `id`/`name`/`dark`, và bảng
+15 khoá được so ĐỒNG NHẤT trên cả 13 (`tools.test.ts:299-325`) — không còn chỉ `themes[0]`, và số
+khoá được đếm thật. E10: bảng hai chiều 21 mục (`:394-426`) cùng phép kiểm `Object.hasOwn` có/không
+(`:374-379`) — mệnh đề "KEY ABSENT trên layout không in" nay có khẳng định vắng-mặt thật. E8: hai ca
+input xấu ở phần tử THỨ HAI (`resolveConfig.test.ts:376-388` và `:408-420`) mỗi ca khẳng định CẢ
+`resolveLocation` LẪN `resolveBoundary` `.not.toHaveBeenCalled()`. E15: nửa determinism nay có ca
+thật — `Object.hasOwn(k,'bearing') === false` cộng double-compile `toEqual` (`:84-105`). E20: bảy
+trường, mỗi trường một phép so BYTE đổi-đúng-một-trường, neo bởi phép so "cùng config ⇒ trùng byte"
+(`renderFrame.test.ts:83`); phần "NOT claimed" ở đuôi cũng đúng chữ.
+
+### E18 TRƯỢT — lượng từ "every" không được canh
+
+`expected` viết: *"I3 **every new Zod field** has a runtime assert that is both defined AND called"*.
+`tier0-invariants.ts:77-84` kiểm một danh sách GHIM CỨNG sáu tên (`assertLayers`, `assertDetail`,
+`assertFont`, `assertMarkerSize`, `assertMarkerIcon`, `assertPitch`) cộng phép thử modulo-360 cho
+bearing (`:94`). Nó không tính ra tập "trường Zod mới" từ mã, nên:
+
+- Thêm một trường Zod thứ bảy KHÔNG guard ⇒ script vẫn thoát 0. Lượng từ "every" không có sức phân
+  biệt nào.
+- Ngay ở hiện tại, mệnh đề cũng SAI về sự kiện: `highlight.regions[].color` và
+  `highlight.points[].color` là trường mới của chính gói này (AC-4, AC-5 của `contract.md`) và có
+  guard thật — `assertColor` ở `resolveConfig.ts:563` và `:577` — nhưng KHÔNG có mặt trong
+  `REQUIRED_ASSERTS`, tức I3 chưa từng nhìn tới chúng.
+
+Sáu tên nó có kiểm thì đều `defined && called` thật (chạy script xác nhận). Đây đúng lớp lỗi mà vòng
+1 của `anchors-camera` đã từng đánh trượt E2 ("MỌI ca" trong khi script kiểm `>= 1"), và cách sửa
+cũng y hệt: nói đúng cái được đo — "sáu guard được nêu tên đều được định nghĩa VÀ được gọi" — hoặc
+bổ sung `assertColor` cùng một phép quét thật sự liệt kê trường Zod.
 
 ## Vòng 12 — merge main rồi chạy lại; verdict giữ nguyên
 
@@ -117,186 +190,241 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e1-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E2
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e2-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E3
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e3-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e4-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e5-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e6-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E7
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e7-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E8
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e8-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E9
-  run_id: tier0-agent-params-r11-clip_tools-20260807
+  run_id: tier0-agent-params-r14-e9-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E10
-  run_id: tier0-agent-params-r11-clip_tools-20260807
+  run_id: tier0-agent-params-r14-e10-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E11
-  run_id: tier0-agent-params-r11-clip_tools-20260807
+  run_id: tier0-agent-params-r14-e11-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E12
-  run_id: tier0-agent-params-r11-clip_http-20260807
+  run_id: tier0-agent-params-r14-e12-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T05:58:01Z
+  verified_at: 2026-08-07T12:17:38Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E13
-  run_id: tier0-agent-params-r11-job_runner-20260807
+  run_id: tier0-agent-params-r14-e13-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T05:58:03Z
+  verified_at: 2026-08-07T12:17:51Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.
 
 - eval: E14
-  run_id: tier0-agent-params-r11-resolve_config-20260807
+  run_id: tier0-agent-params-r14-e14-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E15
-  run_id: tier0-agent-params-r11-motion_compiler-20260807
+  run_id: tier0-agent-params-r14-e15-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T05:58:09Z
+  verified_at: 2026-08-07T12:17:36Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E16
-  run_id: tier0-agent-params-r11-clip_tools-20260807
+  run_id: tier0-agent-params-r14-e16-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E17
-  run_id: tier0-agent-params-r11-geocode-20260807
+  run_id: tier0-agent-params-r14-e17-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.geocode
-  verified_at: 2026-08-07T05:58:08Z
+  verified_at: 2026-08-07T12:17:53Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.geocode` → thoát 0 · Test Files 1 passed (1); Tests 26 passed (26)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.geocode` → thoát 0 · Test Files 1 passed (1); Tests 26 passed (26)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 26 passed (26) — present and passing.
 
 - eval: E18
-  run_id: tier0-agent-params-r11-tier0_invariants-20260807
+  run_id: tier0-agent-params-r14-e18-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.tier0_invariants
-  verified_at: 2026-08-07T05:58:23Z
+  verified_at: 2026-08-07T12:18:13Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `script.tier0_invariants` → thoát 0 · tier0-invariants: all invariants hold (sổ 14 chốt khớp mã, 53 tên trường Zod khớp bản ghim)
+    **Vòng 13 @ d84857a — đo lại tươi:** `script.tier0_invariants` → thoát 0 · tier0-invariants: all invariants hold
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — tier0-invariants: all invariants hold — present and passing.
 
 - eval: E19
-  run_id: tier0-agent-params-r11-api-20260807
+  run_id: tier0-agent-params-r14-e19-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E20
-  run_id: tier0-agent-params-r11-mcp-20260807
+  run_id: tier0-agent-params-r14-e20-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T05:55:15Z
+  verified_at: 2026-08-07T12:21:00Z
   output: |
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 ## Analyst
 
@@ -307,6 +435,26 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 14 (chạy lại ở `ace12a0` sau khi I3 được vá): cả 20 eval chạy lại tươi, 20/20 thoát 0. **PASS.**
+E18 hết trượt — `259204c` thay danh sách sáu tên cứng bằng sổ đăng ký 14 chốt + đếm nhãn theo từng
+call site + ghim 53 tên trường Zod. Ba đột biến `expected` khai đều exit 1: gỡ hai lời gọi
+`assertColor` (2 vi phạm), thêm trường Zod `opacity`, thêm guard `assertOpacity` chưa đăng ký. Nợ ghi
+nhận (đã khai NOT claimed): I3 không suy ra ánh xạ trường → chốt. `human_signoff` để rỗng.
+
+Vòng 13 (chạy lại ở `d84857a` sau khi năm eval của vòng 11 được vá): cả 20 eval chạy lại tươi, 20/20
+thoát 0. **Năm eval bị REJECT vòng 11 nay đứng vững**: E9 (13 theme, bảng 15 khoá so đồng nhất trên
+CẢ 13), E10 (bảng 21 mục hai chiều + `Object.hasOwn` có/không), E8 (hai ca phần tử-thứ-hai, mỗi ca
+khẳng định CẢ `resolveLocation` LẪN `resolveBoundary` không được gọi), E15 (nửa determinism có ca
+thật: `Object.hasOwn(k,'bearing') === false` + double-compile `toEqual`), E20 (bảy trường, mỗi trường
+một phép so BYTE đổi-đúng-một-trường, neo bởi "cùng config ⇒ trùng byte"). Cận trên `pitch` 60 được
+kiểm lại và ĐÚNG ở cả hai tầng — không phải khiếm khuyết, đúng như ghi chú của vòng trước.
+**REJECT trên [E18]**: `expected` khai "I3 every new Zod field has a runtime assert", nhưng
+`tier0-invariants.ts:77-84` chỉ kiểm danh sách ghim cứng sáu tên; một trường Zod mới không guard sẽ
+để script xanh, và ngay hiện tại hai trường màu mới của chính gói này
+(`highlight.regions[].color` `resolveConfig.ts:563`, `highlight.points[].color` `:577`, đều do
+`assertColor` gác) KHÔNG nằm trong `REQUIRED_ASSERTS`. Cùng lớp lỗi với E2 vòng 1 của
+`anchors-camera` ("MỌI ca" vs `>= 1`).
 
 Vòng 11 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0. **REJECT trên [E8, E9, E10, E15, E20]** — năm eval nói quá phần được khẳng định: E9 ("mỗi theme" + "15 khoá" chỉ kiểm `themes[0]`, không đếm khoá), E10 ("KEY ABSENT trên layout không in" không có khẳng định vắng-mặt nào; category 7/21, aspect 1/21), E8 ("zero Nominatim requests" — chỉ nửa region dùng `.not.toHaveBeenCalled()`, hai nửa point còn lại kỳ vọng lời gọi cơ sở CÓ xảy ra), E15 (nửa determinism không có ca test), E20 ("tham số mới chạm pixel thật" — `layers`/`detail`/`font` không xuất hiện trong bất kỳ tệp nào của `test:mcp`). Ghi nhận thêm, không đánh trượt: AC-11 đòi script được vọng lại kể cả ở nhánh degrade và nhánh quá cỡ, nhưng hai nhánh đó chỉ được E18/I2 gác bằng một phép quét MÃ NGUỒN, không phải bằng hành vi.
 

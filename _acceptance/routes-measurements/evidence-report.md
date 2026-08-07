@@ -1,17 +1,90 @@
 ---
 schema_version: 2
 feature_slug: routes-measurements
-verdict: REJECT
-failed_evals: [E1, E16]
-reason: 
+verdict: PASS
+failed_evals: []
+reason: "E16 nay GIẢI ảnh PNG và ĐẾM pixel đúng mã màu caller đặt; xoá lớp route-line khỏi mapStyle rồi build lại làm demo exit 1 với 4 phép kiểm pixel trượt."
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: b4c1d50c7a9267c9f40c43525e6e17e6183cc637
+verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
 human_signoff:
 ---
 
 # Evidence Report: routes-measurements
+
+## Vòng 13 — 'tới pixel' nay có người canh trên chính pixel
+
+Ghim ở `ace12a0`. Cả 20 eval chạy lại tươi, **20/20 thoát 0**: `resolveConfig.test.ts` 65 ·
+`tools.test.ts` 65 · `applyRenderConfig.test.ts` 10 · `geometry.test.ts` 10 · `routes-invariants` mọi
+bất biến còn giữ · demo `14 đạt · 0 trượt` · `npm test` 547/10/0 · `test:mcp` 15.
+
+**E16 — mệnh đề 'chứng minh tuyến đi hết đường tới pixel' nay có khẳng định TRÊN CHÍNH PIXEL.** Vòng 12
+trượt vì `shot()` render 5 ảnh rồi `fs.writeFile` mà không đối chiếu một byte nào. `aa6d683` thêm
+`_acceptance/routes-measurements/scripts/png-pixels.ts` (giải PNG thật) và 5 phép kiểm mới:
+
+    ✓ A1: pixel đúng màu tuyến caller đặt            4007 px #ff4d6d
+    ✓ A0 (không tuyến): KHÔNG pixel nào màu đó       0 px #ff4d6d
+    ✓ A2: tuyến đỏ có pixel riêng                    2564 px #ff4d6d
+    ✓ A2: tuyến xanh lam có pixel riêng              2474 px #4fc3ff
+    ✓ A2: tuyến xanh lá có pixel riêng                969 px #7bd88f
+
+Cặp A1/A0 là thứ khoá lại: "có màu trên ảnh" không thể đến từ nền bản đồ, vì cùng nền đó với 0 tuyến
+cho ĐÚNG 0 px. Ba màu riêng ở A2 loại nốt hiện thực tô chung một màu cho cả source.
+
+**Kiểm chứng có đối chứng âm — và đối chứng âm ấy là bắt buộc.** Bộ render nạp app từ `dist/`:
+
+    # xoá hẳn lớp `route-line` khỏi src/lib/mapStyle.ts:248
+    $ npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts     -> exit 0
+      KIỂM: 14 đạt · 0 trượt        <- XANH GIẢ: dist/ còn là bản cũ
+
+    $ npx vite build && npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts   -> exit 1
+      ✗ A1: pixel đúng màu tuyến caller đặt      0 px #ff4d6d
+      ✗ A2: tuyến đỏ có pixel riêng              0 px #ff4d6d
+      ✗ A2: tuyến xanh lam có pixel riêng        0 px #4fc3ff
+      ✗ A2: tuyến xanh lá có pixel riêng         0 px #7bd88f
+      KIỂM: 10 đạt · 4 trượt
+
+Một vòng chấm bỏ qua `vite build` sẽ đọc ra XANH cho đúng cái mutant này. Lưu ý vận hành đó đã được
+ghi vào chính `expected` của E16, và vòng này chạy `vite build` trước mọi lần đo demo.
+
+**Ghi chú:** `A0` giữ 0 px trong CẢ HAI nhánh — đó là hành vi đúng (không tuyến thì không màu), không
+phải phép kiểm mất răng; răng của nó nằm ở chỗ nó đứng cạnh A1.
+
+`verified_commit` cập nhật lên `ace12a0` (`git merge-base --is-ancestor ace12a0 HEAD` trả 0 — ở đây nó CHÍNH LÀ HEAD). `human_signoff` để RỖNG — Cổng 2 chờ người ký.
+
+
+## Vòng 12 — no-op đã bị gỡ; "tới pixel" thì vẫn chưa có người canh
+
+Ghim ở `d84857a` (tổ tiên của HEAD). Cả 20 eval chạy lại tươi, **20/20 thoát 0**:
+`resolveConfig.test.ts` 65 · `tools.test.ts` 65 · `applyRenderConfig.test.ts` 10 ·
+`geometry.test.ts` 10 · `routes-invariants` mọi bất biến còn giữ · demo `9 đạt · 0 trượt` ·
+`npm test` 542/10/0 · `test:mcp` 13.
+
+**E1 — lỗ vòng 10 đã bịt.** `7e21f00` thêm phép đo hình học RIÊNG cho dạng `geojson`:
+`resolveConfig.test.ts:481-485` khẳng định `pointCount`/`lengthKm`/`bbox` cho entry dạng đó với toạ
+độ khác hẳn entry dạng `coords`, nên không thể đọc nhầm số của nhau.
+
+**No-op của E16 cũng đã bị gỡ.** `demo-routes.ts:93` nay là
+`hkToWest.bearingDeg > 270 && hkToWest.bearingDeg < 360` — trước là `||`, và vì `initialBearingDeg`
+chuẩn hoá về `[0,360)` nên vế sau là hằng đúng, biến phép kiểm thành no-op cho MỌI phương vị. Đếm lại
+đúng 9 `check(...)` (`:83,84,85,88,93,94,106,116,117`), và cả 9 nay đều phân biệt được.
+
+### E16 vẫn TRƯỢT — mệnh đề "tới pixel" không có khẳng định nào chống lưng
+
+`expected` kết luận: *"5 render thật + 9 phép kiểm số đo … — **chứng minh tuyến đi hết đường tới
+pixel**"*. Hàm `shot()` (`demo-routes.ts:26-32`) chỉ gọi `deps.render(cfg)` rồi `fs.writeFile` —
+không so sánh, không đo gì trên PNG. Năm ảnh A0–A4 (`:45,47,52,61,66`) không được assert lần nào.
+Cả 9 `check` đều chạy trên số trả về từ `resolveConfig`/`summarizeRoutes`/`summarizeMeasures`, không
+chạm một byte ảnh; và mã thoát chỉ phụ thuộc `fail` (`:135`).
+
+Đột biến cụ thể KHÔNG làm lane đỏ: xoá layer `route-line` khỏi `src/lib/mapStyle.ts:248-250` (hoặc bỏ
+dòng `routes` ở `src/render/applyRenderConfig.ts:73`) ⇒ 5 PNG vẫn ra bình thường nhưng không còn
+tuyến nào trên đó, 9/9 check vẫn xanh, script vẫn thoát 0. Chuẩn "tới PIXEL" trong chính kho này là
+so BYTE hai ảnh — xem `mcp-server/src/renderFrame.test.ts:79-140` ("NEO CHỐNG PASS RỖNG: mọi khẳng
+định dưới đây có dạng 'hai PNG KHÁC nhau'"). Script đã render sẵn `A0-no-routes.png` và
+`A1-one-route.png`, nên một `check(!bufA1.equals(bufA0), …)` là đủ; hoặc hạ chữ xuống "5 render thật
+để người xem `index.html`" và bỏ hẳn cụm "chứng minh … tới pixel".
 
 ## Vòng 11 — merge main rồi chạy lại; verdict giữ nguyên
 
@@ -112,183 +185,241 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e1-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E2
-  run_id: routes-measurements-r10-clip_tools-20260807
+  run_id: routes-measurements-r13-e2-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E3
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e3-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e4-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e5-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: routes-measurements-r10-apply_render_config-20260807
+  run_id: routes-measurements-r13-e6-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.apply_render_config
-  verified_at: 2026-08-07T05:58:11Z
+  verified_at: 2026-08-07T12:17:55Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.apply_render_config` → thoát 0 · Test Files 1 passed (1); Tests 10 passed (10)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.apply_render_config` → thoát 0 · Test Files 1 passed (1); Tests 10 passed (10)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 10 passed (10) — present and passing.
 
 - eval: E7
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e7-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E8
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e8-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E9
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e9-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E10
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e10-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E11
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e11-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E12
-  run_id: routes-measurements-r10-geometry-20260807
+  run_id: routes-measurements-r13-e12-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.geometry
-  verified_at: 2026-08-07T05:58:07Z
+  verified_at: 2026-08-07T12:17:54Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.geometry` → thoát 0 · Test Files 1 passed (1); Tests 10 passed (10)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.geometry` → thoát 0 · Test Files 1 passed (1); Tests 10 passed (10)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 12 passed (12) — present and passing.
 
 - eval: E13
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e13-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E14
-  run_id: routes-measurements-r10-clip_tools-20260807
+  run_id: routes-measurements-r13-e14-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T05:58:00Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E15
-  run_id: routes-measurements-r10-routes_invariants-20260807
+  run_id: routes-measurements-r13-e15-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-07T05:58:14Z
+  verified_at: 2026-08-07T12:18:15Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `script.routes_invariants` → thoát 0 · routes-invariants: mọi bất biến còn giữ
+    **Vòng 12 @ d84857a — đo lại tươi:** `script.routes_invariants` → thoát 0 · routes-invariants: mọi bất biến còn giữ
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — routes-invariants: moi bat bien con giu — present and passing.
 
 - eval: E16
-  run_id: routes-measurements-r10-routes_demo-20260807
+  run_id: routes-measurements-r13-e16-20260807
   exit_code: 0
-  verdict: FAIL
   baseline: red
   verifier: config:executors.script.routes_demo
-  verified_at: 2026-08-07T05:58:14Z
+  verified_at: 2026-08-07T12:18:40Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `script.routes_demo` → thoát 0 · 5 render thật · KIỂM: 14 đạt · 0 trượt (gồm 5 phép kiểm PIXEL: A1 4007 px #ff4d6d, A0 0 px, A2 2564/2474/969 px cho ba màu)
+    **Vòng 12 @ d84857a — đo lại tươi:** `script.routes_demo` → thoát 0 · 5 render · KIỂM 9 đạt · 0 trượt
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. ANH: 5 render; KIEM: 9 dat - 0 truot — present and passing.
 
 - eval: E17
-  run_id: routes-measurements-r10-api-20260807
+  run_id: routes-measurements-r13-e17-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T05:57:55Z
+  verified_at: 2026-08-07T12:16:34Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E18
-  run_id: routes-measurements-r10-mcp-20260807
+  run_id: routes-measurements-r13-e18-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T05:55:15Z
+  verified_at: 2026-08-07T12:21:00Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E19
-  run_id: routes-measurements-r10-resolve_config-20260807
+  run_id: routes-measurements-r13-e19-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T05:58:05Z
+  verified_at: 2026-08-07T12:17:52Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 12 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E20
-  run_id: routes-measurements-r10-routes_invariants-20260807
+  run_id: routes-measurements-r13-e20-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-07T05:58:14Z
+  verified_at: 2026-08-07T12:18:15Z
   output: |
+    **Vòng 13 @ ace12a0 — đo lại tươi:** `script.routes_invariants` → thoát 0 · routes-invariants: mọi bất biến còn giữ
+    **Vòng 12 @ d84857a — đo lại tươi:** `script.routes_invariants` → thoát 0 · routes-invariants: mọi bất biến còn giữ
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
     Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I3 ok — routes-invariants: moi bat bien con giu — present and passing.
 
 ## Analyst
@@ -300,6 +431,25 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Vòng 13 (chạy lại ở `ace12a0` sau khi E16 được vá): cả 20 eval chạy lại tươi, 20/20 thoát 0. **PASS.**
+E16 hết trượt — `aa6d683` thêm `png-pixels.ts` giải ảnh thật và 5 phép kiểm đếm pixel theo mã màu
+caller đặt (cặp A1/A0 loại trừ nền bản đồ, ba màu riêng ở A2 loại trừ tô chung một màu). Kiểm chứng
+bằng cách xoá lớp `route-line`: KHÔNG `vite build` thì demo vẫn 14/0 (xanh giả vì `dist/` cũ); CÓ
+`vite build` thì exit 1 với 4 phép kiểm pixel trượt. `human_signoff` để rỗng.
+
+Vòng 12 (chạy lại ở `d84857a` sau khi E1/E16 được sửa): cả 20 eval chạy lại tươi, 20/20 thoát 0
+(`resolveConfig.test.ts` 65, `geometry.test.ts` 10, script bất biến còn giữ, demo `9 đạt · 0 trượt`).
+**E1 hết trượt**: `7e21f00` thêm phép đo hình học RIÊNG cho dạng `geojson`
+(`resolveConfig.test.ts:481-485`), toạ độ khác hẳn entry `coords` nên không đọc nhầm số của nhau. Và
+no-op của E16 cũng đã bị gỡ — `demo-routes.ts:93` nay là `> 270 && < 360`, đủ 9 `check` và cả 9 phân
+biệt được. **REJECT trên [E16]**, vì mệnh đề CÒN LẠI vẫn chưa có người canh: "chứng minh tuyến đi hết
+đường tới pixel" — `shot()` (`demo-routes.ts:26-32`) chỉ render rồi `fs.writeFile`, năm ảnh A0–A4
+không được assert lần nào, và cả 9 `check` chạy trên số của `resolveConfig`/`summarize*` chứ không
+chạm byte ảnh. Đột biến xoá layer `route-line` (`mapStyle.ts:248-250`) để 5 PNG vẫn ra mà không còn
+tuyến, 9/9 check vẫn xanh, script vẫn thoát 0. Cách rẻ nhất là `check(!bufA1.equals(bufA0), …)` —
+hai ảnh đó đã được render sẵn. Cùng cảnh báo I1 như motion-tools-cost: `routes-invariants.ts` đo diff
+của nhánh hiện tại, không còn là diff của gói routes.
 
 Vòng 10 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0 (`resolveConfig.test.ts` 64, `geometry.test.ts` 12, script bất biến 10 dòng ok, demo `9 đạt · 0 trượt`). **REJECT trên [E1, E16]**: E16 khai "9 phép kiểm số đo" nhưng `demo-routes.ts:89` là `bearingDeg > 270 || bearingDeg < 360`, mà `initialBearingDeg` chuẩn hoá về `[0,360)` nên vế thứ hai luôn đúng — phép kiểm đó không thể fail, thực tế là 8 + 1 no-op (ý định rõ ràng là `&&`); E1 khai hình học dạng `geojson` sống sót qua resolver nhưng chỉ `width`/`color` được khẳng định cho entry dạng đó. Số liệu khác được đo lại và ĐÚNG: 310,4 KiB/tuyến 20k điểm, 12,1 MiB tổng, trần 2 MiB / 8 MiB, 1137,9 km great-circle. Cùng cảnh báo I1 như motion-tools-cost: `routes-invariants.ts` đo diff của nhánh hiện tại, không còn là diff của gói routes.
 

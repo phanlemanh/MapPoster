@@ -250,6 +250,42 @@ note(
     : `giữa lần chụp settle và anchors() không có lượt vào trang nào (${gap.length} ký tự đệm)`,
 );
 
+// ── I6: không test nào bị tắt LẶNG LẼ ────────────────────────────────────────
+// E20 là eval hồi quy tổng, và `exit 0` của vitest canh đúng MỘT điều: không ca
+// nào ĐỎ. Nó KHÔNG phân biệt được "xanh" với "bị tắt" — đổi một `it(` thành
+// `it.skip(` vẫn cho exit 0, chỉ tụt số ca. Vòng chấm đã chứng minh đúng vậy:
+// 541 pass / 11 skip mà lane vẫn xanh.
+//
+// Nên mệnh đề "mọi ca skip đều thuộc khối gated" phải có người canh, không thể
+// nằm suông trong `expected` — đó chính là lớp lỗi cả năm vòng chấm đi bịt.
+// Kiểm tĩnh, rẻ: `.skip`/`.only` chỉ được xuất hiện trong các tệp có cổng
+// `MCP_INTEGRATION`, và `.only` thì không được ở đâu cả (nó làm CI chạy đúng
+// một ca rồi báo xanh — im lặng và tệ hơn skip).
+const GATED = ['mcp-server/src/renderFrame.test.ts', 'mcp-server/src/renderClip.test.ts', 'mcp-server/src/stdioChannel.test.ts'];
+const testFiles = execFileSync('git', ['ls-files', '*.test.ts', '*.spec.ts'], { cwd: repoRoot, encoding: 'utf8' })
+  .split('\n')
+  .filter(Boolean);
+const skipOffenders: string[] = [];
+const onlyOffenders: string[] = [];
+for (const f of testFiles) {
+  const src = stripComments(read(f));
+  if (/\b(it|test|describe)\.only\s*\(/.test(src)) onlyOffenders.push(f);
+  if (GATED.includes(f)) continue;
+  if (/\b(it|test|describe)\.skip\s*\(/.test(src)) skipOffenders.push(f);
+}
+note(
+  skipOffenders.length === 0,
+  'I6',
+  skipOffenders.length
+    ? `test bị TẮT ngoài khối gated: ${skipOffenders.join(', ')} — exit 0 không phân biệt được xanh với bị tắt`
+    : `không .skip nào ngoài ${GATED.length} tệp gated (quét ${testFiles.length} tệp test)`,
+);
+note(
+  onlyOffenders.length === 0,
+  'I6',
+  onlyOffenders.length ? `\`.only\` bỏ quên ở: ${onlyOffenders.join(', ')} — CI sẽ chạy đúng một ca rồi báo xanh` : 'không `.only` bỏ quên ở đâu',
+);
+
 console.log('');
 if (failures.length) {
   console.log(`anchors-invariants: ${failures.length} vi phạm`);

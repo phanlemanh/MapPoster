@@ -140,7 +140,7 @@ evals:
     criterion: AC-10
     executor: script
     cmd: config:executors.script.anchors_invariants
-    expected: "exit 0; I1 t3_paths 0 dòng; I2 KHÔNG tồn tại anchorsAt và MapPosterApi.anchors khai báo KHÔNG tham số"
+    expected: "exit 0; I1 t3_paths 0 dòng; I2 KHÔNG tồn tại anchorsAt và MapPosterApi.anchors khai báo KHÔNG tham số; I6 không `.skip` nào ngoài ba tệp gated MCP_INTEGRATION và không `.only` bỏ quên ở đâu — đổi một `it(` thành `it.skip(` ngoài khối gated phải làm ĐỎ (vitest vẫn thoát 0 với ca bị tắt, nên đây là chỗ duy nhất canh được)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E19
@@ -154,5 +154,5 @@ evals:
     criterion: AC-7
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; hồi quy tổng sau khi ClipFrames đổi kiểu — toàn bộ bộ unit XANH, KHÔNG ca nào đỏ (vitest thoát khác 0 nếu có, nên exit code canh đúng mệnh đề này); và MỌI ca bị SKIP đều nằm trong khối gated `MCP_INTEGRATION=1` — đúng ba tệp renderFrame/renderClip/stdioChannel, chạy riêng ở E11 — chứ không có ca nào bị tắt vì lý do khác. CỐ Ý không ghim số đếm test/file: con số trôi theo mỗi PR trong khi executor chỉ chấm exit code, nên một con số cứng ở đây chỉ hết hạn im lặng chứ không canh gác gì"
+    expected: "exit 0; hồi quy tổng sau khi ClipFrames đổi kiểu — toàn bộ bộ unit XANH, KHÔNG ca nào đỏ. Đó là TẤT CẢ những gì exit code canh: nó KHÔNG phân biệt được xanh với bị tắt. Tính chất 'không ca nào bị tắt lặng lẽ' do bất biến I6 gánh, xem E18 — đừng khai nó ở đây."
     evidence_required: [run_id, exit_code, verifier, verified_at]

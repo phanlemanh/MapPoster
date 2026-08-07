@@ -28,7 +28,7 @@ evals:
     criterion: AC-1
     executor: script
     cmd: config:executors.script.anchors_invariants
-    expected: "exit 0; I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và CÓ ÍT NHẤT MỘT ca test dùng khung không vuông đủ phân biệt hai công thức (thực tế 4/6; hai ca vuông là ca vùng-rỗng trả null, không đi qua công thức nên không cần phân biệt)"
+    expected: "exit 0; I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và CÓ ÍT NHẤT MỘT ca test dùng khung không vuông đủ phân biệt hai công thức (thực tế 4/6). Hai khung còn lại KHÔNG đi qua công thức, mỗi cái vì một lý do khác: `{cssW: 0, cssH: 100}` không vuông mà suy biến — ca phải NÉM, bị bộ lọc `w > 0` loại; `{cssW: 100, cssH: 100}` là khung vuông DUY NHẤT, và đúng là ca vùng-rỗng trả null. (`cssH: Number.NaN` không lọt regex nên không nằm trong mẫu số 6.)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
@@ -154,5 +154,5 @@ evals:
     criterion: AC-7
     executor: test
     cmd: config:executors.test.api
-    expected: "exit 0; 527 test XANH + 9 SKIP (khối gated MCP_INTEGRATION=1, chạy riêng ở E11) trên 33 file — hồi quy tổng sau khi ClipFrames đổi kiểu; con số là 527 pass, KHÔNG phải 536 cùng chạy"
+    expected: "exit 0; hồi quy tổng sau khi ClipFrames đổi kiểu — toàn bộ bộ unit XANH, KHÔNG ca nào đỏ (vitest thoát khác 0 nếu có, nên exit code canh đúng mệnh đề này); và MỌI ca bị SKIP đều nằm trong khối gated `MCP_INTEGRATION=1` — đúng ba tệp renderFrame/renderClip/stdioChannel, chạy riêng ở E11 — chứ không có ca nào bị tắt vì lý do khác. CỐ Ý không ghim số đếm test/file: con số trôi theo mỗi PR trong khi executor chỉ chấm exit code, nên một con số cứng ở đây chỉ hết hạn im lặng chứ không canh gác gì"
     evidence_required: [run_id, exit_code, verifier, verified_at]

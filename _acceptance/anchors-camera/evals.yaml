@@ -42,7 +42,7 @@ evals:
     criterion: AC-3
     executor: test
     cmd: config:executors.test.anchors
-    expected: "exit 0; bboxPct bao đúng cực trị, centroidPct nằm trong bbox; vùng không toạ độ trả null chứ KHÔNG phải bbox rỗng ở gốc"
+    expected: "exit 0; bboxPct bao đúng cực trị, bboxCenterPct nằm trong bbox; vùng không toạ độ trả null chứ KHÔNG phải bbox rỗng ở gốc"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E5

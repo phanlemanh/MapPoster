@@ -33,7 +33,7 @@ Source input: prompt (phiên 2026-08-07) · spec `docs/superpowers/specs/2026-08
 
 - AC-1: Given một điểm chiếu ra `(x, y)` trong khung CSS `cssW × cssH`, When `pctOf` chạy, Then `xPct` chia cho `cssW` còn `yPct` chia cho `cssH` — **hai mẫu số khác nhau**; một hệ số tỉ lệ chung phải làm test đỏ trên khung **không vuông** (khung vuông không phân biệt được hai công thức).
 - AC-2: Given một điểm nằm ngoài khung, When `pctOf` chạy, Then `onScreen` là `false` nhưng `xPct`/`yPct` **vẫn được trả** (có thể âm hoặc > 100) — tầng DOM tự quyết vẽ mũi tên chỉ hướng hay bỏ qua; nuốt điểm là xoá thông tin nó cần.
-- AC-3: Given một vùng có nhiều toạ độ, When `regionAnchorOf` chạy, Then `bboxPct` bao đúng cực trị và `centroidPct` nằm trong bbox đó; vùng không có toạ độ nào trả `null` chứ không phải bbox rỗng ở gốc toạ độ.
+- AC-3: Given một vùng có nhiều toạ độ, When `regionAnchorOf` chạy, Then `bboxPct` bao đúng cực trị và `bboxCenterPct` nằm trong bbox đó; vùng không có toạ độ nào trả `null` chứ không phải bbox rỗng ở gốc toạ độ.
 - AC-4: Given `anchors()` được gọi khi camera **không** ở `restAtSec`, When nó chạy, Then nó **ném** kèm thông điệp nêu cả giá trị đọc được lẫn giá trị kỳ vọng — **không** trả toạ độ tính từ camera bất ngờ.
 - AC-5: Given `anchors()` được gọi, When nó chạy xong, Then nó **không** dời camera và **không** đụng `restBase`/`animBase`/`lastApplied*`; và khung đuôi clip render sau đó vẫn **byte-identical** với khi không gọi.
 - AC-6: Given `camera.pitch != 0`, When clip render, Then clip **vẫn ra đủ khung + settle** (pitch nghiêng là năng lực MapLibre đang chạy được — gỡ nó là hồi quy), nhưng `resolved` mang `anchorsUnavailable` **nêu đích danh pitch và giá trị của nó**, và `anchors()` của trang vẫn tự từ chối.

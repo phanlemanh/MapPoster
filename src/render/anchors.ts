@@ -38,7 +38,7 @@ export interface AnchorRegion {
   /** tâm HỘP BAO trên màn hình — không phải trọng tâm diện tích: bất biến với
    * mật độ đỉnh (một biên thành phố dày đỉnh ở một phía sẽ kéo lệch trung bình
    * cộng các đỉnh, còn tâm hộp thì không), và đúng thứ tầng DOM cần để đặt nhãn. */
-  centroidPct: [number, number];
+  bboxCenterPct: [number, number];
   /** [x0, y0, x1, y1] theo phần trăm khung */
   bboxPct: [number, number, number, number];
 }
@@ -123,7 +123,7 @@ export function regionAnchorOf(index: number, projected: ScreenPoint[], frame: F
   const mid = pctOf({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, frame);
   return {
     index,
-    centroidPct: [mid.xPct, mid.yPct],
+    bboxCenterPct: [mid.xPct, mid.yPct],
     bboxPct: [min.xPct, min.yPct, max.xPct, max.yPct],
   };
 }

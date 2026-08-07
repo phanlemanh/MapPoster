@@ -281,7 +281,7 @@ render_clip({
 //                 // EITHER these two, when anchors could be measured:
 //                 camera:  { center, zoom, bearing, pitch },      // the REST-state camera
 //                 anchors: { points:  [{ index, lng, lat, xPct, yPct, onScreen }],
-//                            regions: [{ index, centroidPct, bboxPct }] },
+//                            regions: [{ index, bboxCenterPct, bboxPct }] },
 //                 // OR this one, when they could not — never both, never neither:
 //                 anchorsUnavailable: "camera.pitch is 30 — anchors require pitch 0. …" } }
 ```

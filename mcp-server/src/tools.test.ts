@@ -55,7 +55,7 @@ function fakeAnchors(cfg: RenderConfig): ClipAnchors {
     points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 50, yPct: 50 + index, onScreen: true })),
     regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
       index,
-      centroidPct: [50, 50] as [number, number],
+      bboxCenterPct: [50, 50] as [number, number],
       bboxPct: [10, 20, 90, 80] as [number, number, number, number],
     })),
   };
@@ -611,7 +611,7 @@ describe('render_clip', () => {
   it('resolved.anchors.regions theo đúng thứ tự cfg.highlight.regions', async () => {
     const res = await clipTools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
     const j = textJson(res);
-    expect(j.resolved.anchors.regions).toEqual([{ index: 0, centroidPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+    expect(j.resolved.anchors.regions).toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
   });
 
   it('degrade (encode hỏng) và từ chối quá cỡ VẪN mang camera + anchors — chúng đã đo xong rồi', async () => {

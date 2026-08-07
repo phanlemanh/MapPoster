@@ -56,7 +56,7 @@ describe('pctOf — phần trăm với MẪU SỐ RIÊNG từng trục', () => {
 });
 
 describe('regionAnchorOf', () => {
-  it('bbox + centroid tính trong KHÔNG GIAN MÀN HÌNH, mỗi trục một mẫu số', () => {
+  it('bbox + tâm hộp tính trong KHÔNG GIAN MÀN HÌNH, mỗi trục một mẫu số', () => {
     const frame = { cssW: 1000, cssH: 2000 };
     const projected = [
       { x: 100, y: 200 },
@@ -72,7 +72,7 @@ describe('regionAnchorOf', () => {
     expect(r!.bboxPct).toEqual([10, 10, 30, 30]);
     // tâm pixel (200, 400) ⇒ 20% ngang, 20% dọc — hai mẫu số khác nhau cho ra
     // hai con số ĐÚNG chỉ khi chia đúng trục của nó
-    expect(r!.centroidPct).toEqual([20, 20]);
+    expect(r!.bboxCenterPct).toEqual([20, 20]);
   });
 
   it('vùng không có toạ độ nào ⇒ null (không bịa ra hộp)', () => {

@@ -275,8 +275,8 @@ test('anchors: phần trăm dùng MẪU SỐ RIÊNG từng trục, đo trên map
   expect(x1).toBeGreaterThan(50);
   expect(y0).toBeLessThan(50);
   expect(y1).toBeGreaterThan(50);
-  expect(out.anchors.regions[0].centroidPct[0]).toBeCloseTo(50, 1);
-  expect(out.anchors.regions[0].centroidPct[1]).toBeCloseTo(50, 1);
+  expect(out.anchors.regions[0].bboxCenterPct[0]).toBeCloseTo(50, 1);
+  expect(out.anchors.regions[0].bboxCenterPct[1]).toBeCloseTo(50, 1);
 
   // camera nghỉ = keyframe cuối (zoom 13), pitch 0
   expect(out.anchors.camera.zoom).toBeCloseTo(13, 6);

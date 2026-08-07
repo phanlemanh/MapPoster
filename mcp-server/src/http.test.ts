@@ -430,7 +430,7 @@ function fakeAnchors(cfg: RenderConfig): ClipAnchors {
     points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 25, yPct: 75, onScreen: true })),
     regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
       index,
-      centroidPct: [50, 50] as [number, number],
+      bboxCenterPct: [50, 50] as [number, number],
       bboxPct: [10, 20, 90, 80] as [number, number, number, number],
     })),
   };
@@ -518,7 +518,7 @@ describe('POST /render-clip', () => {
     // `cfg.camera` cho tiện thì hai con số này bằng nhau và bất biến chết lặng.
     expect(okBody.resolved?.camera?.zoom).not.toBe(okBody.resolved?.zoom);
     expect(okBody.resolved?.anchors?.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
-    expect(okBody.resolved?.anchors?.regions).toEqual([{ index: 0, centroidPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+    expect(okBody.resolved?.anchors?.regions).toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
     await srv.close();
 
     // degrade: encoder ngã — khung đã chụp, anchors đã đo, không được vứt đi

@@ -15,7 +15,7 @@ resolved.camera = { center: [lng, lat], zoom, bearing, pitch }
 
 resolved.anchors = {
   points: [{ index, id?, lng, lat, xPct, yPct, onScreen }],
-  regions: [{ index, centroidPct: [xPct, yPct], bboxPct: [x0, y0, x1, y1] }],
+  regions: [{ index, bboxCenterPct: [xPct, yPct], bboxPct: [x0, y0, x1, y1] }],
 }
 ```
 

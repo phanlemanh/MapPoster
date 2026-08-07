@@ -384,6 +384,56 @@ describe('discovery tools', () => {
     expect(absent).toBeGreaterThan(0);
   });
 
+  it('MỌI mục — cả 21 — có aspect và category ĐÚNG GIÁ TRỊ THẬT, không chỉ đúng kiểu', async () => {
+    // Vòng lặp ở ca trên chỉ soi HÌNH DẠNG (`aspect` khớp /\d+:\d+/, `category`
+    // là chuỗi khác rỗng). Một hiện thực gán `aspect: '1:1'` cho tất cả, hoặc
+    // dán `category: 'Video'` lên toàn bảng — đúng cái bug Finding 4 — vẫn qua
+    // được vòng lặp đó. AC-10 hứa "đúng loại THẬT của nó", nên bảng dưới đây
+    // ghim từng mục một, và đối chiếu HAI CHIỀU: không mục nào của hiện thực
+    // thiếu trong bảng, không dòng nào của bảng biến mất khỏi hiện thực.
+    const EXPECTED: Record<string, { aspect: string; category: string }> = {
+      tiktok: { aspect: '9:16', category: 'Video' },
+      story: { aspect: '9:16', category: 'Social' },
+      square: { aspect: '1:1', category: 'Social' },
+      landscape: { aspect: '16:9', category: 'Video' },
+      portrait: { aspect: '4:5', category: 'Social' },
+      // '4k' thắng va chạm tên với LAYOUTS — category phải là của mục nó nuốt
+      '4k': { aspect: '16:9', category: 'Wallpaper' },
+      a3: { aspect: '437:620', category: 'Print' },
+      a4: { aspect: '620:877', category: 'Print' },
+      a5: { aspect: '437:620', category: 'Print' },
+      letter: { aspect: '17:22', category: 'Print' },
+      'ig-square': { aspect: '1:1', category: 'Social' },
+      'ig-story': { aspect: '9:16', category: 'Social' },
+      linkedin: { aspect: '4:5', category: 'Social' },
+      pinterest: { aspect: '2:3', category: 'Social' },
+      fhd: { aspect: '16:9', category: 'Wallpaper' },
+      ultrawide: { aspect: '43:18', category: 'Wallpaper' },
+      iphone: { aspect: '131:284', category: 'Wallpaper' },
+      ipad: { aspect: '139:199', category: 'Wallpaper' },
+      'web-wide': { aspect: '16:9', category: 'Web' },
+      'web-banner': { aspect: '40:21', category: 'Web' },
+      'web-portrait': { aspect: '4:5', category: 'Web' },
+    };
+
+    const { formats } = textJson(await tools().list_formats());
+    const seen = new Set<string>();
+    for (const f of formats as { name: string; width: number; height: number; aspect: string; category: string }[]) {
+      expect(EXPECTED[f.name], `mục '${f.name}' không có trong bảng ghim — thêm mục mới phải ghim luôn aspect/category`).toBeDefined();
+      expect({ aspect: f.aspect, category: f.category }, f.name).toEqual(EXPECTED[f.name]);
+      seen.add(f.name);
+    }
+    expect([...seen].sort()).toEqual(Object.keys(EXPECTED).sort());
+
+    // và `aspect` phải là tỉ số RÚT GỌN của chính width/height mục đó — nếu
+    // bảng trên và hiện thực cùng trôi khỏi kích thước thật thì dòng này bắt.
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    for (const f of formats as { name: string; width: number; height: number; aspect: string }[]) {
+      const g = gcd(f.width, f.height);
+      expect(f.aspect, f.name).toBe(`${f.width / g}:${f.height / g}`);
+    }
+  });
+
   it('gives every FORMATS entry its own correct category, not a blanket Video (Finding 4)', async () => {
     // A hardcoded `category: 'Video'` for every FORMATS entry mislabeled
     // square/story/portrait (all image-first social formats) as Video, and

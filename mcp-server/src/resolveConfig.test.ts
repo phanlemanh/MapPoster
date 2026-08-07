@@ -236,6 +236,25 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -1 } })).rejects.toThrow(/invalid pitch/i);
   });
 
+  it('ghim ĐÚNG hai biên pitch: 0 và 60 được NHẬN, vừa quá biên bị TỪ CHỐI', async () => {
+    // `200` và `-1` ở ca trên nằm cách biên rất xa: một hiện thực nới trần lên
+    // 85 (đúng con số từng là bug nhận-rồi-vứt) vẫn từ chối cả hai, nên cặp cũ
+    // KHÔNG canh gác con số 60. Chỉ cặp vừa-dưới/vừa-trên mới ghim được ngưỡng.
+    const at = async (pitch: number): Promise<number | undefined> =>
+      (await resolveConfig({ location: 'HCMC', camera: { pitch } })).camera.pitch;
+
+    // nửa NHẬN — biên là giá trị hợp lệ, không phải giá trị bị loại
+    expect(await at(0)).toBe(0);
+    expect(await at(60)).toBe(60);
+    expect(await at(59.9)).toBe(59.9);
+
+    // nửa TỪ CHỐI — vừa quá biên ở cả hai đầu
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 60.1 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 61 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 85 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -0.1 } })).rejects.toThrow(/invalid pitch/i);
+  });
+
   it('normalizes bearing to [0,360) instead of rejecting out-of-range values (F3)', async () => {
     // MapLibre renders `bearing: -45` correctly today, and lerpAngle
     // (src/render/motionMath.ts) already normalizes to [0,360) — rejecting it

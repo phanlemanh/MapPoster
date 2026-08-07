@@ -66,6 +66,7 @@ Chưa quét: khả năng tương thích ngược của **consumer thật** ngoà
 - **Không** thêm `render_recipe` / `list_recipes` — 8 công thức BĐS thuộc PR #9, phụ thuộc `routes`, `anchors`, road routing chưa có.
 - **Không** đụng `/mcp` auth — đây là P0 bảo mật độc lập, chủ repo chưa xếp lịch; gói này không làm nó tốt hơn cũng không tệ đi.
 - **Không** kiểm chứng tương thích ngược với consumer ngoài repo (OneHub artifact platform, render-svc). Mọi trường thêm vào đều optional và mọi test trong repo xanh, nhưng repo này không giữ mã consumer để chạy đối chiếu thật.
+- **Không** chứng minh ở tầng PIXEL cho `camera.pitch`, `camera.bearing`, `delivery` và phép gộp `labels` ↔ `layers.roadLabels`. Lane `test:mcp` (E20) đo pixel thật cho bảy trường engine tiêu thụ (`layers`, `detail`, `font`, `markers[].{icon,color,size}`, `regions[].color`) bằng cách đổi đúng một trường rồi so byte PNG. Bốn thứ còn lại chỉ có người gác ở tầng resolver/compiler (E14/E15/E16): `pitch`/`bearing` là trạng thái camera mà MapLibre tự áp — muốn đo pixel phải có một khung nghiêng ổn định trên tile mạng thật, vốn không xác định giữa các lần chạy; `delivery` không phải thuộc tính ảnh mà là đường giao hàng; `labels` chỉ là phép gộp vào `layers.roadLabels` trước khi tới engine. Ghi ra đây thay vì để câu chữ E20 nói rộng hơn thứ thật sự đo.
 - **Không** sửa các Minor đã ghi nhận ở final review: `fontSchema`/`LAYER_KEYS`/bound `18..140` trùng lặp nhiều nơi, 3 literal `motionOut` gần giống nhau, `render_animation` quá cỡ vứt luôn preview still (trong khi `render_clip` giữ settle).
 
 ## Notes

@@ -97,8 +97,48 @@ suite('renderFrame (integration)', () => {
     const fontB = await png({ ...titled, font: 'Playfair Display' });
     expect(fontB.equals(fontA), 'font không chạm tới pixel').toBe(false);
 
-    // và cả bốn vẫn là PNG đúng kích thước — đổi tham số không được làm hỏng khung
-    for (const b of [noLayers, coarse, fontA, fontB]) {
+    // --- marker icon / color / size, và màu RIÊNG của vùng --------------
+    // Bốn trường còn lại mà hợp đồng nói là "engine đã tiêu thụ từ lâu nhưng
+    // không tham số tool nào chạm tới": RenderMarker.{icon,color,size} và
+    // RenderHighlightRegion.color. Ở tầng resolver chúng đã có người gác, còn
+    // ở đây phải chứng minh trang render ĐỌC TỚI — cùng phép kiểm: đổi trường
+    // thì PNG phải khác byte.
+    const withMarker = (icon: 'pin' | 'heart', color: string, markerSize: number): RenderConfig => ({
+      ...base,
+      markers: [{ lng: 106.7, lat: 10.78, icon, color, size: markerSize }],
+    });
+    const markerBase = await png(withMarker('pin', '#f43f5e', 44));
+    expect(markerBase.equals(plain), 'markers không được vẽ gì cả').toBe(false);
+
+    const markerColor = await png(withMarker('pin', '#22d3ee', 44));
+    expect(markerColor.equals(markerBase), 'marker.color không chạm tới pixel').toBe(false);
+
+    const markerSize = await png(withMarker('pin', '#f43f5e', 96));
+    expect(markerSize.equals(markerBase), 'marker.size không chạm tới pixel').toBe(false);
+
+    const markerIcon = await png(withMarker('heart', '#f43f5e', 44));
+    expect(markerIcon.equals(markerBase), 'marker.icon không chạm tới pixel').toBe(false);
+
+    // màu RIÊNG của một vùng: cùng polygon, chỉ đổi `color` của chính nó.
+    const ring: [number, number][] = [
+      [106.65, 10.74], [106.75, 10.74], [106.75, 10.82], [106.65, 10.82], [106.65, 10.74],
+    ];
+    const withRegion = (color: string): RenderConfig => ({
+      ...base,
+      highlight: {
+        regions: [{ geojson: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] } as never, color }],
+        color: null,
+        fill: true,
+        dim: false,
+      },
+    });
+    const regionRed = await png(withRegion('#ff0000'));
+    const regionGreen = await png(withRegion('#00ff00'));
+    expect(regionRed.equals(plain), 'highlight.regions không được vẽ gì cả').toBe(false);
+    expect(regionGreen.equals(regionRed), 'màu riêng của region không chạm tới pixel').toBe(false);
+
+    // và mọi biến thể vẫn là PNG đúng kích thước — đổi tham số không được làm hỏng khung
+    for (const b of [noLayers, coarse, fontA, fontB, markerBase, markerColor, markerSize, markerIcon, regionRed, regionGreen]) {
       expect(b.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       expect(b.readUInt32BE(16)).toBe(600);
       expect(b.readUInt32BE(20)).toBe(600);

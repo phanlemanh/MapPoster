@@ -82,7 +82,7 @@ evals:
     criterion: AC-10
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; list_formats emits '4k' exactly once; aspect/category correct per entry; print present on print layouts and the KEY ABSENT (not undefined) on non-print ones"
+    expected: "exit 0; list_formats emits '4k' exactly once; aspect/category pinned to REAL VALUES for all 21 entries against a two-way table (no entry unpinned, no pinned row missing) plus aspect === reduced width:height, so a blanket category or a blanket aspect turns the lane red instead of passing a shape-only loop; print present on print layouts and the KEY ABSENT (not undefined) on non-print ones"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # --- AC-11 — motion.script echoed on all three clip surfaces -----------
@@ -112,7 +112,7 @@ evals:
     criterion: AC-12
     executor: test
     cmd: config:executors.test.resolve_config
-    expected: "exit 0; ASYMMETRIC boundary — pitch outside 0..60 REJECTED, but bearing -45 NOT rejected: normalized to 315 (bounding it would remove a working MapLibre capability)"
+    expected: "exit 0; ASYMMETRIC boundary — pitch PINNED at both edges (0 and 60 ACCEPTED and echoed back; 60.1, 61, 85 and -0.1 REJECTED), so widening the ceiling to the old accept-then-discard 85 turns this lane red; but bearing -45 NOT rejected: normalized to 315 (bounding it would remove a working MapLibre capability)"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E15
@@ -160,5 +160,5 @@ evals:
     criterion: AC-11
     executor: test
     cmd: config:executors.test.mcp
-    expected: "exit 0; gated MCP integration — real vite build, real PNG and real clip rendered through headless Chromium, so the new params reach actual pixels rather than only the resolver"
+    expected: "exit 0; gated MCP integration — real vite build, real PNG and real clip through headless Chromium. Pixel-level proof covers exactly the SEVEN engine-consumed fields this package wired up (layers, detail, font, marker icon/color/size, per-region color): each is rendered twice with only that field changed and the two PNGs must differ byte-wise, anchored first by a same-config identical-bytes check so a non-deterministic renderer cannot pass it vacuously. NOT claimed here: camera.pitch/bearing, delivery and the labels↔layers.roadLabels merge reach no pixel assertion in this lane — they are guarded at the resolver/compiler layer by E14/E15/E16 only; see Out of scope"
     evidence_required: [run_id, exit_code, verifier, verified_at]

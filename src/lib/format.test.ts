@@ -24,6 +24,26 @@ describe('slugify', () => {
     expect(slugify('Hà Nội')).toBe('ha-noi');
   });
 
+  // Đ/đ là chữ CÓ GẠCH NGANG dựng sẵn, không phải chữ + dấu rời: NFKD không tách
+  // nó ra, \p{Diacritic} không khớp nó, nên bước lọc [^a-zA-Z0-9] ĂN MẤT cả chữ.
+  // Mọi địa danh Việt bắt đầu bằng Đ đều rụng chữ đầu — tên tệp sai và dễ đụng nhau.
+  it('transliterates Đ/đ to d instead of dropping it', () => {
+    expect(slugify('Đà Nẵng')).toBe('da-nang');
+    expect(slugify('Đắk Lắk')).toBe('dak-lak');
+    expect(slugify('Thủ Đức')).toBe('thu-duc');
+    expect(slugify('đồng nai')).toBe('dong-nai');
+  });
+
+  // Ð/ð (U+00D0/U+00F0, eth) trông y hệt Đ khi gõ nhầm bảng mã và cũng bị rụng.
+  it('transliterates the look-alike Ð/ð (U+00D0/U+00F0) to d', () => {
+    expect(slugify('Ðà Lạt')).toBe('da-lat');
+    expect(slugify('ða')).toBe('da');
+  });
+
+  it('keeps Đ-names distinct from names that only differ by the Đ', () => {
+    expect(slugify('Đà Nẵng')).not.toBe(slugify('A Nang'));
+  });
+
   it('always produces a filesystem-safe slug', () => {
     for (const name of ['Thủ Đức', 'Đà Nẵng', 'Ho Chi Minh City', 'München']) {
       const slug = slugify(name);

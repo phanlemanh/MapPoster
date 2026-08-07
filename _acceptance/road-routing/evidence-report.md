@@ -7,11 +7,23 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 535ee8e8b30d8bdadc15c55ecbc5f27c4564f783
+verified_commit: 637ae403b478e6722ed8d37410426ac0d34e0657
 human_signoff:
 ---
 
 # Evidence Report: road-routing
+
+_Round 5 — `main` merged vào nhánh này tại `637ae403b478e6722ed8d37410426ac0d34e0657`. `git diff 535ee8e HEAD --name-only` (ngoài `_acceptance/**`) chỉ ra đúng ba file: `src/lib/format.ts`, `src/lib/format.test.ts`, `mcp-server/src/jobRunner.test.ts`._
+
+_Nội dung `format.ts`: `slugify()` trước đây chạy `.normalize('NFKD')` rồi lọc `\p{Diacritic}`, nhưng `Đ/đ` (U+0110/U+0111) và cặp nhìn giống hệt `Ð/ð` (U+00D0/U+00F0) là chữ có gạch ngang dựng sẵn — không phải chữ + dấu tổ hợp — nên NFKD không tách chúng và `\p{Diacritic}` không khớp; chúng sống sót tới bước lọc ký tự rồi bị XOÁ HẲN (`'Đà Nẵng'` → `'a-nang'` thay vì `'da-nang'`). Bản vá thêm hai `.replace()` chuyển `Đ/Ð → D` và `đ/ð → d` chạy TRƯỚC `.normalize('NFKD')`. `format.test.ts` thêm case cho đúng hành vi này; `jobRunner.test.ts` thêm 3 dòng tương ứng ở nơi nó dùng `slugify` gián tiếp qua `jobRunner.ts`._
+
+_`format.ts` không nằm trong đường chạy của `route.ts`/`resolveConfig.ts` (không import qua lại — xác nhận bằng grep) nên không chạm trực tiếp AC nào của hợp đồng này. Nhưng nó được `mcp-server/src/jobRunner.ts` và `mcp-server/src/tools.ts` import, nằm trong phạm vi suite chung mà `test.api`/`test.mcp` chạy qua, nên toàn bộ 16 eval được CHẠY LẠI THẬT chứ không ghim, đúng chỉ thị "no selective re-pin" của vòng này._
+
+_499 (không phải 501) là baseline đúng — `535ee8e` đã xoá hai test `centroidOf` chết ở round 4; merge lần này không thêm/bớt case nào trong `npm test` ngoài phạm vi `format.test.ts` (đã được vitest gộp vào cùng con số), nên `npm test` vẫn ra 499 passed | 7 skipped (506), khớp baseline kỳ vọng._
+
+_Đã chạy lại toàn bộ tập executor của hợp đồng: `route.test.ts` 13/13 pass, `resolveConfig.test.ts` 64/64 pass, `routing-invariants.ts` I1–I4 đều giữ (I1 xác nhận `route.ts` không đổi so với chốt t3_path trước đó), `npm test` 499 passed | 7 skipped (506), `npm run test:mcp` 7/7 pass (vite build thật + Chromium headless, 55.6s). Không eval nào chạm vào đúng hai dòng `.replace()` mới trong `format.ts` — hợp đồng này không sở hữu AC nào về `slugify`; đây là bằng chứng "không hồi quy" chứ không phải bằng chứng cho tính năng của chính `format.ts` (thuộc hợp đồng khác, nếu có)._
+
+_`verified_commit` cập nhật lên `637ae403b478e6722ed8d37410426ac0d34e0657`; `human_signoff` giữ trắng theo đúng chốt Cổng 2 — không được viết giá trị vào trường này, kể cả mang giá trị cũ sang._
 
 _Round 4 — nghiệm thu lại do `535ee8e8` (nhánh `chore/remove-dead-centroidof`) chạm hai file dùng chung `mcp-server/src/geometry.ts` và `mcp-server/src/resolveConfig.ts`. Nội dung commit: XOÁ hàm chết `centroidOf` khỏi geometry.ts (−22 dòng), xoá khối test riêng của nó khỏi geometry.test.ts (−13), gỡ tên `centroidOf` khỏi câu import ở resolveConfig.ts:7, và bật `noUnusedLocals` trong mcp-server/tsconfig.json (+6)._
 
@@ -51,158 +63,162 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-1 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run (merge of main @ 637ae403, non-gate diff limited to src/lib/format.ts + two test files, none of which route.ts/resolveConfig.ts import). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E2
-  run_id: road-routing-r2-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T09:29:58Z
   output: |
-    Same run — AC-2 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Round 5 fresh run (merge of main @ 637ae403, non-gate diff limited to src/lib/format.ts + two test files). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E3
-  run_id: road-routing-r2-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T09:29:58Z
   output: |
-    Same run — AC-3 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E4
-  run_id: road-routing-r2-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T09:29:58Z
   output: |
-    Same run — AC-4 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E5
-  run_id: road-routing-r2-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T09:29:58Z
   output: |
-    Same run — AC-5 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E6
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-6 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E7
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-7 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E8
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-8 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E9
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-9 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E10
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-10 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E11
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E12
-  run_id: road-routing-r2-route-20260807
+  run_id: road-routing-r5-route-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.route
-  verified_at: 2026-08-07T02:46:28Z
+  verified_at: 2026-08-07T09:29:53Z
   output: |
-    Same run — AC-12 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 13 passed (13) — present and passing.
 
 - eval: E13
-  run_id: road-routing-r2-routing_invariants-20260807
+  run_id: road-routing-r5-routing_invariants-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.script.routing_invariants
-  verified_at: 2026-08-07T02:50:05Z
+  verified_at: 2026-08-07T09:30:03Z
   output: |
-    Same run — AC-13 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). I1-I4 ok — routing-invariants: moi bat bien con giu — present and passing.
+    Round 5 fresh run. I1 t3_path untouched vs 5a6dea79; I2 base URL only from env.MAPPOSTER_OSRM_URL, no exported fn accepts host/url, coords go through Number() after validate; I3 all fetch calls carry signal + timeout error names the env; I4 route.ts does not import export.ts/mapStyle.ts. routing-invariants: moi bat bien con giu.
 
 - eval: E14
-  run_id: road-routing-r2-resolve_config-20260807
+  run_id: road-routing-r5-resolve_config-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T09:29:58Z
   output: |
-    Same run — AC-14 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Round 5 fresh run. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
 
 - eval: E15
-  run_id: road-routing-r3-api-20260807-repin
+  run_id: road-routing-r5-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T03:13:47Z
+  verified_at: 2026-08-07T09:30:08Z
   output: |
-    Re-pin round 3 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — unchanged from the prior round.
+    Round 5 fresh run (merge of main @ 637ae403). Full suite exercises the changed files (src/lib/format.ts/.test.ts, mcp-server/src/jobRunner.test.ts) directly. Test Files 31 passed | 3 skipped (34); Tests 499 passed | 7 skipped (506) — matches the expected baseline (499, not 501, because 535ee8e already removed two dead centroidOf tests in round 4; this merge adds no net case count change to this suite run).
+
 - eval: E16
-  run_id: road-routing-r3-mcp-20260807-repin
+  run_id: road-routing-r5-mcp-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T03:13:57Z
+  verified_at: 2026-08-07T09:30:16Z
   output: |
-    Re-pin round 3 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 3 passed (3); Tests 7 passed (7); Duration 42.43s — unchanged from the prior round.
+    Round 5 fresh run — real Chromium via vite build + headless render/clip/stdio integration. Test Files 3 passed (3); Tests 7 passed (7); Duration 55.60s.
+
 ## Analyst
 
-Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E15.
+Baseline recomputation was not attempted this round (the merge's non-gate diff — src/lib/format.ts, src/lib/format.test.ts, mcp-server/src/jobRunner.test.ts — is disjoint from route.ts/resolveConfig.ts and their tests; only the full-suite check E15 touches the changed files at all). Non-discriminating (green on both the branch and the pre-merge diffBase, carried forward from round 3's classification): E15.
 
-Baseline `n-a` (carried forward, could not be computed): E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E16.
+Baseline `n-a` (could not be computed / not applicable this round): E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E16.
 
 ## Variance
 
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Round 5: triggered by `main` merging into this branch at `637ae403b478e6722ed8d37410426ac0d34e0657`. `git diff 535ee8e HEAD --name-only` (outside `_acceptance/**`) shows exactly three non-gate files: `src/lib/format.ts` (fix — Đ/đ and look-alikes Ð/ð were deleted instead of transliterated to `d` by the NFKD+diacritic-strip pipeline; two `.replace()` calls now run before `.normalize('NFKD')`), `src/lib/format.test.ts`, `mcp-server/src/jobRunner.test.ts` (tests). Every one of the 16 evals was re-run fresh (no selective re-pin) — all green. `npm test` = 499 passed | 7 skipped (506), matching the expected baseline (499 not 501 because `535ee8e` already deleted two dead `centroidOf` tests in round 4 — not a discrepancy). `verified_commit` updated to `637ae403b478e6722ed8d37410426ac0d34e0657`; `human_signoff` left empty.
 
 Round 3 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E15, E16 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 

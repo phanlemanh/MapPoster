@@ -360,8 +360,13 @@ describe('resolveConfig', () => {
         highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, size: 500 }] },
       }),
     ).rejects.toThrow(/highlight\.points\[\]\.size/);
-    // Only the base-location lookup should have fired, never a per-point one.
-    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+    // KHÔNG một lời tra nào bị tiêu — kể cả cho địa điểm gốc. Chú thích cũ ở
+    // đây ("Only the base-location lookup should have fired") nói sai, và
+    // `not.toHaveBeenCalledWith(<chuỗi>)` đủ yếu để che điều đó: nó xanh cả khi
+    // hàm được gọi, miễn là gọi với đối số khác. Đo bằng ĐẾM thì con số nói
+    // thẳng — duyệt tham số chạy TRƯỚC toàn bộ tầng mạng.
+    expect(geocode.resolveLocation).not.toHaveBeenCalled();
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
   });
 
   it('rejects an unknown per-point icon instead of silently falling back to the default marker', async () => {
@@ -387,8 +392,13 @@ describe('resolveConfig', () => {
         highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, icon: 'rocket' as never }] },
       }),
     ).rejects.toThrow(/highlight\.points\[\]\.icon/);
-    // Only the base-location lookup should have fired, never a per-point one.
-    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+    // KHÔNG một lời tra nào bị tiêu — kể cả cho địa điểm gốc. Chú thích cũ ở
+    // đây ("Only the base-location lookup should have fired") nói sai, và
+    // `not.toHaveBeenCalledWith(<chuỗi>)` đủ yếu để che điều đó: nó xanh cả khi
+    // hàm được gọi, miễn là gọi với đối số khác. Đo bằng ĐẾM thì con số nói
+    // thẳng — duyệt tham số chạy TRƯỚC toàn bộ tầng mạng.
+    expect(geocode.resolveLocation).not.toHaveBeenCalled();
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
   });
 });
 

@@ -81,6 +81,29 @@ describe('compileMotion', () => {
     for (const k of s.camera) expect(k.bearing).toBe(45);
   });
 
+  it('DETERMINISM: config KHÔNG bearing biên dịch ra y nguyên — early return, không dựng lại script', () => {
+    // Nửa "gieo bearing" ở trên đã được canh. Nửa còn lại — bất biến xác định
+    // của repo trên khung đã render — thì chưa: `seedBearing` phải TRẢ VỀ CHÍNH
+    // object cũ khi bearing là null/0, chứ không map lại một mảng keyframe mới.
+    // Một bản map-vô-điều-kiện vẫn cho giá trị bằng nhau, nên `toEqual` không
+    // phân biệt được; chỉ khác biệt quan sát được là bearing KHÔNG được thêm
+    // vào như một khoá mang undefined.
+    for (const bearing of [undefined, 0, null as unknown as undefined]) {
+      const c = cfg({ camera: { center: [106.7, 10.78], zoom: 14.5, bearing } });
+      const s = compileMotion('pushIn', c);
+      expect(s.camera.length).toBeGreaterThan(1);
+      for (const k of s.camera) {
+        // KHÔNG `toBeUndefined()`: nó xanh cả khi khoá được thêm mang undefined,
+        // tức chính cái "dựng lại script" mà mệnh đề này loại trừ.
+        expect(Object.hasOwn(k, 'bearing'), `bearing=${String(bearing)}`).toBe(false);
+      }
+    }
+
+    // và hai lần biên dịch cùng một config cho ra kết quả bằng nhau từng phần
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom: 14.5 } });
+    expect(compileMotion('pushIn', c)).toEqual(compileMotion('pushIn', c));
+  });
+
   // --- Boundary-value tests across the legal zoom/longitude domain (Findings 1-5) ---
   // The suite above only ever exercises zoom 14.5 / lng 106.7, which is why
   // none of the arithmetic overflows below were caught before.

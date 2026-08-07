@@ -172,6 +172,7 @@ import {
   ClipConcurrencyError,
   ClipSlotWaitTimeoutError,
   resetClipGateForTests,
+  prepareClipRenderWithSlot,
 } from './motionCompiler';
 
 describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => {
@@ -225,15 +226,46 @@ describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => 
     expect(order).toEqual([1, 2, 3]);
   });
 
-  it('slot được trả trên MỌI lối ra — kể cả khi bên giữ ném lỗi', async () => {
+  it('slot được ĐƯỜNG SẢN XUẤT trả khi bên giữ nó ném lỗi — không phải test tự gọi', async () => {
+    // Bản cũ tự viết `try { throw } catch { release() }`: chính TEST gọi
+    // release, nên nó chỉ chứng minh bộ đếm biết đếm — gỡ sạch `releaseClipSlot()`
+    // khỏi mã sản xuất thì ca đó VẪN xanh. Ở đây slot được đưa cho
+    // `prepareClipRenderWithSlot` và chỉ mã sản xuất mới có thể trả nó.
     const release = acquireClipSlot();
-    try {
-      throw new Error('bên giữ slot nổ giữa chừng');
-    } catch {
-      release();
-    }
-    // slot đã về, người chờ tiếp theo lấy được ngay
+    let releasedByTest = false;
+
+    await expect(
+      prepareClipRenderWithSlot(
+        { location: { lng: 106.7, lat: 10.78 } } as never,
+        { preset: 'khong-co-preset-nay' }, // hỏng ngay ở parseMotionParam, trước mọi lời gọi mạng
+        () => {
+          releasedByTest = true;
+          release();
+        },
+      ),
+    ).rejects.toThrow();
+
+    expect(releasedByTest).toBe(true); // chính nó gọi hàm nhả, không phải ca test
+    // và chỗ đã thật sự về: người chờ kế tiếp lấy được ngay
     await expect(acquireClipSlotWaiting({ timeoutMs: 10 })).resolves.toBeTypeOf('function');
+  });
+
+  it('slot được ĐƯỜNG SẢN XUẤT giao lại khi chuẩn bị THÀNH CÔNG — kèm trong ClipPreparation', async () => {
+    const release = acquireClipSlot();
+    const prep = await prepareClipRenderWithSlot(
+      { location: { lng: 106.7, lat: 10.78 }, size: { width: 540, height: 960 } } as never,
+      { script: { fps: 12, durationSec: 1, camera: [] } },
+      release,
+    ).catch(() => undefined);
+
+    // Dù nhánh này có đi tới cùng hay không, bất biến là: hết chỗ thì lối
+    // ném-ngay vẫn ném — chỗ không bao giờ bị cấp thừa.
+    if (prep) {
+      expect(prep.releaseClipSlot).toBeTypeOf('function');
+      expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError); // vẫn đang giữ
+      prep.releaseClipSlot();
+    }
+    expect(() => acquireClipSlot()).not.toThrow(); // trả rồi thì lấy lại được
   });
 
   it('release là idempotent — gọi hai lần không cấp thừa một chỗ', async () => {

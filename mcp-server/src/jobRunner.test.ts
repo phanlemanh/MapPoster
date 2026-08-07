@@ -31,7 +31,7 @@ vi.mock('./geocode', async () => {
 
 import { createJobStore } from './jobStore';
 import { createJobRunner } from './jobRunner';
-import { resetClipGateForTests } from './motionCompiler';
+import { resetClipGateForTests, acquireClipSlot } from './motionCompiler';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipAnchors } from '../../src/render/anchors';
@@ -225,6 +225,55 @@ describe('createJobRunner — chạy việc', () => {
     expect(seen).toEqual([1, 2, 3]);
   });
 
+  it('AC-8: chạm TRẦN CLIP thì xếp hàng đúng thứ tự nhận — không ai bị đá ra', async () => {
+    // Ca FIFO ở trên đo runner nói chung (việc `render`, một thợ). Chủ đề THẬT
+    // của AC-8 là việc clip xếp sau một trần clip đã đầy — khác bộ đếm, khác
+    // đường mã. `workers: 4` cố ý để SỐ THỢ không phải thứ giới hạn: bỏ trần
+    // clip đi thì cả ba chạy chồng nhau và `peak` vọt lên 3.
+    const CAP = 1;
+    const store = createJobStore();
+    const started: number[] = [];
+    let live = 0;
+    let peak = 0;
+    const deps = clipDeps({
+      renderClip: vi.fn(async (cfg: RenderConfig) => {
+        started.push(cfg.camera.center[0]);
+        live++;
+        peak = Math.max(peak, live);
+        await new Promise((r) => setTimeout(r, 5));
+        live--;
+        return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
+      }),
+    });
+    const runner = createJobRunner({
+      store,
+      deps,
+      workers: 4,
+      slotWaitMs: 5000,
+      env: { MAPPOSTER_CLIP_CONCURRENCY: String(CAP) } as unknown as NodeJS.ProcessEnv,
+    });
+    const ids = [1, 2, 3].map(
+      (i) =>
+        store.create({
+          kind: 'clip',
+          params: { location: { lng: i, lat: 1 }, highlight: { points: [{ lng: i, lat: 1 }] } },
+          motionInput: { preset: 'pushIn' },
+          nowMs: i,
+        }).id,
+    );
+
+    runner.kick();
+    await runner.drain();
+
+    expect(peak).toBeLessThanOrEqual(CAP);
+    expect(started).toEqual([1, 2, 3]); // K việc chờ rồi chạy ĐÚNG thứ tự nhận
+    for (const id of ids) {
+      const rec = store.get(id)!;
+      expect(rec.status).toBe('done'); // không việc nào 'failed' vì quá tải
+      expect(rec.error).toBeUndefined(); // và không lỗi concurrency nào ném ra ở lối việc
+    }
+  });
+
   it('AC-10: số việc chạy CÙNG LÚC không bao giờ vượt số thợ', async () => {
     const store = createJobStore();
     let live = 0;
@@ -247,6 +296,57 @@ describe('createJobRunner — chạy việc', () => {
     expect(peak).toBeLessThanOrEqual(2);
     expect(peak).toBeGreaterThan(1); // thật sự song song, không phải tuần tự trá hình
   });
+
+  it('AC-10: TRỘN đồng bộ + việc — đỉnh clip đồng thời không vượt TRẦN ĐÃ CẤU HÌNH', async () => {
+    // Ca trên đo số THỢ. AC-10 nói về trần clip, và trần đó dùng chung giữa
+    // đường đồng bộ (/render-clip) và thợ chạy việc — nên một ca chỉ có việc
+    // không chứng minh được gì: nó không bao giờ chạm vào vế đồng bộ.
+    const CAP = 2;
+    const env = { MAPPOSTER_CLIP_CONCURRENCY: String(CAP) } as unknown as NodeJS.ProcessEnv;
+    const store = createJobStore();
+    let live = 0;
+    let peak = 0;
+    const bump = (d: number): void => {
+      live += d;
+      peak = Math.max(peak, live);
+    };
+
+    const deps = clipDeps({
+      renderClip: vi.fn(async (cfg: RenderConfig) => {
+        bump(1);
+        await new Promise((r) => setTimeout(r, 10));
+        bump(-1);
+        return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
+      }),
+    });
+
+    // Một lời gọi ĐỒNG BỘ đang giữ một chỗ thật, qua đúng API mà /render-clip
+    // dùng — cùng bộ đếm mà thợ phải tôn trọng.
+    const releaseSync = acquireClipSlot(env);
+    bump(1);
+
+    const runner = createJobRunner({ store, deps, workers: 4, slotWaitMs: 5000, env });
+    for (let i = 1; i <= 4; i++) {
+      store.create({
+        kind: 'clip',
+        params: { location: { lng: i, lat: 1 }, highlight: { points: [{ lng: i, lat: 1 }] } },
+        motionInput: { preset: 'pushIn' },
+        nowMs: i,
+      });
+    }
+    runner.kick();
+
+    // cho thợ thời gian THỬ chen vào trong lúc chỗ đồng bộ còn bị giữ
+    await new Promise((r) => setTimeout(r, 30));
+    expect(peak).toBeLessThanOrEqual(CAP);
+
+    bump(-1);
+    releaseSync();
+    await runner.drain();
+
+    expect(peak).toBeLessThanOrEqual(CAP);
+    expect(peak).toBeGreaterThan(1); // có chồng lấn thật, không phải tuần tự trá hình
+  });
 });
 
 describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => {
@@ -257,6 +357,32 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     params: { location: 'Đà Lạt', highlight: { points: [{ lng: 108.44, lat: 11.94 }] } },
     motionInput: { preset: 'pushIn' },
   };
+
+  it('AC-10: slot clip được trả cả trên ĐƯỜNG XUỐNG-CẤP (encoder ngã) — không rò rỉ', async () => {
+    // Nhánh xuống-cấp không với tới được từ motionCompiler.test.ts, nên mệnh đề
+    // "slot được trả … bằng đường xuống-cấp" phải được canh ở đây. Rò một slot
+    // trong hệ CÓ hàng chờ không phải là chậm — nó là treo vĩnh viễn cho mọi
+    // việc clip phía sau.
+    process.env.MAPPOSTER_CLIP_CONCURRENCY = '1';
+    const store = createJobStore();
+    const deps = clipDeps({
+      encodeAnimation: vi.fn(async () => {
+        throw new Error('ffmpeg ngã giữa chừng');
+      }),
+    });
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    const job = store.create({ ...clipJob, nowMs: 1 });
+
+    runner.kick();
+    await runner.drain();
+
+    const rec = store.get(job.id)!;
+    expect(rec.degradeNote).toMatch(/encode failed/); // đã đi ĐÚNG nhánh xuống-cấp
+    expect(rec.artifacts.map((a) => a.role)).toContain('settle'); // và không vứt ảnh tĩnh
+
+    // chỗ đã về: trần là 1, nên nếu slot rò thì lời gọi này ném.
+    expect(() => acquireClipSlot()).not.toThrow();
+  });
 
   it('clip chạy trọn vẹn thì giữ CẢ ảnh tĩnh lẫn clip', async () => {
     const store = createJobStore();

@@ -14,7 +14,10 @@ vi.mock('./geocode', async () => ({
   resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
     if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
     return typeof input === 'string'
-      ? { center: [106.7, 10.78], zoom: 12, place: { name: 'HCMC', country: 'Vietnam', lat: 10.78, lng: 106.7 } }
+      // Echo tên caller gửi làm place.name, đúng như một geocoder thật trả về
+      // tên địa danh nó khớp được. Hằng 'HCMC' cũ khiến KHÔNG lane nào kiểm
+      // được tên có dấu đi trọn đường ra phản hồi — AC-1 đòi đúng điều đó.
+      ? { center: [106.7, 10.78], zoom: 12, place: { name: input, country: 'Vietnam', lat: 10.78, lng: 106.7 } }
       : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
   }),
   searchCandidates: vi.fn(async () => []),
@@ -831,10 +834,36 @@ describe('POST /jobs + POST /jobs/status', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(typeof body.id).toBe('string');
+    // `status` nằm trong hình dạng thân 202 mà AC-1 hứa. Không khẳng định nó thì
+    // bỏ hẳn trường khỏi phản hồi vẫn xanh.
+    expect(body.status).toBe('queued');
 
-    const first = await (await ask(body.id)).json();
-    expect(['queued', 'running', 'done']).toContain(first.status);
+    const askRes = await ask(body.id);
+    expect(askRes.status).toBe(200);
+    const first = await askRes.json();
+    // KHÔNG chấp nhận 'done': mệnh đề của AC-1 là "hỏi NGAY thì việc đã có mặt
+    // và CHƯA xong". Nới biên sang 'done' làm khẳng định hết phân biệt — một
+    // runner chạy đồng bộ ngay trong tay POST cũng lọt.
+    expect(['queued', 'running']).toContain(first.status);
     expect(first.id).toBe(body.id);
+  });
+
+  it('AC-1: tên có dấu đi qua sổ rồi ra phản hồi, GIỮ NGUYÊN TỪNG KÝ TỰ', async () => {
+    const { store, runner } = await boot();
+    const NAME = 'Đà Nẵng';
+    const id = (await (await submit({ kind: 'render', params: { location: NAME } })).json()).id;
+
+    // chặng 1 — cửa HTTP giải JSON rồi ghi vào sổ: không hỏng mã hoá, không NFC/NFD hoá
+    expect((store.get(id)!.params as { location: string }).location).toBe(NAME);
+    expect([...(store.get(id)!.params as { location: string }).location]).toEqual([...NAME]);
+
+    runner.kick();
+    await runner.drain();
+
+    // chặng 2 — sổ ra phản hồi
+    const done = await (await ask(id)).json();
+    expect(done.status).toBe('done');
+    expect(done.resolved.place.name).toBe(NAME);
   });
 
   it('AC-2: thân sai khuôn → 400 câu đọc được, và KHÔNG bản ghi nào được tạo', async () => {
@@ -873,8 +902,38 @@ describe('POST /jobs + POST /jobs/status', () => {
     for (const id of ['khong-ton-tai', 42, null]) {
       const res = await ask(id);
       expect(res.status).toBe(404);
-      expect((await res.json()).ok).toBe(false);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      // Mệnh đề "KHÔNG ca nào trả 200 với trạng thái rỗng/undefined" cần được
+      // canh gác thật: một cửa trả 200 kèm `status: undefined` cũng thoả
+      // `ok === false` nếu chỉ kiểm ok.
+      expect(body.status).toBeUndefined();
     }
+  });
+
+  it('AC-4: mã ĐÃ BỊ DỌN cũng trả 404 — không phải 200 với trạng thái rỗng', async () => {
+    // ttl 0 nên bản ghi vừa kết thúc là đã quá hạn giữ ngay nhịp quét kế tiếp.
+    sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-http-jobs-`);
+    const store = createJobStore({ ttlMs: 0 });
+    const deps = { sinkDir: sink, defaultDelivery: 'url', render: async () => PNG_1x1 } as unknown as ToolDeps;
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, undefined, { store, runner });
+    base = server.url.replace(/\/mcp$/, '');
+
+    const id = (await (await submit({ kind: 'render', params: { location: 'Huế' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+    // trước khi dọn: mã có thật, hỏi ra 200
+    expect((await ask(id)).status).toBe(200);
+
+    // sổ bỏ bản ghi đã quá hạn giữ
+    expect(store.takeExpired(Date.now() + 1).map((r) => r.id)).toContain(id);
+
+    const res = await ask(id);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.status).toBeUndefined();
   });
 
   it('AC-5 đầu-cuối: việc xong trả base64 ĐÚNG byte thợ đã ghi', async () => {
@@ -888,7 +947,23 @@ describe('POST /jobs + POST /jobs/status', () => {
     expect(Buffer.from(body.image.base64, 'base64')).toEqual(PNG_1x1);
     // và đúng tệp THỢ ghi, không phải tệp test tự đặt sẵn
     await expect(fsp.readFile(store.get(id)!.artifacts[0].path)).resolves.toEqual(PNG_1x1);
-    expect(body.resolved).toBeDefined();
+
+    // width/height mà AC-5 nêu đích danh — `toBeDefined()` trên riêng `resolved`
+    // để lọt cả một khối rỗng lẫn một khối thiếu hẳn hai trường kích thước.
+    const art = store.get(id)!.artifacts[0];
+    expect(body.image.width).toBe(art.width);
+    expect(body.image.height).toBe(art.height);
+    expect(typeof body.image.width).toBe('number');
+    expect(typeof body.image.height).toBe('number');
+
+    // và khối resolved CÙNG HÌNH DẠNG resolvedOf. Hai vế, vì mỗi vế bắt một lỗi
+    // khác: (1) cửa đưa nguyên khối sổ giữ ra, không cắt xén dọc đường;
+    // (2) khối đó mang đủ bộ trường resolvedOf hứa — bỏ sót một trường ở nguồn
+    // là đỏ, chứ không trôi qua như `toBeDefined()` cũ.
+    expect(body.resolved).toEqual(store.get(id)!.resolved);
+    for (const k of ['center', 'zoom', 'place', 'theme', 'chrome', 'highlights']) {
+      expect(Object.keys(body.resolved)).toContain(k);
+    }
   });
 
   it('bề mặt thứ ba: một việc CLIP xong thì /jobs/status trả resolved.camera + resolved.anchors (PR #6)', async () => {
@@ -929,6 +1004,24 @@ describe('POST /jobs + POST /jobs/status', () => {
     const body = await res.json();
     expect(body.status).toBe('failed');
     expect(body.errorKind).toBe('server');
+  });
+
+  it('AC-6: việc hỏng vì TRA TOẠ ĐỘ thất bại — vẫn 200, nhưng errorKind nói lỗi tại NGƯỜI GỌI', async () => {
+    // Cặp với ca trên. Chỉ có một trong hai thì `errorKind` không chứng minh
+    // được gì: một hiện thực đóng cứng 'server' cho MỌI lỗi vẫn xanh. Hai ca
+    // cạnh nhau mới làm nó phân biệt được caller-fault vs server-fault.
+    const { runner } = await boot();
+    const id = (await (await submit({ kind: 'render', params: { location: 'zzz-khong-co-thuc' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+
+    const res = await ask(id);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('failed');
+    expect(body.errorKind).toBe('input');
+    expect(body.errorKind).not.toBe('server');
+    expect(body.error).toMatch(/No geocoding result/);
   });
 
   it('hỏi lặp cùng một mã luôn ra cùng câu trả lời', async () => {

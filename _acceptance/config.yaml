@@ -11,6 +11,10 @@ executors:
     motion_invariants: "npx vitest run src/render/motionScript.test.ts"
     motion_math: "npx vitest run src/render/motionMath.test.ts"
     motion_compiler: "npx vitest run mcp-server/src/motionCompiler.test.ts"
+    # Vòng đời slot clip nằm ở HAI tệp: lối lấy/nhả ở motionCompiler, còn nhánh
+    # xuống-cấp (encoder ngã) chỉ với tới được từ jobRunner. Một lane đơn lẻ
+    # không chấm nổi AC-10, nên E13 chạy cả hai.
+    clip_slot_lifecycle: "npx vitest run mcp-server/src/motionCompiler.test.ts mcp-server/src/jobRunner.test.ts"
     clip_http: "npx vitest run mcp-server/src/http.test.ts"
     clip_tools: "npx vitest run mcp-server/src/tools.test.ts"
     text_free: "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"

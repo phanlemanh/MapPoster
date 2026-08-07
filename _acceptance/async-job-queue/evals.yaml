@@ -114,8 +114,8 @@ evals:
   - id: E13
     criterion: AC-10
     executor: test
-    cmd: config:executors.test.motion_compiler
-    expected: "exit 0; lối lấy-có-chờ: người chờ được đánh thức theo đúng thứ tự xếp hàng; slot được trả khi lời gọi giữ nó kết thúc bằng thành công, bằng ném lỗi, và bằng đường xuống-cấp; đồng thời lối ném-ngay CŨ giữ nguyên hành vi (hết chỗ là ném, không chờ)"
+    cmd: config:executors.test.clip_slot_lifecycle
+    expected: "exit 0; lối lấy-có-chờ: người chờ được đánh thức theo đúng thứ tự xếp hàng; slot được ĐƯỜNG SẢN XUẤT trả (không phải test tự gọi hàm nhả) khi lời gọi giữ nó kết thúc bằng thành công, bằng ném lỗi, và bằng đường xuống-cấp; đồng thời lối ném-ngay CŨ giữ nguyên hành vi (hết chỗ là ném, không chờ)"
     paths: ["mcp-server/src/motionCompiler.ts", "mcp-server/src/motionCompiler.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 

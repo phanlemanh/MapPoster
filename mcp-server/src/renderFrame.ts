@@ -1,4 +1,5 @@
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 import type { Pool } from './browserPool';
 import type { ConfigStore } from './configStore';
 
@@ -79,6 +80,8 @@ export async function renderAnimationFrames(
 export interface ClipFrames {
   frames: Buffer[];
   settle: Buffer;
+  /** Camera nghỉ + vị trí điểm/vùng trên khung, đo ngay sau lần chụp settle. */
+  anchors: ClipAnchors;
 }
 
 const PNG_DATA_URL_PREFIX = /^data:image\/png;base64,/;
@@ -99,6 +102,17 @@ export async function renderClipFrames(config: RenderConfig, deps: RenderDeps): 
   const motion = config.motion;
   if (!motion) {
     throw new Error('renderClipFrames: config has no motion script');
+  }
+  // Từ chối TRƯỚC khi tiêu một khung nào. `anchors()` trong trang cũng tự từ
+  // chối pitch (chốt thật, vì nó là API công khai của trang), nhưng phát hiện
+  // ở đó nghĩa là đã trả tiền cho cả clip rồi mới biết. Cùng nguyên nhân, nêu
+  // đích danh ở cả hai chỗ.
+  const pitch = config.camera.pitch ?? 0;
+  if (pitch !== 0) {
+    throw new Error(
+      `renderClipFrames: camera.pitch is ${pitch} — a clip must have pitch 0 because resolved.anchors cannot be computed ` +
+        `from a tilted camera (a region projects to a trapezoid, so bboxPct would be meaningless). Remove camera.pitch.`,
+    );
   }
 
   const page = await deps.pool.acquire();
@@ -147,7 +161,18 @@ export async function renderClipFrames(config: RenderConfig, deps: RenderDeps): 
       return r.dataUrl as string;
     }, motion.restAtSec);
 
-    return { frames, settle: Buffer.from(settleUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64') };
+    // NGAY SAU lần chụp settle, không có lời gọi nào chen vào giữa: đó là lúc
+    // camera chắc chắn đang ở `restAtSec`. `anchors()` không dời camera và
+    // không đụng cache nào, nên thứ tự này an toàn theo cả hai chiều — nó
+    // không làm hỏng gì, và nó tự khẳng định camera trước khi đo (ném nếu
+    // không đúng chỗ, thay vì trả toạ độ sai lặng lẽ).
+    const anchors: ClipAnchors = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (window as any).__mapposter;
+      return api.anchors();
+    });
+
+    return { frames, settle: Buffer.from(settleUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64'), anchors };
   } catch (e) {
     broken = true;
     deps.pool.discard(page);

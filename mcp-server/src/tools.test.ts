@@ -34,12 +34,31 @@ vi.mock('./geocode', () => ({
 import { makeTools, type ToolResult } from './tools';
 import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 function fakePng(w: number, h: number): Buffer {
   const b = Buffer.alloc(30);
   b.writeUInt32BE(w, 16);
   b.writeUInt32BE(h, 20);
   return b;
+}
+
+/**
+ * Anchors mà một lần render clip thật sẽ trả về, DẪN XUẤT TỪ `cfg` chứ không
+ * phải hằng số: `zoom + 1` khiến `resolved.camera` không thể trùng `resolved.zoom`
+ * một cách tình cờ, nên một hiện thực echo lại `cfg.camera` (thay vì camera nghỉ
+ * mà renderer đo được) sẽ đỏ thay vì xanh nhầm.
+ */
+function fakeAnchors(cfg: RenderConfig): ClipAnchors {
+  return {
+    camera: { center: cfg.camera.center, zoom: cfg.camera.zoom + 1, bearing: 0, pitch: 0 },
+    points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 50, yPct: 50 + index, onScreen: true })),
+    regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
+      index,
+      centroidPct: [50, 50] as [number, number],
+      bboxPct: [10, 20, 90, 80] as [number, number, number, number],
+    })),
+  };
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const textJson = (res: ToolResult) => JSON.parse((res.content.find((c: any) => c.type === 'text') as any).text);
@@ -466,6 +485,7 @@ describe('render_clip', () => {
     return {
       frames: [fakePng(cfg.size.width, cfg.size.height), fakePng(cfg.size.width, cfg.size.height)],
       settle: fakePng(cfg.size.width, cfg.size.height),
+      anchors: fakeAnchors(cfg),
     };
   });
   const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
@@ -495,6 +515,62 @@ describe('render_clip', () => {
 
     expect(typeof j.settle.path).toBe('string');
     await expect(fs.access(j.settle.path)).resolves.toBeUndefined();
+  });
+
+  it('resolved echoes camera + anchors ĐO ĐƯỢC từ lần render này, không phải cfg.camera (PR #6)', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    const j = textJson(res);
+
+    expect(j.resolved.camera).toEqual({ center: lastCfg!.camera.center, zoom: lastCfg!.camera.zoom + 1, bearing: 0, pitch: 0 });
+    // Nửa should-NOT: nếu ai đó echo `cfg.camera` cho tiện thì hai con số này
+    // trùng nhau và bất biến "camera là camera NGHỈ" chết lặng lẽ.
+    expect(j.resolved.camera.zoom).not.toBe(j.resolved.zoom);
+
+    expect(j.resolved.anchors.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 50, yPct: 50, onScreen: true }]);
+    expect(j.resolved.anchors.regions).toEqual([]);
+    // anchors KHÔNG được nuốt phần resolved cũ
+    expect(j.resolved.place).toBeDefined();
+    expect(j.resolved.highlights.points).toHaveLength(1);
+  });
+
+  it('resolved.anchors.regions theo đúng thứ tự cfg.highlight.regions', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
+    const j = textJson(res);
+    expect(j.resolved.anchors.regions).toEqual([{ index: 0, centroidPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+  });
+
+  it('degrade (encode hỏng) và từ chối quá cỡ VẪN mang camera + anchors — chúng đã đo xong rồi', async () => {
+    const crashingEncode = vi.fn(async () => {
+      throw new Error('ffmpeg boom');
+    });
+    const degraded = textJson(
+      await makeTools({ render, renderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' }).render_clip({
+        location: 'HCMC',
+        ...point,
+        motion: { preset: 'pushIn' },
+      }),
+    );
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved.camera.zoom).toBe(lastCfg!.camera.zoom + 1);
+    expect(degraded.resolved.anchors.points).toHaveLength(1);
+
+    const prevCap = process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '2';
+    try {
+      const oversize = textJson(
+        await makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' }).render_clip({
+          location: 'HCMC',
+          ...point,
+          motion: { preset: 'pushIn' },
+        }),
+      );
+      expect(oversize.ok).toBe(false);
+      expect(oversize.resolved.camera.zoom).toBe(lastCfg!.camera.zoom + 1);
+      expect(oversize.resolved.anchors.points).toHaveLength(1);
+    } finally {
+      if (prevCap === undefined) delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+      else process.env.MAPPOSTER_CLIP_MAX_BYTES = prevCap;
+    }
   });
 
   it('motion.restAtSec is 3.9 for pushIn', async () => {
@@ -652,6 +728,7 @@ describe('cost metadata (PR #3)', () => {
   const costRenderClip = vi.fn(async (cfg: RenderConfig) => ({
     frames: Array.from({ length: FRAMES }, () => fakePng(cfg.size.width, cfg.size.height)),
     settle: fakePng(cfg.size.width, cfg.size.height),
+    anchors: fakeAnchors(cfg),
   }));
   const costEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
     await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
@@ -716,7 +793,7 @@ describe('render_clip concurrency gate (Decision 2)', () => {
     });
     const renderClip = vi.fn(async (cfg: RenderConfig) => {
       await gate;
-      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height) };
+      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height), anchors: fakeAnchors(cfg) };
     });
     const gatedTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
 

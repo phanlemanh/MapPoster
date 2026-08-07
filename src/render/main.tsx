@@ -11,6 +11,7 @@ import { getFont } from '../data/fonts';
 import { getTheme } from '../data/themes';
 import { formatCoords } from '../lib/format';
 import { cameraAt, trackProgress, sliceRing, pulsePhase } from './motionMath';
+import { assertCameraAtRest, assertNoPitch, collectCoords, pctOf, regionAnchorOf, type ClipAnchors, type ResolvedCamera } from './anchors';
 import type { GeoJSONFeatureCollection } from '../types';
 
 export interface MapPosterApi {
@@ -29,6 +30,27 @@ export interface MapPosterApi {
   renderMotionFrame(tSec: number, opts?: { pulsePhase?: number }): Promise<{ dataUrl: string; width: number; height: number }>;
   /** Fly through the camera keyframes to warm the tile cache before real capture — best-effort. */
   prefetchMotion(): Promise<void>;
+  /**
+   * CHỈ ĐỌC. Nơi các điểm/vùng quan tâm nằm trên khung, theo PHẦN TRĂM, tại
+   * TRẠNG THÁI NGHỈ (`motion.restAtSec`) — khung mà tầng DOM đặt chữ lên.
+   *
+   * Không `jumpTo`, không đụng `restBase`/`animBase`/`lastApplied*`. Đây là
+   * điều kiện tồn tại của hàm này, không phải một chi tiết hiện thực:
+   * `renderMotionFrame` cache ảnh nền vào `restBase` ở `restAtSec` rồi mọi
+   * khung đuôi tái dùng cache đó và chỉ vẽ lại overlay bằng camera HIỆN TẠI
+   * của map — nên một hàm nào đó chiếu ở `t` tuỳ ý (một `anchorsAt(t)`) buộc
+   * phải `jumpTo` và sẽ để camera ở chỗ khác, khiến khung đuôi kế tiếp vẽ
+   * marker bằng camera SAI lên ảnh nền ĐÚNG. Chính lớp hỏng mà `setCamera`
+   * phải reset `restBase` để phòng.
+   *
+   * ĐỒNG BỘ có chủ ý: một hàm không `await` thì không thể bị chèn một lời gọi
+   * khác vào giữa lúc nó đang đọc camera.
+   *
+   * Tự KHẲNG ĐỊNH camera đang ở `restAtSec` thay vì tin vào thứ tự gọi — sai
+   * chỗ thì ném, không bao giờ trả toạ độ tính từ một camera bất ngờ.
+   * `pitch != 0` bị từ chối (xem `assertNoPitch`).
+   */
+  anchors(): ClipAnchors;
   /**
    * TEST-ONLY. Simulates the exact corruption class `verifyAndReapplyGeoAt`
    * guards against — MapView's post-load `setStyle({diff:true})` reverting
@@ -624,6 +646,50 @@ window.__mapposter = {
       return composeMotionOverlay(map, snap, motion, tSec, opts);
     }
     return composeMotionOverlay(map, restBase, motion, tSec, opts);
+  },
+  // CHỈ ĐỌC — xem doc của `MapPosterApi.anchors`. Mọi dòng dưới đây hoặc là
+  // `map.get*()`, hoặc là `map.project()`, hoặc là toán thuần trong anchors.ts.
+  anchors() {
+    const motion = cfg?.motion;
+    if (!motion) throw new Error('render mode: anchors() needs a motion script — it reports the rest state of a clip');
+    const map = getMapInstance();
+    if (!map) throw new Error('render mode: no map');
+
+    const canvasEl = map.getCanvas();
+    // HAI mẫu số, đọc riêng từng trục. `cssW` được lấy đúng như
+    // `composeOverlays` lấy nó (export.ts) để x của anchors và x của marker
+    // được vẽ nói về cùng một khung.
+    const frame = { cssW: canvasEl.clientWidth || canvasEl.width, cssH: canvasEl.clientHeight || canvasEl.height };
+
+    const c = map.getCenter();
+    const camera: ResolvedCamera = {
+      center: [c.lng, c.lat],
+      zoom: map.getZoom(),
+      // MapLibre trả bearing trong (-180, 180]; chuẩn hoá về [0, 360) cho khớp
+      // quy ước của `normalizeBearing`/`lerpAngle` mà phần còn lại của repo dùng.
+      bearing: ((map.getBearing() % 360) + 360) % 360,
+      pitch: map.getPitch(),
+    };
+    assertNoPitch(camera.pitch);
+    assertCameraAtRest(camera, cameraAt(motion.camera, motion.restAtSec), motion.restAtSec);
+
+    // `cfg.markers`, KHÔNG phải store: giữ `index` khớp một-một với
+    // `resolved.highlights.points`, thứ mà caller đối chiếu sang.
+    const points = (cfg.markers ?? []).map((m, index) => ({
+      index,
+      lng: m.lng,
+      lat: m.lat,
+      ...pctOf(map.project([m.lng, m.lat]), frame),
+    }));
+
+    const regions: ClipAnchors['regions'] = [];
+    (cfg.highlight?.regions ?? []).forEach((r, index) => {
+      const projected = collectCoords(r.geojson).map((ll) => map.project(ll));
+      const anchor = regionAnchorOf(index, projected, frame);
+      if (anchor) regions.push(anchor);
+    });
+
+    return { camera, points, regions };
   },
   async prefetchMotion() {
     await ready;

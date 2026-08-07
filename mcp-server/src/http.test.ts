@@ -34,6 +34,7 @@ vi.mock('./geocode', async () => ({
 import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError, type HttpServer } from './http';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 describe('isAllowedRequest (DNS-rebinding guard)', () => {
   const loopback = { allowedHosts: ['127.0.0.1', 'localhost', '[::1]'], allowedOrigins: [] as string[] };
@@ -418,12 +419,29 @@ describe('POST /render (REST)', () => {
 // exact config renderClipFrames would have received (chrome forced clean, motion attached)
 let seenClipConfig: RenderConfig | undefined;
 
+/**
+ * Anchors một lần render clip thật sẽ trả về, DẪN XUẤT TỪ `cfg`: `zoom + 1`
+ * khiến `resolved.camera.zoom` không thể trùng `resolved.zoom` một cách tình
+ * cờ, nên một hiện thực echo lại `cfg.camera` sẽ đỏ chứ không xanh nhầm.
+ */
+function fakeAnchors(cfg: RenderConfig): ClipAnchors {
+  return {
+    camera: { center: cfg.camera.center, zoom: cfg.camera.zoom + 1, bearing: 0, pitch: 0 },
+    points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 25, yPct: 75, onScreen: true })),
+    regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
+      index,
+      centroidPct: [50, 50] as [number, number],
+      bboxPct: [10, 20, 90, 80] as [number, number, number, number],
+    })),
+  };
+}
+
 function fakeClipDeps(overrides: Partial<ToolDeps> = {}): ToolDeps {
   return {
     render: async () => PNG_1x1,
     renderClip: async (cfg) => {
       seenClipConfig = cfg;
-      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
     },
     encodeAnimation: async (_frames, opts) => {
       await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
@@ -441,7 +459,7 @@ interface ClipResBody {
   clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
   settle?: { base64: string; format: string; width: number; height: number };
   motion?: { preset?: string; restAtSec: number; script?: { fps: number; camera: unknown[] } };
-  resolved?: { center: [number, number] };
+  resolved?: { center: [number, number]; zoom: number; camera?: ClipAnchors['camera']; anchors?: { points: ClipAnchors['points']; regions: ClipAnchors['regions'] } };
   clipError?: string;
 }
 
@@ -483,6 +501,49 @@ describe('POST /render-clip', () => {
     expect(body.resolved?.center).toBeDefined();
     expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
     expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
+  });
+
+  it('resolved mang camera + anchors trên CẢ BA lối ra: 200, degrade encode, và 422 quá cỡ (PR #6)', async () => {
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }], regions: ['District 1'] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(0, fakeClipDeps());
+    const okBody = (await (await postJson(clipUrl(srv), body)).json()) as ClipResBody;
+    expect(okBody.ok).toBe(true);
+    expect(okBody.resolved?.camera).toEqual({ center: seenClipConfig!.camera.center, zoom: seenClipConfig!.camera.zoom + 1, bearing: 0, pitch: 0 });
+    // camera là camera NGHỈ, không phải camera trong config — nếu ai đó echo
+    // `cfg.camera` cho tiện thì hai con số này bằng nhau và bất biến chết lặng.
+    expect(okBody.resolved?.camera?.zoom).not.toBe(okBody.resolved?.zoom);
+    expect(okBody.resolved?.anchors?.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
+    expect(okBody.resolved?.anchors?.regions).toEqual([{ index: 0, centroidPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+    await srv.close();
+
+    // degrade: encoder ngã — khung đã chụp, anchors đã đo, không được vứt đi
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async () => {
+          throw new Error('ffmpeg boom');
+        },
+      }),
+    );
+    const degraded = (await (await postJson(clipUrl(srv), body)).json()) as ClipResBody;
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
+    expect(degraded.resolved?.anchors?.points).toHaveLength(1);
+    await srv.close();
+
+    // 422 quá cỡ: cùng giao ước xuống-cấp
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '2';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const over = await postJson(clipUrl(srv), body);
+    expect(over.status).toBe(422);
+    const overBody = (await over.json()) as ClipResBody;
+    expect(overBody.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
+    expect(overBody.resolved?.anchors?.points).toHaveLength(1);
   });
 
   it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
@@ -664,7 +725,7 @@ describe('POST /render-clip', () => {
           seenClipConfig = cfg;
           firstCallStarted();
           await gate;
-          return { frames: [PNG_1x1], settle: PNG_1x1 };
+          return { frames: [PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
         },
       }),
     );
@@ -707,13 +768,22 @@ describe('POST /jobs + POST /jobs/status', () => {
   const ask = (id: unknown) =>
     fetch(`${base}/jobs/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) });
 
-  async function boot(over: { maxQueued?: number; render?: ToolDeps['render'] } = {}) {
+  async function boot(over: { maxQueued?: number; render?: ToolDeps['render']; clip?: boolean } = {}) {
     sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-http-jobs-`);
     const store = createJobStore({ maxQueued: over.maxQueued });
     const deps = {
       sinkDir: sink,
       defaultDelivery: 'url',
       render: over.render ?? (async () => PNG_1x1),
+      ...(over.clip
+        ? {
+            renderClip: async (cfg: RenderConfig) => ({ frames: [PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) }),
+            encodeAnimation: async (_f: Buffer[], opts: { outPath: string }) => {
+              await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+              return opts.outPath;
+            },
+          }
+        : {}),
     } as unknown as ToolDeps;
     const runner = createJobRunner({ store, deps, workers: 1 });
     server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, undefined, { store, runner });
@@ -792,6 +862,29 @@ describe('POST /jobs + POST /jobs/status', () => {
     // và đúng tệp THỢ ghi, không phải tệp test tự đặt sẵn
     await expect(fsp.readFile(store.get(id)!.artifacts[0].path)).resolves.toEqual(PNG_1x1);
     expect(body.resolved).toBeDefined();
+  });
+
+  it('bề mặt thứ ba: một việc CLIP xong thì /jobs/status trả resolved.camera + resolved.anchors (PR #6)', async () => {
+    const { runner } = await boot({ clip: true });
+    const id = (
+      await (
+        await submit({
+          kind: 'clip',
+          params: { location: { lng: 106.7, lat: 10.78, zoom: 14 }, highlight: { points: [{ lng: 106.7, lat: 10.78 }] } },
+          motion: { preset: 'pushIn' },
+        })
+      ).json()
+    ).id;
+    runner.kick();
+    await runner.drain();
+
+    const body = await (await ask(id)).json();
+    expect(body.status).toBe('done');
+    expect(body.resolved.camera).toBeDefined();
+    // fakeAnchors đặt zoom = cfg.camera.zoom + 1: nếu jobRunner echo `cfg.camera`
+    // (hoặc anchors của MỘT việc khác) thì đẳng thức này vỡ.
+    expect(body.resolved.camera.zoom).toBe(body.resolved.zoom + 1);
+    expect(body.resolved.anchors.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
   });
 
   it('AC-6: việc hỏng vẫn hỏi ra HTTP 200 — mã nói về câu hỏi, thân nói về việc', async () => {

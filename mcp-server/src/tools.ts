@@ -13,6 +13,7 @@ import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipFrames } from './renderFrame';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
@@ -82,6 +83,27 @@ export const resolvedOf = (cfg: RenderConfig) => {
     ...(hasMeasures ? { measures } : {}),
   };
 };
+
+/**
+ * `resolved` cho ĐƯỜNG CLIP: phần chung ở trên, cộng camera nghỉ và vị trí
+ * điểm/vùng trên khung mà lần render này ĐO ĐƯỢC.
+ *
+ * `anchors` là tham số BẮT BUỘC, và đây là một hàm RIÊNG chứ không phải một
+ * tham số tuỳ chọn của `resolvedOf`, có chủ ý: cả ba bề mặt (MCP render_clip,
+ * REST /render-clip, /jobs) phải gọi hàm này, và bỏ sót nó là lỗi biên dịch
+ * chứ không phải một khối `resolved` thiếu trường mà mọi test hành vi vẫn
+ * xanh. `jobRunner.ts` đã hai lần dùng sai biến với 22/22 test xanh — kiểu dữ
+ * liệu là thứ duy nhất bắt được lớp lỗi đó trước khi nó ra tới caller.
+ *
+ * `camera` KHÁC `center`/`zoom` ở trên: hai trường kia là camera trong config
+ * (điểm khởi hành), còn `camera` là camera tại `motion.restAtSec` — đúng khung
+ * mà `anchors` được chiếu lên, nên hai thứ này luôn đi cùng nhau.
+ */
+export const resolvedOfClip = (cfg: RenderConfig, anchors: ClipAnchors) => ({
+  ...resolvedOf(cfg),
+  camera: anchors.camera,
+  anchors: { points: anchors.points, regions: anchors.regions },
+});
 
 export function makeTools(deps: ToolDeps) {
   const mode = (d?: DeliveryMode): DeliveryMode => d ?? deps.defaultDelivery ?? 'both';
@@ -205,7 +227,7 @@ export function makeTools(deps: ToolDeps) {
           // trường `time` hay `size` là thứ phía tiêu thụ đoán sai đơn vị rồi
           // hiển thị sai — cùng lớp lỗi với `km` trần ở PR #2.
           const tRender = Date.now();
-          const { frames, settle: settlePng } = await deps.renderClip(cfg);
+          const { frames, settle: settlePng, anchors } = await deps.renderClip(cfg);
           const renderMs = Date.now() - tRender;
 
           // The clip is written to a FILE under sinkDir and never inlined as
@@ -241,7 +263,7 @@ export function makeTools(deps: ToolDeps) {
             return ok({
               settle,
               motion: motionOut,
-              resolved: resolvedOf(cfg),
+              resolved: resolvedOfClip(cfg, anchors),
               // Khung ĐÃ render — tiền đã tiêu. Nhánh degrade là chỗ caller cần
               // con số này nhất để quyết định thử lại hay hạ quality.
               cost: costOf(encodeMs, 0),
@@ -269,7 +291,7 @@ export function makeTools(deps: ToolDeps) {
             return fail(`clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`, {
               settle,
               motion: motionOut,
-              resolved: resolvedOf(cfg),
+              resolved: resolvedOfClip(cfg, anchors),
             });
           }
 
@@ -280,7 +302,7 @@ export function makeTools(deps: ToolDeps) {
             cost: costOf(encodeMs, bytes),
             settle,
             motion: motionOut,
-            resolved: resolvedOf(cfg),
+            resolved: resolvedOfClip(cfg, anchors),
           });
         } finally {
           // Decision 2: free the shared clip slot regardless of how this call

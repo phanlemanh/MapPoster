@@ -34,6 +34,7 @@ import { createJobRunner } from './jobRunner';
 import { resetClipGateForTests } from './motionCompiler';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 /** A real 1×1 PNG — `deliver` reads width/height out of the IHDR chunk. */
 const PNG_1x1 = Buffer.from(
@@ -59,10 +60,25 @@ function makeDeps(over: Partial<ToolDeps> = {}): ToolDeps {
   } as ToolDeps;
 }
 
+/**
+ * Anchors mà một lần render clip thật trả về, DẪN XUẤT TỪ `cfg`: điểm đầu tiên
+ * mang chính toạ độ của việc này, và `zoom + 1` để `resolved.camera` không thể
+ * trùng `resolved.zoom` một cách tình cờ. Nhờ vậy "dùng nhầm biến" — lỗi đã
+ * xảy ra HAI LẦN ở jobRunner với 22/22 test vẫn xanh — hiện thành sai số cụ
+ * thể chứ không phải một trường vắng mặt mà chẳng ai đối chiếu.
+ */
+function fakeAnchors(cfg: RenderConfig): ClipAnchors {
+  return {
+    camera: { center: cfg.camera.center, zoom: cfg.camera.zoom + 1, bearing: 0, pitch: 0 },
+    points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 25, yPct: 75, onScreen: true })),
+    regions: [],
+  };
+}
+
 /** Clip deps that succeed: two frames + a settle still, encoder writes a real file. */
 function clipDeps(over: Partial<ToolDeps> = {}): ToolDeps {
   return makeDeps({
-    renderClip: vi.fn(async () => ({ frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 })),
+    renderClip: vi.fn(async (cfg: RenderConfig) => ({ frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) })),
     encodeAnimation: vi.fn(async (_frames, opts: { outPath: string }) => {
       await fsp.writeFile(opts.outPath, Buffer.alloc(64, 7));
       return opts.outPath;
@@ -273,6 +289,60 @@ describe('createJobRunner — clip và giao ước xuống-cấp (AC-7)', () => 
     expect(motion.script?.fps).toBeGreaterThan(0);
   });
 
+  it('PR #6: mỗi việc mang anchors + camera của CHÍNH nó, không phải của việc chạy trước', async () => {
+    // Hai việc, hai toạ độ khác nhau, chạy tuần tự trên MỘT thợ. Đây là hình
+    // dạng mà lỗi "dùng sai biến" ở jobRunner (đã xảy ra hai lần, 22/22 test
+    // vẫn xanh) hiện ra: dùng nhầm cfg/anchors của việc kia thì lng lệch.
+    const store = createJobStore();
+    const runner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const a = store.create({ ...clipJob, nowMs: 1 });
+    const b = store.create({
+      kind: 'clip' as const,
+      params: { location: 'Nha Trang', highlight: { points: [{ lng: 109.19, lat: 12.24 }] } },
+      motionInput: { preset: 'pushIn' },
+      nowMs: 2,
+    });
+
+    runner.kick();
+    await runner.drain();
+
+    const resolvedOf = (id: string) =>
+      store.get(id)!.resolved as { zoom: number; camera: ClipAnchors['camera']; anchors: { points: ClipAnchors['points']; regions: ClipAnchors['regions'] } };
+
+    expect(resolvedOf(a.id).anchors.points).toEqual([{ index: 0, lng: 108.44, lat: 11.94, xPct: 25, yPct: 75, onScreen: true }]);
+    expect(resolvedOf(b.id).anchors.points).toEqual([{ index: 0, lng: 109.19, lat: 12.24, xPct: 25, yPct: 75, onScreen: true }]);
+    // camera là camera NGHỈ mà renderer đo, không phải `cfg.camera` echo lại
+    expect(resolvedOf(a.id).camera.zoom).toBe(resolvedOf(a.id).zoom + 1);
+    expect(resolvedOf(b.id).camera.zoom).toBe(resolvedOf(b.id).zoom + 1);
+  });
+
+  it('PR #6: degrade encoder và từ chối quá cỡ VẪN mang camera + anchors', async () => {
+    const store = createJobStore();
+    const degradeDeps = clipDeps({
+      encodeAnimation: vi.fn(async () => {
+        throw new Error('ffmpeg vắng mặt');
+      }),
+    } as Partial<ToolDeps>);
+    const degradeRunner = createJobRunner({ store, deps: degradeDeps, workers: 1 });
+    const degraded = store.create({ ...clipJob, nowMs: 1 });
+    degradeRunner.kick();
+    await degradeRunner.drain();
+    const dRec = store.get(degraded.id)!.resolved as { anchors?: { points: unknown[] }; camera?: unknown };
+    expect(store.get(degraded.id)!.degradeNote).toMatch(/encode failed/);
+    expect(dRec.camera).toBeDefined();
+    expect(dRec.anchors?.points).toHaveLength(1);
+
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '1';
+    const overRunner = createJobRunner({ store, deps: clipDeps(), workers: 1 });
+    const over = store.create({ ...clipJob, nowMs: 2 });
+    overRunner.kick();
+    await overRunner.drain();
+    const oRec = store.get(over.id)!.resolved as { anchors?: { points: unknown[] }; camera?: unknown };
+    expect(store.get(over.id)!.status).toBe('failed');
+    expect(oRec.camera).toBeDefined();
+    expect(oRec.anchors?.points).toHaveLength(1);
+  });
+
   it('encoder nổ → việc vẫn XONG, ảnh tĩnh còn nguyên, kèm lý do; không sót tệp mp4 dở', async () => {
     const store = createJobStore();
     let outPath = '';
@@ -395,10 +465,10 @@ describe('AC-17: việc clip đang chờ chỗ KHÔNG được bỏ đói việc
     const clipIsHoldingTheSlot = new Promise<void>((r) => { firstClipStarted = r; });
 
     const deps = clipDeps({
-      renderClip: vi.fn(async () => {
+      renderClip: vi.fn(async (cfg: RenderConfig) => {
         firstClipStarted();
         await gate; // giữ chặt chỗ clip cho tới khi test cho phép
-        return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+        return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
       }),
     } as Partial<ToolDeps>);
 

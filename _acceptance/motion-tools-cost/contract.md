@@ -5,7 +5,7 @@ slug: motion-tools-cost
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: signed-off
+status: verified
 approved_by: manh
 approved_at: 2026-08-07T00:20:00Z
 time_human_minutes: {gate1: 4, gate2: 10}

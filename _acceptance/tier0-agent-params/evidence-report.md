@@ -7,11 +7,13 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 9a6af0fa05f8f3e7fcebbcddc04f7994ea720ca5
-human_signoff: manh 2026-08-07
+verified_commit: affbe6c57401eafaffb7ced1a70c4f7def9d196c
+human_signoff: 
 ---
 
 # Evidence Report: tier0-agent-params
+
+_Round 10 — full re-run (not re-pinned), triggered by `affbe6c5`: `fix: slugify chuyển tự Đ/đ thay vì đánh rơi cả chữ`. `git diff ce0b13e6..affbe6c5 --stat` (this contract's tree) touches `src/lib/format.ts` (+6, the two `.replace()` transliteration calls added before NFKD), `src/lib/format.test.ts` (+20, new cases), and `mcp-server/src/jobRunner.test.ts` (+3, a real filename assertion added to the existing "dọn tệp hết hạn (AC-12)" test). `slugify()` feeds all three artifact-filename builders — `src/lib/export.ts:246` (t3_path, out of scope for this T2 contract), `mcp-server/src/tools.ts:59`, and `mcp-server/src/jobRunner.ts:76` — so filenames for place names containing Đ/đ/Ð/ð now read e.g. `dak-lak` instead of the old `ak-lak`. Checked every AC-1..AC-15 in `contract.md` and every `expected:` line in `evals.yaml` line by line: **none assert artifact filenames or place-name normalization** — AC-11 only asserts `motion.script` shape on the three clip surfaces, AC-15 only asserts OSM identity fields (`osmType`/`osmId`/`displayName`/`placeRank`), neither touches `slugify()` or the filename produced by `fileNameFor`/`baseName`. Grepped `mcp-server/src/tools.test.ts` for `slugify`/`mapposter-`/diacritics — zero hits, so `tools.ts`'s own consumption of the changed `slugify()` (line 59) has no assertion surface in this contract's E9/E10/E11/E16 either. Per the task instruction this round ran every eval fresh rather than selectively re-pinning: all 9 vitest executor files (`resolveConfig`, `tools`, `http`, `jobRunner`, `motionCompiler`, `geocode`), the `tier0-invariants` script, `npm test`, and `npm run test:mcp` were all re-executed from a clean shell. All green; `npm test`'s total rose from 498→501 (the 3 new format.test.ts/jobRunner.test.ts assertions), no regressions. `verified_commit` updated to `affbe6c57401eafaffb7ced1a70c4f7def9d196c`; `human_signoff` cleared per contract `status: implemented`._
 
 _Round 9 — re-pin only, triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`, scoped entirely to `mcp-server/src/http.test.ts`: mcp-auth's own E6 fix, rebinding its 'bind outside loopback with a token' test from `'127.0.0.1'` — itself loopback, so the assertion never reached the code path it claimed to cover — to a genuine non-loopback host `'0.0.0.0'`). `git diff e5ce7199..ce0b13e6 --stat` touches only that one test file; no source file changed. Re-ran this contract's broad guards and any eval whose command executes `http.test.ts` (E12, E19, E20); all matched the prior round exactly. Every other eval was NOT re-run — its own source/test files are untouched by this commit — and is re-pinned as-is. `verified_commit` updated to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`; `human_signoff` stays empty._
 
@@ -45,191 +47,196 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 ## Evidence
 
 - eval: E1
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-1 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`, slugify Đ/đ fix — does not touch resolveConfig.ts). Test Files 1 passed (1); Tests 64 passed (64) — layers/detail/font pass through verbatim.
 
 - eval: E2
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-2 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — labels + layers.roadLabels together rejected, neither silently wins.
 
 - eval: E3
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-3 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — out-of-domain detail/font/layer rejected; detail=0/1 accepted.
 
 - eval: E4
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-4 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — three region forms resolve per-region colour; bad colour on any element rejects the whole call.
 
 - eval: E5
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-5 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — three point forms resolve; fallback chain per-point → pointIcon/color → pin/#ffffff/44 verified in order.
 
 - eval: E6
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-6 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — size 18/140 accepted, out-of-range rejected, size 0 rejected (not treated as unset).
 
 - eval: E7
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-7 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — unknown per-point icon and unknown top-level pointIcon both rejected, neither falls back to 'pin'.
 
 - eval: E8
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-8 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — bad colour/size on a later element rejects before resolveBoundary/resolveLocation are called; zero Nominatim requests spent.
 
 - eval: E9
-  run_id: tier0-agent-params-r8-clip_tools-20260807
+  run_id: tier0-agent-params-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-9 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Fresh run round 10 (`affbe6c5` — tools.ts:59 calls the changed slugify(), but tools.test.ts carries zero slugify/filename/diacritic assertions per grep, so this eval's own surface is unaffected). Test Files 1 passed (1); Tests 52 passed (52) — 13 themes, each with dark + 15-key colors.
 
 - eval: E10
-  run_id: tier0-agent-params-r8-clip_tools-20260807
+  run_id: tier0-agent-params-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-10 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 52 passed (52) — '4k' exactly once; print key present/absent correctly per entry.
 
 - eval: E11
-  run_id: tier0-agent-params-r8-clip_tools-20260807
+  run_id: tier0-agent-params-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 52 passed (52) — MCP render_clip response carries motion.script with camera array and matching fps.
 
 - eval: E12
-  run_id: tier0-agent-params-r9-clip_http-20260807-repin
+  run_id: tier0-agent-params-r10-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T03:11:38Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
+    Fresh run round 10 (`affbe6c5` — http.ts/http.test.ts untouched by this commit). Test Files 1 passed (1); Tests 54 passed (54) — REST POST /render-clip response carries motion.script.camera as an array.
+
 - eval: E13
-  run_id: tier0-agent-params-r8-job_runner-20260807
+  run_id: tier0-agent-params-r10-job_runner-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-07T02:46:52Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 22 passed (22) — present and passing.
+    Fresh run round 10 (`affbe6c5` — jobRunner.test.ts changed directly: +3 lines add a real filename assertion, `path.basename(written)).toContain('dak-lak')`, to the existing "dọn tệp hết hạn (AC-12)" test for job `{location: 'Đắk Lắk'}`; this asserts the slugify fix reaches the artifact filename on the async surface, not a new AC — AC-11's own motion.script assertion is untouched). Test Files 1 passed (1); Tests 22 passed (22) — async /jobs clip result carries motion.script in the same shape as the sync surfaces.
 
 - eval: E14
-  run_id: tier0-agent-params-r8-resolve_config-20260807
+  run_id: tier0-agent-params-r10-resolve_config-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-07T02:46:32Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-12 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 64 passed (64) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 64 passed (64) — pitch outside 0..60 rejected; bearing -45 normalized to 315, not rejected.
 
 - eval: E15
-  run_id: tier0-agent-params-r8-motion_compiler-20260807
+  run_id: tier0-agent-params-r10-motion_compiler-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T02:48:55Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-13 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
+    Fresh run round 10 (`affbe6c5` — motionCompiler.ts/test.ts untouched by this commit). Test Files 1 passed (1); Tests 32 passed (32) — every keyframe carries cfg.camera.bearing; bearing-less config compiles identically (determinism held).
 
 - eval: E16
-  run_id: tier0-agent-params-r8-clip_tools-20260807
+  run_id: tier0-agent-params-r10-clip_tools-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T02:46:40Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-14 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
+    Fresh run round 10 (`affbe6c5`). Test Files 1 passed (1); Tests 52 passed (52) — delivery:'url' yields zero inline base64; over-cap on format:'both' second output removes both files from the sink.
 
 - eval: E17
-  run_id: tier0-agent-params-r8-geocode-20260807
+  run_id: tier0-agent-params-r10-geocode-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.geocode
-  verified_at: 2026-08-07T02:48:59Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-15 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 26 passed (26) — present and passing.
+    Fresh run round 10 (`affbe6c5` — geocode.ts/test.ts untouched by this commit; this contract's AC-15 asserts osmType/osmId/displayName/placeRank identity, not filenames or slugify). Test Files 1 passed (1); Tests 26 passed (26) — fallback-path identity is the entity that produced the polygon; cached second call spends no extra fetch.
 
 - eval: E18
-  run_id: tier0-agent-params-r8-tier0_invariants-20260807
+  run_id: tier0-agent-params-r10-tier0_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.tier0_invariants
-  verified_at: 2026-08-07T02:50:45Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). I1-I3 ok — tier0-invariants: all invariants hold — present and passing.
+    Fresh run round 10 (`affbe6c5`). I1 t3_path (src/lib/export.ts, src/lib/mapStyle.ts) untouched vs merge-base (3 files changed this commit, none in t3_paths — export.ts's own slugify call site at line 246 is unmodified). I2 all three motionOut bindings echo script: motion. I3 every new Zod field has a defined+called runtime assert; bearing normalized not asserted. tier0-invariants: all invariants hold.
 
 - eval: E19
-  run_id: tier0-agent-params-r9-api-20260807-repin
+  run_id: tier0-agent-params-r10-api-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T03:13:47Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — unchanged from the prior round.
+    Fresh run round 10 (`affbe6c5`). Test Files 31 passed | 3 skipped (34); Tests 501 passed | 7 skipped (508) — up from 498 (prior round) by the 3 new assertions in format.test.ts/jobRunner.test.ts; no regressions.
+
 - eval: E20
-  run_id: tier0-agent-params-r9-mcp-20260807-repin
+  run_id: tier0-agent-params-r10-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T03:13:57Z
+  verified_at: 2026-08-07T08:28:34Z
   output: |
-    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 3 passed (3); Tests 7 passed (7); Duration 42.43s — unchanged from the prior round.
+    Fresh run round 10 (`affbe6c5`). Test Files 3 passed (3); Tests 7 passed (7); Duration 50.43s — real vite build + real PNG + real clip rendered through headless Chromium, unchanged.
+
 ## Analyst
 
-Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E19, E20.
+Baseline (diffBase = pre-feature tree) values carried forward unchanged — this round's diff (`affbe6c5`) is a bugfix inside the already-shipped `slugify()`, orthogonal to the pre-feature baseline computed in earlier rounds. Non-discriminating (green on both): E19, E20 (full-suite/browser-integration guards, expected to be green on both branch and baseline).
 
 ## Variance
 
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Round 10: triggered by `affbe6c5` (`slugify()` fix: Đ/đ/Ð/ð now transliterate to d instead of being dropped, changing artifact filenames for affected place names). Ran every eval fresh (not re-pinned, per this round's instruction) — all 20 green. Checked every AC in `contract.md` and every `expected:` in `evals.yaml`: none assert artifact filenames or place-name normalization, so this contract's own pass/fail surface is unaffected by the behaviour change; `jobRunner.test.ts`'s own new filename assertion (added by the same commit) is evidence the fix reached the artifact filename, not a new criterion this contract checks. `verified_commit` updated to `affbe6c57401eafaffb7ced1a70c4f7def9d196c`.
 
 Round 9 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E12, E19, E20 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 

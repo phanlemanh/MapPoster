@@ -5,7 +5,7 @@ slug: mcp-auth
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: signed-off
+status: verified
 approved_by: manh
 approved_at: 2026-08-07T10:00:00Z
 time_human_minutes: {gate1: 3, gate2: 8}

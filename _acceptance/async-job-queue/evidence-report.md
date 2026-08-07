@@ -7,11 +7,25 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: async-job-queue
+
+_Round 9 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 8's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 8. This contract has no eval mapped to a broad guard (`test.api`/`test.mcp`)
+and no eval mapped to a git-state-dependent script (it uses no `executors.script.*` command at all —
+its own 24 machine evals are all `test` executor, scoped to `jobStore.ts`/`jobRunner.ts`/`http.ts`/
+`motionCompiler.ts`/`tools.ts`, none of which changed content this round). So there is genuinely
+nothing of this contract's own to re-run — same shape as this contract's own Round 3. All 24 evidence
+blocks plus the E20 judgment item stand unchanged from Round 8 below; only the frontmatter pin and
+this Iterations entry change._
 
 _Round 8 — re-verification. Round 7's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b` touching
@@ -343,6 +357,12 @@ none — every eval this round is a deterministic single run.
   block (`judged_by`/`verdict`/`rationale`/`human_override`) is carried forward byte-for-byte, unedited.
   `risk_tier: T2` requires `human_override` only on UNCERTAIN items — E20 is PASS with an override
   already filled — so no further judgment action is needed. Verdict **PASS**.
+- Round 9 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. This
+  contract has no broad-guard-mapped eval and no git-state-dependent script, so nothing genuinely
+  needed re-running; all 24 machine evals plus E20's judgment block (unedited) stand unchanged from
+  Round 8. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

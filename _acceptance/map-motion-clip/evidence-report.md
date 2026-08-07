@@ -7,11 +7,28 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
+
+_Round 6 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 5's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on, including
+both t3_paths, is byte-identical to Round 5. Re-ran fresh: `npm run test:mcp` (E7's own verifier,
+7/7 unchanged). E1-E6/E8-E15 stand unchanged from Round 5: their commands (`motionScript.test.ts`,
+`motionMath.test.ts`, `motionCompiler.test.ts`, `http.test.ts`, `tools.test.ts`,
+`export.test.ts`+`mapStyle.test.ts`, `compiler-domain-sweep.ts`) don't read git state and their
+target files are confirmed byte-identical, so no re-execution was needed. The E16/E17 judgment blocks
+are carried forward BYTE-FOR-BYTE, unedited, from Round 5 — same rule as last round: `risk_tier: T3`
+mandates a direct human verdict on every judgment item for THIS round's evidence regardless of a prior
+override, so the contract again routes to **PENDING-JUDGMENT**. Nothing in this rebase touches the
+underlying clip artifact or attribution text, so a human confirming the override again reviews the
+exact same evidence as before._
 
 _Round 5 — re-verification. Round 4's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b`. `git diff
@@ -130,15 +147,15 @@ override again at Gate 2 is reviewing unchanged evidence, not stale evidence._
     file not in this round's diff.
 
 - eval: E7
-  run_id: map-motion-clip-E7-20260807r5
+  run_id: map-motion-clip-repin-testmcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T23:58:47Z
+  verified_at: 2026-08-07T00:23:59Z
   output: |
-    ROUND 5 re-run: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed (7); Duration 42.59s —
-    real vite build + real headless Chromium. `renderClip.test.ts` (the determinism/frame-count check
-    this eval targets) unaffected by this round's `mcp-server/`-only, non-motion diff.
+    ROUND 6 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
+    (7); Duration 42.63s — real vite build + real headless Chromium, identical counts to Round 5.
+    `renderClip.test.ts` (the determinism/frame-count check this eval targets) unaffected by the rebase.
 
 - eval: E8
   run_id: map-motion-clip-E8-20260807r5
@@ -274,6 +291,14 @@ none — every eval this round is a deterministic single run.
   values. `risk_tier: T3` mandates a direct human verdict on every judgment item for THIS round's
   evidence regardless of a prior round's override, so the contract routes to **PENDING-JUDGMENT** this
   round; a human re-affirming at Gate 2 is confirming unchanged clip/source evidence, not stale evidence.
+- Round 6 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. Only E7
+  (`npm run test:mcp`) was genuinely re-run, since it is the one eval whose verifier is a broad guard;
+  it matched Round 5 exactly. E1-E6/E8-E15 stand unchanged from Round 5. The E16/E17 judgment blocks
+  remain carried forward byte-for-byte, unedited. `risk_tier: T3` again mandates a direct human verdict
+  on every judgment item for THIS round's evidence, so the contract routes to **PENDING-JUDGMENT**
+  again.
 
 ## Gate 2 checklist (human)
 

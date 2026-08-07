@@ -75,3 +75,4 @@
 {"ts":"2026-08-06T23:56:42Z","round":5,"evalId":"E13","run_id":"map-motion-clip-E8-20260807r5","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-06T23:55:39Z","round":5,"evalId":"E14","run_id":"map-motion-clip-E11-20260807r5","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
 {"ts":"2026-08-06T23:56:42Z","round":5,"evalId":"E15","run_id":"map-motion-clip-E8-20260807r5","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T00:23:59Z","round":6,"evalId":"E7","run_id":"map-motion-clip-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

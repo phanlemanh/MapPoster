@@ -7,11 +7,24 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+_Round 6 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 5's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 5. Re-ran fresh: `npm test` (475/482, unchanged), `npm run test:mcp` (7/7,
+unchanged), and `tier0-invariants.ts` (all I1-I3 clauses still `ok`; I1's own output line now
+legitimately reads `vs ecd4a377` instead of the stale `999c13c8`, since the script computes `git
+merge-base origin/main HEAD` itself). E1-E17 are re-pinned unchanged below: their commands don't read
+git state and their target files are confirmed byte-identical, so Round 5's evidence blocks stand
+without re-execution._
 
 _Round 5 — re-verification. Round 4's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b` touching
@@ -244,13 +257,15 @@ re-checked against a real assertion, not just an exit code._
     original search hit) confirmed present and green.
 
 - eval: E18
-  run_id: tier0-agent-params-E18-20260807r5
+  run_id: tier0-agent-params-repin-E18-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.tier0_invariants
-  verified_at: 2026-08-06T23:59:40Z
+  verified_at: 2026-08-07T00:24:55Z
   output: |
-    ok   I1  t3_path (src/lib/export.ts, src/lib/mapStyle.ts) untouched vs merge-base (45 files changed, none in t3_paths)
+    ROUND 6 — re-run fresh post-rebase (this script computes `git merge-base origin/main HEAD` itself,
+    so its own output text is git-state-dependent):
+    ok   I1  t3_path (src/lib/export.ts, src/lib/mapStyle.ts) untouched vs merge-base (31 files changed, none in t3_paths)
     ok   I2  MCP render_clip (mcp-server/src/tools.ts) echoes motion.script on its motionOut binding
     ok   I2  REST POST /render-clip (mcp-server/src/http.ts) echoes motion.script on its motionOut binding
     ok   I2  async POST /jobs (mcp-server/src/jobRunner.ts) echoes motion.script on its motionOut binding
@@ -262,28 +277,30 @@ re-checked against a real assertion, not just an exit code._
     ok   I3  camera.pitch guarded by assertPitch (defined: true, called: true)
     ok   I3  camera.bearing normalized (not rejected) — modulo-360 present: true
     tier0-invariants: all invariants hold
-    Re-run fresh; all clauses of E18's `expected` (I1 t3_path untouched; I2 three motionOut bindings
-    echo script; I3 every field guarded and defined+called, bearing normalized) confirmed.
+    File-count is now 31 (down from Round 5's 45) purely because the merge-base moved forward to
+    `ecd4a377`; all clauses of E18's `expected` remain confirmed.
 
 - eval: E19
-  run_id: tier0-agent-params-E19-20260807r5
+  run_id: tier0-agent-params-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
-    ROUND 5 re-run: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475 passed | 7 skipped
-    (482). Up from 457 in Round 4 — motion-tools-cost's own +18 new tests, not this contract's surface.
+    ROUND 6 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
+    passed | 7 skipped (482) — identical counts to Round 5, confirming the rebase changed no test
+    content.
 
 - eval: E20
-  run_id: tier0-agent-params-E20-20260807r5
+  run_id: tier0-agent-params-repin-testmcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T23:58:47Z
+  verified_at: 2026-08-07T00:23:59Z
   output: |
-    ROUND 5 re-run: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed (7); Duration 42.59s —
-    real vite build + real headless Chromium. Unaffected by this round's `mcp-server/`-only diff.
+    ROUND 6 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
+    (7); Duration 42.63s — real vite build + real headless Chromium, identical counts to Round 5.
+    Unaffected by the rebase.
 
 ## Analyst
 
@@ -313,6 +330,11 @@ none — every eval this round is a deterministic single run.
   touching this contract's own `resolveConfig.ts`/`tools.ts`/`http.ts`/`jobRunner.ts` (additively,
   confirmed via diff review in the preamble). All 20 machine evals re-run fresh, each `expected` clause
   re-checked against a real assertion. This contract has no judgment evals. Verdict **PASS**.
+- Round 6 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. Broad
+  guards (`npm test`, `npm run test:mcp`) and the git-state-dependent `tier0-invariants.ts` script were
+  re-run fresh and matched Round 5 exactly; E1-E17 stand unchanged from Round 5. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

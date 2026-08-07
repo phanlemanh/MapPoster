@@ -7,11 +7,24 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: routes-measurements
+
+_Round 5 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (this contract's own PR)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 4's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 4. Re-ran fresh: `npm test` (475/482, unchanged), `npm run test:mcp` (7/7,
+unchanged), and `routes-invariants.ts` (all I1-I3 clauses still `ok`; I1's own output line now
+legitimately reads `vs ecd4a377` instead of the stale `999c13c8`, since the script computes `git
+merge-base origin/main HEAD` itself). E1-E14/E16/E19 are re-pinned unchanged below: their commands
+don't read git state and their target files are confirmed byte-identical, so Round 4's evidence
+blocks stand without re-execution._
 
 _Round 4 — re-verification. Round 3's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b`
@@ -223,13 +236,15 @@ test file, per this round's instructions._
     blocks elsewhere in the same file).
 
 - eval: E15
-  run_id: routes-measurements-E15-20260807r4
+  run_id: routes-measurements-repin-E15-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-06T23:59:35Z
+  verified_at: 2026-08-07T00:24:45Z
   output: |
-    ok   I1  t3_path untouched vs merge-base (45 file đổi, không cái nào trong t3_paths)
+    ROUND 5 — re-run fresh post-rebase (this script computes `git merge-base origin/main HEAD`
+    itself, so its own output text is git-state-dependent):
+    ok   I1  t3_path untouched vs ecd4a377 (31 file đổi, không cái nào trong t3_paths)
     ok   I2  routes[].width có guard assertRouteWidth (định nghĩa: true, được gọi: true)
     ok   I2  routes[].coords (>=2 vị trí) có guard coordsToLineString (định nghĩa: true, được gọi: true)
     ok   I2  routes[].geojson có guard assertGeojson (định nghĩa: true, được gọi: true)
@@ -240,15 +255,16 @@ test file, per this round's instructions._
     ok   I3  mcp-server/src/geometry.ts: không có tên số đo trần
     ok   I3  bốn tên đủ nghĩa đều có mặt (lengthKm, straightLineKm, areaKm2, spanKm): true
     routes-invariants: mọi bất biến còn giữ
-    Re-run fresh; I1's file-count grew (45 vs the earlier round's 17) purely because it now diffs against
-    a larger commit range including motion-tools-cost's own commits — t3_paths still shows zero hits.
+    I1's file-count is now 31 (down from Round 4's 45) purely because the merge-base moved forward to
+    `ecd4a377` (`main` now contains this contract's own previously-unmerged commits directly) —
+    t3_paths still shows zero hits.
 
 - eval: E20
-  run_id: routes-measurements-E15-20260807r4
+  run_id: routes-measurements-repin-E15-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.routes_invariants
-  verified_at: 2026-08-06T23:59:35Z
+  verified_at: 2026-08-07T00:24:45Z
   output: |
     Same run as E15 — the two "không có tên số đo trần" lines and the four-self-describing-names line
     directly answer E20's `expected`.
@@ -268,27 +284,26 @@ test file, per this round's instructions._
     Re-run fresh, unchanged from Round 3's 9/9.
 
 - eval: E17
-  run_id: routes-measurements-E17-20260807r4
+  run_id: routes-measurements-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
-    ROUND 4 re-run: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475 passed | 7 skipped
-    (482). Up from 457 in Round 3 — the +18 delta is motion-tools-cost's own new tests, not this
-    contract's own surface. Broad regression-floor guard, green as expected on both trees.
+    ROUND 5 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
+    passed | 7 skipped (482) — identical counts to Round 4, confirming the rebase changed no test
+    content. Broad regression-floor guard, green as expected.
 
 - eval: E18
-  run_id: routes-measurements-E18-20260807r4
+  run_id: routes-measurements-repin-testmcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T23:58:47Z
+  verified_at: 2026-08-07T00:23:59Z
   output: |
-    ROUND 4 re-run: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed (7); Duration 42.59s —
-    real vite build + real headless-Chromium MCP integration. Unaffected by motion-tools-cost's
-    `mcp-server/`-only diff (this suite is `renderFrame.test.ts`/`renderClip.test.ts`/
-    `stdioChannel.test.ts`, none of which changed).
+    ROUND 5 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
+    (7); Duration 42.63s — real vite build + real headless-Chromium MCP integration, identical counts
+    to Round 4. Unaffected by the rebase.
 
 ## Analyst
 
@@ -319,6 +334,12 @@ none — every eval this round is a deterministic single run.
   handlers that don't touch the `routes + measure` describe block). All 20 machine evals re-run fresh,
   each `expected` clause re-checked against a real assertion. Zero judgment/ui-check evals on this
   `surfaces: [api]` contract. Verdict **PASS**.
+- Round 5 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 (this contract's own) landed, branch rebased onto `main`'s new tip `ecd4a37`,
+  rewriting every commit SHA. `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a
+  re-pin, not a re-audit. Broad guards (`npm test`, `npm run test:mcp`) and the git-state-dependent
+  `routes-invariants.ts` script were re-run fresh and matched Round 4 exactly; E1-E14/E16/E19 stand
+  unchanged from Round 4. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

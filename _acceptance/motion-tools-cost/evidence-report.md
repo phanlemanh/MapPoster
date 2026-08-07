@@ -7,11 +7,27 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: motion-tools-cost
+
+_Round 2 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), which rewrote every
+commit SHA including Round 1's `verified_commit` (`6644d1b`) — that object is no longer an ancestor of
+this branch (though it still exists locally, which is why a local staleness check would misleadingly
+pass; on a fresh CI clone it would not resolve at all). `git diff 6644d1b HEAD` confirms **zero**
+non-gate files changed — only `_acceptance/**` (Round 1's own evidence-report/contract/run-log writes)
+differ; every source and test file this contract depends on is byte-identical to what Round 1 verified.
+Re-ran fresh: `npm test` (475/482, unchanged), `npm run test:mcp` (7/7, unchanged), and
+`motion-tools-invariants.ts` (all I1-I4 clauses still `ok`; I1's own merge-base line now legitimately
+reads `vs ecd4a377` instead of the stale `999c13c8`, since the script computes `git merge-base
+origin/main HEAD` itself — this is exactly the kind of eval where a bare re-pin would have left a
+false git reference in the evidence text). E1-E15/E17/E18 are re-pinned unchanged below: their
+underlying commands (`tools.test.ts`, `resolveConfig.test.ts`, `encodeAnimation.test.ts`,
+`jobRunner.test.ts`, `http.test.ts`) don't read git state and their target files are confirmed
+byte-identical, so their Round 1 evidence blocks stand without re-execution._
 
 Round 1 — first verify. `surfaces: [api]`, no judgment and no ui-check evals (per contract Notes:
 "Không có eval design-quality"), so per the routing rule a clean sweep of all 20 machine evals is
@@ -238,13 +254,15 @@ claim. This contract is stacked on `feat/routes-measurements` (PR #2, not yet me
     successfully-declared `clip` block when no file exists.
 
 - eval: E16
-  run_id: motion-tools-cost-E16-20260807
+  run_id: motion-tools-cost-repin-E16-20260807
   exit_code: 0
   baseline: n-a
   verifier: config:executors.script.motion_tools_invariants
-  verified_at: 2026-08-06T23:56:30Z
+  verified_at: 2026-08-07T00:24:30Z
   output: |
-    ok   I1  t3_path untouched vs 999c13c8 (45 file đổi)
+    ROUND 2 — re-run fresh (this script computes `git merge-base origin/main HEAD` itself, so its own
+    output text is git-state-dependent and a bare re-pin would have left a stale hash):
+    ok   I1  t3_path untouched vs ecd4a377 (31 file đổi)
     ok   I2  tìm thấy thân compile_motion: true
     ok   I2  compile_motion KHÔNG dùng acquireClipSlot: true
     ok   I2  compile_motion KHÔNG dùng deps.renderClip: true
@@ -292,28 +310,27 @@ claim. This contract is stacked on `feat/routes-measurements` (PR #2, not yet me
     is unchanged and fully green, confirming `/render-clip`'s pre-existing behaviour survived the fix.
 
 - eval: E19
-  run_id: motion-tools-cost-E19-20260807
+  run_id: motion-tools-cost-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
-    `npm test`: Test Files 30 passed | 3 skipped (33); Tests 475 passed | 7 skipped (482) — up from 457
-    at merge-base `31ad91b` (the +18 delta is this contract's own new tests across
-    `tools.test.ts`/`resolveConfig.test.ts`/`encodeAnimation.test.ts`). Whole-suite regression floor:
-    green both before and after, as expected for this kind of guard.
+    ROUND 2 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
+    passed | 7 skipped (482) — identical counts to Round 1, confirming the rebase changed no test
+    content. Whole-suite regression floor: green both before and after, as expected for this kind of
+    guard.
 
 - eval: E20
-  run_id: motion-tools-cost-E20-20260807
+  run_id: motion-tools-cost-repin-testmcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T23:58:47Z
+  verified_at: 2026-08-07T00:23:59Z
   output: |
-    `npm run test:mcp`: Test Files 3 passed (3); Tests 7 passed (7); Duration 42.59s — real vite build +
-    real headless-Chromium MCP integration suite (renderFrame.test.ts, renderClip.test.ts,
-    stdioChannel.test.ts). Gated integration guard, green, unaffected by this contract's `mcp-server/`-only
-    diff.
+    ROUND 2 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
+    (7); Duration 42.63s — real vite build + real headless-Chromium MCP integration suite, identical
+    counts to Round 1. Gated integration guard, green, unaffected by the rebase.
 
 ## Analyst
 
@@ -344,6 +361,14 @@ Round 1 (verified 2026-08-06T23:59Z, commit `6644d1b`): first verify. All 20 mac
 real assertion behind every clause of their `expected` text (checked individually, not inferred from
 "the suite is green" — see Evidence above). `surfaces: [api]`, contract Notes explicitly waive
 design-quality evals, so there are zero judgment and zero ui-check items. Verdict **PASS**.
+
+Round 2 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+`main` (PR #2 landed; branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA).
+`git diff 6644d1b HEAD` confirmed zero non-gate files changed — this is a re-pin, not a re-audit. Broad
+guards (`npm test`, `npm run test:mcp`) and the git-state-dependent invariant script
+(`motion-tools-invariants.ts`, whose own output embeds the merge-base hash) were re-run fresh and
+matched Round 1 exactly; E1-E15/E17/E18 stand unchanged from Round 1 (their commands don't read git
+state and their target files are confirmed byte-identical). Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

@@ -64,3 +64,6 @@
 {"ts":"2026-08-06T23:59:40Z","round":5,"evalId":"E18","run_id":"tier0-agent-params-E18-20260807r5","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
 {"ts":"2026-08-06T23:56:58Z","round":5,"evalId":"E19","run_id":"tier0-agent-params-E19-20260807r5","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T23:58:47Z","round":5,"evalId":"E20","run_id":"tier0-agent-params-E20-20260807r5","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T00:24:55Z","round":6,"evalId":"E18","run_id":"tier0-agent-params-repin-E18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
+{"ts":"2026-08-07T00:22:55Z","round":6,"evalId":"E19","run_id":"tier0-agent-params-repin-npmtest-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T00:23:59Z","round":6,"evalId":"E20","run_id":"tier0-agent-params-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

@@ -7,11 +7,25 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 6644d1b2e4b7a0a3758453d2ee8b77cd3399fdcd
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
 human_signoff:
 ---
 
 # Evidence Report: mcp-map-render
+
+_Round 21 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 20's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 20. E1-E9/E11 (`npm test`) and E10 (`npm run test:e2e`) were both re-run fresh
+again this round, since both are aggregate/whole-file commands and are this contract's own
+broad-guard-mapped evals; both matched Round 20 exactly. E10's frames were not re-opened again this
+round — nothing in the diff touches the render page, and Round 20 already performed a fresh multimodal
+Read of them, so that observation still stands. E12's judgment block is carried forward byte-for-byte,
+unedited; `risk_tier: T3` again mandates a direct human verdict on every judgment item for THIS round's
+evidence, so the contract routes to **PENDING-JUDGMENT** again._
 
 _Round 20 — re-verification. Round 19's evidence (`verified_commit: 31ad91b`, signed off `manh`
 2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b`. `git diff
@@ -54,129 +68,128 @@ image the prior judge scored._
 ## Evidence
 
 - eval: E1
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
-    ROUND 20 — re-run fresh: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475 passed | 7
-    skipped (482). Up from 457 in Round 19 — the +18 delta is motion-tools-cost's own new tests, none of
-    it in this contract's own `render_map`/highlight/geocode/pool/transport coverage, which remains
-    green. `render_map('Ho Chi Minh City', format=tiktok)` → PNG 1080×1920, centered on the geocoded
+    ROUND 21 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
+    passed | 7 skipped (482) — identical counts to Round 20, confirming the rebase changed no test
+    content. `render_map('Ho Chi Minh City', format=tiktok)` → PNG 1080×1920, centered on the geocoded
     location, confirmed present and passing in this run.
 
 - eval: E2
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — named-region highlight resolve path (`bboxOfGeojsons` call site) unchanged since Round
     18/19; boundary-polygon-size / region-anchoring / GeoJSON shape-check assertions present and green.
 
 - eval: E3
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — named-point highlight / auto-zoom path untouched by this round's diff (only
     `resolveConfig.ts`'s new, separate `camera.focus` branch and `tools.ts`'s new handlers changed).
     AC-3 assertions present and green.
 
 - eval: E4
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — `geocode.ts` does not appear in `git diff 31ad91b..HEAD --stat`. Cache/env-validation
     assertions present and green, unaffected.
 
 - eval: E5
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — render-variants / browser-pool path (`browserPool.ts`/`deps.ts`) untouched this round.
     AC-5 assertions present and green.
 
 - eval: E6
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — tool-set parity + HTTP transport guards. `tools.ts` gained new handlers additively (not
     touching `listTools` or the Host/Origin/body-cap guards this eval checks). Assertions present and
-    green. Corroborating (real build + real headless browser + real transport, re-run fresh):
-    `npm run test:e2e`: 14 passed (50.9s). `npm run test:mcp`: 7 passed (Test Files 3 passed).
+    green. Corroborating (real build + real headless browser + real transport, re-run fresh this round):
+    `npm run test:e2e`: 14 passed (46.8s). `npm run test:mcp`: 7 passed (Test Files 3 passed).
 
 - eval: E7
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — default-delivery base64+path / sink-dir path (`renderFrame.test.ts`) unaffected by this
     round's diff. AC-7 assertions present and green.
 
 - eval: E8
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — `list_formats` preset / custom-dims path unaffected. AC-8 assertions present and green.
 
 - eval: E9
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — `chrome:clean`/`poster` + theme/colour validation path unaffected by this round's diff.
     AC-9 assertions present and green.
 
 - eval: E10
-  run_id: mcp-map-render-E10-20260807r20
+  run_id: mcp-map-render-repin-teste2e-20260807
   exit_code: 0
   verifier: config:executors.test.e2e
-  verified_at: 2026-08-06T23:57:51Z
+  verified_at: 2026-08-07T00:23:40Z
   screenshot: evidence/E10-step1.png
   observed: |
-    ROUND 20 — re-run fresh: `npm run test:e2e` — 14 passed (50.9s), including
-    `e2e/render-mode.spec.ts:93` (AC-10). Nothing in this round's diff touches the render page or
-    `renderFrame` path (confirmed: `src/render/**` absent from `git diff 31ad91b..HEAD --stat`), so
-    Round 19's frames were re-opened and re-confirmed rather than re-captured — a like-for-like
-    re-pin of the visual evidence, backed by a genuine fresh automated run.
-    E10-step1.png (opened via multimodal Read this round): a solid dark-navy 1080×1920 frame with the
-    small "© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre" attribution line
-    visible bottom-right, and NO onboarding modal or overlay anywhere on the frame — matches "no
-    onboarding modal visible" exactly.
-    E10-step3.png (opened via multimodal Read this round): a genuine midnight-blue Ho Chi Minh City
-    map — airport runway markings visible upper-left, a wide river winding through the frame in dark
-    blue, dense road network rendered in amber/gold, no city-title text overlay (consistent with
-    `chrome:'clean'`), no tile gaps or rendering breakage — matches "renderFrame() PNG is exactly
-    1080×1920" and "config-load → render → dims" for the final frame.
+    ROUND 21 — re-run fresh post-rebase: `npm run test:e2e` — 14 passed (46.8s), including
+    `e2e/render-mode.spec.ts:93` (AC-10), identical to Round 20. Nothing in this round's diff touches
+    the render page or `renderFrame` path, so Round 20's fresh multimodal-Read observation of the
+    frames still stands unchanged rather than being re-read a second time — the frames themselves are
+    byte-identical evidence/ files, unmoved by the rebase.
+    E10-step1.png (per Round 20's multimodal Read, carried forward — frame unchanged): a solid
+    dark-navy 1080×1920 frame with the small "© OpenStreetMap contributors · OpenMapTiles ·
+    OpenFreeMap · MapLibre" attribution line visible bottom-right, and NO onboarding modal or overlay
+    anywhere on the frame — matches "no onboarding modal visible" exactly.
+    E10-step3.png (per Round 20's multimodal Read, carried forward — frame unchanged): a genuine
+    midnight-blue Ho Chi Minh City map — airport runway markings visible upper-left, a wide river
+    winding through the frame in dark blue, dense road network rendered in amber/gold, no city-title
+    text overlay (consistent with `chrome:'clean'`), no tile gaps or rendering breakage — matches
+    "renderFrame() PNG is exactly 1080×1920" and "config-load → render → dims" for the final frame.
   network_observed: n-a (tool-error: frames read from committed evidence/, not re-captured live this round)
 
 - eval: E11
-  run_id: mcp-map-render-E1-20260807r20
+  run_id: mcp-map-render-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T23:56:58Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
     Same run — ungeocodable-location / invalid-dims structured-error path unaffected by this round's
     diff. AC-11 assertions present and green.
@@ -216,6 +229,15 @@ none — every command this round is a deterministic single run.
   including its already-filled Round-19 `human_override`. `risk_tier: T3` mandates a direct human
   verdict on every judgment item for THIS round's evidence regardless of a prior round's override, so
   the contract routes to **PENDING-JUDGMENT** this round.
+- Round 21 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. E1-E9/E11
+  (`npm test`) and E10 (`npm run test:e2e`) were both re-run fresh again (this contract's two
+  broad-guard-mapped evals); both matched Round 20 exactly. E10's frames were not re-opened a second
+  time since nothing in the diff touches the render page and Round 20 already captured a fresh
+  multimodal-Read observation. E12's judgment block remains carried forward byte-for-byte, unedited.
+  `risk_tier: T3` again mandates a direct human verdict on every judgment item, so the contract routes
+  to **PENDING-JUDGMENT** again.
 
 ## Gate 2 checklist (human)
 

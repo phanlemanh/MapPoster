@@ -18,3 +18,6 @@
 {"ts":"2026-08-06T23:56:42Z","round":1,"evalId":"E18","run_id":"motion-tools-cost-E18-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-06T23:56:58Z","round":1,"evalId":"E19","run_id":"motion-tools-cost-E19-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T23:58:47Z","round":1,"evalId":"E20","run_id":"motion-tools-cost-E20-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T00:24:30Z","round":2,"evalId":"E16","run_id":"motion-tools-cost-repin-E16-20260807","exit_code":0,"cmd":"npx tsx _acceptance/motion-tools-cost/scripts/motion-tools-invariants.ts"}
+{"ts":"2026-08-07T00:22:55Z","round":2,"evalId":"E19","run_id":"motion-tools-cost-repin-npmtest-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T00:23:59Z","round":2,"evalId":"E20","run_id":"motion-tools-cost-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

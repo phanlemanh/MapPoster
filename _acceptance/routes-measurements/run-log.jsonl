@@ -42,3 +42,7 @@
 {"ts":"2026-08-06T23:59:45Z","round":4,"evalId":"E16","run_id":"routes-measurements-E16-20260807r4","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
 {"ts":"2026-08-06T23:56:58Z","round":4,"evalId":"E17","run_id":"routes-measurements-E17-20260807r4","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T23:58:47Z","round":4,"evalId":"E18","run_id":"routes-measurements-E18-20260807r4","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T00:24:45Z","round":5,"evalId":"E15","run_id":"routes-measurements-repin-E15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T00:24:45Z","round":5,"evalId":"E20","run_id":"routes-measurements-repin-E15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T00:22:55Z","round":5,"evalId":"E17","run_id":"routes-measurements-repin-npmtest-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T00:23:59Z","round":5,"evalId":"E18","run_id":"routes-measurements-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

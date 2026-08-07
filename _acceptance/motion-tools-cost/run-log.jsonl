@@ -61,3 +61,6 @@
 {"ts": "2026-08-07T02:46:57Z", "round": 4, "evalId": "E18", "run_id": "motion-tools-cost-r4-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
 {"ts": "2026-08-07T02:49:45Z", "round": 4, "evalId": "E19", "run_id": "motion-tools-cost-r4-api-20260807", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T02:51:38Z", "round": 4, "evalId": "E20", "run_id": "motion-tools-cost-r4-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:11:38Z", "round": 5, "evalId": "E18", "run_id": "motion-tools-cost-r5-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:13:47Z", "round": 5, "evalId": "E19", "run_id": "motion-tools-cost-r5-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T03:13:57Z", "round": 5, "evalId": "E20", "run_id": "motion-tools-cost-r5-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}

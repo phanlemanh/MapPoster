@@ -106,3 +106,9 @@
 {"ts": "2026-08-07T02:46:57Z", "round": 8, "evalId": "E13", "run_id": "map-motion-clip-r8-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
 {"ts": "2026-08-07T02:46:40Z", "round": 8, "evalId": "E14", "run_id": "map-motion-clip-r8-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
 {"ts": "2026-08-07T02:46:57Z", "round": 8, "evalId": "E15", "run_id": "map-motion-clip-r8-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:13:57Z", "round": 9, "evalId": "E7", "run_id": "map-motion-clip-r9-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E8", "run_id": "map-motion-clip-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E9", "run_id": "map-motion-clip-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E10", "run_id": "map-motion-clip-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E13", "run_id": "map-motion-clip-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E15", "run_id": "map-motion-clip-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}

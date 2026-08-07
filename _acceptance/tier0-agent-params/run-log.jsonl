@@ -107,3 +107,6 @@
 {"ts": "2026-08-07T02:50:45Z", "round": 8, "evalId": "E18", "run_id": "tier0-agent-params-r8-tier0_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
 {"ts": "2026-08-07T02:49:45Z", "round": 8, "evalId": "E19", "run_id": "tier0-agent-params-r8-api-20260807", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T02:51:38Z", "round": 8, "evalId": "E20", "run_id": "tier0-agent-params-r8-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E12", "run_id": "tier0-agent-params-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T03:13:47Z", "round": 9, "evalId": "E19", "run_id": "tier0-agent-params-r9-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T03:13:57Z", "round": 9, "evalId": "E20", "run_id": "tier0-agent-params-r9-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}

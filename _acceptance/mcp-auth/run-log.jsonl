@@ -8,3 +8,13 @@
 {"ts":"2026-08-07T02:49:55Z","round":1,"evalId":"E8","run_id":"mcp-auth-r1-auth_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"}
 {"ts":"2026-08-07T02:49:45Z","round":1,"evalId":"E9","run_id":"mcp-auth-r1-api-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T02:51:38Z","round":1,"evalId":"E10","run_id":"mcp-auth-r1-mcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E1","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E2","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E3","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E4","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E5","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:11:38Z","round":2,"evalId":"E6","run_id":"mcp-auth-r2-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T03:12:10Z","round":2,"evalId":"E7","run_id":"mcp-auth-r2-auth_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"}
+{"ts":"2026-08-07T03:12:10Z","round":2,"evalId":"E8","run_id":"mcp-auth-r2-auth_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"}
+{"ts":"2026-08-07T03:13:47Z","round":2,"evalId":"E9","run_id":"mcp-auth-r2-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T03:13:57Z","round":2,"evalId":"E10","run_id":"mcp-auth-r2-mcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

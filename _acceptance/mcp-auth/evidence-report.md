@@ -7,17 +7,75 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: e5ce7199d007b5c57042dd78a29b1df57b9e7a15
+verified_commit: ce0b13e6de6504aa53d3bc0fe5545f209ec00381
 human_signoff: 
 ---
 
 # Evidence Report: mcp-auth
 
-Round 1 — first verification of this contract. `mcp-server/src/http.ts` on `fix/mcp-auth`
+_Round 2 — focused re-verification triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`,
+scoped entirely to `mcp-server/src/http.test.ts`), fixing exactly the gap Round 1 flagged: E6's
+"bind outside loopback WITH token → starts fine" case rebound its `startHttpServer` call from
+`'127.0.0.1'` (loopback — the bug) to `'0.0.0.0'` (genuinely non-loopback). All 10 evals were
+re-run fresh at the new commit; `verified_commit` re-pinned to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`._
+
+**E6/AC-6 re-check, same per-clause standard as Round 1:** the clause is now proven. Tracing the
+guard condition directly — `!LOOPBACK_HOSTS.includes(host) && !process.env.MAPPOSTER_TOKEN`
+(`http.ts:202`) — with `host = '0.0.0.0'` (not in `LOOPBACK_HOSTS`) and `MAPPOSTER_TOKEN` set, the
+first operand is `true` and the second is `false`, so the whole expression is `false` and the guard
+does not fire; `startHttpServer` proceeds to listen and `expect(srv.url).toContain('/mcp')` is a
+real assertion on a real started server bound to a real non-loopback address. Re-ran
+`http.test.ts` fresh: 54/54 pass, including this case.
+
+I additionally reproduced the commit author's negative control independently, in a disposable
+`git worktree add --detach <tmp> ce0b13e` (no changes to this repo's working tree) with the boot
+guard hand-edited to `if (!LOOPBACK_HOSTS.includes(host))` — i.e. dropping the token check so it
+refuses *every* non-loopback host regardless of token. Running just this test
+(`npx vitest run mcp-server/src/http.test.ts -t "cho phép bind ngoài loopback KHI đã có token"`)
+against that mutant: **1 failed** — `Error: Refusing to start: MAPPOSTER_HTTP_HOST=0.0.0.0 binds
+outside loopback but MAPPOSTER_TOKEN is unset` thrown from `http.ts:203`, exactly where a
+too-strict guard would break a legitimate token-configured deployment. That property — catching
+over-restriction, not just under-restriction — is what Round 1 found missing, and it now holds.
+
+Grepping `startHttpServer(` call sites in `http.test.ts` again post-fix (still 27 sites): E6 is now
+the only site that pairs a genuinely non-loopback host with a token set, so it is also now the
+*only* test exercising that specific combination — no other eval accidentally duplicates or
+conflicts with it.
+
+**Re-scrutinized the rest of mcp-auth's evals with the same standard** (per-clause, not "suite is
+green"):
+- E1/E2 (`http.test.ts:220-232`): both `expect(...).toBe(401)` calls are direct, unconditional
+  assertions on the real response object from a real request to `srv.url` — no gap.
+- E3/E4/E5 (`http.test.ts:235-264`): each is a single direct assertion (`toBe(200)` /
+  `toBe(200)` / `.rejects.toThrow(/MAPPOSTER_TOKEN/)`) on a real call — no gap.
+- E7/E8 (`auth-invariants.ts` I1-I4): static/structural checks by design (AC-7 says "soi bất
+  biến" — inspect invariants), not behavioural ones; they do what their own `expected` text
+  claims and nothing more. No over-claim found.
+- E9 (`npm test`, full suite): genuinely re-includes `http.test.ts` plus every other route's own
+  tests; re-run fresh this round, unaffected by the E6 test-only edit except for absorbing it. No
+  gap.
+- E10 (`npm run test:mcp` — `renderFrame.test.ts`, `renderClip.test.ts`, `stdioChannel.test.ts`):
+  re-confirmed these three files contain **zero** references to `bearer`/`Authorization`/
+  `MAPPOSTER_TOKEN`/`startHttpServer` (grepped again this round) — they exercise the **stdio**
+  transport (`mcp-server/src/stdio.ts`), a separate, unauthenticated-by-design local-pipe
+  transport, not the guarded `/mcp` HTTP endpoint. Round 1 already flagged this eval as
+  corroborating (real build, real headless-Chromium render pipeline) rather than a direct AC-3
+  test; that characterization stands and is not softened this round. Its `expected` text's "MCP
+  integration có gác" reads, in context of the same boilerplate phrase being reused verbatim
+  across every other T2 contract's own `test.mcp` catch-all eval with unrelated criteria, as "this
+  integration suite is gated behind `MCP_INTEGRATION=1`" (an opt-in cost/CI gate), not "this suite
+  tests the bearer gate" — so it is not treated as an over-claim, but the ambiguity is worth a
+  human's eyes at Gate 2.
+
+No new REJECT-worthy gap found. Verdict stays **PASS**.
+
+---
+
+_Round 1 — first verification of this contract. `mcp-server/src/http.ts` on `fix/mcp-auth`
 (`e5ce7199`) replaces three copy-pasted bearer checks (`/render`, `/render-clip`, `/jobs`) with one
 shared `rejectedByBearer()` helper, adds a guard call on the previously-unguarded `/mcp`
 fall-through, and adds a startup-time fail-closed check that refuses to bind outside loopback
-without `MAPPOSTER_TOKEN` set.
+without `MAPPOSTER_TOKEN` set._
 
 ## Security questions answered directly
 
@@ -39,23 +97,16 @@ assertions:
   `127.0.0.1`), POST to `/mcp` with no bearer is asserted `expect(res.status).toBe(200)` — the guard
   does not turn local dev into a required-config chore.
 
-## Additional finding: E6 does not test what its own title claims
+## Round 1 finding: E6 did not test what its own title claimed — RESOLVED in Round 2 (see above)
 
-E6 (AC-6, "bind outside loopback WITH token → starts fine") is titled in the test file *"cho phép
-bind **ngoài loopback** KHI đã có token"* (`http.test.ts:266`), but the actual call is
+E6 (AC-6, "bind outside loopback WITH token → starts fine") was titled in the test file *"cho phép
+bind **ngoài loopback** KHI đã có token"* (`http.test.ts:266`), but the Round-1 call was
 `startHttpServer(0, fakeDeps(), '127.0.0.1', { allowedHosts: ['127.0.0.1'], ... })` — `'127.0.0.1'`
 is itself inside `LOOPBACK_HOSTS` (`mcp-server/src/http.ts:119`:
-`['127.0.0.1', 'localhost', '[::1]']`), so the fail-closed guard's condition
-(`!LOOPBACK_HOSTS.includes(host) && !token`) is `false` regardless of the token — this test would
-pass identically even if the "outside loopback + token → starts" path were broken. Grepping every
-`startHttpServer(` call site in `http.test.ts` (27 call sites) confirms **no test anywhere** starts
-the server with a genuinely non-loopback host (e.g. `'0.0.0.0'` or an external name) *and* a token
-set — the only non-loopback call site is E5's refuse case. This mirrors the "eval claims coverage no
-test provides" failure mode this gate has caught before. It does not change this eval's own literal
-`expected` text ("có token thì server lên bình thường" — true, demonstrated on a loopback bind), and
-the guarded code itself is a single, directly-auditable boolean condition confirmed structurally by
-E7/E8 (`auth-invariants.ts` I4), so this is flagged as a coverage gap for the record rather than a
-failed eval — but AC-6's "ngoài loopback" half has no direct positive-path test today.
+`['127.0.0.1', 'localhost', '[::1]']`), so the fail-closed guard's condition never engaged
+regardless of the token — the test would have passed identically even if the "outside loopback +
+token → starts" path were broken. Commit `ce0b13e` fixed the test to bind `'0.0.0.0'`; see the
+Round 2 section above for the re-check and independent negative control.
 
 ## Baseline (A/B)
 
@@ -72,8 +123,8 @@ and was done, not recorded as `n-a`.
   worktree) exercised each AC in isolation rather than relying on the combined test's early abort:
   AC-1 old→200 (want 401, red), AC-2 old→200 (want 401, red), AC-3 old→200 (want 200, green), AC-4
   old→200 (want 200, green), AC-5 old→did not throw (want throw, red), AC-6 old→started (want
-  starts, green — consistent with the E6 gap above: this probe also only exercised the loopback
-  case).
+  starts, green — old code never blocks this configuration either, since it had no fail-closed
+  check to begin with; that is a property of the fix's safety, not of E6's Round-1 test bug).
 - Running `auth-invariants.ts` against old `http.ts`: 6 of 7 invariant checks fail (I2 finds 3
   bearer-comparison sites instead of 1 and no `rejectedByBearer`; I3 finds 0 guard call sites
   matching the new pattern instead of 4; I4 finds no fail-closed comparison) — red.
@@ -82,6 +133,8 @@ and was done, not recorded as `n-a`.
   changes no other route's behaviour.
 - `npm run test:mcp` is unaffected either way (green on both) — that suite never exercises bearer
   auth.
+- Not re-computed in Round 2: the Round-2 diff is test-only (`http.test.ts`), so the old `http.ts`
+  behaviour under baseline is unchanged from Round 1's measurement.
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -99,133 +152,140 @@ and was done, not recorded as `n-a`.
 ## Evidence
 
 - eval: E1
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    mcp-server/src/http.test.ts describe('auth: cửa /mcp và luật fail-closed (P0)') — 'gác /mcp bằng
-    CÙNG bearer với /render' — MAPPOSTER_TOKEN set, POST /mcp with no Authorization header →
-    expect(noAuth.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 54 passed (54).
+    Re-run at ce0b13e. mcp-server/src/http.test.ts describe('auth: cửa /mcp và luật fail-closed
+    (P0)') — 'gác /mcp bằng CÙNG bearer với /render' — MAPPOSTER_TOKEN set, POST /mcp with no
+    Authorization header → expect(noAuth.status).toBe(401) — confirmed passing. Test Files 1
+    passed (1); Tests 54 passed (54). Unaffected by this round's test-only diff (that diff only
+    touches the separate E6 case).
 
 - eval: E2
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same test as E1, second half — POST /mcp with `authorization: Bearer nope` →
-    expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 54 passed (54).
+    Re-run at ce0b13e. Same test as E1, second half — POST /mcp with `authorization: Bearer nope`
+    → expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 54 passed
+    (54).
 
 - eval: E3
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    'vẫn cho qua khi bearer đúng' — MAPPOSTER_TOKEN set, POST /mcp with `authorization: Bearer secret`
-    → expect(ok.status).toBe(200) — confirmed passing; the guard does not block a valid caller.
-    Non-discriminating vs baseline: old /mcp had no auth check at all, so a correct bearer also
-    returned 200 before this fix — this eval proves the fix didn't regress the happy path, not that
-    the fix exists.
+    Re-run at ce0b13e. 'vẫn cho qua khi bearer đúng' — MAPPOSTER_TOKEN set, POST /mcp with
+    `authorization: Bearer secret` → expect(ok.status).toBe(200) — confirmed passing. Non-
+    discriminating vs baseline: old /mcp had no auth check at all, so a correct bearer also
+    returned 200 before this fix.
 
 - eval: E4
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    'KHÔNG đòi bearer khi không đặt token' — no MAPPOSTER_TOKEN, default host (loopback), POST /mcp
-    with no Authorization header → expect(res.status).toBe(200) — confirmed passing; local dev on
-    loopback with no token configured still works. Non-discriminating vs baseline for the same reason
-    as E3 (old /mcp answered 200 unconditionally).
+    Re-run at ce0b13e. 'KHÔNG đòi bearer khi không đặt token' — no MAPPOSTER_TOKEN, default host
+    (loopback), POST /mcp with no Authorization header → expect(res.status).toBe(200) — confirmed
+    passing; local dev on loopback with no token configured still works.
 
 - eval: E5
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    'TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token' — startHttpServer(0, fakeDeps(),
-    '0.0.0.0', {allowedHosts:['example.com'],...}) with no token →
+    Re-run at ce0b13e. 'TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token' —
+    startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['example.com'],...}) with no token →
     await expect(...).rejects.toThrow(/MAPPOSTER_TOKEN/) — confirmed passing.
 
 - eval: E6
-  run_id: mcp-auth-r1-clip_http-20260807
+  run_id: mcp-auth-r2-clip_http-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    'cho phép bind ngoài loopback KHI đã có token' — MAPPOSTER_TOKEN set,
-    startHttpServer(0, fakeDeps(), '127.0.0.1', {allowedHosts:['127.0.0.1'],...}) →
-    expect(srv.url).toContain('/mcp') — confirmed passing AS WRITTEN. See "Additional finding" above:
-    the host argument used ('127.0.0.1') is itself a loopback host, so this test does not actually
-    exercise the "outside loopback" half of AC-6 despite its title — it is trivially green on both old
-    and new code because the fail-closed condition never engages for a loopback host either way.
+    FIXED this round (commit ce0b13e). 'cho phép bind ngoài loopback KHI đã có token' —
+    MAPPOSTER_TOKEN set, startHttpServer(0, fakeDeps(), '0.0.0.0', {allowedHosts:['127.0.0.1'],...})
+    → expect(srv.url).toContain('/mcp') — confirmed passing, and now genuinely exercises the
+    outside-loopback-with-token path ('0.0.0.0' is not in LOOPBACK_HOSTS). Independently verified
+    with a hand-edited negative control in a disposable worktree: tightening the boot guard to
+    `if (!LOOPBACK_HOSTS.includes(host))` (dropping the token check) makes this exact test fail
+    with "Refusing to start: MAPPOSTER_HTTP_HOST=0.0.0.0 ... MAPPOSTER_TOKEN is unset" — the test
+    now discriminates against an over-restrictive guard. Still green-on-baseline (see Analyst) for
+    an unrelated reason: old http.ts never blocked this configuration either, since it had no
+    fail-closed check of any kind.
 
 - eval: E7
-  run_id: mcp-auth-r1-auth_invariants-20260807
+  run_id: mcp-auth-r2-auth_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T02:49:55Z
+  verified_at: 2026-08-07T03:12:10Z
   output: |
-    I1 t3_path untouched vs ab66f49d. I2 exactly 1 bearer-comparison site + rejectedByBearer defined.
-    I3 4 call sites gate the guard (3 REST + /mcp fall-through) and the guard sits immediately before
-    createServer() on the /mcp branch. I4 the startup fail-closed check compares host against
-    LOOPBACK_HOSTS and MAPPOSTER_TOKEN, and the thrown message names both the env var and the fix.
-    auth-invariants: mọi bất biến còn giữ.
+    Re-run at ce0b13e (script inspects mcp-server/src/http.ts, which is unchanged this round —
+    only http.test.ts changed). I1 t3_path untouched vs ab66f49d. I2 exactly 1 bearer-comparison
+    site + rejectedByBearer defined. I3 4 call sites gate the guard (3 REST + /mcp fall-through)
+    and the guard sits immediately before createServer() on the /mcp branch. I4 the startup
+    fail-closed check compares host against LOOPBACK_HOSTS and MAPPOSTER_TOKEN, and the thrown
+    message names both the env var and the fix. auth-invariants: mọi bất biến còn giữ.
 
 - eval: E8
-  run_id: mcp-auth-r1-auth_invariants-20260807
+  run_id: mcp-auth-r2-auth_invariants-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.script.auth_invariants
-  verified_at: 2026-08-07T02:49:55Z
+  verified_at: 2026-08-07T03:12:10Z
   output: |
     Same run as E7 — I2/I3 (exactly one comparison, all 4 doors gated) are precisely the invariants
-    that keep README's "bearer áp cho cả /mcp" claim true; README.md (diff reviewed directly, see
-    below) was updated in this same commit range to state exactly that plus the fail-closed rule.
+    that keep README's "bearer áp cho cả /mcp" claim true.
 
 - eval: E9
-  run_id: mcp-auth-r1-api-20260807
+  run_id: mcp-auth-r2-api-20260807
   exit_code: 0
   baseline: red
   verifier: config:executors.test.api
-  verified_at: 2026-08-07T02:49:45Z
+  verified_at: 2026-08-07T03:13:47Z
   output: |
-    Full Vitest suite — Test Files 31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505).
-    Confirms merging three copied bearer checks into one shared helper changed no observable behaviour
-    on any of the three REST routes (/render, /render-clip, /jobs) — all their existing auth/non-auth
-    tests are still green.
+    Re-run at ce0b13e per explicit instruction (test file changed). Full Vitest suite — Test Files
+    31 passed | 3 skipped (34); Tests 498 passed | 7 skipped (505) — identical counts to Round 1.
+    Confirms the E6 test-only edit (and, transitively, the underlying refactor) changed no
+    observable behaviour on any of the three REST routes (/render, /render-clip, /jobs).
 
 - eval: E10
-  run_id: mcp-auth-r1-mcp-20260807
+  run_id: mcp-auth-r2-mcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T02:51:38Z
+  verified_at: 2026-08-07T03:13:57Z
   output: |
-    MCP_INTEGRATION=1 vitest run (renderFrame.test.ts, renderClip.test.ts, stdioChannel.test.ts) — real
-    vite build, real PNG and clip through headless Chromium. Test Files 3 passed (3); Tests 7 passed
-    (7). This suite runs over stdio, not the guarded /mcp HTTP transport, so it is a corroborating
-    regression check (nothing about the render pipeline broke) rather than a direct test of AC-3;
-    non-discriminating vs baseline as expected.
+    Re-run at ce0b13e. MCP_INTEGRATION=1 vitest run (renderFrame.test.ts, renderClip.test.ts,
+    stdioChannel.test.ts) — real vite build, real PNG and clip through headless Chromium. Test
+    Files 3 passed (3); Tests 7 passed (7). Re-confirmed this round (see "Re-scrutinized" above)
+    that none of these three files reference bearer/Authorization/startHttpServer — this is a
+    stdio-transport regression corroboration, not a direct AC-3 test.
 
 ## Analyst
 
 Non-discriminating (green on both baseline and HEAD) because the underlying behaviour predates this
 fix: E3, E4, E6, E10. E3/E4 prove the fix didn't regress the happy path rather than that the fix
-exists — the actual security fix is proven by E1, E2, E5, E7, E8, E9, which are all red on baseline.
-E6 is additionally flagged above as not testing the condition its own title claims (outside-loopback
-bind with a token) — it is green-on-both for two different reasons at once (old code had no
-fail-closed check to trigger, and the host used is loopback either way).
+exists. E6 is green-on-baseline for a distinct reason from Round 1's finding: old code never had a
+fail-closed check at all, so it never blocked the "non-loopback + token" configuration either —
+E6's discriminating power (after the Round-2 fix) is against a *regression toward over-restriction*
+(proven via the independent negative control above), not against the historical baseline. The
+actual security fix vs. the historical baseline is proven by E1, E2, E5, E7, E8, E9, which are all
+red on baseline.
 
 ## Variance
 
@@ -233,8 +293,16 @@ none — every command this round is a deterministic single run.
 
 ## Iterations
 
+Round 2: E6/AC-6 re-checked per the same per-clause standard after commit `ce0b13e` rebound the
+test to a genuine non-loopback host (`'0.0.0.0'`); clause now proven, confirmed independently via a
+hand-edited negative control in a disposable worktree (over-restrictive guard makes the test fail).
+Re-scrutinized E1-E5, E7-E10 with the same standard — no new gap found; E10's "MCP integration có
+gác" phrasing remains ambiguous (flagged for Gate 2, not treated as a failure). All 10 evals
+re-run fresh; `verified_commit` re-pinned to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`.
+
 Round 1: all 10 evals pass on first run against `fix/mcp-auth` HEAD (e5ce7199). No REJECT round
-preceded this one.
+preceded this one. E6 flagged as a coverage gap (test didn't exercise the clause its title
+claimed) without failing the eval outright, since its own literal `expected` text was still met.
 
 ## Gate 2 checklist (human)
 

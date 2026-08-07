@@ -7,11 +7,13 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: e5ce7199d007b5c57042dd78a29b1df57b9e7a15
+verified_commit: ce0b13e6de6504aa53d3bc0fe5545f209ec00381
 human_signoff: 
 ---
 
 # Evidence Report: map-motion-clip
+
+_Round 9 — re-pin only, triggered by `ce0b13e` (test-only commit on `fix/mcp-auth`, scoped entirely to `mcp-server/src/http.test.ts`: mcp-auth's own E6 fix, rebinding its 'bind outside loopback with a token' test from `'127.0.0.1'` — itself loopback, so the assertion never reached the code path it claimed to cover — to a genuine non-loopback host `'0.0.0.0'`). `git diff e5ce7199..ce0b13e6 --stat` touches only that one test file; no source file changed. Re-ran this contract's broad guards and any eval whose command executes `http.test.ts` (E7, E8, E9, E10, E13, E15); all matched the prior round exactly. Every other eval was NOT re-run — its own source/test files are untouched by this commit — and is re-pinned as-is. `verified_commit` updated to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`; `human_signoff` stays empty._
 
 _Round 8 — re-verification triggered by `fix/mcp-auth` landing on top of Round 7's `verified_commit` (`27e1be1a`). `git diff 27e1be1a..HEAD --stat` touches only `mcp-server/src/http.ts`, `mcp-server/src/http.test.ts`, `README.md`, and files under `_acceptance/**` — none of which are this contract's own primary source files. Contract `status` downgraded `signed-off` → `implemented` per the shared-file staleness guard; `human_signoff` cleared._
 
@@ -96,41 +98,37 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Same run — AC-5 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E7
-  run_id: map-motion-clip-r8-mcp-20260807
+  run_id: map-motion-clip-r9-mcp-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T02:51:38Z
+  verified_at: 2026-08-07T03:13:57Z
   output: |
-    Same run — AC-6 exercised via mcp. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 3 passed (3); Tests 7 passed (7); Duration 44.55s — assertions for AC-6 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 3 passed (3); Tests 7 passed (7); Duration 42.43s — unchanged from the prior round.
 - eval: E8
-  run_id: map-motion-clip-r8-clip_http-20260807
+  run_id: map-motion-clip-r9-clip_http-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same run — AC-7 exercised via clip_http. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 1 passed (1); Tests 54 passed (54) — assertions for AC-7 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
 - eval: E9
-  run_id: map-motion-clip-r8-clip_http-20260807
+  run_id: map-motion-clip-r9-clip_http-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same run — AC-10 exercised via clip_http. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 1 passed (1); Tests 54 passed (54) — assertions for AC-10 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
 - eval: E10
-  run_id: map-motion-clip-r8-clip_http-20260807
+  run_id: map-motion-clip-r9-clip_http-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same run — AC-8 exercised via clip_http. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 1 passed (1); Tests 54 passed (54) — assertions for AC-8 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
 - eval: E11
   run_id: map-motion-clip-r8-clip_tools-20260807
   exit_code: 0
@@ -150,14 +148,13 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Same run — AC-9 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 2 passed (2); Tests 19 passed (19) — present and passing.
 
 - eval: E13
-  run_id: map-motion-clip-r8-clip_http-20260807
+  run_id: map-motion-clip-r9-clip_http-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same run — AC-11 exercised via clip_http. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 1 passed (1); Tests 54 passed (54) — assertions for AC-11 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
 - eval: E14
   run_id: map-motion-clip-r8-clip_tools-20260807
   exit_code: 0
@@ -168,14 +165,13 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
     Same run — AC-11 assertions unaffected by this round's diff (`fix/mcp-auth` only touches mcp-server/src/http.ts's bearer-check plumbing and README.md; this contract's own source files are untouched). Test Files 1 passed (1); Tests 52 passed (52) — present and passing.
 
 - eval: E15
-  run_id: map-motion-clip-r8-clip_http-20260807
+  run_id: map-motion-clip-r9-clip_http-20260807-repin
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T02:46:57Z
+  verified_at: 2026-08-07T03:11:38Z
   output: |
-    Same run — AC-12 exercised via clip_http. mcp-server/src/http.ts changed only in this round's diff (three copied bearer checks merged into one `rejectedByBearer` helper, reused unchanged by /render, /render-clip, /jobs; a NEW guard call added on the previously-unguarded `/mcp` fall-through; a NEW startup-time fail-closed check added). The three REST routes' own auth behaviour is byte-identical before/after (same comparison, now factored). Test Files 1 passed (1); Tests 54 passed (54) — assertions for AC-12 present and passing.
-
+    Re-pin round 9 (`fix/mcp-auth` @ ce0b13e6): re-run because this eval's command touches mcp-server/src/http.ts / http.test.ts, which changed (test-only commit `ce0b13e`, mcp-auth's own E6 fix — binds the test host to '0.0.0.0' instead of '127.0.0.1' so it genuinely exercises the non-loopback-with-token startup path; no change to any REST route's own behaviour). Test Files 1 passed (1); Tests 54 passed (54) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — unchanged from the prior round.
 - eval: E16
   judged_by: judge-subagent (fresh context, blind)
   verdict: PASS
@@ -199,6 +195,8 @@ Baseline values are carried forward unchanged from the prior round per the re-ve
 none — every command this round is a deterministic single run.
 
 ## Iterations
+
+Round 9 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E7, E8, E9, E10, E13, E15 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 
 Round 8: all machine evals re-run fresh against `fix/mcp-auth`'s HEAD (e5ce7199); zero failures, no regressions from the http.ts bearer-check refactor.
 

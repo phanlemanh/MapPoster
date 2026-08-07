@@ -86,3 +86,5 @@
 {"ts": "2026-08-07T02:50:35Z", "round": 7, "evalId": "E16", "run_id": "routes-measurements-r7-routes_demo-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
 {"ts": "2026-08-07T02:49:45Z", "round": 7, "evalId": "E17", "run_id": "routes-measurements-r7-api-20260807", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T02:51:38Z", "round": 7, "evalId": "E18", "run_id": "routes-measurements-r7-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T03:13:47Z", "round": 8, "evalId": "E17", "run_id": "routes-measurements-r8-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T03:13:57Z", "round": 8, "evalId": "E18", "run_id": "routes-measurements-r8-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}

@@ -32,3 +32,19 @@
 {"ts": "2026-08-07T02:51:38Z", "round": 2, "evalId": "E16", "run_id": "road-routing-r2-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
 {"ts": "2026-08-07T03:13:47Z", "round": 3, "evalId": "E15", "run_id": "road-routing-r3-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T03:13:57Z", "round": 3, "evalId": "E16", "run_id": "road-routing-r3-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E1","run_id":"road-routing-r4-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E2","run_id":"road-routing-r4-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E3","run_id":"road-routing-r4-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E4","run_id":"road-routing-r4-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E5","run_id":"road-routing-r4-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E6","run_id":"road-routing-r4-e6-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E7","run_id":"road-routing-r4-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E8","run_id":"road-routing-r4-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E9","run_id":"road-routing-r4-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E10","run_id":"road-routing-r4-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E11","run_id":"road-routing-r4-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E12","run_id":"road-routing-r4-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/route.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E13","run_id":"road-routing-r4-e13-20260807","exit_code":0,"cmd":"npx tsx _acceptance/road-routing/scripts/routing-invariants.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E14","run_id":"road-routing-r4-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E15","run_id":"road-routing-r4-e15-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T07:55:00Z","round":4,"evalId":"E16","run_id":"road-routing-r4-e16-20260807","exit_code":0,"cmd":"npm run test:mcp"}

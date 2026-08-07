@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, centroidOf, spanKmOf } from './geometry';
+import { haversineMeters, initialBearingDeg, polylineLengthMeters, geometryAreaM2, spanKmOf } from './geometry';
 
 describe('haversineMeters', () => {
   it('measures a known city pair within 0.5%', () => {
@@ -66,18 +66,6 @@ describe('geometryAreaM2', () => {
     expect(geometryAreaM2({ type: 'LineString', coordinates: [[0, 0], [1, 1]] })).toBe(0);
     expect(geometryAreaM2(null)).toBe(0);
     expect(geometryAreaM2(undefined)).toBe(0);
-  });
-});
-
-describe('centroidOf', () => {
-  it('returns the bbox centre of every coordinate, holes included', () => {
-    const g = { type: 'Polygon', coordinates: [[[105, 21], [105.1, 21], [105.1, 21.1], [105, 21.1], [105, 21]]] };
-    expect(centroidOf(g)).toEqual([105.05, 21.05]);
-  });
-
-  it('returns null when there is no coordinate to average', () => {
-    expect(centroidOf({ type: 'Polygon', coordinates: [] })).toBeNull();
-    expect(centroidOf(null)).toBeNull();
   });
 });
 

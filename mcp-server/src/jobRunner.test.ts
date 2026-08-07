@@ -611,12 +611,18 @@ describe('createJobRunner — dọn tệp hết hạn (AC-12)', () => {
     let clock = 1000;
     const runner = createJobRunner({ store, deps: makeDeps(), workers: 1, now: () => clock });
 
-    // Tên có dấu đi xuyên tới TÊN TỆP — chỗ chuẩn hoá unicode hay cắn nhất.
+    // Địa danh CÓ DẤU đi xuyên tới TÊN TỆP — chỗ chuẩn hoá unicode hay cắn nhất.
     const job = store.create({ kind: 'render', params: { location: 'Đắk Lắk' }, nowMs: clock });
     runner.kick();
     await runner.drain();
     const written = store.get(job.id)!.artifacts[0].path;
     await expect(fsp.stat(written)).resolves.toBeDefined();
+    // `slugify` GỠ dấu, nên điều ca này thật sự chứng minh không phải "xoá được
+    // tệp tên có dấu" mà là "tên tệp sinh ra đã thành ASCII thuần" — nếu bỏ
+    // bước chuẩn hoá thì đường dẫn mang 'Đắk Lắk' nguyên vẹn và khẳng định này
+    // đỏ. Khai đúng thứ đo được, thay vì để mệnh đề trôi thành bất động.
+    expect(path.basename(written), 'tên tệp phải là ASCII thuần sau slugify').toMatch(/^[\x20-\x7e]+$/);
+    expect(path.basename(written)).not.toMatch(/[À-ɏḀ-ỿ]/);
 
     const foreign = path.join(sinkDir, 'mapposter-cua-cong-cu-khac.png');
     await fsp.writeFile(foreign, PNG_1x1);

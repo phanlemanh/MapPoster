@@ -142,7 +142,7 @@ evals:
     executor: test
     cmd: config:executors.test.job_runner
     layer: backend-effect
-    expected: "exit 0; trên THƯ MỤC TẠM THẬT: việc quá hạn thì THỢ xoá đúng tệp ghi trong bản ghi; một tệp lạ đặt sẵn trong cùng thư mục CÒN NGUYÊN sau khi dọn; ít nhất một ca có tên tệp sinh từ địa danh CÓ DẤU và tệp đó thực sự bị xoá được"
+    expected: "exit 0; trên THƯ MỤC TẠM THẬT: việc quá hạn thì THỢ xoá đúng tệp ghi trong bản ghi; một tệp lạ đặt sẵn trong cùng thư mục CÒN NGUYÊN sau khi dọn; ca 'Đắk Lắk' đi từ địa danh CÓ DẤU tới tên tệp — nhưng `slugify` GỠ dấu, nên thứ ca đó đo được KHÔNG phải 'xoá được tệp tên có dấu' (tên tệp là ASCII) mà là 'bước chuẩn hoá đã biến địa danh có dấu thành ASCII thuần': basename khớp /^[\\x20-\\x7e]+$/ và không chứa ký tự Latin mở rộng, rồi tệp ASCII đó bị xoá. Đo được: nới slugify thành /[^\\p{L}\\p{N}]+/gu (giữ chữ Unicode) ⇒ đường dẫn thành 'đak-lak' và lane ĐỎ"
     paths: ["mcp-server/src/jobRunner.ts", "mcp-server/src/jobRunner.test.ts", "mcp-server/src/jobStore.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
@@ -150,7 +150,7 @@ evals:
     criterion: AC-12
     executor: test
     cmd: config:executors.test.job_store
-    expected: "exit 0; sổ việc phát ra đúng danh sách bản ghi quá hạn rồi bỏ chúng khỏi sổ (tra lại trả không-tìm-thấy); và sổ việc KHÔNG import fs — không lời gọi hệ thống tệp nào trong đơn vị này"
+    expected: "exit 0; sổ việc phát ra đúng danh sách bản ghi quá hạn rồi bỏ chúng khỏi sổ (tra lại trả không-tìm-thấy); và sổ việc KHÔNG import module hệ thống tệp nào — phép kiểm RÚT MỌI specifier (from / import / require / import động) rồi lọc theo /^(node:)?fs(\\/|$)/, thay cho hai regex cũ đòi nháy đóng ngay sau `node:` khiến `node:fs/promises` lọt qua và lane vẫn 16/16 xanh. Kèm nửa should-FIRE cho chính bộ rút: trên mẫu bốn dạng viết nó phải trả đủ ['fs','fs/promises','node:fs','node:fs/promises'] và không dính 'zod' — không có nửa này thì 'danh sách rỗng' xanh cả khi bộ rút hỏng"
     paths: ["mcp-server/src/jobStore.ts", "mcp-server/src/jobStore.test.ts"]
     evidence_required: [run_id, exit_code, verifier, verified_at]
 

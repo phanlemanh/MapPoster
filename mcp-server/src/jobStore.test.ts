@@ -4,6 +4,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createJobStore, createJobStoreFromEnv, JobQueueFullError } from './jobStore';
 
+/**
+ * Mọi specifier module trong một tệp nguồn, bất kể dạng viết: `from '…'`,
+ * `import '…'`, `require('…')`, `await import('…')`.
+ */
+function moduleSpecifiers(src: string): string[] {
+  return [...src.matchAll(/(?:\bfrom|\bimport|\brequire)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+}
+
 /** Ids đếm tăng nên assert đọc được; production dùng crypto.randomUUID. */
 function seqIds() {
   let n = 0;
@@ -106,8 +114,34 @@ describe('createJobStore', () => {
     // địa chỉ tài liệu (http://localhost) chứ không theo `import.meta.url` —
     // phải ghép đường dẫn bằng `node:path` mới đọc đúng chính tệp nguồn.
     const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'jobStore.ts'), 'utf8');
-    expect(src).not.toMatch(/from ['"]node:fs['"]/);
-    expect(src).not.toMatch(/require\(['"]node:fs['"]\)/);
+
+    // Hai regex cũ đòi dấu nháy đóng NGAY SAU `node:fs`, nên chúng chỉ bắt đúng
+    // một chuỗi duy nhất: `import { appendFileSync } from 'node:fs/promises'`
+    // lọt qua và lane vẫn 16/16 xanh. Rút MỌI specifier rồi lọc, thay vì đoán
+    // trước hình dạng của chuỗi cần chặn — `fs`, `node:fs`, `fs/promises`,
+    // `node:fs/promises` đều là cùng một năng lực.
+    const fsLike = moduleSpecifiers(src).filter((s) => /^(node:)?fs(\/|$)/.test(s));
+    expect(fsLike, `sổ việc import module hệ thống tệp: ${fsLike.join(', ')}`).toEqual([]);
+  });
+
+  it('bộ rút specifier tự nó phân biệt được — nếu không, phép kiểm trên là no-op', () => {
+    // Phép kiểm trên là "danh sách rỗng", tức nó xanh cả khi bộ rút hỏng và
+    // không rút được gì. Nửa should-FIRE này bắt bộ rút phải thấy cả bốn dạng
+    // viết, gồm đúng dạng đã lọt qua regex cũ.
+    const sample = [
+      "import { readFileSync } from 'node:fs';",
+      'import { appendFileSync } from "node:fs/promises";',
+      "const fsp = require('fs/promises');",
+      "await import('fs');",
+      "import { z } from 'zod';", // không phải fs — không được dính
+    ].join('\n');
+
+    expect(moduleSpecifiers(sample).filter((s) => /^(node:)?fs(\/|$)/.test(s)).sort()).toEqual([
+      'fs',
+      'fs/promises',
+      'node:fs',
+      'node:fs/promises',
+    ]);
   });
 });
 

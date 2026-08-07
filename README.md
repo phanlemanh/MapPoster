@@ -297,6 +297,18 @@ over. Measured once, right after the settle still is captured; there is
 deliberately no way to ask for anchors at an arbitrary `t` (that would have to
 move the camera, and the tail frames reuse a snapshot taken at `restAtSec`).
 
+**`resolved.camera` is not `resolved.center`/`resolved.zoom`.** The top-level
+`center` and `zoom` echo what you *asked for*; `resolved.camera` is what the
+camera *measured* at `restAtSec`, and on a clip these are routinely different —
+they are the two ends of a motion. `pushIn` starts off-centre by 15% of the
+viewport's longitude span and wide of your zoom; `drift` rests at
+`zoom + zoomDelta`, so your requested `zoom` matches *neither* end. Position
+anything you overlay from `resolved.camera` and `anchors`, which are measured
+together in one read of the same frame. Reading `resolved.zoom` to reason about
+scale, or `resolved.center` to place a label, puts your text on the wrong frame
+— and since the pixels are text-free by design, nothing downstream will catch
+it for you.
+
 Positions are **percentages of the frame, not pixels**, for three reasons and
 the third is the real one: a DOM layer positions with CSS `%` anyway; the same
 anchors work for a 1080 and a 4k render; and the poster frame's two axes are

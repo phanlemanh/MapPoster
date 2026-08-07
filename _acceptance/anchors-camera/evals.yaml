@@ -1,0 +1,158 @@
+schema_version: 1
+feature_slug: anchors-camera
+
+# surfaces: [api] — không bề mặt web UI, không phán đoán nghiệp vụ. Không có
+# eval `judgment` lẫn `ui-check`; eval design bỏ theo §2b của skill.
+#
+# LƯU Ý ĐỘ PHỦ, đọc trước khi tin bất kỳ dòng `expected` nào dưới đây:
+#
+# `mcp-server/src/renderFrame.test.ts` chứa HAI khối. Khối cũ bị gate sau
+# `MCP_INTEGRATION=1` (`describe.skip` khi thiếu biến). Khối "trang giả" thêm ở
+# gói này KHÔNG bị gate và chạy trong `npm test` mặc định — đã kiểm bằng cách
+# chạy thẳng file không đặt biến: 3 pass, 3 skip. Các eval trỏ vào
+# `executors.test.render_frame` nói về khối KHÔNG gate đó.
+#
+# `executors.test.mcp` là bộ tích hợp gated (trình duyệt thật + build
+# production). Ở các hợp đồng khác cụm "MCP integration có gác" nói về việc BỘ
+# TEST được gác sau cờ opt-in, không phải nói nó kiểm thứ gì cụ thể.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.anchors
+    expected: "exit 0; pctOf chia x cho cssW và y cho cssH — HAI mẫu số; ca test dùng khung KHÔNG vuông nên một hệ số chung làm đỏ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-1
+    executor: script
+    cmd: config:executors.script.anchors_invariants
+    expected: "exit 0; I4 khẳng định anchors.ts KHÔNG chứa hệ số tỉ lệ chung, và MỌI ca test dùng khung không vuông"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.anchors
+    expected: "exit 0; điểm ngoài khung có onScreen=false NHƯNG xPct/yPct vẫn được trả (âm hoặc >100), không bị nuốt"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.anchors
+    expected: "exit 0; bboxPct bao đúng cực trị, centroidPct nằm trong bbox; vùng không toạ độ trả null chứ KHÔNG phải bbox rỗng ở gốc"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.anchors
+    expected: "exit 0; assertCameraAtRest NÉM khi camera lệch, thông điệp nêu CẢ giá trị đọc được LẪN giá trị kỳ vọng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.e2e
+    expected: "exit 0; trên MapLibre thật, anchors() sau một jumpTo lạ NỔ TO thay vì trả toạ độ sai lặng lẽ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-5
+    executor: script
+    cmd: config:executors.script.anchors_invariants
+    expected: "exit 0; I5 — thân anchors() không chứa jumpTo, không gán restBase/animBase/lastApplied*, không setData/setPaintProperty, không await"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E8
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.e2e
+    expected: "exit 0; SUPPRESSION — gọi anchors() xong, khung đuôi clip vẫn BYTE-IDENTICAL với khi không gọi (dataUrl bằng nhau)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E9
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.render_frame
+    expected: "exit 0; pitch != 0 ⇒ clip VẪN ra đủ khung + settle và anchors() KHÔNG hề được gọi (trang giả đếm lời gọi — integration không trả lời được câu này)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.e2e
+    expected: "exit 0; trên MapLibre thật getPitch()===45, hai khung ra PNG thật và KHÁC NHAU — clip nghiêng render thật, không chỉ 'không ném'; rồi anchors() mới từ chối"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E11
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; bộ tích hợp gated: clip pitch 45 ra đủ 24 khung có PNG magic + settle, anchors undefined, anchorsUnavailable khớp /pitch/i và /45/"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-7
+    executor: script
+    cmd: config:executors.script.anchors_invariants
+    expected: "exit 0; I3 GỌI THẬT resolvedOfClip với cả hai nhánh outcome và khẳng định XOR — regex không nói được 'cả hai' hay 'không gì cả'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E13
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; MCP render_clip — mọi lối ra (thành công, xuống cấp encode-lỗi, từ chối quá cỡ) mang ĐÚNG MỘT trong anchors/anchorsUnavailable"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E14
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; REST POST /render-clip — cả ba lối ra (200, degrade, 422) cùng bất biến XOR"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E15
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; async /jobs — cùng bất biến XOR; bộ này riêng vì jobRunner đã HAI LẦN dính lỗi dùng sai biến mà mọi test hành vi vẫn xanh"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E16
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; camera đi CÙNG anchors và vắng CÙNG anchors; fake dẫn xuất anchors từ cfg (zoom+1) nên 'echo cfg.camera' làm đỏ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E17
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; anchors.points[i].index khớp một-một với resolved.highlights.points[i]"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E18
+    criterion: AC-10
+    executor: script
+    cmd: config:executors.script.anchors_invariants
+    expected: "exit 0; I1 t3_paths 0 dòng; I2 KHÔNG tồn tại anchorsAt và MapPosterApi.anchors khai báo KHÔNG tham số"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E19
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.text_free
+    expected: "exit 0; SUPPRESSION — bộ test của hai t3_path vẫn xanh nguyên, xác nhận gói này không đụng chúng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E20
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; toàn bộ 527 unit test xanh — hồi quy tổng cho mọi bề mặt sau khi ClipFrames đổi kiểu"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

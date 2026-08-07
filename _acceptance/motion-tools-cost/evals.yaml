@@ -27,7 +27,7 @@ evals:
     criterion: AC-3
     executor: test
     cmd: config:executors.test.clip_tools
-    expected: "exit 0; nửa NHẬN — motion.script thô hợp lệ cho frames tính đúng và preset VẮNG MẶT (không bịa ra tên preset cho script tự viết); nửa TỪ CHỐI, đo ngay trên compile_motion chứ không mượn lane render_clip — ba script sai khuôn ở BA nhánh check khác nhau (fps ngoài dải Zod, restAtSec vi phạm bất biến R, camera rỗng) đều isError=true, KHÔNG kèm `script` trong phản hồi, câu lỗi là văn xuôi chứ không phải mảng issue Zod. Một hiện thực bỏ hẳn bước validate rồi echo lại input của caller làm lane này ĐỎ"
+    expected: "exit 0; nửa NHẬN — motion.script thô hợp lệ cho frames tính đúng và preset VẮNG MẶT (không bịa ra tên preset cho script tự viết); nửa TỪ CHỐI, đo ngay trên compile_motion chứ không mượn lane render_clip — BỐN script sai khuôn phủ BA nhánh check (đo bằng lỗi ném ra, không đoán theo tên ca): nhánh Zod `motionScriptSchema.parse` có HAI ca cùng ném ZodError (fps ngoài dải, camera rỗng — trước đây khai nhầm là hai nhánh); nhánh bất biến R viết tay (restAtSec > 0.72×durationSec, lỗi khớp /^R:/); nhánh bất biến O viết tay (keyframe cuối SAU restAtSec, lỗi khớp /^O:/ — ca duy nhất qua được cả Zod lẫn R nên là ca duy nhất chạm nhánh này). Cả bốn đều isError=true, KHÔNG kèm `script` trong phản hồi, câu lỗi là văn xuôi chứ không phải mảng issue Zod. Một hiện thực bỏ hẳn bước validate rồi echo lại input của caller làm lane này ĐỎ; gỡ riêng chốt O (motionScript.ts:116) cũng làm lane ĐỎ"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E4

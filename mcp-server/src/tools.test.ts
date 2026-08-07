@@ -664,15 +664,27 @@ describe('compile_motion (PR #3)', () => {
     // xi input vẫn xanh. Nửa còn thiếu là nửa TỪ CHỐI, và nó phải nằm ở chính
     // `compile_motion` — ca duy nhất chứng minh được validate hiện sống ở
     // `render_clip`, một tool khác, nên không chạm tới đường mã AC-3 nói tới.
+    // BA NHÁNH KIỂM, không phải ba ca cùng một nhánh. Đo bằng constructor của
+    // lỗi ném ra: `fps 999` và `camera rỗng` CÙNG chết ở `motionScriptSchema
+    // .parse` (cả hai ra ZodError) — chúng là hai ca của MỘT nhánh, nên hai ca
+    // đó một mình không chứng minh được các chốt viết tay phía sau còn sống.
+    // Hai ca dưới đây là hai nhánh viết tay KHÁC nhau, mỗi cái ném Error thường
+    // với tiền tố luật riêng (motionScript.ts:105 và :116).
     const bad: [string, Record<string, unknown>, RegExp][] = [
-      // fps 999 vi phạm motionScriptSchema (z.number().int().min(12).max(30)) —
-      // ném ZodError THÔ, phải được prettify thành câu đọc được.
-      ['fps ngoài dải', { fps: 999, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }], tracks: [] }, /fps/i],
-      // restAtSec > 0.72×durationSec vi phạm bất biến R — nhánh check KHÁC hẳn
-      // nhánh Zod ở trên, nên phải có ca riêng.
-      ['restAtSec quá muộn', { fps: 12, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 5.9, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /restAtSec/i],
-      // camera rỗng: không có keyframe nào thì không có gì để render.
-      ['camera rỗng', { fps: 12, durationSec: 6, restAtSec: 4, camera: [], tracks: [] }, /camera/i],
+      // Nhánh 1 — Zod: fps 999 vi phạm motionScriptSchema
+      // (z.number().int().min(12).max(30)), ném ZodError THÔ phải được
+      // prettify thành câu đọc được.
+      ['fps ngoài dải (Zod)', { fps: 999, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }], tracks: [] }, /fps/i],
+      // Nhánh 1, ca thứ hai — camera rỗng cũng là Zod (`z.array(keyframe).min(1)`),
+      // KHÔNG phải một nhánh riêng. Giữ vì nó khoá đúng bound `.min(1)`.
+      ['camera rỗng (cùng nhánh Zod)', { fps: 12, durationSec: 6, restAtSec: 4, camera: [], tracks: [] }, /camera/i],
+      // Nhánh 2 — bất biến R viết tay: restAtSec > 0.72×durationSec.
+      ['restAtSec quá muộn (bất biến R)', { fps: 12, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 5.9, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /^R:/],
+      // Nhánh 3 — bất biến O viết tay: keyframe cuối nằm SAU restAtSec, tức
+      // camera còn đang bay khi clip đáng lẽ đã đứng yên. Script này qua được
+      // Zod trót lọt VÀ qua được luật R, nên nó là ca duy nhất trong bộ chạm
+      // tới nhánh thứ ba.
+      ['keyframe cuối sau restAtSec (bất biến O)', { fps: 12, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 4.5, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /^O:/],
     ];
 
     for (const [label, script, msg] of bad) {

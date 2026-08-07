@@ -264,8 +264,11 @@ describe('auth: cửa /mcp và luật fail-closed (P0)', () => {
   });
 
   it('cho phép bind ngoài loopback KHI đã có token', async () => {
+    // Phải bind host NGOÀI loopback thật. Bản đầu của test này dùng '127.0.0.1'
+    // — chính là loopback — nên nó chưa bao giờ chạy qua nhánh đang cần chứng
+    // minh, dù vẫn xanh. Đúng kiểu eval khai một độ phủ không tồn tại.
     process.env.MAPPOSTER_TOKEN = 'secret';
-    srv = await startHttpServer(0, fakeDeps(), '127.0.0.1', { allowedHosts: ['127.0.0.1'], allowedOrigins: [] });
+    srv = await startHttpServer(0, fakeDeps(), '0.0.0.0', { allowedHosts: ['127.0.0.1'], allowedOrigins: [] });
     expect(srv.url).toContain('/mcp');
   });
 });

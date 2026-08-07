@@ -5,10 +5,10 @@ slug: async-job-queue
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: signed-off
+status: implemented
 approved_by: manh
 approved_at: 2026-08-05
-human_signoff: manh 2026-08-05
+human_signoff:
 time_human_minutes: {gate1: 10, gate2: 10}
 ---
 

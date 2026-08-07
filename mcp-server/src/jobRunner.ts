@@ -143,7 +143,7 @@ export function createJobRunner({
 
       let bytes: number;
       try {
-        await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+        await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath, quality: (job.params as { output?: { quality?: 'draft' | 'standard' | 'high' } }).output?.quality });
         ({ size: bytes } = await fs.stat(outPath));
       } catch (e) {
         // Giao ước xuống-cấp: khung đã chụp xong, ảnh tĩnh đã ghi — không bao

@@ -274,6 +274,25 @@ describe('discovery tools', () => {
   });
 });
 
+describe('list_fonts (PR #3)', () => {
+  it('exposes every font render_map accepts, with its typographic metadata', async () => {
+    const { fonts } = textJson(await tools().list_fonts());
+    expect(fonts).toHaveLength(6);
+    expect(fonts[0]).toMatchObject({ key: 'Space Grotesk' });
+    expect(typeof fonts[0].stack).toBe('string');
+    expect(typeof fonts[0].titleWeight).toBe('number');
+    expect(typeof fonts[0].uppercaseTitle).toBe('boolean');
+  });
+
+  it('lists ONLY names render_map actually accepts — a listed-but-rejected font is a trap', async () => {
+    const { fonts } = textJson(await tools().list_fonts());
+    for (const f of fonts) {
+      const res = await tools().render_map({ location: { lng: 105.85, lat: 21.02 }, font: f.key });
+      expect(res.isError).toBeFalsy();
+    }
+  });
+});
+
 describe('render_animation', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
 
@@ -373,6 +392,68 @@ describe('render_animation', () => {
     } finally {
       delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
     }
+  });
+});
+
+describe('compile_motion (PR #3)', () => {
+  // KHÔNG có renderClip/encodeAnimation trong deps: nếu tool đụng tới chúng,
+  // test sẽ nổ chứ không âm thầm đi đường render.
+  const dryTools = () => makeTools({ render, sinkDir, defaultDelivery: 'url' });
+
+  it('returns the compiled script without spending a single render', async () => {
+    render.mockClear();
+    const j = textJson(await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+
+    expect(j.script.camera.length).toBeGreaterThan(1);
+    expect(j.fps).toBe(j.script.fps);
+    expect(j.durationSec).toBe(j.script.durationSec);
+    expect(j.frames).toBe(Math.round(j.script.durationSec * j.script.fps));
+    expect(j.preset).toBe('pushIn');
+    expect(j.resolved.center).toBeDefined();
+    // Toàn bộ lý do tool này tồn tại:
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  it('accepts a raw script, not just a preset', async () => {
+    const script = {
+      // restAtSec phải <= 0.72×durationSec (invariant R) — 2.8 <= 2.88
+      fps: 12, durationSec: 4, restAtSec: 2.8,
+      camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 2.8, center: [105.85, 21.02], zoom: 14, ease: 'easeOut' }],
+      tracks: [],
+    };
+    const j = textJson(await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } }));
+    expect(j.script.fps).toBe(12);
+    expect(j.frames).toBe(48);
+    expect(j.preset).toBeUndefined();
+  });
+
+  it('reports a preset that cannot compile as an error, not an empty script', async () => {
+    const res = await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02 },
+      motion: { preset: 'approach' }, // approach cần highlight.regions
+    });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/approach needs highlight\.regions/);
+  });
+
+  it('forces chrome clean so the preview cannot disagree with what render_clip renders', async () => {
+    const j = textJson(await dryTools().compile_motion({
+      location: { lng: 105.85, lat: 21.02 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      chrome: 'poster',
+      motion: { preset: 'pushIn' },
+    }));
+    expect(j.resolved.chrome).toBe('clean');
+  });
+
+  it('refuses a missing motion param with the same message render_clip uses', async () => {
+    const res = await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 } } as never);
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/motion is required/);
   });
 });
 
@@ -560,6 +641,55 @@ describe('render_clip', () => {
     // prettifyError must turn that into readable prose instead.
     expect(error.startsWith('[')).toBe(false);
     expect(error).not.toContain('"code":"invalid_type"');
+  });
+});
+
+describe('cost metadata (PR #3)', () => {
+  // Fake riêng: trả đúng số khung mà script yêu cầu, như renderer thật. Fake dùng
+  // chung ở describe render_clip cố định 2 khung, nên không kiểm được hợp đồng
+  // "cost.frames là số khung THẬT SỰ đã render".
+  const FRAMES = 7;
+  const costRenderClip = vi.fn(async (cfg: RenderConfig) => ({
+    frames: Array.from({ length: FRAMES }, () => fakePng(cfg.size.width, cfg.size.height)),
+    settle: fakePng(cfg.size.width, cfg.size.height),
+  }));
+  const costEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
+    await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
+    return opts.outPath;
+  });
+  const costTools = () => makeTools({ render, renderClip: costRenderClip, encodeAnimation: costEncode, sinkDir, defaultDelivery: 'both' });
+
+  it('reports what the call actually cost, in names that carry their unit', async () => {
+    const j = textJson(await costTools().render_clip({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+
+    expect(j.cost.frames).toBe(FRAMES); // số khung renderer TRẢ VỀ, không phải số script khai
+    expect(typeof j.cost.renderMs).toBe('number');
+    expect(typeof j.cost.encodeMs).toBe('number');
+    expect(j.cost.renderMs).toBeGreaterThanOrEqual(0);
+    expect(j.cost.bytes).toBe(j.clip.bytes);
+    // Tên phải mang đơn vị — 'time'/'size' là thứ phía tiêu thụ đoán sai đơn vị.
+    expect(j.cost).not.toHaveProperty('time');
+    expect(j.cost).not.toHaveProperty('size');
+  });
+
+  it('still reports cost on the encode-failure degrade path, where it matters most', async () => {
+    const crashingEncode = vi.fn(async () => { throw new Error('ffmpeg exploded'); });
+    const t = makeTools({ render, renderClip: costRenderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' });
+    const j = textJson(await t.render_clip({
+      location: { lng: 105.85, lat: 21.02, zoom: 14 },
+      highlight: { points: [{ lng: 105.85, lat: 21.02 }] },
+      motion: { preset: 'pushIn' },
+    }));
+    expect(j.clipError).toBeDefined();
+    expect(typeof j.cost.renderMs).toBe('number');   // render ĐÃ xảy ra, đã tốn tiền
+    expect(j.cost.bytes).toBe(0);                     // encode thì không
+    // Nửa should-NOT-fire: không được có khối `clip` khai thành công khi
+    // không có file nào ra đời — cost có mặt KHÔNG được kéo theo clip có mặt.
+    expect(j.clip).toBeUndefined();
   });
 });
 

@@ -1,0 +1,156 @@
+schema_version: 1
+feature_slug: motion-tools-cost
+
+# surfaces: [api] — không bề mặt web UI, không phán đoán nghiệp vụ. Vì vậy không
+# có eval `judgment` lẫn `ui-check`, và eval design bỏ theo §2b của skill.
+#
+# Nửa suppression (quy tắc b) được gọi tên rõ trong `expected`, để người đọc file
+# này phân biệt được eval should-fire với eval should-NOT-fire.
+
+evals:
+  # --- AC-1..AC-5 — compile_motion -----------------------------------------
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; compile_motion trả script/fps/durationSec/restAtSec/frames/preset/resolved; frames = round(durationSec × fps)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; SHOULD-NOT-RENDER — deps KHÔNG có renderClip/encodeAnimation mà tool vẫn chạy trót lọt, và render fake assert .not.toHaveBeenCalled()"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; motion.script thô được validate, frames tính đúng, và preset VẮNG MẶT (không bịa ra tên preset cho script tự viết)"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; SHOULD-NOT-RETURN-EMPTY — preset approach thiếu region báo lỗi nêu đúng nguyên nhân; thiếu hẳn motion báo /motion is required/; cả hai isError=true chứ không phải script rỗng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; gọi với chrome:'poster' vẫn cho resolved.chrome = 'clean' — bản xem trước không nói khác thứ render_clip render"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-6..AC-9 — camera.focus -------------------------------------------
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; focus kind region/point/route theo index cho center đúng đối tượng ĐÓ, không phải hợp nhất mọi đối tượng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; paddingPct 150 cho zoom NHỎ HƠN paddingPct 0 — núm có tác dụng đo được, không thể là no-op mà vẫn xanh"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E8
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; SHOULD-NOT-PICK-A-WINNER — focus kèm zoom, và focus kèm center, đều bị TỪ CHỐI kèm /camera.focus/"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E9
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; index 9 trên 2 region bị từ chối kèm 'index out of range (2 region'; index 0 khi KHÔNG có route nào bị từ chối kèm '(0 route'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-10 — list_fonts ---------------------------------------------------
+  - id: E10
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; 6 phông kèm stack/titleWeight/uppercaseTitle; và MỌI key liệt kê được render_map chấp nhận — vòng lặp gọi render_map cho từng key, không key nào isError"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-11..AC-13 — encoder quality --------------------------------------
+  - id: E11
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.encode_animation
+    expected: "exit 0; SHOULD-NOT-CHANGE — bỏ trống quality cho crf '20' đúng giá trị cũ, và encodeArgs(quality:'standard') BẰNG HỆT encodeArgs không khai"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E12
+    criterion: AC-12
+    executor: test
+    cmd: config:executors.test.encode_animation
+    expected: "exit 0; draft/standard/high -> crf 28/20/16, và preset veryfast/slow xuất hiện đúng nhánh"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E13
+    criterion: AC-13
+    executor: test
+    cmd: config:executors.test.encode_animation
+    expected: "exit 0; SHOULD-NOT-APPLY — nhánh GIF với quality:'high' cho args BẰNG HỆT không khai, và args GIF không chứa '-crf'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-14, AC-15 — cost --------------------------------------------------
+  - id: E14
+    criterion: AC-14
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; cost.frames = số khung renderer THẬT SỰ trả về (fake riêng trả 7, không phải số script khai); renderMs/encodeMs là number; bytes khớp clip.bytes; không có khoá 'time' lẫn 'size'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E15
+    criterion: AC-15
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; nhánh degrade encode-lỗi VẪN mang cost với renderMs là number; và SHOULD-NOT-EMIT — bytes = 0 và khối `clip` VẮNG MẶT, cost có mặt không được kéo theo một khối clip khai thành công khi không file nào ra đời"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # --- AC-16 — bất biến toàn kho --------------------------------------------
+  - id: E16
+    criterion: AC-16
+    executor: script
+    cmd: config:executors.script.motion_tools_invariants
+    expected: "exit 0; I1 t3_path không đổi dòng nào vs merge-base; I2 compile_motion không tham chiếu acquireClipSlot/deps.renderClip/deps.render/encodeAnimation VÀ có tái dùng prepareClipRenderWithSlot; I3 cả ba bề mặt encode mang quality; I4 không tên chi phí trần"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # --- Hàng rào hồi quy ------------------------------------------------------
+  - id: E17
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.job_runner
+    expected: "exit 0; đường async /jobs còn nguyên hành vi sau khi nối quality vào lời gọi encode của nó"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E18
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; REST /render-clip còn nguyên hành vi sau khi nâng encodeQuality ra khỏi try resolve — đây là nhánh mà lỗi block-scope từng biến thành degrade im lặng"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E19
+    criterion: AC-16
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; toàn bộ Vitest xanh — năm núm mới không phá hành vi nào đang có"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E20
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; MCP integration có gác — vite build thật, PNG và clip thật qua Chromium headless"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

@@ -5,8 +5,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
-import { prepareClipRender, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
+import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
+import type { EncodeOpts } from './encodeAnimation';
+import { FONTS } from '../../src/data/fonts';
 import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -20,7 +22,9 @@ export interface ToolDeps {
   /** Injected clip primitive (real = renderClipFrames bound to the pool). */
   renderClip?: (config: RenderConfig) => Promise<ClipFrames>;
   /** Injected encoder (real = encodeAnimation / ffmpeg). */
-  encodeAnimation?: (frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => Promise<string>;
+  // Dùng thẳng EncodeOpts thay vì chép lại hình dạng: bản chép sẽ lặng lẽ nuốt
+  // mọi field mới của encoder (đúng cách `quality` suýt không tới nơi).
+  encodeAnimation?: (frames: Buffer[], opts: EncodeOpts) => Promise<string>;
   sinkDir: string;
   defaultDelivery?: DeliveryMode;
 }
@@ -68,6 +72,9 @@ export const resolvedOf = (cfg: RenderConfig) => {
     zoom: cfg.camera.zoom,
     place: cfg.place,
     theme: cfg.theme,
+    // Đường clip ÉP chrome 'clean'; echo nó ra để caller thấy giá trị thật sự
+    // được dùng thay vì giá trị họ gửi.
+    chrome: cfg.chrome,
     highlights: summarizeHighlights(cfg),
     // Chỉ đính kèm khi có dữ liệu: một lời gọi không dùng routes/measure không
     // nên phải trả tiền context cho hai mảng rỗng ở mọi response.
@@ -142,6 +149,7 @@ export function makeTools(deps: ToolDeps) {
           const outPath = await deps.encodeAnimation(pngs, {
             fps,
             format: f,
+            quality: params.output?.quality,
             outPath: `${deps.sinkDir}/${name}.${f}`,
             // full-size 256-color GIFs are enormous; default to half-width unless told otherwise
             gifWidth: f === 'gif' ? (anim.gifWidth ?? Math.min(540, cfg.size.width)) : undefined,
@@ -193,7 +201,12 @@ export function makeTools(deps: ToolDeps) {
         }
         const { cfg, motion, preset, releaseClipSlot } = prep;
         try {
+          // Số đo chi phí: đặt tên mang đơn vị (renderMs/encodeMs/bytes). Một
+          // trường `time` hay `size` là thứ phía tiêu thụ đoán sai đơn vị rồi
+          // hiển thị sai — cùng lớp lỗi với `km` trần ở PR #2.
+          const tRender = Date.now();
           const { frames, settle: settlePng } = await deps.renderClip(cfg);
+          const renderMs = Date.now() - tRender;
 
           // The clip is written to a FILE under sinkDir and never inlined as
           // base64 — a multi-megabyte MP4 would bloat the JSON-RPC stdio
@@ -203,11 +216,17 @@ export function makeTools(deps: ToolDeps) {
           const outPath = path.join(deps.sinkDir, `${name}.mp4`);
           const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
+          const costOf = (encodeMs: number, bytes: number) => ({ frames: frames.length, renderMs, encodeMs, bytes });
+
           let bytes: number;
+          const tEncode = Date.now();
+          let encodeMs = 0;
           try {
-            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+            await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath, quality: params.output?.quality });
             ({ size: bytes } = await fs.stat(outPath));
+            encodeMs = Date.now() - tEncode;
           } catch (e) {
+            encodeMs = Date.now() - tEncode;
             // Same degrade as REST /render-clip (spec §5): frames were already
             // captured, so an encoder failure (missing ffmpeg, corrupt frame)
             // must never throw away the settle still that already rendered
@@ -223,6 +242,9 @@ export function makeTools(deps: ToolDeps) {
               settle,
               motion: motionOut,
               resolved: resolvedOf(cfg),
+              // Khung ĐÃ render — tiền đã tiêu. Nhánh degrade là chỗ caller cần
+              // con số này nhất để quyết định thử lại hay hạ quality.
+              cost: costOf(encodeMs, 0),
               clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
             });
           }
@@ -255,6 +277,7 @@ export function makeTools(deps: ToolDeps) {
 
           return ok({
             clip: { path: outPath, bytes, durationSec: motion.durationSec, fps: motion.fps, width: cfg.size.width, height: cfg.size.height },
+            cost: costOf(encodeMs, bytes),
             settle,
             motion: motionOut,
             resolved: resolvedOf(cfg),
@@ -279,6 +302,41 @@ export function makeTools(deps: ToolDeps) {
       } catch (e) {
         return fail((e as Error).message ?? String(e));
       }
+    },
+
+    /**
+     * Biên dịch kịch bản chuyển động rồi TRẢ VỀ NGAY — không render khung nào.
+     *
+     * Vòng lặp preset→xem→chỉnh trước đây buộc agent trả tiền một clip đầy đủ
+     * (hàng phút) chỉ để biết preset sinh ra gì. Tool này trả lời cùng câu hỏi
+     * trong mili-giây.
+     *
+     * Dùng lại `prepareClipRenderWithSlot` với callback release RỖNG thay vì
+     * chép lại nhánh parse→resolve→validate: chép là cách hai bề mặt trôi khỏi
+     * nhau, đúng lý do `resolveMotion` từng được trích ra. Không lấy slot vì
+     * không có gì để gác — cổng concurrency bảo vệ vòng đời render+encode, mà
+     * ở đây cả hai đều không xảy ra.
+     */
+    async compile_motion(params: RenderMapParams & { motion?: unknown }): Promise<ToolResult> {
+      try {
+        const prep = await prepareClipRenderWithSlot(params, params.motion, () => {});
+        const frames = Math.round(prep.motion.durationSec * prep.motion.fps);
+        return ok({
+          ...(prep.preset ? { preset: prep.preset } : {}),
+          script: prep.motion,
+          fps: prep.motion.fps,
+          durationSec: prep.motion.durationSec,
+          restAtSec: prep.motion.restAtSec,
+          frames,
+          resolved: resolvedOf(prep.cfg),
+        });
+      } catch (e) {
+        return fail((e as Error).message);
+      }
+    },
+
+    async list_fonts(): Promise<ToolResult> {
+      return ok({ fonts: FONTS });
     },
 
     async list_themes(): Promise<ToolResult> {
@@ -340,6 +398,16 @@ const cameraSchema = z
     // be a regression, not a fix.
     bearing: z.number().finite().optional(),
     pitch: z.number().min(0).max(60).optional(),
+    // Chỉ camera vào MỘT đối tượng thay vì auto-frame hợp nhất. Loại trừ với
+    // center/zoom — resolveConfig ném khi có cả hai, không tự chọn bên thắng.
+    focus: z
+      .object({
+        kind: z.enum(['point', 'region', 'route']),
+        index: z.number().int().min(0),
+        paddingPct: z.number().min(0).max(200).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
@@ -385,6 +453,8 @@ const renderMapShape = {
   detail: z.number().min(0).max(1).optional(),
   font: fontSchema.optional(),
   routes: z.array(routeSchema).optional(),
+  // mp4-only; GIF bỏ qua crf nên núm này vô nghĩa ở nhánh đó (đã nêu trong mô tả tool).
+  output: z.object({ quality: z.enum(['draft', 'standard', 'high']).optional() }).strict().optional(),
   measure: measureSchema,
   delivery: deliverySchema,
 };
@@ -445,6 +515,16 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     (a: RenderMapParams & { motion: z.infer<typeof motionParamSchema>; delivery?: DeliveryMode }) => t.render_clip(a),
   );
   s.registerTool('geocode_place', { description: 'Resolve a place name / address to candidate coordinates (VN free-form ranking is unreliable — pick from the list).', inputSchema: { query: z.string().min(1), limit: z.number().int().positive().max(10).optional() } }, (a: { query: string; limit?: number }) => t.geocode_place(a));
+  s.registerTool(
+    'compile_motion',
+    {
+      description:
+        'Compile a motion preset or raw script into the MotionScript render_clip would use, and return it WITHOUT rendering anything. Costs no frames and no clip slot — use it to inspect and tweak motion before paying for a clip.',
+      inputSchema: { ...renderMapShape, motion: motionParamSchema },
+    },
+    (a: RenderMapParams & { motion?: unknown }) => t.compile_motion(a),
+  );
+  s.registerTool('list_fonts', { description: 'List the typefaces render_map accepts, with each one\'s CSS stack and title weight/tracking.', inputSchema: {} }, () => t.list_fonts());
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());
 }

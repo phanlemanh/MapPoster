@@ -22,3 +22,27 @@
 {"ts":"2026-08-06T16:26:35Z","round":2,"evalId":"E17","run_id":"routes-measurements-E17-20260806r2","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T16:34:13Z","round":3,"evalId":"E17","run_id":"routes-measurements-E17-20260806r3","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-06T16:35:29Z","round":3,"evalId":"E18","run_id":"routes-measurements-E18-20260806r3","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E1","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E19","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:55:39Z","round":4,"evalId":"E2","run_id":"routes-measurements-E2-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E3","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E4","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E5","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:58:56Z","round":4,"evalId":"E6","run_id":"routes-measurements-E6-20260807r4","exit_code":0,"cmd":"npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E7","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E8","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E9","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E10","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E11","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:59:00Z","round":4,"evalId":"E12","run_id":"routes-measurements-E12-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts":"2026-08-06T23:56:00Z","round":4,"evalId":"E13","run_id":"routes-measurements-E1-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-06T23:55:39Z","round":4,"evalId":"E14","run_id":"routes-measurements-E2-20260807r4","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-06T23:59:35Z","round":4,"evalId":"E15","run_id":"routes-measurements-E15-20260807r4","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-06T23:59:35Z","round":4,"evalId":"E20","run_id":"routes-measurements-E15-20260807r4","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-06T23:59:45Z","round":4,"evalId":"E16","run_id":"routes-measurements-E16-20260807r4","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts":"2026-08-06T23:56:58Z","round":4,"evalId":"E17","run_id":"routes-measurements-E17-20260807r4","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-06T23:58:47Z","round":4,"evalId":"E18","run_id":"routes-measurements-E18-20260807r4","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T00:24:45Z","round":5,"evalId":"E15","run_id":"routes-measurements-repin-E15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T00:24:45Z","round":5,"evalId":"E20","run_id":"routes-measurements-repin-E15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T00:22:55Z","round":5,"evalId":"E17","run_id":"routes-measurements-repin-npmtest-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T00:23:59Z","round":5,"evalId":"E18","run_id":"routes-measurements-repin-testmcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

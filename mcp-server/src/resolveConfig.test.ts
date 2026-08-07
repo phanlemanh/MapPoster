@@ -490,6 +490,61 @@ describe('routes', () => {
   });
 });
 
+describe('camera.focus', () => {
+  const boxFc = (w: number, s2: number, e: number, n: number) => ({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[w, s2], [e, s2], [e, n], [w, n], [w, s2]]] } }],
+  });
+  const two = {
+    location: { lng: 105.85, lat: 21.02 },
+    highlight: {
+      points: [{ lng: 105.0, lat: 21.0 }, { lng: 106.0, lat: 22.0 }],
+      regions: [{ geojson: boxFc(105.0, 21.0, 105.2, 21.2) }, { geojson: boxFc(106.0, 22.0, 106.4, 22.4) }],
+    },
+  };
+
+  it('frames the region at the given index, not the union of every region', async () => {
+    const cfg = await resolveConfig({ ...two, camera: { focus: { kind: 'region', index: 1 } } } as never);
+    expect(cfg.camera.center[0]).toBeCloseTo(106.2, 2);
+    expect(cfg.camera.center[1]).toBeCloseTo(22.2, 2);
+  });
+
+  it('frames the point at the given index', async () => {
+    const cfg = await resolveConfig({ ...two, camera: { focus: { kind: 'point', index: 1 } } } as never);
+    expect(cfg.camera.center).toEqual([106.0, 22.0]);
+  });
+
+  it('frames the route at the given index', async () => {
+    const cfg = await resolveConfig({
+      location: { lng: 105.85, lat: 21.02 },
+      routes: [{ coords: [[100.0, 10.0], [100.2, 10.2]] }, { coords: [[108.0, 15.0], [108.4, 15.4]] }],
+      camera: { focus: { kind: 'route', index: 1 } },
+    } as never);
+    expect(cfg.camera.center[0]).toBeCloseTo(108.2, 2);
+    expect(cfg.camera.center[1]).toBeCloseTo(15.2, 2);
+  });
+
+  it('zooms OUT as paddingPct grows — the knob does something measurable', async () => {
+    const tight = await resolveConfig({ ...two, camera: { focus: { kind: 'region', index: 0, paddingPct: 0 } } } as never);
+    const loose = await resolveConfig({ ...two, camera: { focus: { kind: 'region', index: 0, paddingPct: 150 } } } as never);
+    expect(loose.camera.zoom).toBeLessThan(tight.camera.zoom);
+  });
+
+  it('refuses focus together with an explicit center or zoom rather than picking a winner', async () => {
+    await expect(resolveConfig({ ...two, camera: { focus: { kind: 'point', index: 0 }, zoom: 12 } } as never))
+      .rejects.toThrow(/camera\.focus/);
+    await expect(resolveConfig({ ...two, camera: { focus: { kind: 'point', index: 0 }, center: [1, 2] } } as never))
+      .rejects.toThrow(/camera\.focus/);
+  });
+
+  it('refuses an index with nothing at it, naming how many exist', async () => {
+    await expect(resolveConfig({ ...two, camera: { focus: { kind: 'region', index: 9 } } } as never))
+      .rejects.toThrow(/index out of range \(2 region/);
+    await expect(resolveConfig({ location: { lng: 105.85, lat: 21.02 }, camera: { focus: { kind: 'route', index: 0 } } } as never))
+      .rejects.toThrow(/index out of range \(0 route/);
+  });
+});
+
 describe('measure', () => {
   it('measures point pairs as straight-line distance plus a bearing', async () => {
     const cfg = await resolveConfig({

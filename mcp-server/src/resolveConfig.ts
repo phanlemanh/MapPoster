@@ -35,7 +35,10 @@ export interface RenderMapParams {
   format?: FormatInput;
   theme?: string;
   chrome?: Chrome;
-  camera?: Partial<RenderCamera>;
+  camera?: Partial<RenderCamera> & {
+    /** Frame one specific object instead of the default union auto-frame. */
+    focus?: { kind: 'point' | 'region' | 'route'; index: number; paddingPct?: number };
+  };
   /** Override the poster label. Geocoder naming is a heuristic — let the caller win. */
   placeName?: string;
   /** Show names along major roads (motorway/trunk/primary/secondary). Off by default: poster first. */
@@ -43,6 +46,8 @@ export interface RenderMapParams {
   routes?: RouteInput[];
   /** Geometry questions answered from the resolved config — no extra network. */
   measure?: { pairs?: [number, number][] };
+  /** Encoder knobs. mp4-only — GIF ignores crf. */
+  output?: { quality?: 'draft' | 'standard' | 'high' };
   /** Per-layer visibility. Mutually exclusive with `labels` for roadLabels. */
   layers?: Partial<LayerState>;
   /** 0..1 map detail (road-width ramp; minor roads appear strictly above 0.12). */
@@ -121,6 +126,12 @@ function normalizeBearing(b: number): number {
 /** 60, không phải 85: maxPitch mặc định của MapLibre là 60 — nhận 85 rồi để engine clamp là nhận-rồi-vứt. */
 function assertPitch(p: number): number {
   if (!Number.isFinite(p) || p < 0 || p > 60) throw new Error(`Invalid pitch: ${p} (must be between 0 and 60)`);
+  return p;
+}
+
+/** 0..200%: 0 ôm sát bbox, 100 nới gấp đôi span. Trên 200 thì zoom clamp nuốt mất. */
+function assertPaddingPct(p: number): number {
+  if (!Number.isFinite(p) || p < 0 || p > 200) throw new Error(`Invalid camera.focus.paddingPct: ${p} (must be between 0 and 200)`);
   return p;
 }
 
@@ -459,6 +470,9 @@ function zoomFromSpan(span: number): number {
   return Math.min(15, Math.max(3, Math.round((Math.log2(360 / span) + 0.2) * 10) / 10));
 }
 
+/** Nới nhẹ để đối tượng không dính sát mép khung. */
+const DEFAULT_FOCUS_PADDING_PCT = 12;
+
 const STREET_ZOOM = 16; // within the 14–17 street band
 
 /** Turn tool params into a fully-resolved RenderConfig (geocode + auto-frame). */
@@ -602,9 +616,39 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   }
 
   const cam = params.camera ?? {};
+  const focus = cam.focus;
+  if (focus && (cam.center || cam.zoom != null)) {
+    // Từ chối thay vì chọn bên thắng: hai cách chỉ định khung mà im lặng ưu tiên
+    // một bên là đúng lớp lỗi agent không thể phát hiện (nó không thấy ảnh).
+    throw new Error('Invalid camera.focus: mutually exclusive with camera.center / camera.zoom — pass one or the other');
+  }
+
   let center = cam.center ?? base.center;
   let zoom = cam.zoom ?? base.zoom;
-  if (cam.zoom == null) {
+
+  if (focus) {
+    const pad = focus.paddingPct != null ? assertPaddingPct(focus.paddingPct) : DEFAULT_FOCUS_PADDING_PCT;
+    const pool = focus.kind === 'region' ? regions.map((r) => r.geojson)
+               : focus.kind === 'route' ? routes.map((r) => r.geojson)
+               : null;
+    if (focus.kind === 'point') {
+      if (!Number.isInteger(focus.index) || focus.index < 0 || focus.index >= markers.length) {
+        throw new Error(`Invalid camera.focus: index out of range (${markers.length} point(s) available)`);
+      }
+      center = [markers[focus.index].lng, markers[focus.index].lat];
+      zoom = STREET_ZOOM;
+    } else {
+      const list = pool as GeoJSONFeatureCollection[];
+      if (!Number.isInteger(focus.index) || focus.index < 0 || focus.index >= list.length) {
+        throw new Error(`Invalid camera.focus: index out of range (${list.length} ${focus.kind}(s) available)`);
+      }
+      const bbox = bboxOfGeojsons([list[focus.index]]);
+      if (!bbox) throw new Error(`Invalid camera.focus: ${focus.kind}[${focus.index}] has no coordinates to frame`);
+      center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
+      const span = Math.max(Math.abs(bbox[3] - bbox[1]), Math.abs(bbox[2] - bbox[0]));
+      zoom = zoomFromSpan(span * (1 + pad / 100));
+    }
+  } else if (cam.zoom == null) {
     // Chỉ có tuyến mà không có vùng/điểm thì vẫn phải ôm được tuyến — nếu không
     // một lời gọi route-only sẽ khung vào tâm thành phố và tuyến nằm ngoài mép.
     const framed = regions.length ? regions.map((r) => r.geojson) : routes.length ? routes.map((r) => r.geojson) : null;

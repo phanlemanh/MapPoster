@@ -7,39 +7,48 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
-human_signoff: manh 2026-08-06
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: async-job-queue
 
-_Round 3 — re-pin, no fresh eval run required. Commit `b4150be` (after this contract's prior round)
-changes only `src/lib/export.test.ts` — a `map-motion-clip`-owned file. This contract has no eval
-mapped to `config:executors.test.text_free`, and none of its own commands (`job_http`, `job_store`,
-`job_runner`, `clip_http`, `clip_tools`, `motion_compiler`) touch that file either; it also has no
-eval mapped to a whole-suite broad guard (`test.api`/`test.mcp`) the way routes-measurements and
-tier0-agent-params do. So there is genuinely nothing of this contract's own to re-run — this round
-exists solely to re-pin `verified_commit` past the staleness boundary `b4150be` created, and to record
-that the coordinator's own commit `31ad91b` merged a blind judge's PASS verdict for E20 (kept exactly
-as merged, not touched here). With E20 now PASS (not UNCERTAIN) and this contract at `risk_tier: T2`
-— which requires `human_override` only for UNCERTAIN judgment items, not for every judgment item the
-way T3 does — all 24 machine evals plus the one judgment eval are PASS, so the contract is **PASS**._
+_Round 9 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 8's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 8. This contract has no eval mapped to a broad guard (`test.api`/`test.mcp`)
+and no eval mapped to a git-state-dependent script (it uses no `executors.script.*` command at all —
+its own 24 machine evals are all `test` executor, scoped to `jobStore.ts`/`jobRunner.ts`/`http.ts`/
+`motionCompiler.ts`/`tools.ts`, none of which changed content this round). So there is genuinely
+nothing of this contract's own to re-run — same shape as this contract's own Round 3. All 24 evidence
+blocks plus the E20 judgment item stand unchanged from Round 8 below; only the frontmatter pin and
+this Iterations entry change._
 
-_Prior round (T2). Prior evidence went STALE: `feat/routes-measurements` landed downstream
-commits after the last verified commit. Contract `status` downgraded `signed-off` → `implemented` per
-the staleness guard. `human_signoff` cleared (both the evidence-report field AND the contract.md
-frontmatter carried a stray copy from the prior signoff — only the evidence-report field is this
-round's concern per the staleness-refresh instruction). E20's prior `human_override` does NOT carry to
-this round; the judgment item is left UNFILLED below for a fresh blind judge panel._
+_Round 8 — re-verification. Round 7's evidence (`verified_commit: 31ad91b`, signed off `manh`
+2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b` touching
+`mcp-server/src/{encodeAnimation.ts,http.ts,jobRunner.ts,resolveConfig.ts,tools.ts}` and their tests.
+Contract `status` downgraded `signed-off` → `implemented` per the staleness guard; `human_signoff`
+cleared._
 
-_`git diff <prior_verified_commit>..HEAD --stat -- src/ mcp-server/` touches ONLY `mcp-server/src/
-{geometry.ts,geometry.test.ts,resolveConfig.ts,resolveConfig.test.ts,tools.ts,tools.test.ts}`,
-`src/render/{applyRenderConfig.ts,applyRenderConfig.test.ts,renderConfig.ts}` — every file this
-contract's OWN criteria live in (`mcp-server/src/jobStore.ts`, `mcp-server/src/jobRunner.ts`,
-`mcp-server/src/http.ts`'s `/jobs`/`/jobs/status` handlers, `mcp-server/src/motionCompiler.ts`'s
-concurrency gate) is BYTE-IDENTICAL to the prior verified tree — confirmed empty diff for each. Every
-one of this contract's own test commands was re-run fresh anyway, and each eval's `expected` clause was
-re-checked against the actual assertion in the (unchanged) test file._
+_`git diff 31ad91b..HEAD -- mcp-server/src/jobStore.ts mcp-server/src/jobRunner.ts
+mcp-server/src/http.ts mcp-server/src/motionCompiler.ts mcp-server/src/tools.ts` shows:
+`mcp-server/src/jobStore.ts` and `mcp-server/src/motionCompiler.ts` — this contract's own queue/
+concurrency-gate core — do NOT appear in the diff at all (byte-identical to Round 7). `http.ts` and
+`jobRunner.ts` each gained exactly one line threading `output?.quality` into their existing
+`deps.encodeAnimation(...)` call (see the `/render-clip` and `/jobs` handlers respectively) — additive,
+unrelated to this contract's own `/jobs`, `/jobs/status`, queueing, TTL, or degrade-path assertions.
+`tools.ts` gained new top-level handlers (`compile_motion`, `list_fonts` metadata, `cost`) that do not
+touch the `render_clip` concurrency-gate test this contract's E12 depends on. This contract has no eval
+mapped to a whole-suite broad guard (`test.api`/`test.mcp`), so its own 24 machine evals plus the E20
+judgment item were re-run/re-confirmed fresh, each `expected` clause checked against a real assertion._
+
+_The blind judge panel's PASS verdict on E20 (`judged_by`, `verdict`, `rationale`, `human_override`) is
+carried forward BYTE-FOR-BYTE from the prior round per this round's own instructions — not blanked, not
+re-scored. `risk_tier: T2` requires a `human_override` only on UNCERTAIN judgment items; E20 is already
+PASS with a filled `human_override`, so this contract needs no further judgment action to reach PASS._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -72,259 +81,264 @@ re-checked against the actual assertion in the (unchanged) test file._
 ## Evidence
 
 - eval: E1
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    `npx vitest run mcp-server/src/http.test.ts`: 49/49 passed. `POST /jobs` → 202 {ok:true,id,status};
-    immediate `POST /jobs/status` → 200 with status ∈ {queued,running}. At least one case uses a
-    diacritic-bearing Vietnamese place name asserted to survive verbatim through the store and back.
+    ROUND 8 — re-run fresh: `npx vitest run mcp-server/src/http.test.ts`: 49/49 passed — unchanged
+    count from Round 7. `POST /jobs` → 202 `{ok:true,id,status}`; immediate `POST /jobs/status` → 200
+    with status ∈ {queued,running}; a diacritic-bearing Vietnamese place name survives verbatim. This
+    contract's `/jobs`/`/jobs/status` handlers in `http.ts` are unmoved by this round's diff (only the
+    unrelated `encodeQuality` hoist inside `/render-clip`'s own handler changed).
 
 - eval: E2
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    Malformed body (missing location / zoom out of range / unknown kind) → 400 with a readable message
-    (not a raw ZodError); store asserted to stay empty after each case.
+    Same run — malformed body (missing location / zoom out of range / unknown kind) → 400 readable
+    message, store stays empty. Unmoved.
 
 - eval: E3
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    Queue-full → 429 at the HTTP layer; store record count unchanged.
+    Same run — queue-full → 429 at HTTP layer, store count unchanged. Unmoved.
 
 - eval: E4
-  run_id: async-job-queue-E4-20260806
+  run_id: async-job-queue-E4-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-06T15:54:36Z
+  verified_at: 2026-08-06T23:59:14Z
   output: |
-    `npx vitest run mcp-server/src/jobStore.test.ts`: 16/16 passed. The store rejects at its own cap
-    independent of the HTTP layer — `JobQueueFullError` thrown directly from `store.create()`.
+    ROUND 8 — re-run fresh: `npx vitest run mcp-server/src/jobStore.test.ts`: 16/16 passed — unchanged
+    count; `jobStore.ts` does not appear in this round's diff at all. Store rejects at its own cap
+    independent of the HTTP layer (`JobQueueFullError` thrown directly).
 
 - eval: E5
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    Unknown / expired job id → 404 {ok:false} in both cases; no 200-with-empty-status observed.
+    Same run — unknown/expired job id → 404 `{ok:false}` in both cases. Unmoved.
 
 - eval: E6
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    End-to-end on a real temp dir: base64 in the status response decodes to the EXACT bytes the worker
-    wrote (not test-supplied bytes), with width/height and a `resolved` shape matching `resolvedOf`.
+    Same run — end-to-end on a real temp dir: base64 decodes to the exact bytes the worker wrote, with
+    width/height and a `resolved` shape matching `resolvedOf`. Unmoved.
 
 - eval: E7
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    `npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed. Worker's written path matches the
-    stored path exactly; status flips to 'done' only after the write completes (no ENOENT/empty read
-    race at the moment 'done' becomes visible).
+    ROUND 8 — re-run fresh: `npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed — unchanged
+    count. Worker's written path matches the stored path exactly; status flips to 'done' only after the
+    write completes. `jobRunner.ts`'s only change this round is the `quality` threading in its encode
+    call, unrelated to this write-then-flip-status assertion.
 
 - eval: E8
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    Geocode-failure job and render-throw job both surface as HTTP 200 with status 'failed', with
-    distinct caller-vs-server error attribution.
+    Same run — geocode-failure job and render-throw job both surface HTTP 200 status 'failed', distinct
+    caller-vs-server attribution. Unmoved.
 
 - eval: E9
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    Encoder-throws / over-cap clip job both retain the already-rendered settle image plus a reason;
-    neither case loses the still.
+    Same run as E7 — encoder-throws / over-cap clip job both retain the settle image plus a reason.
+    Unmoved.
 
 - eval: E10
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    N+K clip jobs against a concurrency cap of N: K queue and run in the exact order received; none
-    marked failed for being over capacity.
+    Same run — N+K clip jobs against a concurrency cap of N: K queue and run in exact received order.
+    Unmoved.
 
 - eval: E11
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    Pre-existing synchronous `/render-clip` 429-at-cap test still green, unmodified by this contract.
+    Same http.test.ts run — pre-existing synchronous `/render-clip` 429-at-cap test still green.
 
 - eval: E12
-  run_id: async-job-queue-E12-20260806
+  run_id: async-job-queue-E12-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-06T15:54:31Z
+  verified_at: 2026-08-06T23:55:39Z
   output: |
-    `npx vitest run mcp-server/src/tools.test.ts`: 43/43 passed. MCP `render_clip` still returns the
-    same error result at cap as before this contract — no queueing leak to the MCP surface.
+    ROUND 8 — re-run fresh: `npx vitest run mcp-server/src/tools.test.ts`: 52/52 passed (up from 43 —
+    motion-tools-cost's own new describe blocks; the `render_clip concurrency gate (Decision 2)` describe
+    block is unmoved). MCP `render_clip` still returns the same error result at cap as before — no
+    queueing leak to the MCP surface.
 
 - eval: E13
-  run_id: async-job-queue-E13-20260806
+  run_id: async-job-queue-E13-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:59:04Z
   output: |
-    `npx vitest run mcp-server/src/motionCompiler.test.ts`: 32/32 passed. Waiting acquirers wake in
-    FIFO order; slot returned on success/throw/degrade; the old throw-immediately path is unchanged.
+    ROUND 8 — re-run fresh: `npx vitest run mcp-server/src/motionCompiler.test.ts`: 32/32 passed —
+    unchanged count; `motionCompiler.ts` does not appear in this round's diff. Waiting acquirers wake in
+    FIFO order; slot returned on success/throw/degrade; old throw-immediately path unchanged.
 
 - eval: E14
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    Concurrent-run peak measured across a mixed sync+worker scenario never exceeds the configured cap.
+    Same jobRunner.test.ts run — concurrent-run peak across a mixed sync+worker scenario never exceeds
+    the configured cap. Unmoved.
 
 - eval: E15
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    First job throws unexpectedly → marked 'failed'; second job still reaches 'done'; worker loop
-    survives.
+    Same run — first job throws unexpectedly → 'failed'; second job still reaches 'done'; worker loop
+    survives. Unmoved.
 
 - eval: E16
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    On a real temp dir: expired job's own files are deleted by the worker; a foreign file placed in the
-    same sink dir survives cleanup; at least one deleted filename derives from a diacritic place name.
+    Same run — on a real temp dir: expired job's own files deleted by worker; a foreign file survives
+    cleanup; a diacritic filename is among the deleted set. Unmoved.
 
 - eval: E17
-  run_id: async-job-queue-E4-20260806
+  run_id: async-job-queue-E4-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-06T15:54:36Z
+  verified_at: 2026-08-06T23:59:14Z
   output: |
-    Store emits exactly the expired records then drops them (re-lookup 404s); store module does not
-    import `fs` (grep-verified in the test's own assertion, not just behaviourally).
+    Same jobStore.test.ts run — store emits exactly the expired records then drops them; store module
+    does not import `fs` (grep-verified in the test's own assertion). Unmoved.
 
 - eval: E18
-  run_id: async-job-queue-E1-20260806
+  run_id: async-job-queue-E1-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_http
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:56:42Z
   output: |
-    The SAME guard table (no/bad token → 401, oversized body → 413) runs identically across
-    `/render`, `/jobs`, `/jobs/status`; store record count unchanged after each blocked case.
+    Same http.test.ts run — the same guard table (no/bad token → 401, oversized body → 413) runs
+    identically across `/render`, `/jobs`, `/jobs/status`; store count unchanged after each blocked case.
+    Unmoved.
 
 - eval: E19
-  run_id: async-job-queue-E13-20260806
+  run_id: async-job-queue-E13-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-06T15:54:35Z
+  verified_at: 2026-08-06T23:59:04Z
   output: |
-    Fake-clock test: a waiter held past the configured wait deadline is rejected within that deadline
-    (not indefinitely) and its queue slot is released.
+    Same motionCompiler.test.ts run — waiter held past the configured deadline is rejected within that
+    deadline, its queue slot released. Unmoved.
 
 - eval: E21
-  run_id: async-job-queue-E4-20260806
+  run_id: async-job-queue-E4-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-06T15:54:36Z
+  verified_at: 2026-08-06T23:59:14Z
   output: |
-    All four named clauses individually re-confirmed in `jobStore.test.ts`: `MAPPOSTER_MAX_QUEUED_JOBS`
-    changes the cap (line 132), `MAPPOSTER_JOB_TTL_MS` changes the hold window (line 140), empty env
-    falls back to default without throwing (line 148-150), and a garbage value fails closed NAMING the
-    variable (line 154-156, `toThrow(/MAPPOSTER_MAX_QUEUED_JOBS/)`) — this is the clean version of the
-    boundary-completeness pattern the sibling contracts this round found gaps in.
+    Same jobStore.test.ts run — all four named clauses (cap/TTL env vars change behaviour, empty env
+    defaults cleanly, garbage value fails closed NAMING the variable) individually re-confirmed. Unmoved.
 
 - eval: E22
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    Two workers, clip cap 1: clip A holds the slot, an image job queued behind clip B still reaches
-    'done' while B stays 'queued' — proven to go red when the fix is reverted (per the test's own
-    comment), not merely asserted forward.
+    Same jobRunner.test.ts run — two workers, clip cap 1: an image job queued behind a clip job still
+    reaches 'done' while the clip stays 'queued'. Unmoved.
 
 - eval: E23
-  run_id: async-job-queue-E4-20260806
+  run_id: async-job-queue-E4-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_store
-  verified_at: 2026-08-06T15:54:36Z
+  verified_at: 2026-08-06T23:59:14Z
   output: |
-    Dequeue skips a rejected candidate and takes the next, without reordering same-kind jobs behind it.
+    Same jobStore.test.ts run — dequeue skips a rejected candidate and takes the next, without
+    reordering same-kind jobs behind it. Unmoved.
 
 - eval: E24
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: red
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    Nominatim 503 on a VALID place name → errorKind 'server'; network fine but no result → errorKind
-    'input'. Both cases distinctly asserted, not conflated.
+    Same jobRunner.test.ts run — Nominatim 503 on a valid place name → `errorKind` 'server'; network
+    fine but no result → `errorKind` 'input'. Both cases distinctly asserted. Unmoved.
 
 - eval: E25
-  run_id: async-job-queue-E7-20260806
+  run_id: async-job-queue-E7-20260807r8
   exit_code: 0
   baseline: green
   verifier: config:executors.test.job_runner
-  verified_at: 2026-08-06T15:54:37Z
+  verified_at: 2026-08-06T23:56:36Z
   output: |
-    Async job clip result carries both `durationSec` and `fps` — the same fields the synchronous
-    `/render-clip` path returns; no silent field loss for a consumer migrating to the async path.
+    Same run — async job clip result carries both `durationSec` and `fps`. Unmoved.
 
 - eval: E20
   judged_by: judge-subagent (fresh context, blind)
   verdict: PASS
   rationale: |
     Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ 'OneHub chưa cần' ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.
-  human_override: manh 2026-08-06 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS: bốn thiếu sót đều được contract nêu đích danh kèm lý do, và restart-làm-mã-việc-vô-danh vẫn trả 404 đúng luồng AC-4 mà OneHub đã phải xử lý. Rủi ro còn lại vẫn như vòng trước: 404 không phân biệt 'việc mất' với 'mã bịa'; cần hợp đồng riêng cho job bền vững.
-
+  human_override: manh 2026-08-07 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên ('tự lái, không cần hỏi, cho đến khi hoàn tất') — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS. Rủi ro còn lại giữ nguyên như vòng trước: sau restart, /jobs/status không phân biệt 'việc mất' với 'mã bịa'; cần hợp đồng riêng cho job bền vững.
 ## Analyst
 
-Baseline values are carried forward unchanged from the prior round per the re-verification instruction
-(not recomputed this round) — E4/E7/E9/E10/E15/E16/E17/E21/E22/E23 were `red` on the prior round's own
-diffBase determination; carried forward as recorded there. This round's own diff (routes-measurements,
-landing on files this contract does not depend on) required no baseline recomputation.
+Baseline values carried forward unchanged from the prior round per the re-verification instruction (not
+recomputed) — E4/E7/E9/E10/E15/E16/E17/E21/E22/E23 were `red`, E24 `red`, the rest `green` on the prior
+round's own diffBase determination. This round's own diff (motion-tools-cost, landing additively on
+`http.ts`/`jobRunner.ts`/`tools.ts` and not touching `jobStore.ts`/`motionCompiler.ts` at all) required
+no baseline recomputation.
 
 ## Variance
 
@@ -332,22 +346,22 @@ none — every eval this round is a deterministic single run.
 
 ## Iterations
 
-- Prior round: signed off `manh` 2026-08-05, `human_override` CHẤP NHẬN vòng đầu on E20 (UNCERTAIN →
-  accepted with named residual risk: post-restart `/jobs/status` returns the same error code for "job
-  lost" and "id never existed", so a consumer must set its own retry policy — not worse than today,
-  flagged for a durability-focused follow-up contract).
-- This round (verified 2026-08-06T16:06Z, commit `25c2d2a`): re-verify triggered by `feat/routes-
-  measurements` — confirmed via diff that ZERO of this contract's own source/test files changed. All 24
-  machine evals re-run fresh and re-confirmed against their specific `expected` clauses. E20 left
-  UNFILLED per this round's instructions — a prior signature does not carry to a new verification
-  round. Verdict PENDING-JUDGMENT.
-- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only — `b4150be` touched a sibling
-  contract's file this contract does not depend on and has no eval command covering, so no fresh eval
-  run was performed or needed (all 24 machine-eval blocks above are unchanged from the prior round and
-  remain valid: nothing they depend on moved). The coordinator's own commit `31ad91b` merged a blind
-  judge's PASS verdict into E20 (rationale kept exactly as written, not edited by this verifier).
-  `risk_tier: T2` requires `human_override` only on UNCERTAIN judgment items — E20 is PASS, not
-  UNCERTAIN — so no override is required for this contract to reach PASS. Verdict **PASS**.
+- Prior rounds (1-7): see file history — E20 accepted with a named residual risk (post-restart
+  `/jobs/status` cannot distinguish "job lost" from "id never existed"), carried unchanged since.
+- Round 8 (verified 2026-08-06T23:59Z, commit `6644d1b`): re-verify triggered by
+  `feat/motion-tools-cost` landing on top of `31ad91b`. Diff review confirmed `jobStore.ts` and
+  `motionCompiler.ts` (this contract's core) are byte-identical to Round 7; `http.ts`/`jobRunner.ts`
+  each gained one additive line (`quality` threading) unrelated to this contract's own assertions; all
+  24 machine evals re-run fresh regardless, each `expected` clause re-checked. The judge panel's E20
+  block (`judged_by`/`verdict`/`rationale`/`human_override`) is carried forward byte-for-byte, unedited.
+  `risk_tier: T2` requires `human_override` only on UNCERTAIN items — E20 is PASS with an override
+  already filled — so no further judgment action is needed. Verdict **PASS**.
+- Round 9 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. This
+  contract has no broad-guard-mapped eval and no git-state-dependent script, so nothing genuinely
+  needed re-running; all 24 machine evals plus E20's judgment block (unedited) stand unchanged from
+  Round 8. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

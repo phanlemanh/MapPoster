@@ -9,6 +9,7 @@ import { createServer } from './server';
 import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
+import type { EncodeQuality } from './encodeAnimation';
 import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -295,9 +296,14 @@ export async function startHttpServer(
         // falls through to the generic 400 branch below, same as any other
         // resolve-phase failure.
         let prep: ClipPreparation;
+        // Nâng ra ngoài try: `params` là block-scope của try dưới, còn pha encode
+        // nằm ở try KHÁC — đọc nó ở đó là ReferenceError, và vì cả khối encode
+        // nằm trong catch-degrade nên lỗi đó biến thành 'clip hỏng' im lặng.
+        let encodeQuality: EncodeQuality | undefined;
         try {
           const body = (await readJsonBody(req, maxBodyBytes)) as Record<string, unknown> | undefined;
           const params = renderMapSchema.parse(body);
+          encodeQuality = params.output?.quality;
           prep = await prepareClipRender(params, body?.motion);
         } catch (e) {
           if (e instanceof PayloadTooLargeError) {
@@ -341,7 +347,7 @@ export async function startHttpServer(
             try {
               let mp4: Buffer;
               try {
-                await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath });
+                await deps.encodeAnimation(frames, { fps: motion.fps, format: 'mp4', outPath, quality: encodeQuality });
                 mp4 = await fs.readFile(outPath);
               } finally {
                 // Cleanup must run on EVERY path — clean success, an encoder crash

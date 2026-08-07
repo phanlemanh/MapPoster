@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeArgs, ffmpegBin, checkFfmpegAvailable } from './encodeAnimation';
+import { encodeArgs, ffmpegBin, checkFfmpegAvailable, type EncodeOpts } from './encodeAnimation';
 
 describe('encodeArgs', () => {
   it('GIF: scales, palettegen/paletteuse in one graph, loops forever', () => {
@@ -48,5 +48,34 @@ describe('checkFfmpegAvailable (startup probe, Finding A)', () => {
     // Stand in for ffmpeg with the current Node binary — this test must not
     // depend on ffmpeg actually being installed on the machine running it.
     await expect(checkFfmpegAvailable(process.execPath, ['--version'])).resolves.toBe(true);
+  });
+});
+
+describe('encodeArgs quality (PR #3)', () => {
+  const base = { fps: 18, format: 'mp4' as const, outPath: '/tmp/x.mp4' };
+  const crfOf = (o: Partial<EncodeOpts>) => {
+    const a = encodeArgs('f%04d.png', { ...base, ...o });
+    return a[a.indexOf('-crf') + 1];
+  };
+
+  it('defaults to exactly the crf the encoder used before this knob existed', () => {
+    // Nếu mặc định lệch khỏi 20 thì mọi clip đang chạy đổi dung lượng lẫn chất
+    // lượng mà không ai yêu cầu — đó là đổi hành vi, không phải thêm tuỳ chọn.
+    expect(crfOf({})).toBe('20');
+    expect(encodeArgs('f%04d.png', { ...base, quality: 'standard' })).toEqual(encodeArgs('f%04d.png', base));
+  });
+
+  it('maps each quality to a distinct crf and encoder preset', () => {
+    expect(crfOf({ quality: 'draft' })).toBe('28');
+    expect(crfOf({ quality: 'standard' })).toBe('20');
+    expect(crfOf({ quality: 'high' })).toBe('16');
+    expect(encodeArgs('f%04d.png', { ...base, quality: 'draft' })).toContain('veryfast');
+    expect(encodeArgs('f%04d.png', { ...base, quality: 'high' })).toContain('slow');
+  });
+
+  it('leaves GIF args untouched — crf has no meaning on that branch', () => {
+    const gif = { fps: 12, format: 'gif' as const, outPath: '/tmp/x.gif' };
+    expect(encodeArgs('f%04d.png', { ...gif, quality: 'high' })).toEqual(encodeArgs('f%04d.png', gif));
+    expect(encodeArgs('f%04d.png', { ...gif, quality: 'draft' })).not.toContain('-crf');
   });
 });

@@ -7,47 +7,42 @@ reason:
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 31ad91b373380a81db80f1abc7e63043a1930433
-human_signoff: manh 2026-08-06
+verified_commit: 46935e80b8a01330fb6af9a8444d9af93807a48a
+human_signoff: manh 2026-08-07
 ---
 
 # Evidence Report: tier0-agent-params
 
-_Round 4 — re-pin only, not a re-audit. Commit `b4150be` (after this contract's Round 3 verify)
-changes `src/lib/export.test.ts` only — a `map-motion-clip`-owned file this contract does not depend
-on (its own criteria live in `mcp-server/**`, never touching `src/lib/export.ts`). That commit made
-every already-verified `verified_commit` older than HEAD, which the pre-merge staleness check blocks
-regardless of relevance, so this round re-runs this contract's broad guards (`npm test`, `npm run
-test:mcp`) fresh and re-pins. No new gaps expected or found — see Iterations below._
+_Round 6 — re-pin after a rebase onto merged `main`, not a re-audit. PR #2 (`feat/routes-measurements`)
+merged to `main`; the branch was rebased onto the new `main` tip (`ecd4a37`), rewriting every commit
+SHA including Round 5's `verified_commit` (`6644d1b`) — no longer an ancestor of this branch (still
+present as a dangling local object, which is why a local staleness check would misleadingly pass; a
+fresh CI clone would not resolve it at all). `git diff 6644d1b HEAD` confirms **zero** non-gate files
+changed — only `_acceptance/**` differs; every source/test file this contract depends on is
+byte-identical to Round 5. Re-ran fresh: `npm test` (475/482, unchanged), `npm run test:mcp` (7/7,
+unchanged), and `tier0-invariants.ts` (all I1-I3 clauses still `ok`; I1's own output line now
+legitimately reads `vs ecd4a377` instead of the stale `999c13c8`, since the script computes `git
+merge-base origin/main HEAD` itself). E1-E17 are re-pinned unchanged below: their commands don't read
+git state and their target files are confirmed byte-identical, so Round 5's evidence blocks stand
+without re-execution._
 
-_Round 3 — re-verification of Round 2's three REJECTs. Commit `06e4ae1` adds a new describe block to
-`resolveConfig.test.ts`, "boundary halves the evals claimed but no test proved (verify round 1
-finding)" — the commit message references "verify round 1" because it addresses the FIRST verify round
-that found gaps in this contract (this report's own numbering runs one higher because Round 1 here was
-the original implementation verify, before any staleness re-run). It closes all three: `detail` 0/1
-ACCEPTED (added inline to the existing out-of-range test), marker `size` 18/140 ACCEPTED plus `size: 0`
-REFUSED, and the marker style fallback chain's terminal `'pin'`/`'#ffffff'`/`44`. This round re-ran the
-shared command fresh, confirmed each new assertion exists and passes, and independently negative-
-controlled one of them (the `size: 0` guard) rather than trusting the commit message alone. All 20
-machine evals now pass; this contract has no judgment evals, so per the routing rule it is **PASS**.
-Round 2's REJECT is kept below in Iterations, not erased._
+_Round 5 — re-verification. Round 4's evidence (`verified_commit: 31ad91b`, signed off `manh`
+2026-08-06) went STALE: `feat/motion-tools-cost` landed six commits on top of `31ad91b` touching
+`mcp-server/src/{encodeAnimation.ts,http.ts,jobRunner.ts,resolveConfig.ts,tools.ts}` and their test
+files — all of which this contract's own AC-1..AC-8/AC-11/AC-12/AC-13 assertions live in directly.
+Contract `status` downgraded `signed-off` → `implemented` per the staleness guard; `human_signoff`
+cleared._
 
-_Round 2 — re-verification. Round 1's evidence (verified_commit `f7feeda`, signed off `manh`
-2026-08-06) went STALE: `feat/routes-measurements` landed downstream commits touching
-`mcp-server/src/resolveConfig.ts` (+179/-lines) and `mcp-server/src/tools.ts` (+46/-lines) after that
-commit — both files this contract's own AC-1..AC-8/AC-11 assertions live in directly. Contract `status`
-downgraded `signed-off` → `implemented` per the staleness guard before this report was written.
-`human_signoff` is cleared — the Round-1 signature does not carry to this round._
-
-_A structural diff review (`git diff f7feeda..HEAD -- mcp-server/src/resolveConfig.ts
-mcp-server/src/tools.ts`) confirms the routes-measurements diff is additive-only against this
-contract's own logic (one renamed-but-equivalent helper, `bboxOfRegions`→`bboxOfGeojsons`; zero
-existing test lines removed in `resolveConfig.test.ts` or `tools.test.ts` — confirmed via
-`git diff ... | grep '^-'`). All 20 of this contract's machine evals were re-run fresh regardless. That
-re-run is what surfaced this round's REJECT: **while re-confirming each eval's `expected` text against
-an actual passing assertion (not just "the suite is green"), three evals turn out to have never had the
-assertion their own `expected` text names — a pre-existing gap from Round 1, not something this round's
-diff introduced, but one this round's stricter check is the first to catch.**_
+_`git diff 31ad91b..HEAD -- mcp-server/src/resolveConfig.ts mcp-server/src/tools.ts
+mcp-server/src/http.ts mcp-server/src/jobRunner.ts mcp-server/src/motionCompiler.ts
+mcp-server/src/geocode.ts` shows: `resolveConfig.ts` gained the `camera.focus` branch (additive, a new
+`if` ahead of this contract's own `layers`/`detail`/`font`/`highlight`/`camera.pitch`/`camera.bearing`
+logic, which is untouched); `tools.ts` gained `compile_motion`/`list_fonts`-metadata/`cost` handlers
+additively; `http.ts` and `jobRunner.ts` each gained exactly one line threading `output?.quality`
+into their existing `deps.encodeAnimation(...)` call — the `motion.script` echo this contract's AC-11
+depends on is unmoved in both. `motionCompiler.ts` and `geocode.ts` do not appear in the diff at all.
+All 20 of this contract's own machine evals were re-run fresh regardless, and each `expected` clause
+re-checked against a real assertion, not just an exit code._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -74,111 +69,250 @@ diff introduced, but one this round's stricter check is the first to catch.**_
 
 ## Evidence
 
-- eval: E3
-  run_id: tier0-agent-params-E3-20260806r3
+- eval: E1
+  run_id: tier0-agent-params-E1-20260807r5
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T16:25:44Z
+  verified_at: 2026-08-06T23:56:00Z
   output: |
-    ROUND 3 — closed. Commit `06e4ae1` added two lines INLINE to the existing
-    `it('rejects out-of-range detail and unknown font', ...)` test:
-      await expect(resolveConfig({ ..., detail: 0 })).resolves.toMatchObject({ detail: 0 });
-      await expect(resolveConfig({ ..., detail: 1 })).resolves.toMatchObject({ detail: 1 });
-    Both named boundary values (0 and 1) are now explicitly asserted ACCEPTED, alongside the pre-
-    existing REJECTED cases in the same test. All four clauses of E3's `expected` now have a real
-    assertion. `npx vitest run mcp-server/src/resolveConfig.test.ts`: 53/53 passed (up from 50).
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/resolveConfig.test.ts`: 59/59 passed (up
+    from 53 — the +6 delta is motion-tools-cost's own `camera.focus` describe block; this contract's own
+    `layers`/`detail`/`font` tests are unmoved). `passes layers, detail and font through to the render
+    config` present and green — `RenderConfig` carries all three verbatim, per AC-1.
+
+- eval: E2
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run — `labels` + `layers.roadLabels` together rejected `/either labels or layers.roadLabels,
+    not both/`, unmoved.
+
+- eval: E3
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run — `detail>1`/unknown font/unknown layer key/non-boolean layer value all rejected;
+    `detail: 0`/`detail: 1` accepted (the inline boundary case added by this contract's own Round 3 fix,
+    `06e4ae1`) — still present, unmoved.
+
+- eval: E4
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run — all three region forms resolve with per-region colours (uncoloured → `null`); a bad
+    colour on any element rejects the whole call. Unmoved.
 
 - eval: E5
-  run_id: tier0-agent-params-E3-20260806r3
+  run_id: tier0-agent-params-E1-20260807r5
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T16:25:44Z
+  verified_at: 2026-08-06T23:56:00Z
   output: |
-    ROUND 3 — closed. Commit `06e4ae1` added a new test to the "boundary halves..." describe block:
-      it('falls back through the whole marker style chain to its terminal defaults', async () => {
-        const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng, lat }] } });
-        expect(cfg.markers?.[0]).toMatchObject({ icon: 'pin', color: '#ffffff', size: 44 });
-      });
-    A point with NO per-point style AND a `highlight` block with no top-level `pointIcon`/`color` now
-    explicitly proves the chain's terminal link (hard-coded `'pin'`/`'#ffffff'`/`44`) — the one link
-    Round 2 found untested. Combined with the pre-existing per-point→top-level link test, all three
-    links of the fallback chain now have assertions. Same run, 53/53 passed.
+    Same run — all three point forms resolve; the fallback chain per-point → `highlight.pointIcon`/
+    `highlight.color` → terminal `'pin'`/`'#ffffff'`/`44` (added by this contract's own Round 3 fix) is
+    still present and green.
 
 - eval: E6
-  run_id: tier0-agent-params-E3-20260806r3
+  run_id: tier0-agent-params-E1-20260807r5
   exit_code: 0
   baseline: red
   verifier: config:executors.test.resolve_config
-  verified_at: 2026-08-06T16:25:44Z
+  verified_at: 2026-08-06T23:56:00Z
   output: |
-    ROUND 3 — closed. Commit `06e4ae1` added:
-      it('ACCEPTS marker size exactly at both bounds, and REFUSES 0 rather than reading it as unset',
-        async () => {
-          for (const size of [18, 140]) {
-            const cfg = await resolveConfig({ ...at, highlight: { points: [{ lng, lat, size }] } });
-            expect(cfg.markers?.[0].size).toBe(size);
-          }
-          await expect(resolveConfig({ ...at, highlight: { points: [{ lng, lat, size: 0 }] } }))
-            .rejects.toThrow(/highlight\.points\[\]\.size/);
-        });
-    All three previously-missing clauses now covered: size=18 accepted, size=140 accepted, size=0
-    refused (not silently read as unset). This verifier independently negative-controlled the size=0
-    assertion rather than trusting the commit message: temporarily mutated `resolveConfig.ts:520`'s
-    `p.size != null ? assertMarkerSize(p.size) : null` to the truthy form `p.size ? assertMarkerSize
-    (p.size) : null` (the exact defect class this test guards against — a `size: 0` payload would then
-    silently fall through to the `?? 44` default instead of being rejected) and re-ran this test in
-    isolation against the mutated source: the `size: 0` assertion broke exactly as expected under the
-    mutant (the test surfaced the injected defect, not a green pass). Source was then reverted (`cp`
-    from a pre-edit backup) and the full file re-confirmed green — back to all 53 of 53 tests passing,
-    `git diff` empty. The test is a real discriminator, not a tautology.
+    Same run — marker `size` 18/140 accepted; out-of-range rejected; `size: 0` rejected (not read as
+    unset). Unmoved.
+
+- eval: E7
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run — unknown per-point icon AND unknown top-level `pointIcon` both rejected; neither falls
+    back to `'pin'`. Unmoved.
+
+- eval: E8
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run — a bad colour/size on a LATER element still trips `resolveBoundary`/`resolveLocation`
+    `.not.toHaveBeenCalled()`. Unmoved.
+
+- eval: E9
+  run_id: tier0-agent-params-E9-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.clip_tools
+  verified_at: 2026-08-06T23:55:39Z
+  output: |
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/tools.test.ts`: 52/52 passed (up from 43 —
+    the delta is motion-tools-cost's own new describe blocks; `discovery tools` describe block unmoved).
+    `list_themes returns all 13 themes` + `exposes the full palette` — 13 themes, each `dark` + a 15-key
+    `colors` palette. Unmoved.
+
+- eval: E10
+  run_id: tier0-agent-params-E9-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.clip_tools
+  verified_at: 2026-08-06T23:55:39Z
+  output: |
+    Same run — `list_formats` emits `4k` exactly once; `print` present on print layouts and the KEY
+    absent on non-print ones. Unmoved.
+
+- eval: E11
+  run_id: tier0-agent-params-E9-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.clip_tools
+  verified_at: 2026-08-06T23:55:39Z
+  output: |
+    Same run — MCP `render_clip` response carries `motion.script` with a `camera` array and `fps`
+    matching `clip.fps`. Unmoved; `motion.script` echoing logic in `tools.ts` untouched by
+    motion-tools-cost's additions (confirmed by diff review above).
+
+- eval: E12
+  run_id: tier0-agent-params-E12-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.clip_http
+  verified_at: 2026-08-06T23:56:42Z
+  output: |
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/http.test.ts`: 49/49 passed — unchanged
+    count. REST `POST /render-clip` response still carries `motion.script.camera` as an array; the only
+    change to `http.ts` this round was `encodeQuality` hoisted above its `try` block (see preamble),
+    unrelated to the `motion.script` echo path.
+
+- eval: E13
+  run_id: tier0-agent-params-E13-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.job_runner
+  verified_at: 2026-08-06T23:56:36Z
+  output: |
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed — unchanged
+    count. Async `/jobs` clip result still carries `motion.script` in the same shape as the two
+    synchronous surfaces. `jobRunner.ts`'s only change this round is the same `quality` threading noted
+    in the preamble, unrelated to this assertion.
+
+- eval: E14
+  run_id: tier0-agent-params-E1-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.resolve_config
+  verified_at: 2026-08-06T23:56:00Z
+  output: |
+    Same run as E1 — ASYMMETRIC boundary: `camera.pitch` outside 0..60 rejected; `camera.bearing: -45`
+    NOT rejected, normalized to 315. Both this contract's own logic AND motion-tools-cost's new
+    `camera.focus` branch coexist in `resolveConfig.ts` without interfering — confirmed by the diff
+    review (focus branch is a separate `if`, not nested inside the pitch/bearing logic).
+
+- eval: E15
+  run_id: tier0-agent-params-E15-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.motion_compiler
+  verified_at: 2026-08-06T23:59:04Z
+  output: |
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/motionCompiler.test.ts`: 32/32 passed —
+    unchanged count; `motionCompiler.ts` does not appear in this round's diff at all. Every keyframe a
+    preset compiles carries `cfg.camera.bearing`; a bearing-less config compiles to an identical object
+    (early return). Unmoved.
+
+- eval: E16
+  run_id: tier0-agent-params-E9-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.clip_tools
+  verified_at: 2026-08-06T23:55:39Z
+  output: |
+    Same run as E9 — `delivery: 'url'` yields zero inline base64 blocks; over-cap on the second output of
+    `format: 'both'` removes BOTH files. Unmoved.
+
+- eval: E17
+  run_id: tier0-agent-params-E17-20260807r5
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.test.geocode
+  verified_at: 2026-08-06T23:59:08Z
+  output: |
+    ROUND 5 — re-run fresh: `npx vitest run mcp-server/src/geocode.test.ts`: 26/26 passed — unchanged
+    count; `geocode.ts` does not appear in this round's diff at all. Fallback-path identity echo
+    (`osmType`/`osmId`/`displayName`/`placeRank` from the entity that produced the polygon, not the
+    original search hit) confirmed present and green.
+
+- eval: E18
+  run_id: tier0-agent-params-repin-E18-20260807
+  exit_code: 0
+  baseline: red
+  verifier: config:executors.script.tier0_invariants
+  verified_at: 2026-08-07T00:24:55Z
+  output: |
+    ROUND 6 — re-run fresh post-rebase (this script computes `git merge-base origin/main HEAD` itself,
+    so its own output text is git-state-dependent):
+    ok   I1  t3_path (src/lib/export.ts, src/lib/mapStyle.ts) untouched vs merge-base (31 files changed, none in t3_paths)
+    ok   I2  MCP render_clip (mcp-server/src/tools.ts) echoes motion.script on its motionOut binding
+    ok   I2  REST POST /render-clip (mcp-server/src/http.ts) echoes motion.script on its motionOut binding
+    ok   I2  async POST /jobs (mcp-server/src/jobRunner.ts) echoes motion.script on its motionOut binding
+    ok   I3  layers guarded by assertLayers (defined: true, called: true)
+    ok   I3  detail guarded by assertDetail (defined: true, called: true)
+    ok   I3  font guarded by assertFont (defined: true, called: true)
+    ok   I3  highlight.points[].size guarded by assertMarkerSize (defined: true, called: true)
+    ok   I3  highlight.points[].icon / highlight.pointIcon guarded by assertMarkerIcon (defined: true, called: true)
+    ok   I3  camera.pitch guarded by assertPitch (defined: true, called: true)
+    ok   I3  camera.bearing normalized (not rejected) — modulo-360 present: true
+    tier0-invariants: all invariants hold
+    File-count is now 31 (down from Round 5's 45) purely because the merge-base moved forward to
+    `ecd4a377`; all clauses of E18's `expected` remain confirmed.
 
 - eval: E19
-  run_id: tier0-agent-params-E19-20260806r4
+  run_id: tier0-agent-params-repin-npmtest-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.api
-  verified_at: 2026-08-06T16:34:13Z
+  verified_at: 2026-08-07T00:22:55Z
   output: |
-    ROUND 4 re-pin — re-run fresh because `b4150be` changed `src/lib/export.test.ts` (owned by
-    map-motion-clip, not this contract, but the whole-suite guard was re-run per the coordinator's
-    instruction anyway):
-     Test Files  30 passed | 3 skipped (33)
-          Tests  457 passed | 7 skipped (464)
-       Duration  2.89s
-    Up from 456 in Round 3 — the +1 delta is `export.test.ts`'s new attribution-content-pin test, not
-    anything in this contract's own surface.
+    ROUND 6 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
+    passed | 7 skipped (482) — identical counts to Round 5, confirming the rebase changed no test
+    content.
 
 - eval: E20
-  run_id: tier0-agent-params-E20-20260806r4
+  run_id: tier0-agent-params-repin-testmcp-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-06T16:35:29Z
+  verified_at: 2026-08-07T00:23:59Z
   output: |
-    ROUND 4 re-pin: real vite build + real headless-Chromium MCP integration suite.
-     Test Files  3 passed (3)
-          Tests  7 passed (7)
-       Duration  49.76s
-    Unaffected by `b4150be` (`export.test.ts` is not part of this suite's file list).
+    ROUND 6 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
+    (7); Duration 42.63s — real vite build + real headless Chromium, identical counts to Round 5.
+    Unaffected by the rebase.
 
 ## Analyst
 
-Baseline: all 18 feature evals (E1-E18) are `red` on the pre-feature diffBase per Round 1's own
-determination (this contract's `mcp-server/**` additions did not exist before it), carried forward
-unchanged per this round's instructions (T2 stale-refresh rounds carry baseline forward, they do not
-recompute it). E19 (`npm test`) and E20 (`npm run test:mcp`) are the broad regression-floor guards,
-`green` on both trees as expected.
+Baseline: all 18 feature evals (E1-E18) remain `red` on the pre-feature diffBase, carried forward
+unchanged per this round's re-verification instruction (T2 stale-refresh rounds carry baseline forward,
+they do not recompute it) — nothing in motion-tools-cost's diff changes which side of the baseline these
+evals fall on, since it only adds new branches/handlers alongside this contract's own logic, never
+inside it. E19/E20 (`npm test`/`npm run test:mcp`) are the broad regression-floor guards, `green` on
+both trees as expected.
 
-E3, E5, E6 were NOT baseline non-discrimination issues — they were missing assertions, full stop: the
-named clause in each eval's `expected` (an explicit boundary value, or the terminal link of a fallback
-chain) had zero test coverage on EITHER tree. Round 3 closes all three with real assertions, each
-covering exactly the previously-missing clause and nothing more (no unrelated test weakening). The
-implementation itself was correct in all three cases throughout (inclusive Zod/runtime bounds, explicit
-`!= null` guards) — this was always a test debt, not a behavioural regression; Round 3's negative
-control on E6 (mutating the guard and confirming the new test catches it) is the evidence that the new
-tests actually exercise the guards rather than just restating already-true facts.
+No new gaps found this round. E3/E5/E6's boundary-completeness fixes (closed in this contract's own
+Round 3 by commit `06e4ae1`) remain closed — re-confirmed present in this round's fresh 59/59 run.
 
 ## Variance
 
@@ -186,34 +320,21 @@ none — every eval this round is a deterministic single run.
 
 ## Iterations
 
-- Round 1 (verified 2026-08-06, commit `f7feeda`): all 20 machine evals reported PASS; signed off
-  `manh` 2026-08-06. `human_signoff` cleared this round per the staleness-refresh rule.
-- Round 2 (verified 2026-08-06T16:06Z, commit `25c2d2a`): re-verify triggered by `feat/routes-
-  measurements` touching this contract's own `resolveConfig.ts`/`tools.ts` (additively, confirmed via
-  diff review). Full suite still green (453 passed, up from a smaller count in Round 1 — additive new
-  tests only, nothing removed). Re-checking each eval's `expected` clause-by-clause against an actual
-  assertion (not just the exit code) surfaced 3 pre-existing gaps: E3 (detail=0/1 boundary-accept
-  untested), E5 (point icon/color chain's terminal 'pin'/'#ffffff' fallback untested), E6 (marker
-  size=18/140 boundary-accept AND size=0 falsy-vs-null rejection both untested). Verdict REJECT,
-  `failed_evals: [E3, E5, E6]`. Fix is three small additions to `resolveConfig.test.ts`'s existing
-  `describe` blocks (no source change needed — the implementation is already correct); not attempted
-  this round, which is verification-only.
-- Round 3 (verified 2026-08-06T16:26Z, commit `06e4ae1`): commit `06e4ae1` added all three missing
-  test cases (detail=0/1 inline to the existing test; a new "boundary halves..." describe block for
-  marker size=18/140/0 and the style fallback chain's terminal defaults; a fourth case in the same
-  commit closed routes-measurements' own E5, see that contract's report). `resolveConfig.test.ts`
-  re-run fresh: 53/53 passed (up from 50). `npm test` broad guard re-run fresh (test file changed):
-  456/463 passed (up from 453). This verifier independently negative-controlled the E6/size=0 case
-  (mutated the guard, confirmed the new test fails, reverted, re-confirmed green) rather than trusting
-  the commit message. All 20 machine evals now pass; this contract has no judgment evals. Verdict
-  **PASS**.
-- Round 4 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only, not a re-audit — commit
-  `b4150be` (a sibling-contract test file, `src/lib/export.test.ts`) landed after Round 3's
-  `verified_commit`, tripping the pre-merge staleness check even though this contract does not depend
-  on that file. Re-ran this contract's broad guards fresh: `npm test` 457/464 passed (up from 456 —
-  the `export.test.ts` delta, not this contract's own surface), `npm run test:mcp` 7/7 passed,
-  unaffected. No re-audit of E1-E18 performed — none of their source/test files changed since Round 3.
-  All 20 machine evals remain PASS; this contract has no judgment evals. Verdict **PASS**.
+- Round 1 (commit `f7feeda`): first verify, all 20 machine evals PASS, signed off.
+- Round 2 (commit `25c2d2a`): re-verify triggered by `feat/routes-measurements`. Re-checking each eval's
+  `expected` clause-by-clause surfaced 3 gaps (E3/E5/E6 boundary-acceptance untested). REJECT.
+- Round 3 (commit `06e4ae1`): all three gaps closed with explicit boundary tests, independently
+  negative-controlled. All 20 machine evals PASS.
+- Round 4 (commit `31ad91b`): re-pin after a sibling contract's file changed; no re-audit needed. PASS.
+- Round 5 (verified 2026-08-06T23:59Z, commit `6644d1b`): re-verify triggered by `feat/motion-tools-cost`
+  touching this contract's own `resolveConfig.ts`/`tools.ts`/`http.ts`/`jobRunner.ts` (additively,
+  confirmed via diff review in the preamble). All 20 machine evals re-run fresh, each `expected` clause
+  re-checked against a real assertion. This contract has no judgment evals. Verdict **PASS**.
+- Round 6 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged
+  `main` — PR #2 landed, branch rebased onto `main`'s new tip `ecd4a37`, rewriting every commit SHA.
+  `git diff 6644d1b HEAD` confirmed zero non-gate files changed — a re-pin, not a re-audit. Broad
+  guards (`npm test`, `npm run test:mcp`) and the git-state-dependent `tier0-invariants.ts` script were
+  re-run fresh and matched Round 5 exactly; E1-E17 stand unchanged from Round 5. Verdict **PASS**.
 
 ## Gate 2 checklist (human)
 

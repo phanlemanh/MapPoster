@@ -317,7 +317,7 @@ _Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round per this r
   verdict: PASS
   rationale: |
     Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ 'OneHub chưa cần' ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.
-  human_override: manh 2026-08-07 — CHAP NHAN — ap theo uy quyen dung cua chu repo trong phien ('tu lai, khong can hoi') — KHONG phai nguoi ky truc tiep xem tung muc. Giam khao mu PASS; rui ro 404 mo ho sau restart giu nguyen.
+  human_override:
 - eval: E21
   run_id: async-job-queue-r14-job_store-20260807
   exit_code: 0

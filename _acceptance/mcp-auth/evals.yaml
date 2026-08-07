@@ -1,0 +1,75 @@
+schema_version: 1
+feature_slug: mcp-auth
+
+# surfaces: [api] — không bề mặt web UI, không phán đoán nghiệp vụ.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; token đã đặt + gọi /mcp KHÔNG bearer => 401"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; token đã đặt + bearer SAI => 401"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; bearer ĐÚNG => 200, siết auth không chặn người gọi hợp lệ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; SHOULD-NOT-DEMAND — không đặt token + loopback => /mcp trả 200, dev cục bộ không phải cấu hình gì"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; host '0.0.0.0' + không token => startHttpServer NÉM kèm /MAPPOSTER_TOKEN/"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.clip_http
+    expected: "exit 0; SHOULD-NOT-REFUSE — có token thì server lên bình thường, chốt fail-closed không chặn cấu hình hợp lệ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: script
+    cmd: config:executors.script.auth_invariants
+    expected: "exit 0; I1 t3_path không đổi; I2 ĐÚNG MỘT nơi so sánh bearer + rejectedByBearer tồn tại; I3 >= 4 cửa gọi guard và guard đứng ngay trước createServer của /mcp; I4 chốt fail-closed có phép so sánh thật kèm thông điệp khắc phục"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E8
+    criterion: AC-8
+    executor: script
+    cmd: config:executors.script.auth_invariants
+    expected: "exit 0; chạy cùng script — bất biến I2/I3 là thứ giữ cho câu README ('bearer áp cho cả /mcp') tiếp tục đúng thay vì trôi lại thành sai như trước"
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E9
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.api
+    expected: "exit 0; toàn bộ Vitest xanh — gộp ba bản chép về một helper không đổi hành vi route nào"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.mcp
+    expected: "exit 0; MCP integration có gác — vite build thật, PNG và clip thật qua Chromium headless"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

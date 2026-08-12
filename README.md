@@ -71,7 +71,7 @@ server to pick it up, rebuild explicitly — a stale `dist/` is served silently:
 npx vite build
 ```
 
-Tools: `render_map`, `render_variants`, `render_animation`, `render_clip`, `compile_motion`, `geocode_place`, `list_themes`, `list_formats`, `list_fonts`. Example call:
+Tools: `render_map`, `render_variants`, `render_animation`, `render_clip`, `render_recipe`, `compile_motion`, `geocode_place`, `list_themes`, `list_formats`, `list_fonts`, `list_recipes`. Example call:
 
 ```jsonc
 render_map({
@@ -226,6 +226,60 @@ Every clip response carries `cost: { frames, renderMs, encodeMs, bytes }` —
 including the encode-failure degrade path, where the frames were rendered and
 paid for even though no file came out. The names carry their units on purpose;
 a bare `time` or `size` is a number a consumer guesses the unit of.
+
+### Recipes — one call, one finished scene
+
+`render_recipe` renders a ready-made scene from business-level parameters, so an
+agent director does not have to know which preset, which highlight flags and
+which camera framing add up to the scene it wants. `list_recipes` is the
+self-describing catalog: every entry carries its parameters, default duration,
+and **a working example call** — a test compiles each advertised example, so an
+example that stopped working fails the build rather than misleading a caller.
+
+```jsonc
+render_recipe({ "recipe": "region-spotlight", "region": "Hoàn Kiếm, Hà Nội",
+                "theme": "midnight-blue", "format": "tiktok" })
+// → { recipe: 'region-spotlight',
+//     clip: { path, bytes, durationSec, fps, width: 1080, height: 1920 },
+//     settle: {...}, motion: { preset: 'approach', restAtSec, script: {...} },
+//     resolved: { ..., anchors } }
+```
+
+| Recipe | Scene it builds | Key parameters |
+|---|---|---|
+| `region-spotlight` | Flies into an administrative area, draws its boundary in, **dims** everything outside it, settles | `region` |
+| `property-intro` | Flies into a project's boundary, draws it in, drops a pin on the project — surroundings stay **lit**, because they are what is being sold. Boundary takes an OSM name *or* inline GeoJSON, the only route for a plot that isn't in OSM | `location`, `boundary` |
+| `amenities` | Pushes into the project and pulses around it, with nearby amenities pinned in the same frame; returns straight-line distance from the project to each one | `location`, `pois[]` |
+| `compare-locations` | Frames several projects together with one reference point, drifts around them, and returns straight-line distance from the reference to each project | `subjects[]`, `reference` |
+
+**Two limits of the recipe layer, stated rather than hidden.** `compile()` is
+synchronous and runs *before* geocoding, so it never knows real coordinates —
+which means a recipe cannot author absolute camera keyframes. Anything needing
+them (a multi-stop tour that pauses at each stop, "zoom back to the project at
+the end", following a route) is out of reach here, and every recipe above
+therefore uses a **preset** and lets `resolveConfig` auto-frame the union of its
+highlights. Second, `motionScript.ts` forbids more than one one-shot track of the
+same kind per script, so **staggered beats are impossible** — amenity pins and
+compared projects appear *together*, not in sequence. The catalog descriptions
+say what the recipe does, not what the spec wished for.
+
+A recipe is a **parameterised formula, not a new engine concept**: `compile`
+returns exactly the parameter set `render_clip` already accepts, and
+`render_recipe` then delegates to it. That is why every `render_clip` guarantee
+— AC-9's forced `chrome: 'clean'`, the `MAPPOSTER_MAX_CLIP_FRAMES` budget, the
+`MAPPOSTER_CLIP_CONCURRENCY` slot, the encode-failure degrade, the size cap,
+`resolved.anchors` — is *inherited* rather than re-derived. A recipe that called
+the renderer itself would silently drift out of all of them.
+
+Two boundaries worth knowing. Each recipe's parameter schema is **strict**: a
+mistyped key is refused rather than ignored, because the caller is an agent that
+cannot see the image, so a silently-dropped parameter returns a "successful"
+clip with the wrong content and nothing downstream can catch it. And
+`region-spotlight` does **not** expose `dim` as a parameter — switching the dim
+off leaves the plain `approach` preset, which a caller can reach through
+`render_clip` directly; a recipe that can turn off its own defining trait has no
+boundary. Unknown recipe names are refused with the list of known ones, the same
+policy `theme`/`icon`/`format` already follow.
 
 `compile_motion` takes the same inputs as `render_clip` and returns the
 MotionScript that call *would* use — `{ preset?, script, fps, durationSec,

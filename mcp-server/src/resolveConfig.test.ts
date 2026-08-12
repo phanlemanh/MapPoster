@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveConfig, formatSize, summarizeHighlights, summarizeRoutes, summarizeMeasures, assertColor, assertGeojson, MAX_GEOJSON_BYTES, FORMATS } from './resolveConfig';
+import { resolveConfig, formatSize, summarizeHighlights, summarizeRoutes, summarizeMeasures, assertColor, assertGeojson, MAX_GEOJSON_BYTES, MAX_HIGHLIGHTS, FORMATS } from './resolveConfig';
 import * as geocode from './geocode';
 
 vi.mock('./geocode', () => ({
@@ -50,6 +50,31 @@ describe('formatSize', () => {
     expect(() => formatSize({ width: 99999, height: 100 })).toThrow(/invalid width/i);
     expect(() => formatSize({ width: 10.5, height: 100 })).toThrow(/invalid width/i);
   });
+
+  it('refuses inherited Object.prototype keys instead of answering with a function (issue #3)', () => {
+    // FORMATS is a plain object literal, so a truthiness lookup walked up the
+    // prototype chain: formatSize('constructor') answered the Object function —
+    // truthy, `width: undefined` — and the render died later inside the
+    // renderer with an opaque TypeError instead of failing here by name.
+    for (const key of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf']) {
+      expect(() => formatSize(key)).toThrow(new RegExp(`Unknown format: ${key.replace('__', '__')}`));
+    }
+  });
+
+  it('a refused format never leaks a non-size shape to the caller', () => {
+    // The regression this locks: the old branch RETURNED rather than threw, so
+    // asserting only "it throws" would pass again if someone reintroduced a
+    // fallback that returns something truthy but sizeless.
+    for (const key of ['constructor', '__proto__']) {
+      let out: unknown = 'not-called';
+      try {
+        out = formatSize(key);
+      } catch {
+        out = 'threw';
+      }
+      expect(out).toBe('threw');
+    }
+  });
 });
 
 describe('resolveConfig', () => {
@@ -66,6 +91,36 @@ describe('resolveConfig', () => {
 
     expect(geocode.resolveBoundary).toHaveBeenCalledWith('District 1', 'Vietnam');
     expect(geocode.resolveLocation).toHaveBeenCalledWith('Võ Văn Tần', 'Vietnam');
+  });
+
+  it.each(['regions', 'points'] as const)(
+    'refuses an over-cap highlight.%s before spending a single geocoding request (issue #2)',
+    async (key) => {
+      vi.mocked(geocode.resolveBoundary).mockClear();
+      vi.mocked(geocode.resolveLocation).mockClear();
+
+      await expect(
+        resolveConfig({
+          location: 'Ho Chi Minh City',
+          highlight: { [key]: Array.from({ length: MAX_HIGHLIGHTS + 1 }, (_, i) => `place ${i}`) },
+        }),
+      ).rejects.toThrow(new RegExp(`Too many highlight\\.${key}: ${MAX_HIGHLIGHTS + 1} \\(max ${MAX_HIGHLIGHTS}`));
+
+      // The whole point of the cap is the traffic it does NOT send to
+      // Nominatim. A guard placed after the base lookup would still have
+      // spent one request per call; one placed inside the loop would have
+      // spent MAX_HIGHLIGHTS of them.
+      expect(geocode.resolveLocation).not.toHaveBeenCalled();
+      expect(geocode.resolveBoundary).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['regions', 'points'] as const)('still resolves highlight.%s exactly at the cap', async (key) => {
+    const cfg = await resolveConfig({
+      location: 'Ho Chi Minh City',
+      highlight: { [key]: Array.from({ length: MAX_HIGHLIGHTS }, (_, i) => `place ${i}`) },
+    });
+    expect(key === 'regions' ? cfg.highlight?.regions : cfg.markers).toHaveLength(MAX_HIGHLIGHTS);
   });
 
   it('names the anchor country when a region cannot be found in it', async () => {

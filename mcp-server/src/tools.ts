@@ -2,7 +2,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, type RenderMapParams } from './resolveConfig';
+import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, MAX_HIGHLIGHTS, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
 import { deliver, type DeliveryMode } from './delivery';
 import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
@@ -13,6 +13,18 @@ import { THEMES } from '../../src/data/themes';
 import { slugify } from '../../src/lib/format';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import type { ClipFrames } from './renderFrame';
+
+/**
+ * Max entries in one `render_variants` call.
+ *
+ * The fan-out is serial and each variant is a full headless render holding a
+ * page from `MAPPOSTER_POOL` (default 2), so the array length is a direct
+ * multiplier on how long one request occupies the shared pool. 24 clears the
+ * widest sweep that actually exists — one variant per theme, and there are 13
+ * — while bounding a single call to minutes rather than the days a 100k-entry
+ * array of `{}` would have taken while every other caller queued behind it.
+ */
+export const MAX_VARIANTS = 24;
 
 export interface ToolDeps {
   /** Injected render primitive (real = renderFrame bound to the pool). */
@@ -105,6 +117,16 @@ export function makeTools(deps: ToolDeps) {
 
     async render_variants(params: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }): Promise<ToolResult> {
       try {
+        // Refuse before the first render, not after N of them: the loop below
+        // is serial and each pass drives a full headless page, so discovering
+        // the fan-out is absurd on variant 900 means 899 renders already spent
+        // the shared pool. Mirrors the Zod `.max()` — makeTools is callable
+        // directly, so the schema cannot be the only guard.
+        if (params.variants.length > MAX_VARIANTS) {
+          return fail(
+            `Too many variants: ${params.variants.length} (max ${MAX_VARIANTS} — each variant is a full serialized render)`,
+          );
+        }
         const results: { image: Awaited<ReturnType<typeof deliver>>; resolved: unknown }[] = [];
         for (const v of params.variants) {
           const { cfg, image } = await renderOne({ ...params.base, ...v }, params.delivery);
@@ -367,12 +389,17 @@ const markerIconSchema = z.enum(['pin', 'heart', 'home', 'star', 'circle', 'squa
 const pointOpts = { icon: markerIconSchema.optional(), color: hexColor.optional(), size: z.number().min(18).max(140).optional() };
 const highlightSchema = z
   .object({
+    // .max on both arrays: a named entry costs one rate-limited Nominatim
+    // lookup, so an unbounded array turns one request into sustained load on a
+    // shared public service. Mirrored at runtime in resolveConfig
+    // (assertHighlightCount) since makeTools can be called directly.
     regions: z
       .array(z.union([
         z.string().min(1),
         z.object({ name: z.string().min(1), color: hexColor.optional() }),
         z.object({ geojson: z.any(), color: hexColor.optional() }),
       ]))
+      .max(MAX_HIGHLIGHTS)
       .optional(),
     points: z
       .array(z.union([
@@ -380,6 +407,7 @@ const highlightSchema = z
         z.object({ lng, lat, ...pointOpts }),
         z.object({ query: z.string().min(1), ...pointOpts }),
       ]))
+      .max(MAX_HIGHLIGHTS)
       .optional(),
     color: hexColor.optional(),
     fill: z.boolean().optional(),
@@ -508,7 +536,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
   // variants are merged onto `base`, so they must carry the SAME bounds as base —
   // otherwise a variant could override location/camera with out-of-range values
   // and slip straight past the boundary validation.
-  s.registerTool('render_variants', { description: 'Render several map variants (different themes/formats/zoom) for one location.', inputSchema: { base: z.object(renderMapShape), variants: z.array(z.object(renderMapShape).partial()), delivery: deliverySchema } }, (a: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }) => t.render_variants(a));
+  s.registerTool('render_variants', { description: 'Render several map variants (different themes/formats/zoom) for one location.', inputSchema: { base: z.object(renderMapShape), variants: z.array(z.object(renderMapShape).partial()).max(MAX_VARIANTS), delivery: deliverySchema } }, (a: { base: RenderMapParams; variants: Partial<RenderMapParams>[]; delivery?: DeliveryMode }) => t.render_variants(a));
   s.registerTool(
     'render_animation',
     {

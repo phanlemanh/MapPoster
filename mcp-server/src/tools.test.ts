@@ -31,7 +31,9 @@ vi.mock('./geocode', () => ({
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
-import { makeTools, type ToolResult } from './tools';
+import { makeTools, renderMapSchema, MAX_VARIANTS, type ToolResult } from './tools';
+import { MAX_HIGHLIGHTS } from './resolveConfig';
+import { THEMES } from '../../src/data/themes';
 import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
 
@@ -201,6 +203,54 @@ describe('render_variants', () => {
       expect(textJson(res).ok).toBe(false);
     }
     expect(render).not.toHaveBeenCalled();
+  });
+
+  it('refuses an oversized fan-out BEFORE the first render, not after N of them (issue #1)', async () => {
+    const res = await tools().render_variants({
+      base: { location: 'HCMC', format: 'tiktok' },
+      variants: Array.from({ length: MAX_VARIANTS + 1 }, () => ({})),
+    });
+    expect(res.isError).toBe(true);
+    expect(textJson(res).error).toMatch(/too many variants: 25 \(max 24/i);
+    // The point of the guard: zero pool time spent. A cap that only stopped the
+    // loop partway would still have burned MAX_VARIANTS renders.
+    expect(render).not.toHaveBeenCalled();
+  });
+
+  it('still renders a fan-out exactly at the cap — the bound is inclusive', async () => {
+    const res = await tools().render_variants({
+      base: { location: 'HCMC', format: 'tiktok' },
+      variants: Array.from({ length: MAX_VARIANTS }, () => ({})),
+    });
+    expect(res.isError).toBeFalsy();
+    expect(textJson(res).count).toBe(MAX_VARIANTS);
+    expect(render).toHaveBeenCalledTimes(MAX_VARIANTS);
+  });
+
+  it('the cap clears a one-variant-per-theme sweep, the widest real fan-out', () => {
+    expect(MAX_VARIANTS).toBeGreaterThanOrEqual(THEMES.length);
+  });
+});
+
+describe('input caps at the schema boundary', () => {
+  // The runtime guards in resolveConfig/render_variants exist because makeTools
+  // is callable directly; these assert the OTHER half — that the declared
+  // schema, which is what REST /render, /render-clip and /jobs parse against,
+  // refuses the same shapes. Both halves are load-bearing.
+  it('renderMapSchema refuses over-cap highlight arrays (issue #2)', () => {
+    for (const key of ['regions', 'points'] as const) {
+      const over = renderMapSchema.safeParse({
+        location: 'HCMC',
+        highlight: { [key]: Array.from({ length: MAX_HIGHLIGHTS + 1 }, (_, i) => `place ${i}`) },
+      });
+      expect(over.success).toBe(false);
+
+      const at = renderMapSchema.safeParse({
+        location: 'HCMC',
+        highlight: { [key]: Array.from({ length: MAX_HIGHLIGHTS }, (_, i) => `place ${i}`) },
+      });
+      expect(at.success).toBe(true);
+    }
   });
 });
 

@@ -232,9 +232,23 @@ render_recipe({ "recipe": "region-spotlight", "region": "Hoàn Kiếm, Hà Nội
 //     resolved: { ..., anchors } }
 ```
 
-| Recipe | Scene it builds | Parameters |
+| Recipe | Scene it builds | Key parameters |
 |---|---|---|
-| `region-spotlight` | Flies into an administrative area, draws its boundary in, dims everything outside it, settles | `region` (required), `theme`, `format`, `color`, `fps`, `durationSec` |
+| `region-spotlight` | Flies into an administrative area, draws its boundary in, **dims** everything outside it, settles | `region` |
+| `property-intro` | Flies into a project's boundary, draws it in, drops a pin on the project — surroundings stay **lit**, because they are what is being sold. Boundary takes an OSM name *or* inline GeoJSON, the only route for a plot that isn't in OSM | `location`, `boundary` |
+| `amenities` | Pushes into the project and pulses around it, with nearby amenities pinned in the same frame; returns straight-line distance from the project to each one | `location`, `pois[]` |
+| `compare-locations` | Frames several projects together with one reference point, drifts around them, and returns straight-line distance from the reference to each project | `subjects[]`, `reference` |
+
+**Two limits of the recipe layer, stated rather than hidden.** `compile()` is
+synchronous and runs *before* geocoding, so it never knows real coordinates —
+which means a recipe cannot author absolute camera keyframes. Anything needing
+them (a multi-stop tour that pauses at each stop, "zoom back to the project at
+the end", following a route) is out of reach here, and every recipe above
+therefore uses a **preset** and lets `resolveConfig` auto-frame the union of its
+highlights. Second, `motionScript.ts` forbids more than one one-shot track of the
+same kind per script, so **staggered beats are impossible** — amenity pins and
+compared projects appear *together*, not in sequence. The catalog descriptions
+say what the recipe does, not what the spec wished for.
 
 A recipe is a **parameterised formula, not a new engine concept**: `compile`
 returns exactly the parameter set `render_clip` already accepts, and

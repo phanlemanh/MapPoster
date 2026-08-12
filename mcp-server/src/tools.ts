@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, listFormats, summarizeHighlights, summarizeRoutes, summarizeMeasures, MAX_EDGE, type RenderMapParams } from './resolveConfig';
 import { searchCandidates } from './geocode';
+import { getRecipe, listRecipes, RECIPES, type CompiledRecipeCall } from './recipes';
 import { deliver, type DeliveryMode } from './delivery';
 import { prepareClipRender, prepareClipRenderWithSlot, MotionParamError, ClipConcurrencyError, motionParamSchema, type ClipPreparation } from './motionCompiler';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES } from '../config';
@@ -121,7 +122,10 @@ export function makeTools(deps: ToolDeps) {
     return { cfg, image };
   }
 
-  return {
+  // `const tools` chứ không `return {` thẳng: `render_recipe` UỶ NHIỆM cho
+  // `render_clip` thay vì dựng lại đường render, nên nó cần tham chiếu tới
+  // chính đối tượng này. Đó là điểm mấu chốt của tầng recipe — xem recipes.ts.
+  const tools = {
     async render_map(params: RenderMapParams & { delivery?: DeliveryMode }): Promise<ToolResult> {
       try {
         const { cfg, image } = await renderOne(params, params.delivery);
@@ -378,6 +382,61 @@ export function makeTools(deps: ToolDeps) {
     async list_formats(): Promise<ToolResult> {
       return ok({ formats: listFormats() });
     },
+
+    async list_recipes(): Promise<ToolResult> {
+      return ok(listRecipes());
+    },
+
+    /**
+     * Một call ra clip: recipe compile tham số nghiệp vụ thành ĐÚNG bộ tham số
+     * `render_clip` nhận, rồi uỷ nhiệm cho nó.
+     *
+     * Không có đường render riêng ở đây, có chủ đích (spec §2). Mọi bảo đảm
+     * của `render_clip` — AC-9 ép `chrome:'clean'`, trần khung, khe clip,
+     * nhánh degrade khi encode hỏng, trần dung lượng, `resolved.anchors` —
+     * được kế thừa nguyên vẹn. Một nhánh render thứ hai ở tầng recipe là một
+     * nhánh sẽ trôi khỏi những bảo đảm đó mà không ai thấy.
+     */
+    async render_recipe(params: { recipe: string; delivery?: DeliveryMode } & Record<string, unknown>): Promise<ToolResult> {
+      const { recipe: name, delivery, ...rest } = params;
+      let call: CompiledRecipeCall;
+      try {
+        const spec = getRecipe(name);
+        // `.strict()`: khoá gõ sai bị TỪ CHỐI chứ không bị lặng lẽ bỏ qua —
+        // caller là agent không nhìn thấy ảnh, nên một tham số bị lờ đi trả về
+        // clip "thành công" nhưng sai nội dung, và không ai phát hiện được.
+        const parsed = spec.schema.safeParse(rest);
+        if (!parsed.success) {
+          const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(gốc)'}: ${i.message}`).join('; ');
+          return fail(`recipe ${name}: tham số không hợp lệ — ${issues}`);
+        }
+        call = spec.compile(parsed.data as never);
+      } catch (e) {
+        return fail((e as Error).message ?? String(e));
+      }
+
+      const res = await tools.render_clip({ ...call, ...(delivery ? { delivery } : {}) });
+      // Echo tên recipe vào CẢ nhánh thành công lẫn nhánh lỗi: caller fan-out
+      // nhiều recipe cần biết kết quả nào của recipe nào, và nhánh lỗi là chỗ
+      // nó cần biết nhất.
+      return withRecipeEcho(res, name);
+    },
+  };
+  return tools;
+}
+
+/** Chèn `recipe: <tên>` vào khối JSON của một ToolResult, giữ nguyên phần còn lại. */
+function withRecipeEcho(res: ToolResult, recipe: string): ToolResult {
+  return {
+    ...res,
+    content: res.content.map((c: Content) => {
+      if (c?.type !== 'text') return c;
+      try {
+        return { ...c, text: JSON.stringify({ recipe, ...JSON.parse(c.text) }) };
+      } catch {
+        return c;
+      }
+    }),
   };
 }
 
@@ -572,4 +631,22 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
   s.registerTool('list_fonts', { description: 'List the typefaces render_map accepts, with each one\'s CSS stack and title weight/tracking.', inputSchema: {} }, () => t.list_fonts());
   s.registerTool('list_themes', { description: 'List the available color themes.', inputSchema: {} }, () => t.list_themes());
   s.registerTool('list_formats', { description: 'List the available format presets (incl. tiktok).', inputSchema: {} }, () => t.list_formats());
+  s.registerTool(
+    'list_recipes',
+    { description: 'List the ready-made scene recipes render_recipe accepts — each with its parameters, default duration, and a working example call.', inputSchema: {} },
+    () => t.list_recipes(),
+  );
+  // inputSchema mở (passthrough) có chủ đích: mỗi recipe mang schema tham số
+  // RIÊNG, và một schema gộp ở đây sẽ hoặc lỏng tới mức vô nghĩa, hoặc phải
+  // chép lại từng recipe rồi trôi khỏi bản gốc trong recipes.ts. Việc kiểm
+  // chặt (`.strict()`, từ chối khoá lạ) làm ở handler, trên đúng schema của
+  // recipe được gọi — một chỗ duy nhất, không có bản sao để lệch.
+  s.registerTool(
+    'render_recipe',
+    {
+      description: `Render a ready-made scene in one call. Known recipes: ${Object.keys(RECIPES).join(', ')}. Call list_recipes for each one's parameters and a working example.`,
+      inputSchema: { recipe: z.string().min(1), delivery: deliverySchema },
+    },
+    (a: { recipe: string; delivery?: DeliveryMode }) => t.render_recipe(a),
+  );
 }

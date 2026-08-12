@@ -236,6 +236,25 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -1 } })).rejects.toThrow(/invalid pitch/i);
   });
 
+  it('ghim ĐÚNG hai biên pitch: 0 và 60 được NHẬN, vừa quá biên bị TỪ CHỐI', async () => {
+    // `200` và `-1` ở ca trên nằm cách biên rất xa: một hiện thực nới trần lên
+    // 85 (đúng con số từng là bug nhận-rồi-vứt) vẫn từ chối cả hai, nên cặp cũ
+    // KHÔNG canh gác con số 60. Chỉ cặp vừa-dưới/vừa-trên mới ghim được ngưỡng.
+    const at = async (pitch: number): Promise<number | undefined> =>
+      (await resolveConfig({ location: 'HCMC', camera: { pitch } })).camera.pitch;
+
+    // nửa NHẬN — biên là giá trị hợp lệ, không phải giá trị bị loại
+    expect(await at(0)).toBe(0);
+    expect(await at(60)).toBe(60);
+    expect(await at(59.9)).toBe(59.9);
+
+    // nửa TỪ CHỐI — vừa quá biên ở cả hai đầu
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 60.1 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 61 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: 85 } })).rejects.toThrow(/invalid pitch/i);
+    await expect(resolveConfig({ location: 'HCMC', camera: { pitch: -0.1 } })).rejects.toThrow(/invalid pitch/i);
+  });
+
   it('normalizes bearing to [0,360) instead of rejecting out-of-range values (F3)', async () => {
     // MapLibre renders `bearing: -45` correctly today, and lerpAngle
     // (src/render/motionMath.ts) already normalizes to [0,360) — rejecting it
@@ -360,8 +379,13 @@ describe('resolveConfig', () => {
         highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, size: 500 }] },
       }),
     ).rejects.toThrow(/highlight\.points\[\]\.size/);
-    // Only the base-location lookup should have fired, never a per-point one.
-    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+    // KHÔNG một lời tra nào bị tiêu — kể cả cho địa điểm gốc. Chú thích cũ ở
+    // đây ("Only the base-location lookup should have fired") nói sai, và
+    // `not.toHaveBeenCalledWith(<chuỗi>)` đủ yếu để che điều đó: nó xanh cả khi
+    // hàm được gọi, miễn là gọi với đối số khác. Đo bằng ĐẾM thì con số nói
+    // thẳng — duyệt tham số chạy TRƯỚC toàn bộ tầng mạng.
+    expect(geocode.resolveLocation).not.toHaveBeenCalled();
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
   });
 
   it('rejects an unknown per-point icon instead of silently falling back to the default marker', async () => {
@@ -387,8 +411,13 @@ describe('resolveConfig', () => {
         highlight: { points: [{ query: 'Bến Thành Market' }, { lng: 106.7, lat: 10.78, icon: 'rocket' as never }] },
       }),
     ).rejects.toThrow(/highlight\.points\[\]\.icon/);
-    // Only the base-location lookup should have fired, never a per-point one.
-    expect(geocode.resolveLocation).not.toHaveBeenCalledWith('Bến Thành Market', expect.anything());
+    // KHÔNG một lời tra nào bị tiêu — kể cả cho địa điểm gốc. Chú thích cũ ở
+    // đây ("Only the base-location lookup should have fired") nói sai, và
+    // `not.toHaveBeenCalledWith(<chuỗi>)` đủ yếu để che điều đó: nó xanh cả khi
+    // hàm được gọi, miễn là gọi với đối số khác. Đo bằng ĐẾM thì con số nói
+    // thẳng — duyệt tham số chạy TRƯỚC toàn bộ tầng mạng.
+    expect(geocode.resolveLocation).not.toHaveBeenCalled();
+    expect(geocode.resolveBoundary).not.toHaveBeenCalled();
   });
 });
 
@@ -442,6 +471,18 @@ describe('routes', () => {
     expect(cfg.routes?.[0]).toMatchObject({ color: '#ff0000', width: 8 });
     expect(cfg.routes?.[1]).toMatchObject({ width: 4 });
     expect(cfg.routes?.[1].color).toBe('#e8b04b'); // accent của midnight-blue
+
+    // AC-1 đòi CẢ HAI dạng cho ra `geojson`/`color`/`width` cụ thể. Trước đây
+    // chỉ style được khẳng định; phép đo hình học thật chạy trên entry dạng
+    // `coords`, nên bỏ hẳn trường `geojson` của entry dạng-geojson vẫn xanh.
+    // Đo hình học của TỪNG dạng, và hai dạng có toạ độ KHÁC nhau nên không thể
+    // xanh nhầm bằng cách đọc sang tuyến kia.
+    const [byCoords, byGeojson] = summarizeRoutes(cfg);
+    expect(byCoords.pointCount).toBe(2);
+    expect(byCoords.bbox).toEqual([105.85, 21.02, 105.86, 21.02]);
+    expect(byGeojson.pointCount).toBe(2);
+    expect(byGeojson.bbox).toEqual([105.8, 21.0, 105.81, 21.01]);
+    expect(cfg.routes?.[1].geojson).toEqual(lineFc([[105.8, 21.0], [105.81, 21.01]]));
   });
 
   it('leaves routes UNDEFINED when the call has none — not an empty array', async () => {
@@ -520,6 +561,13 @@ describe('routes[].route — đường đi thực tế (PR #5)', () => {
     // lengthKm (ta tự đo trên polyline) KHÁC distanceKm (router báo). Hai phép
     // đo khác nhau, phải cùng tồn tại chứ không được gộp thành một con số.
     expect(r.lengthKm).toBeGreaterThan(0);
+    // AC-2 nói "BÊN CẠNH lengthKm/bbox/pointCount". `bbox` và `pointCount`
+    // trước đây chỉ được khẳng định ở nhánh tuyến-vẽ-tay (:472-473), tức nhánh
+    // KHÁC — một hiện thực bỏ hai trường đó đúng ở nhánh routed vẫn xanh. Đo
+    // thẳng vào polyline router trả về (3 điểm, mock ở :24-35) nên con số này
+    // không thể trùng khớp một cách tình cờ với nhánh kia.
+    expect(r.pointCount).toBe(3);
+    expect(r.bbox).toEqual([105.8, 21.0, 105.9, 21.1]);
   });
 
   it('omits distance/duration for a route the caller drew by hand — those are router facts', async () => {

@@ -55,6 +55,19 @@ describe('validateMotionScript', () => {
     expect(() => validateMotionScript({ ...base, tracks }, CTX)).not.toThrow();
   });
 
+  it('L: pulse BẮT ĐẦU SAU restAtSec vẫn được chấp nhận (AC-3)', () => {
+    // Ca trên bắt đầu ở 4.0 — TRƯỚC mốc nghỉ 4.2 — nên nó chỉ chứng minh "chạy
+    // vượt qua restAtSec", một mệnh đề khác. AC-3 nói về việc BẮT ĐẦU sau mốc
+    // nghỉ: luật O ràng buộc điểm KẾT của track one-shot, còn pulse là loop
+    // track (oneShotEnd trả null) nên restAtSec không ràng buộc nó chút nào.
+    // Một hiện thực áp luật O cho cả pulse sẽ đỏ ở đây mà xanh ở ca trên.
+    expect(() => validateMotionScript({ ...base, tracks: [{ kind: 'pulse', from: 4.5 }] }, CTX)).not.toThrow();
+    // Trần thật của pulse là ĐUÔI CLIP, không phải mốc nghỉ — nửa còn lại của
+    // cùng ranh giới, để "chấp nhận mọi from" cũng không lọt.
+    expect(() => validateMotionScript({ ...base, tracks: [{ kind: 'pulse', from: 5.999 }] }, CTX)).not.toThrow();
+    expect(() => validateMotionScript({ ...base, tracks: [{ kind: 'pulse', from: 6 }] }, CTX)).toThrow(/^L:/);
+  });
+
   it('L: rejects pulse starting at/after the end of the clip', () => {
     const tracks = [{ kind: 'pulse', from: 6 }];
     expect(() => validateMotionScript({ ...base, tracks }, CTX)).toThrow(/^L:/);

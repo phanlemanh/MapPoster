@@ -1,4 +1,5 @@
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 import type { Pool } from './browserPool';
 import type { ConfigStore } from './configStore';
 
@@ -76,10 +77,20 @@ export async function renderAnimationFrames(
   }
 }
 
-export interface ClipFrames {
+/**
+ * ĐÚNG MỘT trong hai nhánh, không bao giờ cả hai và không bao giờ không nhánh
+ * nào. Union phân biệt chứ không phải hai trường optional: hai trường optional
+ * cho phép trạng thái "vắng cả hai", đúng lớp lỗi `jobRunner` đã dính hai lần
+ * mà mọi test hành vi vẫn xanh. Ở đây quên là lỗi BIÊN DỊCH.
+ */
+export type ClipAnchorsOutcome =
+  | { anchors: ClipAnchors; anchorsUnavailable?: never }
+  | { anchors?: never; anchorsUnavailable: string };
+
+export type ClipFrames = {
   frames: Buffer[];
   settle: Buffer;
-}
+} & ClipAnchorsOutcome;
 
 const PNG_DATA_URL_PREFIX = /^data:image\/png;base64,/;
 
@@ -100,6 +111,23 @@ export async function renderClipFrames(config: RenderConfig, deps: RenderDeps): 
   if (!motion) {
     throw new Error('renderClipFrames: config has no motion script');
   }
+  // Pitch nghiêng KHÔNG làm hỏng clip — nó chỉ làm anchors mất nghĩa.
+  //
+  // `applyRenderConfig` áp `camera.pitch` lúc nạp trang, và `cameraAt` không
+  // phát pitch nên `jumpTo` của mỗi khung KHÔNG reset nó: clip nghiêng render
+  // đúng và đang chạy được hôm nay. Ném ở đây sẽ gỡ một năng lực MapLibre vẫn
+  // làm được — cùng lỗi với việc bound `bearing` đã bị bác ở PR #1.
+  //
+  // Nhưng cũng không được im lặng trả clip thiếu anchors: agent không nhìn
+  // thấy ảnh, một trường vắng mặt không phân biệt được với "không có điểm nào".
+  // Nên anchors vắng mặt kèm `anchorsUnavailable` nêu đích danh nguyên nhân.
+  const pitch = config.camera.pitch ?? 0;
+  const anchorsUnavailable =
+    pitch === 0
+      ? undefined
+      : `camera.pitch is ${pitch} — anchors require pitch 0. A tilted camera projects a region to a trapezoid, so ` +
+        `bboxPct would be meaningless and points beyond the horizon project to nonsense. The clip itself rendered ` +
+        `normally; remove camera.pitch if you need anchors.`;
 
   const page = await deps.pool.acquire();
   const key = deps.configStore.put(JSON.stringify(config));
@@ -147,7 +175,28 @@ export async function renderClipFrames(config: RenderConfig, deps: RenderDeps): 
       return r.dataUrl as string;
     }, motion.restAtSec);
 
-    return { frames, settle: Buffer.from(settleUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64') };
+    const settle = Buffer.from(settleUrl.replace(PNG_DATA_URL_PREFIX, ''), 'base64');
+
+    // Biết trước là không đo được thì KHÔNG gọi `anchors()`. Gọi rồi bắt lỗi
+    // cũng ra cùng một chuỗi, nhưng nó biến một điều kiện đã biết thành một
+    // ngoại lệ phải bắt — và một `catch` quanh `anchors()` sẽ nuốt luôn cả
+    // chốt camera-ở-restAtSec, đúng thứ phải nổ to tiếng.
+    if (anchorsUnavailable !== undefined) {
+      return { frames, settle, anchorsUnavailable };
+    }
+
+    // NGAY SAU lần chụp settle, không có lời gọi nào chen vào giữa: đó là lúc
+    // camera chắc chắn đang ở `restAtSec`. `anchors()` không dời camera và
+    // không đụng cache nào, nên thứ tự này an toàn theo cả hai chiều — nó
+    // không làm hỏng gì, và nó tự khẳng định camera trước khi đo (ném nếu
+    // không đúng chỗ, thay vì trả toạ độ sai lặng lẽ).
+    const anchors: ClipAnchors = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (window as any).__mapposter;
+      return api.anchors();
+    });
+
+    return { frames, settle, anchors };
   } catch (e) {
     broken = true;
     deps.pool.discard(page);

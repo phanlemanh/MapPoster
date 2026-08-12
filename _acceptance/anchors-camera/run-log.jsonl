@@ -1,0 +1,102 @@
+{"ts": "2026-08-07T04:50:48Z", "round": 1, "evalId": "E1", "run_id": "anchors-camera-r1-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T04:50:49Z", "round": 1, "evalId": "E2", "run_id": "anchors-camera-r1-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T04:50:48Z", "round": 1, "evalId": "E3", "run_id": "anchors-camera-r1-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T04:50:48Z", "round": 1, "evalId": "E4", "run_id": "anchors-camera-r1-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T04:50:48Z", "round": 1, "evalId": "E5", "run_id": "anchors-camera-r1-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T04:51:09Z", "round": 1, "evalId": "E6", "run_id": "anchors-camera-r1-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T04:50:49Z", "round": 1, "evalId": "E7", "run_id": "anchors-camera-r1-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T04:51:09Z", "round": 1, "evalId": "E8", "run_id": "anchors-camera-r1-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T04:50:50Z", "round": 1, "evalId": "E9", "run_id": "anchors-camera-r1-render_frame-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/renderFrame.test.ts"}
+{"ts": "2026-08-07T04:51:09Z", "round": 1, "evalId": "E10", "run_id": "anchors-camera-r1-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T04:52:19Z", "round": 1, "evalId": "E11", "run_id": "anchors-camera-r1-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:49Z", "round": 1, "evalId": "E12", "run_id": "anchors-camera-r1-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 1, "evalId": "E13", "run_id": "anchors-camera-r1-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 1, "evalId": "E14", "run_id": "anchors-camera-r1-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 1, "evalId": "E15", "run_id": "anchors-camera-r1-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 1, "evalId": "E16", "run_id": "anchors-camera-r1-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 1, "evalId": "E17", "run_id": "anchors-camera-r1-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:49Z", "round": 1, "evalId": "E18", "run_id": "anchors-camera-r1-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T04:50:55Z", "round": 1, "evalId": "E19", "run_id": "anchors-camera-r1-text_free-20260807", "exit_code": 0, "cmd": "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts": "2026-08-07T04:48:51Z", "round": 1, "evalId": "E20", "run_id": "anchors-camera-r1-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T04:59:30Z", "round": 1, "evalId": "NEG-E8", "run_id": "anchors-camera-r1-negctrl-20260807", "exit_code": 0, "cmd": "npx playwright test --config=_acceptance/anchors-camera/negctrl/playwright.negctrl.config.ts"}
+{"ts": "2026-08-07T05:57:59Z", "round": 2, "evalId": "E1", "run_id": "anchors-camera-r2-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T05:58:12Z", "round": 2, "evalId": "E2", "run_id": "anchors-camera-r2-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T05:57:59Z", "round": 2, "evalId": "E3", "run_id": "anchors-camera-r2-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T05:57:59Z", "round": 2, "evalId": "E4", "run_id": "anchors-camera-r2-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T05:57:59Z", "round": 2, "evalId": "E5", "run_id": "anchors-camera-r2-anchors-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/anchors.test.ts"}
+{"ts": "2026-08-07T05:59:16Z", "round": 2, "evalId": "E6", "run_id": "anchors-camera-r2-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T05:58:12Z", "round": 2, "evalId": "E7", "run_id": "anchors-camera-r2-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T05:59:16Z", "round": 2, "evalId": "E8", "run_id": "anchors-camera-r2-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T05:58:36Z", "round": 2, "evalId": "NEG-E8", "run_id": "anchors-camera-r2-negctrl-20260807", "exit_code": 0, "cmd": "npx playwright test --config=_acceptance/anchors-camera/negctrl/playwright.negctrl.config.ts"}
+{"ts": "2026-08-07T05:57:59Z", "round": 2, "evalId": "E9", "run_id": "anchors-camera-r2-render_frame-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/renderFrame.test.ts"}
+{"ts": "2026-08-07T05:59:16Z", "round": 2, "evalId": "E10", "run_id": "anchors-camera-r2-e2e-20260807", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-07T05:55:15Z", "round": 2, "evalId": "E11", "run_id": "anchors-camera-r2-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T05:58:12Z", "round": 2, "evalId": "E12", "run_id": "anchors-camera-r2-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 2, "evalId": "E13", "run_id": "anchors-camera-r2-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:01Z", "round": 2, "evalId": "E14", "run_id": "anchors-camera-r2-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 2, "evalId": "E15", "run_id": "anchors-camera-r2-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 2, "evalId": "E16", "run_id": "anchors-camera-r2-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 2, "evalId": "E17", "run_id": "anchors-camera-r2-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:12Z", "round": 2, "evalId": "E18", "run_id": "anchors-camera-r2-anchors_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts": "2026-08-07T05:58:04Z", "round": 2, "evalId": "E19", "run_id": "anchors-camera-r2-text_free-20260807", "exit_code": 0, "cmd": "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts": "2026-08-07T05:57:55Z", "round": 2, "evalId": "E20", "run_id": "anchors-camera-r2-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E1","run_id":"anchors-camera-r3-e1-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E2","run_id":"anchors-camera-r3-e2-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E3","run_id":"anchors-camera-r3-e3-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E4","run_id":"anchors-camera-r3-e4-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E5","run_id":"anchors-camera-r3-e5-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E6","run_id":"anchors-camera-r3-e6-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E7","run_id":"anchors-camera-r3-e7-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E8","run_id":"anchors-camera-r3-e8-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E9","run_id":"anchors-camera-r3-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/renderFrame.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E10","run_id":"anchors-camera-r3-e10-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E11","run_id":"anchors-camera-r3-e11-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E12","run_id":"anchors-camera-r3-e12-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E13","run_id":"anchors-camera-r3-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E14","run_id":"anchors-camera-r3-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E15","run_id":"anchors-camera-r3-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E16","run_id":"anchors-camera-r3-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E17","run_id":"anchors-camera-r3-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E18","run_id":"anchors-camera-r3-e18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E19","run_id":"anchors-camera-r3-e19-20260807","exit_code":0,"cmd":"npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":3,"evalId":"E20","run_id":"anchors-camera-r3-e20-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T11:11:01Z","round":4,"evalId":"E1","run_id":"anchors-camera-r4-e1-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T11:11:21Z","round":4,"evalId":"E2","run_id":"anchors-camera-r4-e2-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T11:11:01Z","round":4,"evalId":"E3","run_id":"anchors-camera-r4-e3-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T11:11:01Z","round":4,"evalId":"E4","run_id":"anchors-camera-r4-e4-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T11:11:01Z","round":4,"evalId":"E5","run_id":"anchors-camera-r4-e5-20260807","exit_code":0,"cmd":"npx vitest run src/render/anchors.test.ts"}
+{"ts":"2026-08-07T11:12:20Z","round":4,"evalId":"E6","run_id":"anchors-camera-r4-e6-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T11:11:21Z","round":4,"evalId":"E7","run_id":"anchors-camera-r4-e7-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T11:12:20Z","round":4,"evalId":"E8","run_id":"anchors-camera-r4-e8-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T11:11:02Z","round":4,"evalId":"E9","run_id":"anchors-camera-r4-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/renderFrame.test.ts"}
+{"ts":"2026-08-07T11:12:20Z","round":4,"evalId":"E10","run_id":"anchors-camera-r4-e10-20260807","exit_code":0,"cmd":"npm run test:e2e"}
+{"ts":"2026-08-07T11:13:22Z","round":4,"evalId":"E11","run_id":"anchors-camera-r4-e11-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T11:11:21Z","round":4,"evalId":"E12","run_id":"anchors-camera-r4-e12-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":4,"evalId":"E13","run_id":"anchors-camera-r4-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":4,"evalId":"E14","run_id":"anchors-camera-r4-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":4,"evalId":"E15","run_id":"anchors-camera-r4-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":4,"evalId":"E16","run_id":"anchors-camera-r4-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":4,"evalId":"E17","run_id":"anchors-camera-r4-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:21Z","round":4,"evalId":"E18","run_id":"anchors-camera-r4-e18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"}
+{"ts":"2026-08-07T11:11:11Z","round":4,"evalId":"E19","run_id":"anchors-camera-r4-e19-20260807","exit_code":0,"cmd":"npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts":"2026-08-07T11:11:18Z","round":4,"evalId":"E20","run_id":"anchors-camera-r4-e20-20260807","exit_code":0,"cmd":"npm test"}
+{"ts": "2026-08-07T12:17:57Z", "round": 5, "evalId": "E1", "run_id": "anchors-camera-r5-e1-20260807", "exit_code": 0, "cmd": "test.anchors"}
+{"ts": "2026-08-07T12:18:05Z", "round": 5, "evalId": "E2", "run_id": "anchors-camera-r5-e2-20260807", "exit_code": 0, "cmd": "script.anchors_invariants"}
+{"ts": "2026-08-07T12:17:57Z", "round": 5, "evalId": "E3", "run_id": "anchors-camera-r5-e3-20260807", "exit_code": 0, "cmd": "test.anchors"}
+{"ts": "2026-08-07T12:17:57Z", "round": 5, "evalId": "E4", "run_id": "anchors-camera-r5-e4-20260807", "exit_code": 0, "cmd": "test.anchors"}
+{"ts": "2026-08-07T12:17:57Z", "round": 5, "evalId": "E5", "run_id": "anchors-camera-r5-e5-20260807", "exit_code": 0, "cmd": "test.anchors"}
+{"ts": "2026-08-07T12:19:20Z", "round": 5, "evalId": "E6", "run_id": "anchors-camera-r5-e6-20260807", "exit_code": 0, "cmd": "test.e2e"}
+{"ts": "2026-08-07T12:18:05Z", "round": 5, "evalId": "E7", "run_id": "anchors-camera-r5-e7-20260807", "exit_code": 0, "cmd": "script.anchors_invariants"}
+{"ts": "2026-08-07T12:19:20Z", "round": 5, "evalId": "E8", "run_id": "anchors-camera-r5-e8-20260807", "exit_code": 0, "cmd": "test.e2e"}
+{"ts": "2026-08-07T12:17:58Z", "round": 5, "evalId": "E9", "run_id": "anchors-camera-r5-e9-20260807", "exit_code": 0, "cmd": "test.render_frame"}
+{"ts": "2026-08-07T12:19:20Z", "round": 5, "evalId": "E10", "run_id": "anchors-camera-r5-e10-20260807", "exit_code": 0, "cmd": "test.e2e"}
+{"ts": "2026-08-07T12:21:00Z", "round": 5, "evalId": "E11", "run_id": "anchors-camera-r5-e11-20260807", "exit_code": 0, "cmd": "test.mcp"}
+{"ts": "2026-08-07T12:18:05Z", "round": 5, "evalId": "E12", "run_id": "anchors-camera-r5-e12-20260807", "exit_code": 0, "cmd": "script.anchors_invariants"}
+{"ts": "2026-08-07T12:17:40Z", "round": 5, "evalId": "E13", "run_id": "anchors-camera-r5-e13-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:38Z", "round": 5, "evalId": "E14", "run_id": "anchors-camera-r5-e14-20260807", "exit_code": 0, "cmd": "test.clip_http"}
+{"ts": "2026-08-07T12:17:51Z", "round": 5, "evalId": "E15", "run_id": "anchors-camera-r5-e15-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:40Z", "round": 5, "evalId": "E16", "run_id": "anchors-camera-r5-e16-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:40Z", "round": 5, "evalId": "E17", "run_id": "anchors-camera-r5-e17-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:18:05Z", "round": 5, "evalId": "E18", "run_id": "anchors-camera-r5-e18-20260807", "exit_code": 0, "cmd": "script.anchors_invariants"}
+{"ts": "2026-08-07T12:17:41Z", "round": 5, "evalId": "E19", "run_id": "anchors-camera-r5-e19-20260807", "exit_code": 0, "cmd": "test.text_free"}
+{"ts": "2026-08-07T12:16:34Z", "round": 5, "evalId": "E20", "run_id": "anchors-camera-r5-e20-20260807", "exit_code": 0, "cmd": "test.api"}

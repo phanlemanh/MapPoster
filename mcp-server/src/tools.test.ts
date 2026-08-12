@@ -31,15 +31,35 @@ vi.mock('./geocode', () => ({
   resolveCountryAt: vi.fn(async () => 'Vietnam'),
 }));
 
-import { makeTools, type ToolResult } from './tools';
+import { makeTools, resolvedOfClip, type ToolResult } from './tools';
+import { listFormats } from './resolveConfig';
 import * as geocode from './geocode';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 function fakePng(w: number, h: number): Buffer {
   const b = Buffer.alloc(30);
   b.writeUInt32BE(w, 16);
   b.writeUInt32BE(h, 20);
   return b;
+}
+
+/**
+ * Anchors mà một lần render clip thật sẽ trả về, DẪN XUẤT TỪ `cfg` chứ không
+ * phải hằng số: `zoom + 1` khiến `resolved.camera` không thể trùng `resolved.zoom`
+ * một cách tình cờ, nên một hiện thực echo lại `cfg.camera` (thay vì camera nghỉ
+ * mà renderer đo được) sẽ đỏ thay vì xanh nhầm.
+ */
+function fakeAnchors(cfg: RenderConfig): ClipAnchors {
+  return {
+    camera: { center: cfg.camera.center, zoom: cfg.camera.zoom + 1, bearing: 0, pitch: 0 },
+    points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 50, yPct: 50 + index, onScreen: true })),
+    regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
+      index,
+      bboxCenterPct: [50, 50] as [number, number],
+      bboxPct: [10, 20, 90, 80] as [number, number, number, number],
+    })),
+  };
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const textJson = (res: ToolResult) => JSON.parse((res.content.find((c: any) => c.type === 'text') as any).text);
@@ -78,10 +98,32 @@ describe('render_map', () => {
   it('renders and echoes resolved center/place (AC-1)', async () => {
     const res = await tools().render_map({ location: 'HCMC', format: 'tiktok' });
     const j = textJson(res);
+    // `j.image.*` đọc IHDR của CHÍNH buffer renderer trả về (delivery.ts:14),
+    // nhưng renderer giả sinh buffer từ `cfg.size` — vòng khép kín, nên riêng
+    // hai dòng này KHÔNG thể mâu thuẫn với thứ được yêu cầu. Mắt xích thật sự
+    // phân biệt được ở lane này là: `format` có dịch thành `cfg.size` mà
+    // renderer nhận hay không.
+    expect(lastCfg?.size).toEqual({ width: 1080, height: 1920 });
     expect(j.image.width).toBe(1080);
     expect(j.image.height).toBe(1920);
     expect(j.resolved.center).toEqual([106.7, 10.78]);
     expect(imageBlocks(res)).toHaveLength(1);
+  });
+
+  it('AC-1: kích thước trong phản hồi đọc từ PNG THẬT SỰ ra đời, không phải từ cái được YÊU CẦU', async () => {
+    // Mắt xích còn lại của AC-1. Renderer giả mặc định sinh buffer theo
+    // `cfg.size`, nên "yêu cầu 1080×1920 ⇒ phản hồi nói 1080×1920" là một vòng
+    // khép kín — nó đúng kể cả khi phản hồi chỉ echo lại request. Ở đây renderer
+    // CỐ Ý bất đồng: xin tiktok mà trả về một PNG 640×480. Phản hồi phải nói
+    // 640×480 (sự thật của ảnh), không phải 1080×1920 (điều đã hỏi).
+    const liar = vi.fn(async (cfg: RenderConfig) => {
+      lastCfg = cfg;
+      return fakePng(640, 480);
+    });
+    const j = textJson(await makeTools({ render: liar, sinkDir, defaultDelivery: 'both' }).render_map({ location: 'HCMC', format: 'tiktok' }));
+    expect(lastCfg?.size).toEqual({ width: 1080, height: 1920 }); // yêu cầu vẫn tới nơi
+    expect(j.image.width).toBe(640);
+    expect(j.image.height).toBe(480);
   });
 
   it('echoes the resolved theme and highlights, per the tool contract', async () => {
@@ -189,9 +231,19 @@ describe('routes + measure (PR #2)', () => {
 
 describe('render_variants', () => {
   it('renders one image per variant (AC-5)', async () => {
-    const res = await tools().render_variants({ base: { location: 'HCMC', format: 'tiktok' }, variants: [{ theme: 'ocean' }, { theme: 'ruby' }] });
-    expect(textJson(res).count).toBe(2);
-    expect(imageBlocks(res)).toHaveLength(2);
+    render.mockClear();
+    const res = await tools().render_variants({
+      base: { location: 'HCMC', format: 'tiktok' },
+      variants: [{ theme: 'ocean' }, { theme: 'ruby' }, { theme: 'midnight-blue' }],
+    });
+    expect(textJson(res).count).toBe(3);
+    expect(imageBlocks(res)).toHaveLength(3);
+    // "N vào ⇒ N ra" một mình không phân biệt được một hiện thực render đúng
+    // config base N lần rồi trả N bản sao. Mỗi variant phải mang CHÍNH ghi đè
+    // của nó xuống renderer, và ra tới `resolved` mà caller đọc.
+    expect(render).toHaveBeenCalledTimes(3);
+    expect(render.mock.calls.map(([cfg]) => cfg.theme)).toEqual(['ocean', 'ruby', 'midnight-blue']);
+    expect(textJson(res).results.map((r: { resolved: { theme: string } }) => r.resolved.theme)).toEqual(['ocean', 'ruby', 'midnight-blue']);
   });
 
   it('a variant cannot smuggle out-of-range values past the boundary guard (R2-MEDIUM)', async () => {
@@ -244,6 +296,34 @@ describe('discovery tools', () => {
     expect(Object.keys(themes[0].colors)).toContain('accent');
   });
 
+  it('MỖI theme trong 13 cái đều đủ id/name/dark và ĐÚNG 15 khoá bảng màu', async () => {
+    // Bản cũ chỉ soi `themes[0]`. Một hồi quy bỏ một khoá bảng màu ở CẢ 13
+    // theme vẫn xanh, và trường `name` mà AC-9 đòi thì không khẳng định nào
+    // chạm tới. "Mỗi cái" và "15 khoá" phải được canh gác đúng như đã hứa.
+    const { themes } = textJson(await tools().list_themes());
+    expect(themes).toHaveLength(13);
+
+    const KEYS = Object.keys(themes[0].colors).sort();
+    expect(KEYS).toHaveLength(15);
+
+    for (const t of themes as { id: string; name: string; dark: boolean; colors: Record<string, string> }[]) {
+      expect(typeof t.id, t.id).toBe('string');
+      expect(t.id.length, t.id).toBeGreaterThan(0);
+      expect(typeof t.name, t.id).toBe('string');
+      expect(t.name.length, t.id).toBeGreaterThan(0);
+      expect(typeof t.dark, t.id).toBe('boolean');
+      // CÙNG bộ khoá cho mọi theme: thiếu một khoá ở một theme là một bản đồ
+      // mất hẳn một lớp khi agent đổi tông, chứ không phải sai lệch thẩm mỹ.
+      expect(Object.keys(t.colors).sort(), t.id).toEqual(KEYS);
+      for (const [k, v] of Object.entries(t.colors)) {
+        expect(v, `${t.id}.${k}`).toMatch(/^#[0-9a-fA-F]{3,8}$/);
+      }
+    }
+    // và có cả theme sáng lẫn tối — `dark` không phải hằng số trá hình
+    const darks = new Set((themes as { dark: boolean }[]).map((t) => t.dark));
+    expect(darks).toEqual(new Set([true, false]));
+  });
+
   it('list_formats dedupes 4k and carries aspect/category/print', async () => {
     const { formats } = textJson(await tools().list_formats());
     expect(formats.filter((f: { name: string }) => f.name === '4k')).toHaveLength(1);
@@ -252,6 +332,106 @@ describe('discovery tools', () => {
     const a4 = formats.find((f: { name: string }) => f.name === 'a4');
     expect(a4.category).toBe('Print');
     expect(a4.print).toEqual({ w: 210, h: 297, unit: 'mm' });
+  });
+
+  it('MỖI mục formats có aspect + category, và `print` VẮNG MẶT hẳn ở layout không in', async () => {
+    // Nửa CÓ MẶT của `print` đã được canh (a4). Nửa còn lại — "key ABSENT, chứ
+    // không phải undefined" — chưa từng có khẳng định nào, mà đó mới là mệnh đề
+    // khó: JSON.stringify nuốt `undefined`, nên một hiện thực gán
+    // `print: undefined` cho mọi mục trông y hệt qua dây, và chỉ `in` phân biệt
+    // được hai thứ đó ở phía object.
+    const { formats } = textJson(await tools().list_formats());
+    expect(formats.length).toBeGreaterThan(0);
+
+    let printed = 0;
+    for (const f of formats as { name: string; aspect: string; category: string; print?: unknown }[]) {
+      expect(typeof f.aspect, f.name).toBe('string');
+      expect(f.aspect, f.name).toMatch(/^\d+:\d+$/);
+      expect(typeof f.category, f.name).toBe('string');
+      expect(f.category.length, f.name).toBeGreaterThan(0);
+
+      if (f.category === 'Print') {
+        printed++;
+        expect(f.print, f.name).toMatchObject({ unit: expect.stringMatching(/^(mm|in)$/) });
+      } else {
+        expect(f.print, f.name).toBeUndefined();
+      }
+    }
+    expect(printed).toBeGreaterThan(0); // có thật mục Print, không phải nhánh chết
+  });
+
+  it('`print` VẮNG MẶT hẳn khỏi object — đo TRƯỚC JSON, vì JSON nuốt undefined', async () => {
+    // Mệnh đề "key ABSENT, không phải undefined" KHÔNG đo được qua `textJson`:
+    // `JSON.stringify` bỏ hẳn mọi giá trị undefined, nên `{print: undefined}`
+    // và object không có khoá `print` ra dây y hệt nhau. Đo ở chính hàm dựng —
+    // đó là nơi khác biệt còn tồn tại, và là nơi mọi consumer trong tiến trình
+    // nhìn thấy nó.
+    const formats = listFormats();
+    let absent = 0;
+    let present = 0;
+    for (const f of formats) {
+      if (f.category === 'Print') {
+        expect(Object.hasOwn(f, 'print'), f.name).toBe(true);
+        present++;
+      } else {
+        // `toBeUndefined()` ở đây sẽ xanh cả với `print: undefined` — chính là
+        // thứ phải loại trừ. Chỉ `hasOwn` phân biệt được.
+        expect(Object.hasOwn(f, 'print'), f.name).toBe(false);
+        absent++;
+      }
+    }
+    expect(present).toBeGreaterThan(0);
+    expect(absent).toBeGreaterThan(0);
+  });
+
+  it('MỌI mục — cả 21 — có aspect và category ĐÚNG GIÁ TRỊ THẬT, không chỉ đúng kiểu', async () => {
+    // Vòng lặp ở ca trên chỉ soi HÌNH DẠNG (`aspect` khớp /\d+:\d+/, `category`
+    // là chuỗi khác rỗng). Một hiện thực gán `aspect: '1:1'` cho tất cả, hoặc
+    // dán `category: 'Video'` lên toàn bảng — đúng cái bug Finding 4 — vẫn qua
+    // được vòng lặp đó. AC-10 hứa "đúng loại THẬT của nó", nên bảng dưới đây
+    // ghim từng mục một, và đối chiếu HAI CHIỀU: không mục nào của hiện thực
+    // thiếu trong bảng, không dòng nào của bảng biến mất khỏi hiện thực.
+    const EXPECTED: Record<string, { aspect: string; category: string }> = {
+      tiktok: { aspect: '9:16', category: 'Video' },
+      story: { aspect: '9:16', category: 'Social' },
+      square: { aspect: '1:1', category: 'Social' },
+      landscape: { aspect: '16:9', category: 'Video' },
+      portrait: { aspect: '4:5', category: 'Social' },
+      // '4k' thắng va chạm tên với LAYOUTS — category phải là của mục nó nuốt
+      '4k': { aspect: '16:9', category: 'Wallpaper' },
+      a3: { aspect: '437:620', category: 'Print' },
+      a4: { aspect: '620:877', category: 'Print' },
+      a5: { aspect: '437:620', category: 'Print' },
+      letter: { aspect: '17:22', category: 'Print' },
+      'ig-square': { aspect: '1:1', category: 'Social' },
+      'ig-story': { aspect: '9:16', category: 'Social' },
+      linkedin: { aspect: '4:5', category: 'Social' },
+      pinterest: { aspect: '2:3', category: 'Social' },
+      fhd: { aspect: '16:9', category: 'Wallpaper' },
+      ultrawide: { aspect: '43:18', category: 'Wallpaper' },
+      iphone: { aspect: '131:284', category: 'Wallpaper' },
+      ipad: { aspect: '139:199', category: 'Wallpaper' },
+      'web-wide': { aspect: '16:9', category: 'Web' },
+      'web-banner': { aspect: '40:21', category: 'Web' },
+      'web-portrait': { aspect: '4:5', category: 'Web' },
+    };
+
+    const { formats } = textJson(await tools().list_formats());
+    const seen = new Set<string>();
+    for (const f of formats as { name: string; width: number; height: number; aspect: string; category: string }[]) {
+      expect(EXPECTED[f.name], `mục '${f.name}' không có trong bảng ghim — thêm mục mới phải ghim luôn aspect/category`).toBeDefined();
+      expect({ aspect: f.aspect, category: f.category }, f.name).toEqual(EXPECTED[f.name]);
+      seen.add(f.name);
+    }
+    expect([...seen].sort()).toEqual(Object.keys(EXPECTED).sort());
+
+    // và `aspect` phải là tỉ số RÚT GỌN của chính width/height mục đó — nếu
+    // bảng trên và hiện thực cùng trôi khỏi kích thước thật thì dòng này bắt.
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    for (const f of formats as { name: string; width: number; height: number; aspect: string }[]) {
+      const g = gcd(f.width, f.height);
+      expect(f.aspect, f.name).toBe(`${f.width / g}:${f.height / g}`);
+    }
   });
 
   it('gives every FORMATS entry its own correct category, not a blanket Video (Finding 4)', async () => {
@@ -276,12 +456,50 @@ describe('discovery tools', () => {
 
 describe('list_fonts (PR #3)', () => {
   it('exposes every font render_map accepts, with its typographic metadata', async () => {
+    // MỌI mục, không phải `fonts[0]`: bản cũ chỉ soi mục đầu, nên một mục thứ
+    // tư thiếu hẳn `titleWeight` vẫn xanh. Đi theo đúng tiền lệ của
+    // `list_themes` ngay phía trên — vòng lặp qua cả 13 theme.
+    // `titleTracking` được AC-10 gọi tên nhưng trước đây KHÔNG khẳng định nào
+    // trong kho chạm tới; nó vào vòng lặp này cùng bốn trường kia.
     const { fonts } = textJson(await tools().list_fonts());
     expect(fonts).toHaveLength(6);
     expect(fonts[0]).toMatchObject({ key: 'Space Grotesk' });
-    expect(typeof fonts[0].stack).toBe('string');
-    expect(typeof fonts[0].titleWeight).toBe('number');
-    expect(typeof fonts[0].uppercaseTitle).toBe('boolean');
+
+    const keys = new Set<string>();
+    for (const f of fonts as { key: string; stack: string; titleWeight: number; titleTracking: number; uppercaseTitle: boolean }[]) {
+      expect(typeof f.key, f.key).toBe('string');
+      expect(f.key.length, f.key).toBeGreaterThan(0);
+      expect(keys.has(f.key), `trùng key ${f.key}`).toBe(false);
+      keys.add(f.key);
+
+      // stack phải nói về CHÍNH phông đó — một stack chép chung cho cả sáu mục
+      // (lỗi copy-paste kinh điển của bảng này) bị bắt ở đây.
+      expect(typeof f.stack, f.key).toBe('string');
+      expect(f.stack, f.key).toContain(f.key);
+      expect(f.stack, f.key).toMatch(/,\s*(sans-serif|serif|monospace)$/);
+
+      // titleWeight là trọng lượng CSS thật, không phải một số bất kỳ
+      expect(typeof f.titleWeight, f.key).toBe('number');
+      expect(Number.isInteger(f.titleWeight), f.key).toBe(true);
+      expect(f.titleWeight, f.key).toBeGreaterThanOrEqual(100);
+      expect(f.titleWeight, f.key).toBeLessThanOrEqual(900);
+
+      // titleTracking: em, không phải px — dải hẹp quanh 0 phân biệt hai đơn vị
+      expect(typeof f.titleTracking, f.key).toBe('number');
+      expect(Number.isFinite(f.titleTracking), f.key).toBe(true);
+      expect(f.titleTracking, f.key).toBeGreaterThanOrEqual(0);
+      expect(f.titleTracking, f.key).toBeLessThanOrEqual(0.2);
+
+      expect(typeof f.uppercaseTitle, f.key).toBe('boolean');
+    }
+
+    // và ba trường biến thiên KHÔNG phải hằng số trá hình: nếu cả sáu mục cùng
+    // một giá trị thì bảng này không mang thông tin nào cho agent.
+    const distinct = (pick: (f: { titleWeight: number; titleTracking: number; uppercaseTitle: boolean }) => unknown) =>
+      new Set((fonts as { titleWeight: number; titleTracking: number; uppercaseTitle: boolean }[]).map(pick)).size;
+    expect(distinct((f) => f.titleWeight)).toBeGreaterThan(1);
+    expect(distinct((f) => f.titleTracking)).toBeGreaterThan(1);
+    expect(distinct((f) => f.uppercaseTitle)).toBe(2); // có cả true lẫn false
   });
 
   it('lists ONLY names render_map actually accepts — a listed-but-rejected font is a trap', async () => {
@@ -412,6 +630,11 @@ describe('compile_motion (PR #3)', () => {
     expect(j.fps).toBe(j.script.fps);
     expect(j.durationSec).toBe(j.script.durationSec);
     expect(j.frames).toBe(Math.round(j.script.durationSec * j.script.fps));
+    // AC-1 liệt kê `restAtSec` giữa các trường của response, nhưng trước đây
+    // KHÔNG khẳng định nào chạm nó — chuỗi `restAtSec` gần đây chỉ là trường
+    // ĐẦU VÀO của request. Bỏ nó khỏi response thì cả khối vẫn xanh.
+    expect(typeof j.restAtSec).toBe('number');
+    expect(j.restAtSec).toBe(j.script.restAtSec);
     expect(j.preset).toBe('pushIn');
     expect(j.resolved.center).toBeDefined();
     // Toàn bộ lý do tool này tồn tại:
@@ -428,7 +651,55 @@ describe('compile_motion (PR #3)', () => {
     const j = textJson(await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } }));
     expect(j.script.fps).toBe(12);
     expect(j.frames).toBe(48);
+    // Hằng số cứng, KHÔNG phải `j.script.restAtSec`: một hiện thực echo nhầm
+    // `durationSec` (4) hay `fps` vào chỗ này vẫn bằng chính nó, nên chỉ con số
+    // caller đưa vào mới phân biệt được.
+    expect(j.restAtSec).toBe(2.8);
     expect(j.preset).toBeUndefined();
+  });
+
+  it('TỪ CHỐI script thô sai khuôn — không echo lại thứ caller đưa vào', async () => {
+    // AC-3 nói script thô "được validate", nhưng ca trên chỉ đưa vào một script
+    // HỢP LỆ rồi đọc lại nó: một hiện thực bỏ hẳn bước validate và echo nguyên
+    // xi input vẫn xanh. Nửa còn thiếu là nửa TỪ CHỐI, và nó phải nằm ở chính
+    // `compile_motion` — ca duy nhất chứng minh được validate hiện sống ở
+    // `render_clip`, một tool khác, nên không chạm tới đường mã AC-3 nói tới.
+    // BA NHÁNH KIỂM, không phải ba ca cùng một nhánh. Đo bằng constructor của
+    // lỗi ném ra: `fps 999` và `camera rỗng` CÙNG chết ở `motionScriptSchema
+    // .parse` (cả hai ra ZodError) — chúng là hai ca của MỘT nhánh, nên hai ca
+    // đó một mình không chứng minh được các chốt viết tay phía sau còn sống.
+    // Hai ca dưới đây là hai nhánh viết tay KHÁC nhau, mỗi cái ném Error thường
+    // với tiền tố luật riêng (motionScript.ts:105 và :116).
+    const bad: [string, Record<string, unknown>, RegExp][] = [
+      // Nhánh 1 — Zod: fps 999 vi phạm motionScriptSchema
+      // (z.number().int().min(12).max(30)), ném ZodError THÔ phải được
+      // prettify thành câu đọc được.
+      ['fps ngoài dải (Zod)', { fps: 999, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }], tracks: [] }, /fps/i],
+      // Nhánh 1, ca thứ hai — camera rỗng cũng là Zod (`z.array(keyframe).min(1)`),
+      // KHÔNG phải một nhánh riêng. Giữ vì nó khoá đúng bound `.min(1)`.
+      ['camera rỗng (cùng nhánh Zod)', { fps: 12, durationSec: 6, restAtSec: 4, camera: [], tracks: [] }, /camera/i],
+      // Nhánh 2 — bất biến R viết tay: restAtSec > 0.72×durationSec.
+      ['restAtSec quá muộn (bất biến R)', { fps: 12, durationSec: 6, restAtSec: 5.9, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 5.9, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /^R:/],
+      // Nhánh 3 — bất biến O viết tay: keyframe cuối nằm SAU restAtSec, tức
+      // camera còn đang bay khi clip đáng lẽ đã đứng yên. Script này qua được
+      // Zod trót lọt VÀ qua được luật R, nên nó là ca duy nhất trong bộ chạm
+      // tới nhánh thứ ba.
+      ['keyframe cuối sau restAtSec (bất biến O)', { fps: 12, durationSec: 6, restAtSec: 4, camera: [{ t: 0, center: [105.85, 21.02], zoom: 12 }, { t: 4.5, center: [105.85, 21.02], zoom: 14 }], tracks: [] }, /^O:/],
+    ];
+
+    for (const [label, script, msg] of bad) {
+      const res = await dryTools().compile_motion({ location: { lng: 105.85, lat: 21.02 }, motion: { script } } as never);
+      expect(res.isError, label).toBe(true);
+      const j = textJson(res);
+      // KHÔNG có script trong phản hồi: "từ chối" mà vẫn kèm script là
+      // nhận-rồi-vứt, đúng thứ hợp đồng này từ chối ở mọi chỗ khác.
+      expect(j.script, label).toBeUndefined();
+      expect(typeof j.error, label).toBe('string');
+      expect(j.error, label).toMatch(msg);
+      // và câu lỗi là văn xuôi đọc được, không phải mảng issue của Zod
+      expect(j.error.startsWith('['), label).toBe(false);
+      expect(j.error, label).not.toContain('"code":"invalid_type"');
+    }
   });
 
   it('reports a preset that cannot compile as an error, not an empty script', async () => {
@@ -457,6 +728,41 @@ describe('compile_motion (PR #3)', () => {
   });
 });
 
+describe('resolvedOfClip — ĐÚNG MỘT trong hai (PR #6)', () => {
+  const cfg = {
+    camera: { center: [106.7, 10.78] as [number, number], zoom: 12 },
+    size: { width: 320, height: 568 },
+    theme: 'midnight-blue',
+    chrome: 'clean' as const,
+    place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+    markers: [{ lng: 106.7, lat: 10.78, icon: 'pin' as const, color: '#f43f5e', size: 32 }],
+  };
+
+  it('có anchors ⇒ phát camera + anchors, KHÔNG phát anchorsUnavailable', () => {
+    const r = resolvedOfClip(cfg, { anchors: fakeAnchors(cfg) }) as Record<string, unknown>;
+    expect(r.camera).toEqual({ center: [106.7, 10.78], zoom: 13, bearing: 0, pitch: 0 });
+    expect(r.anchors).toBeDefined();
+    expect('anchorsUnavailable' in r).toBe(false);
+  });
+
+  it('không đo được ⇒ phát anchorsUnavailable, KHÔNG phát anchors lẫn camera', () => {
+    const r = resolvedOfClip(cfg, { anchorsUnavailable: 'camera.pitch is 30 — anchors require pitch 0.' }) as Record<string, unknown>;
+    expect(r.anchorsUnavailable).toMatch(/pitch/);
+    expect('anchors' in r).toBe(false);
+    // camera đi cùng anchors: nó là số đo của cùng một lần đọc, không phải
+    // echo lại cfg.camera. Không đo được thì cũng không có camera nghỉ.
+    expect('camera' in r).toBe(false);
+  });
+
+  it('không nhánh nào phát ra CẢ HAI hay KHÔNG GÌ CẢ', () => {
+    const outcomes = [{ anchors: fakeAnchors(cfg) }, { anchorsUnavailable: 'lý do bất kỳ' }];
+    for (const o of outcomes) {
+      const r = resolvedOfClip(cfg, o) as Record<string, unknown>;
+      expect(('anchors' in r) !== ('anchorsUnavailable' in r), JSON.stringify(o).slice(0, 40)).toBe(true);
+    }
+  });
+});
+
 describe('render_clip', () => {
   const point = { highlight: { points: [{ lng: 106.7, lat: 10.78 }] } };
   const region = { highlight: { regions: ['District 1'] } };
@@ -466,6 +772,7 @@ describe('render_clip', () => {
     return {
       frames: [fakePng(cfg.size.width, cfg.size.height), fakePng(cfg.size.width, cfg.size.height)],
       settle: fakePng(cfg.size.width, cfg.size.height),
+      anchors: fakeAnchors(cfg),
     };
   });
   const encodeAnimation = vi.fn(async (_frames: Buffer[], opts: { fps: number; format: 'gif' | 'mp4'; outPath: string; gifWidth?: number }) => {
@@ -495,6 +802,102 @@ describe('render_clip', () => {
 
     expect(typeof j.settle.path).toBe('string');
     await expect(fs.access(j.settle.path)).resolves.toBeUndefined();
+  });
+
+  it('resolved echoes camera + anchors ĐO ĐƯỢC từ lần render này, không phải cfg.camera (PR #6)', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } });
+    const j = textJson(res);
+
+    expect(j.resolved.camera).toEqual({ center: lastCfg!.camera.center, zoom: lastCfg!.camera.zoom + 1, bearing: 0, pitch: 0 });
+    // Nửa should-NOT: nếu ai đó echo `cfg.camera` cho tiện thì hai con số này
+    // trùng nhau và bất biến "camera là camera NGHỈ" chết lặng lẽ.
+    expect(j.resolved.camera.zoom).not.toBe(j.resolved.zoom);
+
+    expect(j.resolved.anchors.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 50, yPct: 50, onScreen: true }]);
+    expect(j.resolved.anchors.regions).toEqual([]);
+    // anchors KHÔNG được nuốt phần resolved cũ
+    expect(j.resolved.place).toBeDefined();
+    expect(j.resolved.highlights.points).toHaveLength(1);
+  });
+
+  it('renderer không đo được anchors ⇒ resolved mang anchorsUnavailable trên MỌI lối ra, không im lặng bỏ trống', async () => {
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    const tiltedClip = vi.fn(async (cfg: RenderConfig) => {
+      lastCfg = cfg;
+      return {
+        frames: [fakePng(cfg.size.width, cfg.size.height)],
+        settle: fakePng(cfg.size.width, cfg.size.height),
+        anchorsUnavailable: REASON,
+      };
+    });
+
+    const okJson = textJson(
+      await makeTools({ render, renderClip: tiltedClip, encodeAnimation, sinkDir, defaultDelivery: 'both' }).render_clip({
+        location: 'HCMC',
+        ...point,
+        motion: { preset: 'pushIn' },
+      }),
+    );
+    // Clip vẫn ra đời — pitch không làm hỏng clip, chỉ làm anchors mất nghĩa.
+    expect(typeof okJson.clip.path).toBe('string');
+    expect(okJson.resolved.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in okJson.resolved).toBe(false);
+    expect('camera' in okJson.resolved).toBe(false);
+
+    const degraded = textJson(
+      await makeTools({
+        render,
+        renderClip: tiltedClip,
+        encodeAnimation: vi.fn(async () => {
+          throw new Error('ffmpeg boom');
+        }),
+        sinkDir,
+        defaultDelivery: 'both',
+      }).render_clip({ location: 'HCMC', ...point, motion: { preset: 'pushIn' } }),
+    );
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in degraded.resolved).toBe(false);
+  });
+
+  it('resolved.anchors.regions theo đúng thứ tự cfg.highlight.regions', async () => {
+    const res = await clipTools().render_clip({ location: 'HCMC', ...region, motion: { preset: 'approach' } });
+    const j = textJson(res);
+    expect(j.resolved.anchors.regions).toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+  });
+
+  it('degrade (encode hỏng) và từ chối quá cỡ VẪN mang camera + anchors — chúng đã đo xong rồi', async () => {
+    const crashingEncode = vi.fn(async () => {
+      throw new Error('ffmpeg boom');
+    });
+    const degraded = textJson(
+      await makeTools({ render, renderClip, encodeAnimation: crashingEncode, sinkDir, defaultDelivery: 'both' }).render_clip({
+        location: 'HCMC',
+        ...point,
+        motion: { preset: 'pushIn' },
+      }),
+    );
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved.camera.zoom).toBe(lastCfg!.camera.zoom + 1);
+    expect(degraded.resolved.anchors.points).toHaveLength(1);
+
+    const prevCap = process.env.MAPPOSTER_CLIP_MAX_BYTES;
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '2';
+    try {
+      const oversize = textJson(
+        await makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' }).render_clip({
+          location: 'HCMC',
+          ...point,
+          motion: { preset: 'pushIn' },
+        }),
+      );
+      expect(oversize.ok).toBe(false);
+      expect(oversize.resolved.camera.zoom).toBe(lastCfg!.camera.zoom + 1);
+      expect(oversize.resolved.anchors.points).toHaveLength(1);
+    } finally {
+      if (prevCap === undefined) delete process.env.MAPPOSTER_CLIP_MAX_BYTES;
+      else process.env.MAPPOSTER_CLIP_MAX_BYTES = prevCap;
+    }
   });
 
   it('motion.restAtSec is 3.9 for pushIn', async () => {
@@ -652,6 +1055,7 @@ describe('cost metadata (PR #3)', () => {
   const costRenderClip = vi.fn(async (cfg: RenderConfig) => ({
     frames: Array.from({ length: FRAMES }, () => fakePng(cfg.size.width, cfg.size.height)),
     settle: fakePng(cfg.size.width, cfg.size.height),
+    anchors: fakeAnchors(cfg),
   }));
   const costEncode = vi.fn(async (_f: Buffer[], opts: { outPath: string }) => {
     await fs.writeFile(opts.outPath, Buffer.from('mp4!'));
@@ -716,7 +1120,7 @@ describe('render_clip concurrency gate (Decision 2)', () => {
     });
     const renderClip = vi.fn(async (cfg: RenderConfig) => {
       await gate;
-      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height) };
+      return { frames: [fakePng(cfg.size.width, cfg.size.height)], settle: fakePng(cfg.size.width, cfg.size.height), anchors: fakeAnchors(cfg) };
     });
     const gatedTools = () => makeTools({ render, renderClip, encodeAnimation, sinkDir, defaultDelivery: 'both' });
 

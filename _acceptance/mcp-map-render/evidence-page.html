@@ -31,7 +31,7 @@ ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}u
 </style></head><body><div class="wrap">
 <h1>MCP map-render service (Phase 1 — still images) for AI agents</h1><div class="sub">Trang bằng chứng · <span class="mono">mcp-map-render</span> · tier T3</div>
 <div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
-<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>manh 2026-08-06</b></span><span>enforcement: <b>strict</b></span></div></div>
+<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>(rỗng — Cổng 2 chờ người ký)</b></span><span>enforcement: <b>strict</b></span></div></div>
 <h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
 <tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-map-render-E1-20260806r19</td><td class="mono">2026-08-06T16:34:13Z</td></tr>
 <tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-map-render-E1-20260806r19</td><td class="mono">2026-08-06T16:34:13Z</td></tr>
@@ -114,7 +114,7 @@ assertions present and green.</pre>
 <div class="card eval" id="E12"><h3><span class="badge neutral">PASS (JUDGE) — AWAITING MANDATORY T3 `HUMAN_OVERRIDE`</span> &nbsp;E12 · judgment</h3><p class="crit">AC-12: Given the real example — `location:&quot;Võ Văn Tần, Quận 3, HCMC&quot;`, `format:&quot;tiktok&quot;`, `theme:&quot;midnight-blue&quot;`, point highlight — When rendered, Then the image is usable as video B-roll: the location is correctly centered, the highlight is legible, and tiles/roads render without breakage.</p>
 <div class="kv"><span>judged_by <b>judge-subagent (fresh context, blind)</b></span></div>
 <p class="note"><b>Phán đoán:</b> Ảnh 1080×1920 đúng khung tiktok, nền navy với đường phố vàng cam đặc trưng midnight-blue; lưới đường và khối nhà liền mạch, không ô tile trống/vỡ hay răng cưa. Ghim trắng nằm gần chính giữa khung (≈540/1080 ngang, 910/1920 dọc — lệch nhẹ ~50px) và tương phản rõ trên nền tối. Đủ cả ba yêu cầu của AC-12: căn giữa, highlight rõ, tile/đường không vỡ.</p>
-<div class="ov ovok">human_override: manh 2026-08-06 — XÁC NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên (&#39;tự lái, không cần hỏi, cho đến khi hoàn tất&#39;) — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù xem ảnh: 1080×1920 đúng khung tiktok, ghim gần tâm (≈540/1080, 910/1920), tile và lưới đường không vỡ. E10 ui-check vòng này đã chạy lại thật qua Playwright, không còn mang sang như hai vòng trước.</div>
+<div class="ov">human_override: <i>(RỖNG — chờ người ký ở Cổng 2)</i>. Chữ ký từng hiện ở ô này do agent tự điền theo &#39;uỷ quyền đứng&#39; chứ không phải người ký trực tiếp, và đã bị RÚT (xem <code>33ae60b</code> cho tiền lệ): agent không ký thay người. Phán quyết PASS ở trên là của giám khảo mù, mang tính tham khảo.</div>
 </div>
 <h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values (`green` for E1-E9, E11) are carried forward unchanged from Round 17 per the re-
 verification (not new-feature) instruction — this round did not recompute the pre-feature diffBase for

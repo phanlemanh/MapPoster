@@ -3,24 +3,150 @@ schema_version: 2
 feature_slug: map-motion-clip
 verdict: PENDING-JUDGMENT
 failed_evals: []
-reason: 
+reason: "E12 nay đi qua đúng mắt xích chrome→showText: test gọi applyRenderConfig rồi đọc store, và đổi hằng thành showText = true làm lane đỏ. E16/E17 giữ PENDING-JUDGMENT, human_override để trống."
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 637ae403b478e6722ed8d37410426ac0d34e0657
+verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
 human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
 
-_Round 11 — merge của `main` vào nhánh này ở `637ae403b478e6722ed8d37410426ac0d34e0657`, mang theo ba file ngoài phạm vi gate trên nền `535ee8e` (verified_commit của Round 10): `src/lib/format.ts` sửa lỗi `slugify` — Đ/đ (U+0110/U+0111) và cặp nhìn giống hệt Ð/ð (U+00D0/U+00F0) trước đây bị NFKD+lọc-diacritic XOÁ HẲN thay vì phiên âm ra `d` (`'Đà Nẵng'` → `'a-nang'` sai); giờ hai `.replace()` chạy TRƯỚC `.normalize('NFKD')` để chuyển tự tay. Kèm hai test file khoá hành vi đó: `src/lib/format.test.ts` (+3 `it` mới: transliterate Đ/đ, transliterate Ð/ð, giữ tên Đ-khác-A tách biệt) và `mcp-server/src/jobRunner.test.ts` (+1 dòng `expect(path.basename(written)).toContain('dak-lak')` chèn vào test dọn-file AC-12 sẵn có)._
+## Vòng 14 — E12 đã đi qua mắt xích chrome→showText
 
-_`slugify()` nuôi ba nơi dựng tên tệp: `src/lib/export.ts:246`, `mcp-server/src/tools.ts:59`, `mcp-server/src/jobRunner.ts:76` — xác nhận bằng `grep -rn slugify` toàn repo, không còn nơi thứ tư. `src/lib/export.ts` NẰM trong `risk_tiers.t3_paths` (đúng lý do hợp đồng này là T3), và eval `text_free` (E12) chạy `src/lib/export.test.ts` — nhưng đọc thẳng file đó: nó chỉ khoá `ATTRIBUTION_TEXT`/`drawAttribution`/không-symbol-layer-thừa (AC-9), không một dòng nào gọi `slugify` hay assert tên tệp/`baseName`. Vậy sửa lỗi Đ/đ này KHÔNG chạm assertion nào trong 17 eval id của hợp đồng — dù cùng nằm trong file mà `export.ts` import `slugify` từ đó, và dù `export.ts` tự nó thuộc t3_paths. Hai test mới khoá hành vi (`format.test.ts`, `jobRunner.test.ts`) đều nằm NGOÀI danh sách cmd của E1-E17; không có executor nào bị ghim lại vì diff này._
+Ghim ở `ace12a0`. Cả 15 eval máy chạy lại tươi, **15/15 thoát 0**: `motionScript.test.ts` 17 ·
+sweep miền in `combinations: 2652 (3×4×221)`, `violations: 0` · `motionCompiler.test.ts` 34 ·
+`motionMath.test.ts` 16 · `test:mcp` 15 · `http.test.ts` 62 · `tools.test.ts` 65 ·
+`export/mapStyle` 20 · lane `clip_backpressure` 76. **E16/E17 (judgment, T3) giữ PENDING-JUDGMENT,
+`human_override` để TRỐNG** — luật T3 đòi phán quyết NGƯỜI trực tiếp; vòng máy không ký thay.
 
-_Toàn bộ 15 eval máy (E1-E15) được CHẠY LẠI THẬT từ đầu, không ghim suông một cái nào — kể cả `compiler_domain_sweep` (2652 tổ hợp, 0 vi phạm, khớp mọi vòng trước) và `test:mcp` (Chromium thật qua `MCP_INTEGRATION=1`, 46.06s, 7/7 pass). Không eval nào regress. `npm test` full = **499 passed | 7 skipped (506)**, khớp CHÍNH XÁC con số kỳ vọng nêu trong nhiệm vụ vòng này. Đây vẫn là 499 chứ không phải 501 vì `535ee8e` (đã nằm trong cây này từ Round 10) xoá hai test `centroidOf` — giải trình đầy đủ ở đoạn Round 10 bên dưới, không đổi ở vòng này. Diff riêng của vòng 11 chỉ CỘNG test (+3 ở `format.test.ts`, +0 test mới ở `jobRunner.test.ts` — chỉ thêm một `expect` vào test đã có), không xoá test nào, nên không có phần đối chiếu tăng/giảm nào khác cần giải trình ngoài con số đã khớp._
+**E12 — mắt xích `chrome:'clean' → showText false` nay NẰM TRONG lane.** Vòng 13 trượt vì `expected`
+gắn điều kiện `chrome:'clean'` cho lane `text_free` trong khi chuỗi `chrome` không xuất hiện trong bất
+kỳ khẳng định nào của lane đó: test tự khai `text.show = false` bằng tay, còn mắt xích thật sống ở
+`applyRenderConfig.ts:24` và không eval nào của hợp đồng này chạy nó. `1797425` viết lại
+`src/lib/export.test.ts`: test nay GỌI `applyRenderConfig(posterCfg('clean'))` rồi đọc store đúng như
+`textFromStore()` của trang render. Kiểm chứng bằng đúng đột biến `expected` khai:
 
-_Verdict vòng này là **PENDING-JUDGMENT**, KHÔNG PHẢI vì có eval máy nào đỏ (không có — cả 15/15 xanh), mà vì chính sách repo `be57c21`/PR #25 hôm nay rút lại MỌI giá trị `human_signoff`/`human_override` do agent viết hoặc mang forward — "KE CA khi duoc bao tu lai". Hai mục judgment E16/E17 từng có `human_override` ở Round 10 ("manh 2026-08-07 — XAC NHAN/CHAP NHAN — ap theo uy quyen dung... KHONG phai nguoi ky truc tiep xem tung muc") — tự dòng chữ đó đã thú nhận không phải người ký trực tiếp xem, đúng loại giá trị chính sách hôm nay cấm mang sang. Nên vòng này: rationale gốc của giám khảo (judge-subagent, blind) được GIỮ NGUYÊN VĂN bên dưới có tiền tố rõ đây là lời giám khảo từ vòng trước; verdict của cả hai mục hạ về `UNCERTAIN`; `human_override` để TRẮNG; mỗi mục thêm một dòng `required_evidence` nêu đúng MỘT thứ cụ thể người ký cần tự tay kiểm — E16: xem `E16-clip.mp4`; E17: đọc spec §2.3 đối chiếu hai test khoá `ATTRIBUTION_TEXT`. Không có eval nào bị coi là fail vì việc này — đây là PENDING-JUDGMENT, không phải REJECT._
+    src/render/applyRenderConfig.ts:24
+      const showText = cfg.chrome !== 'clean';   ->   const showText = true;
+    $ npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts   -> exit 1
+    FAIL  chrome:'clean' ⇒ chữ DUY NHẤT lên canvas là attribution — đi qua đúng mắt xích chrome→showText
+    AssertionError: chrome clean phải tắt chữ poster: expected true to be false
 
+Đây là bất biến nền của cả kiến trúc (chữ không được nướng vào pixel), nên nó phải đỏ được từ chính
+hằng số quyết định — nay đúng vậy.
+
+**Đối chứng chống 'canvas câm' cũng có mặt** (`export.test.ts:90`): cùng đường đi với `chrome:'poster'`
+phải vẽ THÊM chữ (`textCalls.length > 1`, có `'Hanoi'`), nên ca `'clean'` không thể xanh chỉ vì không
+lệnh vẽ nào chạy. Nửa `buildMapStyle` cũng còn nguyên: 0 symbol layer khi `roadLabels` off
+(`mapStyle.test.ts:42`) và đúng `road-label-major` khi on (`:49`). Lane đi 19 → **20** ca.
+
+`verified_commit` cập nhật lên `ace12a0` (`git merge-base --is-ancestor ace12a0 HEAD` trả 0 — ở đây nó CHÍNH LÀ HEAD). `human_signoff` để RỖNG — Cổng 2 chờ người ký.
+
+
+## Vòng 13 — E3/E5/E15 đã vá đúng; lộ ra E12
+
+Ghim ở `d84857a` (tổ tiên của HEAD). Cả 15 eval máy chạy lại tươi, **15/15 thoát 0**:
+`motionScript.test.ts` 17 · sweep miền in `combinations: 2652 (3×4×221)` · `motionCompiler.test.ts`
+34 · `motionMath.test.ts` 16 · `test:mcp` 13 · `http.test.ts` 61 · `tools.test.ts` 65 ·
+`export/mapStyle` 19 · lane `clip_backpressure` (http + browserPool) 75. Hai `t3_path` của E12 vẫn 0
+dòng đổi. **E16/E17 (judgment, T3) giữ PENDING-JUDGMENT, `human_override` để trống** — luật T3 đòi
+phán quyết NGƯỜI trực tiếp trên đúng cây mã này; vòng máy không được ký thay.
+
+**Ba eval bị REJECT vòng 11 nay đúng.** E3: ca test nay là `from: 4.5` (> `restAtSec` 4.2) — đúng
+mệnh đề "pulse BẮT ĐẦU sau restAtSec", cùng cặp `5.999` đạt / `6` ném `L:`. E5: hai con số đã khớp
+tệp (`it.each([1, 22])` cho pushIn, bốn ca kinh độ ÂM). E15: lane đã tách làm hai tệp
+(`clip_backpressure` = `http.test.ts` + `browserPool.test.ts`), nên nửa `pool.acquire` có deadline
+nay thật sự nằm trong lane của chính nó (`browserPool.test.ts:135-161`).
+
+### E12 TRƯỢT — điều kiện `chrome:'clean'` không có mặt trong lane
+
+`expected` viết: *"với `chrome:'clean'` chữ DUY NHẤT vẽ lên canvas là dòng attribution"*. Lane là
+`text_free` = `src/lib/export.test.ts` + `src/lib/mapStyle.test.ts`. Chuỗi `chrome` KHÔNG xuất hiện
+lần nào trong `src/lib/export.ts`, `src/lib/mapStyle.ts`, `mapStyle.test.ts`; trong `export.test.ts`
+nó chỉ nằm ở **tiêu đề** `it()` (`:38`), không ở một khẳng định nào. `ComposeOpts` không có trường
+`chrome` — thứ test thật sự đặt là `text.show: false` (`export.test.ts:55`) rồi khẳng định
+`textCalls toEqual([ATTRIBUTION_TEXT])` (`:66`).
+
+Mắt xích `chrome:'clean' → showText = false` sống ở `src/render/applyRenderConfig.ts:24`
+(`const showText = cfg.chrome !== 'clean'`), và được canh ở `applyRenderConfig.test.ts:90-95` —
+thuộc executor `apply_render_config`, KHÔNG có trong bất kỳ eval nào của hợp đồng này (E1-E15 chỉ
+chạm motion_invariants / sweep / motion_compiler / motion_math / mcp / clip_http / clip_tools /
+text_free / clip_backpressure). Đột biến: đổi `applyRenderConfig.ts:24` thành `showText = true` ⇒
+clip do `render_clip` sinh ra (chrome bị ép `'clean'`) sẽ NƯỚNG chữ poster vào pixel — đúng thứ AC-9
+tồn tại để cấm — mà lane `text_free` vẫn xanh nguyên, vì nó truyền `text.show: false` thẳng tay và
+không đi qua `applyRenderConfig`.
+
+Nửa sau của E12 (`buildMapStyle` phát 0 symbol layer khi roadLabels off, đúng `['road-label-major']`
+khi on) thì chính xác tuyệt đối (`mapStyle.test.ts:59-66`). Sửa: hoặc thêm `apply_render_config` vào
+lane của E12, hoặc bỏ mệnh đề điều kiện và nói thẳng "với `text.show=false` (thứ mà clip ép qua
+`chrome:'clean'`, canh ở hợp đồng khác)".
+
+## Vòng 12 — merge main rồi chạy lại; verdict giữ nguyên
+
+Kích hoạt: `b4c1d50c` merge `origin/main` (`a776daf`, PR #24 — xoá hàm chết `centroidOf` và bật `noUnusedLocals`) vào nhánh. Main chạm `mcp-server/src/geometry.ts`, `mcp-server/src/resolveConfig.ts`, `mcp-server/src/geometry.test.ts`, `mcp-server/tsconfig.json` — không tệp nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `a46aec7` hết hiệu lực.
+
+Merge TRƯỚC rồi verify MỘT lần, chứ không verify ở `a46aec7` rồi mới merge: cách sau làm bằng chứng hết hạn ngay lúc merge, phí trọn một vòng.
+
+Toàn bộ lane chạy lại tươi trên cây đã hợp nhất, **tất cả thoát 0**: `tsc -b` 0 · `tsc -p mcp-server` 0 (đã bật `noUnusedLocals`) · vitest 525 pass / 9 skip / 0 fail · playwright 18 pass · `test:mcp` 12 pass · cả tám script bất biến còn giữ (anchors, tier0, routes, motion-tools, routing, auth, compiler-sweep, routes-demo).
+
+`noUnusedLocals` mà main mang sang không sinh nợ mới cho nhánh này — đã đo trước khi merge trên chính `a46aec7`: lỗi duy nhất nó nổ là đúng cái import `centroidOf` mà main vừa xoá, nên sau merge là hết.
+
+**Verdict GIỮ NGUYÊN REJECT — [E3, E5, E15].** Vòng này KHÔNG sửa eval (phạm vi đã chốt trước khi chạy). REJECT của vòng trước không đến từ lệnh đỏ mà từ `expected` nói quá: khẳng định không phân biệt được, tức một hiện thực sai hợp lý vẫn để nó xanh. Chạy lại lệnh không đụng được vào lỗi đó, nên nó còn nguyên — muốn xanh phải viết lại chính các eval bị nêu. `human_signoff` vẫn rỗng: verdict REJECT không ký được.
+
+`verified_commit` cập nhật lên `b4c1d50c`.
+
+## Vòng 11 — REJECT vì `expected` nói quá, KHÔNG vì lệnh đỏ
+
+Mọi lane của hợp đồng này chạy lại tươi ở `a46aec7` và **tất cả đều thoát 0**. Verdict
+REJECT đến từ tiêu chuẩn mà vòng chấm áp cho cả chín hợp đồng vòng này: *một mệnh đề trong
+`expected` chỉ được coi là thoả khi có một khẳng định thật sự khẳng định nó VÀ khẳng định đó
+phân biệt được* — tức một hiện thực sai hợp lý sẽ làm nó đỏ. Các eval dưới đây không đạt
+tiêu chuẩn đó. Đây là cùng lớp lỗi đã đánh trượt `anchors-camera` E2/E5 ở vòng trước; áp
+không đều tay thì cổng mất nghĩa.
+
+Bối cảnh stale: `a46aec7` chạm `mcp-server/src/http.test.ts`, `mcp-server/src/tools.test.ts`,
+`src/render/anchors.ts`, `src/render/anchors.test.ts`, `e2e/render-mode.spec.ts` — không tệp
+nào thuộc `t1_skip_globs`, nên bằng chứng ghim ở `9c1f9f3` đã hết hiệu lực và phải chạy lại.
+`git merge-base --is-ancestor a46aec7 HEAD` trả 0.
+
+### Các eval bị đánh trượt
+
+**E5 (AC-4) — hai con số trong `expected` sai so với tệp test.**
+
+(a) `expected` viết "zoom **0**/22 cho `pushIn`". `mcp-server/src/motionCompiler.test.ts:94` là
+`it.each([1, 22])`, và chú thích ngay trên (`:88-93`) nói rõ zoom 0 đã bị BỎ vì `pushIn` không
+còn biên dịch được ở đó — zoom 0 với `pushIn` nay là ca **ném** (`:154-157`). Nói "0" là nói
+ngược lại thứ tệp test khẳng định.
+
+(b) `expected` viết "kinh độ **±**179.5". `:125-129` chỉ có bốn ca **âm**
+(`-179.5, -179.5, -179.99, -179.999`), và chú thích `:119-124` nói thẳng hai ca `+179.5` "không
+thể fail dưới bất kỳ hiện thực nào và đã bị bỏ". Dấu `±` khẳng định một nửa không tồn tại.
+
+**E3 (AC-3) — ca test nói về "chạy QUÁ restAtSec", `expected` nói về "BẮT ĐẦU SAU restAtSec".**
+
+`expected`: *"pulse **bắt đầu sau** `restAtSec` ĐƯỢC chấp nhận (loop-track)"*. Ca thật
+(`src/render/motionScript.test.ts:53-56`) tên là *"L: pulse MAY run past restAtSec (loop track)"*
+và dùng `{ kind: 'pulse', from: 4.0 }` với `restAtSec` = 4.2 — pulse **bắt đầu TRƯỚC** mốc nghỉ,
+chỉ chạy vượt qua nó. Hai mệnh đề khác nhau; mệnh đề mà `expected` nêu không có ca nào.
+
+**E15 (AC-12) — nửa sau không có khẳng định nào trong lane của chính nó.**
+
+Nửa 429 vững (`mcp-server/src/http.test.ts:738-781`). Nửa *"`pool.acquire` có deadline nên
+`/render` thường không bị treo sau lưng clip"* thì không: đếm `acquire` và `deadline` trong
+`mcp-server/src/http.test.ts` ra **0**. Hành vi đó được test ở `browserPool.test.ts:130-163` —
+không phải `cmd` của eval này.
+
+### Hai eval judgment giữ nguyên PENDING
+
+E16/E17 là `judgment` của một hợp đồng T3: chúng KHÔNG được vòng máy này phán. `human_override`
+để trống, đầu vào còn đủ (`evidence/E16-clip.mp4`, ba PNG bước). Verdict tổng là REJECT vì các
+eval MÁY ở trên, không phải vì hai eval này.
+
+_**Ghi chú ghim commit:** trong lúc vòng này đang chạy, `8a15342` (docs: cảnh báo `resolved.camera` KHÁC `resolved.center`/`zoom`) đã lên nhánh, chỉ sửa `README.md`. `git diff --name-only 9c1f9f3..HEAD` = đúng một tệp đó, và `**/*.md` nằm trong `risk_tiers.t1_skip_globs`, nên bằng chứng KHÔNG stale; `9c1f9f3` vẫn là tổ tiên của HEAD (`git merge-base --is-ancestor` trả 0) và `pre-merge-check.sh` không báo stale. `verified_commit` giữ nguyên ở `9c1f9f3` — đúng cây mà mọi lệnh đã chạy trên đó._
+
+_Vòng 10 (chạy lại vì stale) — kích hoạt bởi PR `feat/anchors-camera` @ `9c1f9f3`, gói này chạm `mcp-server/src/tools.ts`, `mcp-server/src/http.ts`, `mcp-server/src/jobRunner.ts`, `mcp-server/src/renderFrame.ts` và `src/render/main.tsx` — tệp DÙNG CHUNG, nên bằng chứng của hợp đồng này hết hiệu lực theo commit. Vòng này KHÔNG re-pin suông: **mọi eval máy đều được chạy lại tươi** ở `9c1f9f3` (không eval nào mang kết quả cũ sang), `run_id` mới toàn bộ và có dòng tương ứng trong `run-log.jsonl`. `verified_commit` ghim lại về `9c1f9f367c642465cc720396f9b6aba51f31902f`; `human_signoff` bị XOÁ vì chữ ký cũ thuộc về `9a6af0f`, không được cưỡi sang cây mã mới. Trong bán kính: E7 (bộ tích hợp — `renderClip.test.ts` đổi), E8-E10/E13/E15 (`http.ts`), E11/E14 (`tools.ts`). E12 chạy `export.test.ts`/`mapStyle.test.ts` — hai `t3_path`, và `git diff --name-only` xác nhận cả hai KHÔNG có dòng nào đổi trong PR này, nên bằng chứng pixel byte-identical của hợp đồng này không bị đụng. **T3: hai eval judgment E16/E17 quay về chờ người** — verdict hạ xuống PENDING-JUDGMENT và `human_override` được bỏ trống, vì chữ ký cũ được đóng ở `9a6af0f`; theo luật T3 mọi mục judgment phải có phán quyết người TRỰC TIẾP ở đúng cây mã đang xét. Người ký ở Cổng 2 điền lại._
 _Round 10 — nghiệm thu lại do `535ee8e8` (nhánh `chore/remove-dead-centroidof`) chạm hai file dùng chung `mcp-server/src/geometry.ts` và `mcp-server/src/resolveConfig.ts`. Nội dung commit: XOÁ hàm chết `centroidOf` khỏi geometry.ts (−22 dòng), xoá khối test riêng của nó khỏi geometry.test.ts (−13), gỡ tên `centroidOf` khỏi câu import ở resolveConfig.ts:7, và bật `noUnusedLocals` trong mcp-server/tsconfig.json (+6)._
 
 _Soi diff: KHÔNG một đường chạy runtime nào đổi. `centroidOf` không có người gọi nào ngoài chính test của nó — trước khi xoá, `grep -rn "centroidOf"` toàn repo chỉ ra đúng ba loại chỗ: định nghĩa, khối test, và một cái tên nằm trong danh sách import ở resolveConfig.ts mà thân file không bao giờ tham chiếu tới. resolveConfig.ts:474 vẫn tính tâm vùng inline từ bbox y nguyên, không đổi một ký tự — hàm bị xoá KHÔNG được nối vào đó, vì `bboxOfGeojsons` duyệt mọi feature của collection còn `centroidOf` chỉ nhận một geometry, nối vào sẽ bỏ sót feature với vùng nhiều mảnh. `noUnusedLocals` là cờ thời-biên-dịch, không sinh mã. Vì vậy mọi AC của hợp đồng này đứng nguyên trên cùng một hành vi._
@@ -36,6 +162,10 @@ _Round 9 — re-pin only, triggered by `ce0b13e` (test-only commit on `fix/mcp-a
 _Round 8 — re-verification triggered by `fix/mcp-auth` landing on top of Round 7's `verified_commit` (`27e1be1a`). `git diff 27e1be1a..HEAD --stat` touches only `mcp-server/src/http.ts`, `mcp-server/src/http.test.ts`, `README.md`, and files under `_acceptance/**` — none of which are this contract's own primary source files. Contract `status` downgraded `signed-off` → `implemented` per the shared-file staleness guard; `human_signoff` cleared._
 
 _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (token && authorization !== ...)` bearer checks on `/render`, `/render-clip`, `/jobs` are replaced with calls to one shared `rejectedByBearer()` helper implementing byte-identical logic, and a NEW guard call is added on the previously-unguarded `/mcp` fall-through plus a NEW startup-time fail-closed check for non-loopback binds without a token. This contract's own eval commands were re-run fresh against the new commit rather than merely re-pinned, since the shared file is in scope of at least one of them; every run matched the prior round's pass counts exactly — no regression from the refactor._
+
+_(Ghi chú của vòng TRƯỚC, giữ lại làm lịch sử) Judgment block(s) carried forward BYTE-FOR-BYTE from the prior round — not blanked, not re-scored. `risk_tier: T3` mandates a direct human verdict on every judgment item for THIS round's pinned evidence regardless of a prior round's override against a now-superseded commit, so the contract routes to **PENDING-JUDGMENT**._
+
+_**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔNG giữ `human_override` cũ. Chữ ký người ở các mục judgment được đóng ở `9a6af0f`; PR này đổi mã nguồn dùng chung nên chúng bị BỎ TRỐNG để người ký ở Cổng 2 phán quyết lại trên đúng cây `9c1f9f3`. Nội dung phán quyết của giám khảo mù (`verdict` + `rationale`) được giữ nguyên văn — chỉ dòng `human_override` bị xoá._
 
 | Eval | Criterion | Executor | Verdict |
 |---|---|---|---|
@@ -54,173 +184,200 @@ _Diff review: `http.ts`'s change is a pure extraction — the three copied `if (
 | E13 | AC-11 | test | PASS |
 | E14 | AC-11 | test | PASS |
 | E15 | AC-12 | test | PASS |
-| E16 | AC-13 | judgment | UNCERTAIN — human_override rút lại theo chính sách be57c21/PR #25, chờ người ký tự tay xem |
-| E17 | AC-14 | judgment | UNCERTAIN — human_override rút lại theo chính sách be57c21/PR #25, chờ người ký tự tay đọc |
+| E16 | AC-13 | judgment | PASS (judge) — awaiting mandatory T3 human_override for this round’s pinned evidence |
+| E17 | AC-14 | judgment | PASS (judge) — awaiting mandatory T3 human_override for this round’s pinned evidence |
 
 ## Evidence
 
 - eval: E1
-  run_id: map-motion-clip-r11-motion_invariants-20260807
+  run_id: map-motion-clip-r14-e1-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T09:11:47Z
+  verified_at: 2026-08-07T12:17:34Z
   output: |
-    Fresh run, round 11 (`637ae403` — merge of `main`, format.ts Đ/đ fix). AC-1 assertions untouched by this round's diff (fix is in slugify(), not motion invariants). Test Files 1 passed (1); Tests 16 passed (16).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E2
-  run_id: map-motion-clip-r11-motion_invariants-20260807
+  run_id: map-motion-clip-r14-e2-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T09:11:47Z
+  verified_at: 2026-08-07T12:17:34Z
   output: |
-    Fresh run, round 11 (`637ae403`). AC-2 boundary case still accepted, not rejected. Test Files 1 passed (1); Tests 16 passed (16).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E3
-  run_id: map-motion-clip-r11-motion_invariants-20260807
+  run_id: map-motion-clip-r14-e3-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_invariants
-  verified_at: 2026-08-07T09:11:47Z
+  verified_at: 2026-08-07T12:17:34Z
   output: |
-    Fresh run, round 11 (`637ae403`). AC-3 pulse-after-restAtSec accepted, one-shot duplicates rejected with `O:` prefix. Test Files 1 passed (1); Tests 16 passed (16).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_invariants` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E4
-  run_id: map-motion-clip-r11-compiler_domain_sweep-20260807
+  run_id: map-motion-clip-r14-e4-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.script.compiler_domain_sweep
-  verified_at: 2026-08-07T09:11:50Z
+  verified_at: 2026-08-07T12:18:17Z
   output: |
-    Fresh run, round 11 (`637ae403`). run_id: map-motion-clip-sweep-local; combinations: 2652 (presets=3 × lngs=4 × zoom 0→22 step 0.1); accepted: 2612; material errors (clear message, expected): 40; violations: 0; OK — no combination produced a self-rejected script or a motionless clip. Matches prior rounds exactly.
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `script.compiler_domain_sweep` → thoát 0 · combinations: 2652 (presets=3 × lngs=4 × zoom 0→22 step 0.1); accepted: 2612; violations: 0; OK — no combination produced a self-rejected script or a motionless clip
+    **Vòng 13 @ d84857a — đo lại tươi:** `script.compiler_domain_sweep` → thoát 0 · OK — no combination produced a self-rejected script or a motionless clip
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. combinations: 2652; violations: 0; OK — present and passing.
 
 - eval: E5
-  run_id: map-motion-clip-r11-motion_compiler-20260807
+  run_id: map-motion-clip-r14-e5-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_compiler
-  verified_at: 2026-08-07T09:11:55Z
+  verified_at: 2026-08-07T12:17:36Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 32 passed (32).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.
 
 - eval: E6
-  run_id: map-motion-clip-r11-motion_math-20260807
+  run_id: map-motion-clip-r14-e6-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.motion_math
-  verified_at: 2026-08-07T09:12:00Z
+  verified_at: 2026-08-07T12:17:35Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 16 passed (16).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.motion_math` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.motion_math` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.
 
 - eval: E7
-  run_id: map-motion-clip-r11-mcp-20260807
+  run_id: map-motion-clip-r14-e7-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.mcp
-  verified_at: 2026-08-07T09:12:15Z
+  verified_at: 2026-08-07T12:21:00Z
   output: |
-    Fresh run, round 11 (`637ae403`), real Chromium via MCP_INTEGRATION=1 (renderFrame.test.ts, renderClip.test.ts, stdioChannel.test.ts). Test Files 3 passed (3); Tests 7 passed (7); Duration 46.06s. renderClipFrames determinism (AC-6) unaffected by the slugify fix.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E8
-  run_id: map-motion-clip-r11-clip_http-20260807
+  run_id: map-motion-clip-r14-e8-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T09:12:03Z
+  verified_at: 2026-08-07T12:17:38Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 54 passed (54). 200 response still returns clip+settle+motion.restAtSec+resolved.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E9
-  run_id: map-motion-clip-r11-clip_http-20260807
+  run_id: map-motion-clip-r14-e9-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T09:12:03Z
+  verified_at: 2026-08-07T12:17:38Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 54 passed (54). 422 rejection paths (bad preset / missing motion / broken invariant) still carry verbatim rule-prefix messages, not raw ZodError.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E10
-  run_id: map-motion-clip-r11-clip_http-20260807
+  run_id: map-motion-clip-r14-e10-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T09:12:03Z
+  verified_at: 2026-08-07T12:17:38Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 54 passed (54). chrome:'poster' from caller still forced to 'clean' in the config handed to deps.renderClip on the REST surface.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E11
-  run_id: map-motion-clip-r11-clip_tools-20260807
+  run_id: map-motion-clip-r14-e11-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T09:12:06Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 52 passed (52). Same chrome-forced-clean invariant held on the MCP render_clip surface.
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E12
-  run_id: map-motion-clip-r11-text_free-20260807
+  run_id: map-motion-clip-r14-e12-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.text_free
-  verified_at: 2026-08-07T09:12:09Z
+  verified_at: 2026-08-07T12:17:41Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 2 passed (2); Tests 19 passed (19). Confirmed by reading export.test.ts: it locks ATTRIBUTION_TEXT/drawAttribution/no-extra-symbol-layer only — no assertion on slugify() or filenames, so this round's format.ts fix is genuinely out of this eval's assertion surface despite both files sharing t3_paths membership.
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.text_free` → thoát 0 · Test Files 2 passed (2); Tests 20 passed (20)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.text_free` → thoát 0 · Test Files 2 passed (2); Tests 19 passed (19)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 2 passed (2); Tests 19 passed (19) — present and passing.
 
 - eval: E13
-  run_id: map-motion-clip-r11-clip_http-20260807
+  run_id: map-motion-clip-r14-e13-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T09:12:03Z
+  verified_at: 2026-08-07T12:17:38Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 54 passed (54). Encoder-dies-mid-render still degrades to 200+settle+clipError with no leaked temp mp4.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E14
-  run_id: map-motion-clip-r11-clip_tools-20260807
+  run_id: map-motion-clip-r14-e14-20260807
   exit_code: 0
   baseline: green
   verifier: config:executors.test.clip_tools
-  verified_at: 2026-08-07T09:12:06Z
+  verified_at: 2026-08-07T12:17:40Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 52 passed (52). Same degrade-path held on the MCP surface; frame-capture failure still an error result (degrade does not overreach).
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.
 
 - eval: E15
-  run_id: map-motion-clip-r11-clip_http-20260807
+  run_id: map-motion-clip-r14-e15-20260807
   exit_code: 0
   baseline: green
-  verifier: config:executors.test.clip_http
-  verified_at: 2026-08-07T09:12:03Z
+  verifier: config:executors.test.clip_backpressure
+  verified_at: 2026-08-07T12:17:39Z
   output: |
-    Fresh run, round 11 (`637ae403`). Test Files 1 passed (1); Tests 54 passed (54). Concurrency-limit-exceeded still returns 429, pool.acquire deadline still protects plain /render.
-
+    **Vòng 14 @ ace12a0 — đo lại tươi:** `test.clip_backpressure` → thoát 0 · Test Files 2 passed (2); Tests 76 passed (76)
+    **Vòng 13 @ d84857a — đo lại tươi:** `test.clip_backpressure` → thoát 0 · Test Files 2 passed (2); Tests 75 passed (75)
+    Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+    Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth's own contract), which does not touch this contract's own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.
 - eval: E16
-  criterion: AC-13
-  judged_by: judge-subagent (fresh context, blind) — bản ghi từ Round 10, mang forward nguyên văn
-  verdict: UNCERTAIN
+  judged_by: judge-subagent (fresh context, blind)
+  verdict: PASS
   rationale: |
-    [Lời giám khảo, giữ nguyên văn Round 10] Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
-
-    [Ghi chú vòng 11] Verdict hạ từ PASS(judge) xuống UNCERTAIN không phải vì rationale trên sai hay đổi, mà vì `human_override` mà Round 10 gắn vào ("manh 2026-08-07 — XAC NHAN — ap theo uy quyen dung cua chu repo trong phien... KHONG phai nguoi ky truc tiep xem tung muc") tự nhận là uỷ quyền gián tiếp, đúng loại giá trị chính sách `be57c21`/PR #25 cấm agent mang forward — kể cả khi được bảo tự lái. Không có `human_override` mới nào được viết ở vòng này.
+    Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
   human_override:
-  required_evidence:
-    - Người ký tự tay MỞ và XEM `_acceptance/map-motion-clip/evidence/E16-clip.mp4` (cùng ba khung `E16-step1/2/3.png`) và tự xác nhận bằng mắt ba nhịp mở-toàn cảnh / vẽ-dần-ranh-giới / đứng-yên-đuôi — không dựa vào số đo diff-pixel của giám khảo làm bằng chứng thay thế.
-
 - eval: E17
-  criterion: AC-14
-  judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá) — bản ghi từ Round 10, mang forward nguyên văn
-  verdict: UNCERTAIN
+  judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
+  verdict: PASS
   rationale: |
-    [Lời giám khảo, giữ nguyên văn Round 10] Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
-
-    [Ghi chú vòng 11] Cùng lý do chính sách như E16: `human_override` Round 10 ("manh 2026-08-07 — CHAP NHAN — ap theo uy quyen dung cua chu repo trong phien... KHONG phai nguoi ky truc tiep xem tung muc") tự thú nhận không phải người ký trực tiếp đọc spec §2.3 — bị rút lại hôm nay, không mang forward. Xác nhận độc lập ở vòng này: `src/lib/export.test.ts` vẫn còn nguyên hai test khoá (dòng 66 `expect(textCalls).toEqual([ATTRIBUTION_TEXT])`; dòng 78/83 literal độc lập + bốn `toContain` từng credit), không đổi so với mô tả của giám khảo.
+    Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
   human_override:
-  required_evidence:
-    - Người ký tự tay đọc `docs/superpowers/specs/2026-08-03-map-motion-clip-design.md` §2.3 rồi đối chiếu trực tiếp với hai test khoá `ATTRIBUTION_TEXT` trong `src/lib/export.test.ts` (dòng ~66 và ~78-83) để tự kết luận ngoại lệ có lý do giấy phép chính đáng và bị khoá đủ chặt — không dựa vào kết luận "không tautological" của giám khảo làm bằng chứng thay thế.
-
 ## Analyst
 
-Baseline values are carried forward unchanged from Round 10 per the re-verification instruction (this round's diff — the `slugify()` Đ/đ fix in `format.ts` plus its two test files — does not touch any of the 15 eval's own assertion surface, confirmed by grep + direct read of `export.test.ts`, so it does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.
+Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.
 
 ## Variance
 
@@ -228,7 +385,31 @@ none — every command this round is a deterministic single run.
 
 ## Iterations
 
-Round 11: merge commit `637ae403` (main → branch) adds `src/lib/format.ts`'s Đ/đ + Ð/ð slugify fix and its two test files; none of the 15 machine evals' own assertion surface touches `slugify()` (confirmed by reading `export.test.ts` — it locks attribution/no-extra-symbol-layer only), so all 15 discriminate the same way as before. All 15 machine evals RE-RUN fresh (not re-pinned) — 15/15 green, `npm test` full = 499 passed | 7 skipped (506), matching the round's expected baseline exactly. Verdict is PENDING-JUDGMENT: not from any failed eval, but because repo policy `be57c21`/PR #25 withdraws every agent-written `human_override` today, including ones inherited from Round 10 — E16 and E17 both drop from PASS(judge)+override to UNCERTAIN with `human_override` left empty, each carrying a `required_evidence` line for the human to act on directly.
+Vòng 14 (chạy lại ở `ace12a0` sau khi E12 được vá): cả 15 eval máy chạy lại tươi, 15/15 thoát 0.
+**PENDING-JUDGMENT** (T3 — chờ `human_override` của người trên E16/E17). E12 hết trượt — `1797425` cho
+lane `text_free` gọi thật `applyRenderConfig(chrome:'clean')` rồi đọc store, nên mắt xích
+`applyRenderConfig.ts:24` nằm TRONG lane; đổi hằng thành `showText = true` làm lane exit 1. Đối chứng
+`chrome:'poster'` (>1 lệnh vẽ chữ, có 'Hanoi') chặn nửa "xanh vì canvas câm". E16/E17 giữ nguyên văn
+phán quyết mù, `human_override` để TRỐNG. `human_signoff` để rỗng.
+
+Vòng 13 (chạy lại ở `d84857a` sau khi E3/E5/E15 được vá): cả 15 eval máy chạy lại tươi, 15/15 thoát
+0; sweep miền in `combinations: 2652 (3×4×221)`; hai `t3_path` của E12 vẫn 0 dòng đổi. E16/E17
+(judgment, T3) giữ PENDING-JUDGMENT, `human_override` để trống. **Ba eval bị REJECT vòng 11 nay
+đúng**: E3 dùng `from: 4.5` > `restAtSec` 4.2 (đúng "bắt đầu SAU"), E5 khớp `it.each([1, 22])` và bốn
+ca kinh độ ÂM, E15 tách lane thành `http.test.ts` + `browserPool.test.ts` nên nửa `pool.acquire` có
+deadline nằm trong lane của chính nó. **REJECT trên [E12]**: `expected` gắn điều kiện `chrome:'clean'`
+cho lane `text_free`, nhưng chuỗi `chrome` không có trong một khẳng định nào của hai tệp lane đó —
+test đặt thẳng `text.show: false`; mắt xích `chrome → showText` sống ở `applyRenderConfig.ts:24`,
+canh bởi executor `apply_render_config` mà hợp đồng này không dùng ở bất kỳ eval nào. Đột biến
+`showText = true` nướng chữ poster vào pixel clip mà lane vẫn xanh. Ghi nhận thêm, không đánh trượt:
+sweep của E4 vẫn thoát 0 chỉ theo `failures.length === 0` (lần chạy này `accepted: 2612`, nên hiện
+không rỗng); E6 nói "`p ≤ 0`/`p ≥ 1`" nhưng chỉ khẳng định đúng tại biên `p = 0` và `p = 1`; E5 nói
+hai ca `+179.5` "không thể fail dưới BẤT KỲ hiện thực nào" — đúng với hiện thực hiện tại, hơi rộng
+như một mệnh đề phổ quát.
+
+Vòng 11 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 15 eval máy chạy lại tươi, 15/15 thoát 0; sweep miền in `combinations 2652 · violations 0 · OK`; hai `t3_path` của E12 vẫn 0 dòng đổi. E16/E17 (judgment, T3) giữ PENDING-JUDGMENT, `human_override` để trống. **REJECT trên [E3, E5, E15]**: E5 sai hai con số so với chính tệp test (`it.each([1, 22])` chứ không phải 0/22 cho `pushIn`, và bốn ca kinh độ đều ÂM chứ không phải `±179.5` — chú thích của tệp nói thẳng hai ca dương đã bị bỏ vì không thể fail); E3 nói "pulse **bắt đầu sau** restAtSec" trong khi ca test là "pulse **chạy quá** restAtSec" (`from: 4.0` < `restAtSec` 4.2); E15 gắn nửa `pool.acquire` có deadline vào `http.test.ts`, mà tệp đó không nhắc `acquire`/`deadline` lần nào. Ghi nhận thêm, không đánh trượt: sweep của E4 thoát 0 khi `failures.length === 0` mà không có sàn nào cho `accepted`, nên một compiler ném ở MỌI tổ hợp cũng cho `violations: 0`; và AC-12 có nửa "MCP trả error result cùng thông điệp" không eval nào nhận (ca test tồn tại ở `tools.test.ts:859-891`).
+
+Vòng 10 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`/`renderFrame.ts`. Cả 15 eval máy chạy lại tươi — 15/15 xanh; hai `t3_path` của E12 xác nhận 0 dòng đổi. E16/E17 (judgment, T3) trở lại chờ người: verdict PENDING-JUDGMENT, `human_override` bỏ trống. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.
 
 Round 9 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth's own E6 fix). Re-ran E7, E8, E9, E10, E13, E15 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).
 

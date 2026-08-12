@@ -88,6 +88,46 @@
 {"ts": "2026-08-07T02:51:38Z", "round": 7, "evalId": "E18", "run_id": "routes-measurements-r7-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
 {"ts": "2026-08-07T03:13:47Z", "round": 8, "evalId": "E17", "run_id": "routes-measurements-r8-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T03:13:57Z", "round": 8, "evalId": "E18", "run_id": "routes-measurements-r8-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E1", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 9, "evalId": "E2", "run_id": "routes-measurements-r9-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E3", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E4", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E5", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:51:04Z", "round": 9, "evalId": "E6", "run_id": "routes-measurements-r9-apply_render_config-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E7", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E8", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E9", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E10", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E11", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:58Z", "round": 9, "evalId": "E12", "run_id": "routes-measurements-r9-geometry-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E13", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 9, "evalId": "E14", "run_id": "routes-measurements-r9-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:51:06Z", "round": 9, "evalId": "E15", "run_id": "routes-measurements-r9-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T04:51:16Z", "round": 9, "evalId": "E16", "run_id": "routes-measurements-r9-routes_demo-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts": "2026-08-07T04:48:51Z", "round": 9, "evalId": "E17", "run_id": "routes-measurements-r9-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T04:52:19Z", "round": 9, "evalId": "E18", "run_id": "routes-measurements-r9-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:57Z", "round": 9, "evalId": "E19", "run_id": "routes-measurements-r9-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:51:06Z", "round": 9, "evalId": "E20", "run_id": "routes-measurements-r9-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E1", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 10, "evalId": "E2", "run_id": "routes-measurements-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E3", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E4", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E5", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:11Z", "round": 10, "evalId": "E6", "run_id": "routes-measurements-r10-apply_render_config-20260807", "exit_code": 0, "cmd": "npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E7", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E8", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E9", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E10", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E11", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:07Z", "round": 10, "evalId": "E12", "run_id": "routes-measurements-r10-geometry-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E13", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 10, "evalId": "E14", "run_id": "routes-measurements-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:14Z", "round": 10, "evalId": "E15", "run_id": "routes-measurements-r10-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-07T05:58:14Z", "round": 10, "evalId": "E16", "run_id": "routes-measurements-r10-routes_demo-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts": "2026-08-07T05:57:55Z", "round": 10, "evalId": "E17", "run_id": "routes-measurements-r10-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T05:55:15Z", "round": 10, "evalId": "E18", "run_id": "routes-measurements-r10-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T05:58:05Z", "round": 10, "evalId": "E19", "run_id": "routes-measurements-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:14Z", "round": 10, "evalId": "E20", "run_id": "routes-measurements-r10-routes_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E1","run_id":"routes-measurements-r9-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E19","run_id":"routes-measurements-r9-e19-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E2","run_id":"routes-measurements-r9-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
@@ -108,23 +148,63 @@
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E16","run_id":"routes-measurements-r9-e16-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E17","run_id":"routes-measurements-r9-e17-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T07:55:00Z","round":9,"evalId":"E18","run_id":"routes-measurements-r9-e18-20260807","exit_code":0,"cmd":"npm run test:mcp"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E1","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E19","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E3","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E4","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E5","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E7","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E8","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E9","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E10","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E11","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:03Z","round":10,"evalId":"E13","run_id":"routes-measurements-r10-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:35:06Z","round":10,"evalId":"E2","run_id":"routes-measurements-r10-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:35:06Z","round":10,"evalId":"E14","run_id":"routes-measurements-r10-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:35:11Z","round":10,"evalId":"E6","run_id":"routes-measurements-r10-apply_render_config-20260807","exit_code":0,"cmd":"npx vitest run src/render/applyRenderConfig.test.ts"}
-{"ts":"2026-08-07T09:35:13Z","round":10,"evalId":"E12","run_id":"routes-measurements-r10-geometry-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geometry.test.ts"}
-{"ts":"2026-08-07T09:36:00Z","round":10,"evalId":"E15","run_id":"routes-measurements-r10-routes_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
-{"ts":"2026-08-07T09:36:00Z","round":10,"evalId":"E20","run_id":"routes-measurements-r10-routes_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
-{"ts":"2026-08-07T09:36:05Z","round":10,"evalId":"E16","run_id":"routes-measurements-r10-routes_demo-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
-{"ts":"2026-08-07T09:36:57Z","round":10,"evalId":"E17","run_id":"routes-measurements-r10-api-20260807","exit_code":0,"cmd":"npm test"}
-{"ts":"2026-08-07T09:37:02Z","round":10,"evalId":"E18","run_id":"routes-measurements-r10-mcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E1","run_id":"routes-measurements-r11-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E19","run_id":"routes-measurements-r11-e19-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E2","run_id":"routes-measurements-r11-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E3","run_id":"routes-measurements-r11-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E4","run_id":"routes-measurements-r11-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E5","run_id":"routes-measurements-r11-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E6","run_id":"routes-measurements-r11-e6-20260807","exit_code":0,"cmd":"npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E7","run_id":"routes-measurements-r11-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E8","run_id":"routes-measurements-r11-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E9","run_id":"routes-measurements-r11-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E10","run_id":"routes-measurements-r11-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E11","run_id":"routes-measurements-r11-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E12","run_id":"routes-measurements-r11-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E13","run_id":"routes-measurements-r11-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E14","run_id":"routes-measurements-r11-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E15","run_id":"routes-measurements-r11-e15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E20","run_id":"routes-measurements-r11-e20-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E16","run_id":"routes-measurements-r11-e16-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E17","run_id":"routes-measurements-r11-e17-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T08:25:00Z","round":11,"evalId":"E18","run_id":"routes-measurements-r11-e18-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E1","run_id":"routes-measurements-r12-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E19","run_id":"routes-measurements-r12-e19-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":12,"evalId":"E2","run_id":"routes-measurements-r12-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E3","run_id":"routes-measurements-r12-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E4","run_id":"routes-measurements-r12-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E5","run_id":"routes-measurements-r12-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:16Z","round":12,"evalId":"E6","run_id":"routes-measurements-r12-e6-20260807","exit_code":0,"cmd":"npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E7","run_id":"routes-measurements-r12-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E8","run_id":"routes-measurements-r12-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E9","run_id":"routes-measurements-r12-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E10","run_id":"routes-measurements-r12-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E11","run_id":"routes-measurements-r12-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:15Z","round":12,"evalId":"E12","run_id":"routes-measurements-r12-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":12,"evalId":"E13","run_id":"routes-measurements-r12-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":12,"evalId":"E14","run_id":"routes-measurements-r12-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:22Z","round":12,"evalId":"E15","run_id":"routes-measurements-r12-e15-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T11:11:22Z","round":12,"evalId":"E20","run_id":"routes-measurements-r12-e20-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts":"2026-08-07T11:11:24Z","round":12,"evalId":"E16","run_id":"routes-measurements-r12-e16-20260807","exit_code":0,"cmd":"npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts":"2026-08-07T11:11:18Z","round":12,"evalId":"E17","run_id":"routes-measurements-r12-e17-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T11:13:22Z","round":12,"evalId":"E18","run_id":"routes-measurements-r12-e18-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E1", "run_id": "routes-measurements-r13-e1-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:40Z", "round": 13, "evalId": "E2", "run_id": "routes-measurements-r13-e2-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E3", "run_id": "routes-measurements-r13-e3-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E4", "run_id": "routes-measurements-r13-e4-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E5", "run_id": "routes-measurements-r13-e5-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:55Z", "round": 13, "evalId": "E6", "run_id": "routes-measurements-r13-e6-20260807", "exit_code": 0, "cmd": "test.apply_render_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E7", "run_id": "routes-measurements-r13-e7-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E8", "run_id": "routes-measurements-r13-e8-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E9", "run_id": "routes-measurements-r13-e9-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E10", "run_id": "routes-measurements-r13-e10-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E11", "run_id": "routes-measurements-r13-e11-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:54Z", "round": 13, "evalId": "E12", "run_id": "routes-measurements-r13-e12-20260807", "exit_code": 0, "cmd": "test.geometry"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E13", "run_id": "routes-measurements-r13-e13-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:40Z", "round": 13, "evalId": "E14", "run_id": "routes-measurements-r13-e14-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:18:15Z", "round": 13, "evalId": "E15", "run_id": "routes-measurements-r13-e15-20260807", "exit_code": 0, "cmd": "script.routes_invariants"}
+{"ts": "2026-08-07T12:18:40Z", "round": 13, "evalId": "E16", "run_id": "routes-measurements-r13-e16-20260807", "exit_code": 0, "cmd": "script.routes_demo"}
+{"ts": "2026-08-07T12:16:34Z", "round": 13, "evalId": "E17", "run_id": "routes-measurements-r13-e17-20260807", "exit_code": 0, "cmd": "test.api"}
+{"ts": "2026-08-07T12:21:00Z", "round": 13, "evalId": "E18", "run_id": "routes-measurements-r13-e18-20260807", "exit_code": 0, "cmd": "test.mcp"}
+{"ts": "2026-08-07T12:17:52Z", "round": 13, "evalId": "E19", "run_id": "routes-measurements-r13-e19-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:18:15Z", "round": 13, "evalId": "E20", "run_id": "routes-measurements-r13-e20-20260807", "exit_code": 0, "cmd": "script.routes_invariants"}

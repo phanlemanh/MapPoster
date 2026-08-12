@@ -237,6 +237,47 @@
 {"ts": "2026-08-07T03:11:38Z", "round": 12, "evalId": "E8", "run_id": "async-job-queue-r12-job_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
 {"ts": "2026-08-07T03:11:38Z", "round": 12, "evalId": "E11", "run_id": "async-job-queue-r12-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
 {"ts": "2026-08-07T03:11:38Z", "round": 12, "evalId": "E18", "run_id": "async-job-queue-r12-job_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E1", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E2", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E3", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:55Z", "round": 13, "evalId": "E4", "run_id": "async-job-queue-r13-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E5", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E6", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E7", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E8", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E9", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E10", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E11", "run_id": "async-job-queue-r13-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 13, "evalId": "E12", "run_id": "async-job-queue-r13-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:51:00Z", "round": 13, "evalId": "E13", "run_id": "async-job-queue-r13-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E14", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E15", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E16", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:55Z", "round": 13, "evalId": "E17", "run_id": "async-job-queue-r13-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 13, "evalId": "E18", "run_id": "async-job-queue-r13-job_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:51:00Z", "round": 13, "evalId": "E19", "run_id": "async-job-queue-r13-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T04:50:55Z", "round": 13, "evalId": "E21", "run_id": "async-job-queue-r13-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E22", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:55Z", "round": 13, "evalId": "E23", "run_id": "async-job-queue-r13-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E24", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 13, "evalId": "E25", "run_id": "async-job-queue-r13-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:04Z", "round": 14, "evalId": "E4", "run_id": "async-job-queue-r14-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E7", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E9", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E10", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:01Z", "round": 14, "evalId": "E11", "run_id": "async-job-queue-r14-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 14, "evalId": "E12", "run_id": "async-job-queue-r14-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:09Z", "round": 14, "evalId": "E13", "run_id": "async-job-queue-r14-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E14", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E15", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E16", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:04Z", "round": 14, "evalId": "E17", "run_id": "async-job-queue-r14-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T05:58:09Z", "round": 14, "evalId": "E19", "run_id": "async-job-queue-r14-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T05:58:04Z", "round": 14, "evalId": "E21", "run_id": "async-job-queue-r14-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E22", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:04Z", "round": 14, "evalId": "E23", "run_id": "async-job-queue-r14-job_store-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E24", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 14, "evalId": "E25", "run_id": "async-job-queue-r14-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E1","run_id":"async-job-queue-r13-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E2","run_id":"async-job-queue-r13-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E3","run_id":"async-job-queue-r13-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
@@ -261,27 +302,75 @@
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E23","run_id":"async-job-queue-r13-e23-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E24","run_id":"async-job-queue-r13-e24-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":13,"evalId":"E25","run_id":"async-job-queue-r13-e25-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E1","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E2","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E3","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E4","run_id":"async-job-queue-r14-job_store-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E5","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E6","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E7","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E8","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E9","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E10","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E11","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E12","run_id":"async-job-queue-r14-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E13","run_id":"async-job-queue-r14-motion_compiler-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E14","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E15","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E16","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E17","run_id":"async-job-queue-r14-job_store-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E18","run_id":"async-job-queue-r14-job_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E19","run_id":"async-job-queue-r14-motion_compiler-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E21","run_id":"async-job-queue-r14-job_store-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E22","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E23","run_id":"async-job-queue-r14-job_store-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E24","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:00:50Z","round":14,"evalId":"E25","run_id":"async-job-queue-r14-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E1","run_id":"async-job-queue-r15-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E2","run_id":"async-job-queue-r15-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E3","run_id":"async-job-queue-r15-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E4","run_id":"async-job-queue-r15-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E5","run_id":"async-job-queue-r15-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E6","run_id":"async-job-queue-r15-e6-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E7","run_id":"async-job-queue-r15-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E8","run_id":"async-job-queue-r15-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E9","run_id":"async-job-queue-r15-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E10","run_id":"async-job-queue-r15-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E11","run_id":"async-job-queue-r15-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E12","run_id":"async-job-queue-r15-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E13","run_id":"async-job-queue-r15-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E14","run_id":"async-job-queue-r15-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E15","run_id":"async-job-queue-r15-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E16","run_id":"async-job-queue-r15-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E17","run_id":"async-job-queue-r15-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E18","run_id":"async-job-queue-r15-e18-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E19","run_id":"async-job-queue-r15-e19-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E21","run_id":"async-job-queue-r15-e21-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E22","run_id":"async-job-queue-r15-e22-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E23","run_id":"async-job-queue-r15-e23-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E24","run_id":"async-job-queue-r15-e24-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":15,"evalId":"E25","run_id":"async-job-queue-r15-e25-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E1","run_id":"async-job-queue-r16-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E2","run_id":"async-job-queue-r16-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E3","run_id":"async-job-queue-r16-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":16,"evalId":"E4","run_id":"async-job-queue-r16-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E5","run_id":"async-job-queue-r16-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E6","run_id":"async-job-queue-r16-e6-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E7","run_id":"async-job-queue-r16-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E8","run_id":"async-job-queue-r16-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E9","run_id":"async-job-queue-r16-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E10","run_id":"async-job-queue-r16-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E11","run_id":"async-job-queue-r16-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":16,"evalId":"E12","run_id":"async-job-queue-r16-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:08Z","round":16,"evalId":"E13","run_id":"async-job-queue-r16-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E14","run_id":"async-job-queue-r16-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E15","run_id":"async-job-queue-r16-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E16","run_id":"async-job-queue-r16-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":16,"evalId":"E17","run_id":"async-job-queue-r16-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":16,"evalId":"E18","run_id":"async-job-queue-r16-e18-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":16,"evalId":"E19","run_id":"async-job-queue-r16-e19-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":16,"evalId":"E21","run_id":"async-job-queue-r16-e21-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E22","run_id":"async-job-queue-r16-e22-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":16,"evalId":"E23","run_id":"async-job-queue-r16-e23-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobStore.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E24","run_id":"async-job-queue-r16-e24-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":16,"evalId":"E25","run_id":"async-job-queue-r16-e25-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E1", "run_id": "async-job-queue-r17-e1-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E2", "run_id": "async-job-queue-r17-e2-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E3", "run_id": "async-job-queue-r17-e3-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:50Z", "round": 17, "evalId": "E4", "run_id": "async-job-queue-r17-e4-20260807", "exit_code": 0, "cmd": "test.job_store"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E5", "run_id": "async-job-queue-r17-e5-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E6", "run_id": "async-job-queue-r17-e6-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E7", "run_id": "async-job-queue-r17-e7-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E8", "run_id": "async-job-queue-r17-e8-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E9", "run_id": "async-job-queue-r17-e9-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E10", "run_id": "async-job-queue-r17-e10-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E11", "run_id": "async-job-queue-r17-e11-20260807", "exit_code": 0, "cmd": "test.clip_http"}
+{"ts": "2026-08-07T12:17:40Z", "round": 17, "evalId": "E12", "run_id": "async-job-queue-r17-e12-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:37Z", "round": 17, "evalId": "E13", "run_id": "async-job-queue-r17-e13-20260807", "exit_code": 0, "cmd": "test.clip_slot_lifecycle"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E14", "run_id": "async-job-queue-r17-e14-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E15", "run_id": "async-job-queue-r17-e15-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E16", "run_id": "async-job-queue-r17-e16-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:50Z", "round": 17, "evalId": "E17", "run_id": "async-job-queue-r17-e17-20260807", "exit_code": 0, "cmd": "test.job_store"}
+{"ts": "2026-08-07T12:17:38Z", "round": 17, "evalId": "E18", "run_id": "async-job-queue-r17-e18-20260807", "exit_code": 0, "cmd": "test.job_http"}
+{"ts": "2026-08-07T12:17:36Z", "round": 17, "evalId": "E19", "run_id": "async-job-queue-r17-e19-20260807", "exit_code": 0, "cmd": "test.motion_compiler"}
+{"ts": "2026-08-07T12:17:50Z", "round": 17, "evalId": "E21", "run_id": "async-job-queue-r17-e21-20260807", "exit_code": 0, "cmd": "test.job_store"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E22", "run_id": "async-job-queue-r17-e22-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:50Z", "round": 17, "evalId": "E23", "run_id": "async-job-queue-r17-e23-20260807", "exit_code": 0, "cmd": "test.job_store"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E24", "run_id": "async-job-queue-r17-e24-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:51Z", "round": 17, "evalId": "E25", "run_id": "async-job-queue-r17-e25-20260807", "exit_code": 0, "cmd": "test.job_runner"}

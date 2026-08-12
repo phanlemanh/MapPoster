@@ -54,12 +54,24 @@ describe('resolveRoute', () => {
     expect(f).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a different mode as a different request — the cache key must carry it', async () => {
+  it('khoá cache mang PROFILE (không phải mode): car→walk gọi lại, car→moto thì KHÔNG', async () => {
+    // route.ts:146 ghép khoá bằng `profile`, không phải `mode`, và
+    // OSRM_PROFILE ánh xạ car và moto về CÙNG 'driving'. Ca cũ chỉ thử
+    // car→walk, tức hai profile khác nhau — nó xanh với cả một hiện thực ghép
+    // khoá bằng `mode`, nên không phân biệt được hai cách ghép.
     const f = vi.fn(async () => jsonRes(okBody([[1, 1], [2, 2]])));
     vi.stubGlobal('fetch', f);
+
     await resolveRoute({ from: [1, 1], to: [2, 2], mode: 'car' });
-    await resolveRoute({ from: [1, 1], to: [2, 2], mode: 'walk' });
+    await resolveRoute({ from: [1, 1], to: [2, 2], mode: 'walk' }); // profile 'foot' — phải gọi lại
     expect(f).toHaveBeenCalledTimes(2);
+
+    // SHOULD-NOT-REFETCH: moto ánh xạ về đúng 'driving' như car, và đường đi
+    // trả về y hệt (provider cũng ghi 'osrm/driving'), nên dùng lại là ĐÚNG.
+    // Ghép khoá bằng `mode` sẽ làm số lời gọi thành 3.
+    const r = await resolveRoute({ from: [1, 1], to: [2, 2], mode: 'moto' });
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(r.provider).toBe('osrm/driving');
   });
 
   it('reports a no-route answer as a caller-actionable error, not an empty line', async () => {
@@ -90,12 +102,29 @@ describe('resolveRoute', () => {
     ).rejects.toThrow(/timed out/i);
   });
 
-  it('passes an AbortSignal on every request — a fetch without one cannot be timed out', async () => {
-    const f = vi.fn(async (_url: string, init?: RequestInit) => { seen = init; return jsonRes(okBody([[1, 1], [2, 2]])); });
-    let seen: RequestInit | undefined;
-    vi.stubGlobal('fetch', f);
+  it('MỌI lời gọi mang AbortSignal — đo trên nhiều lời gọi khác nhau, không phải một', async () => {
+    // "every fetch carries a signal" đo trên đúng MỘT lời gọi thì không phải
+    // "mọi": chỉ cần một nhánh khác (profile khác, hay chặng `via`) quên
+    // `signal` là mệnh đề sai mà lane vẫn xanh. Ở đây bốn lời gọi đi qua các
+    // đường khác nhau và TỪNG cái phải mang signal.
+    const seen: (RequestInit | undefined)[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        seen.push(init);
+        return jsonRes(okBody([[1, 1], [2, 2]]));
+      }),
+    );
+
     await resolveRoute({ from: [1, 1], to: [2, 2] });
-    expect(seen?.signal).toBeInstanceOf(AbortSignal);
+    await resolveRoute({ from: [1, 1], to: [2, 2], mode: 'walk' });
+    await resolveRoute({ from: [3, 3], to: [4, 4], mode: 'car' });
+    await resolveRoute({ from: [5, 5], to: [6, 6], via: [[5.5, 5.5]] });
+
+    expect(seen.length, 'bốn yêu cầu khác nhau, không cái nào trúng cache').toBe(4);
+    for (const [i, init] of seen.entries()) {
+      expect(init?.signal, `lời gọi #${i} không mang signal`).toBeInstanceOf(AbortSignal);
+    }
   });
 
   it('refuses coordinates outside the valid range before spending a request', async () => {

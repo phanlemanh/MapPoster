@@ -1,0 +1,77 @@
+schema_version: 1
+feature_slug: input-caps
+
+# BẢN NHÁP — bám thẳng AC trong contract.md, CHƯA qua bước EVAL-GEN của skill
+# `acceptance`. Mỗi eval trỏ vào một executor đã khai trong _acceptance/config.yaml
+# (resolve_config, clip_tools) nên không thêm lệnh mới vào bộ đo.
+#
+# surfaces: [api] — không bề mặt web UI, không phán đoán nghiệp vụ, nên không có
+# eval loại judgment.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; highlight.regions vượt MAX_HIGHLIGHTS => ném, và resolveLocation/resolveBoundary đều 0 lần gọi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; highlight.points vượt MAX_HIGHLIGHTS => ném, và cả hai hàm geocode đều 0 lần gọi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; mảng dài ĐÚNG BẰNG MAX_HIGHLIGHTS vẫn resolve và trả đủ số phần tử — trần inclusive"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; renderMapSchema.safeParse từ chối mảng quá trần và chấp nhận mảng đúng trần, cho cả regions lẫn points"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; variants vượt MAX_VARIANTS => isError, và dependency render có 0 lần gọi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; variants đúng bằng MAX_VARIANTS => count = MAX_VARIANTS và render được gọi đúng MAX_VARIANTS lần"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; MAX_VARIANTS >= THEMES.length — trần không chặn được phép quét mỗi theme một variant"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E8
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; formatSize NÉM cho constructor/toString/valueOf/hasOwnProperty/__proto__/isPrototypeOf, và khẳng định thêm trên giá trị trả về để bắt cả ca 'trả truthy không phải size'"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # E9 là bất biến hai tầng — negative control là cách DUY NHẤT chứng minh nó, vì
+  # khi cả hai tầng còn nguyên thì gỡ một tầng vẫn xanh ở mọi eval kết-quả (tầng
+  # kia bắt thay). Script tự khôi phục cây làm việc qua `trap`, kể cả khi hỏng
+  # giữa chừng.
+  - id: E9
+    criterion: AC-9
+    executor: script
+    cmd: config:executors.script.input_caps_negctrl
+    expected: "exit 0; đủ 4/4 ca đỏ đúng chỗ — gỡ Object.hasOwn => E8 đỏ; gỡ assertHighlightCount => E1+E2 đỏ; gỡ guard MAX_VARIANTS => E5 đỏ; gỡ .max() Zod => E4 đỏ"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

@@ -7,6 +7,10 @@
  *       biến thật, và chỉ đọc mã mới nói được điều đó.
  *   I3  Mọi cửa vào đều đi qua nó, kể cả nhánh fall-through `/mcp`.
  *   I4  Chốt fail-closed lúc khởi động có SO SÁNH thật, không chỉ có chuỗi lỗi.
+ *   I5  Câu README về auth KHỚP với thứ `http.ts` thật sự làm — đối chiếu HAI
+ *       CHIỀU, vì AC-8 nói về tài liệu chứ không về mã. I2/I3/I4 đọc mã và
+ *       không mở `README.md` một lần nào, nên trước I5 thì sửa README ngược
+ *       lại thành câu SAI cũ ("bearer chỉ áp cho REST") vẫn thoát 0.
  *
  * Exit 0 = mọi bất biến còn giữ. Exit 1 = ít nhất một cái vỡ.
  */
@@ -50,6 +54,36 @@ const failClosed = /if \(!LOOPBACK_HOSTS\.includes\(host\) && !process\.env\.MAP
 note(failClosed, 'I4', `chốt khởi động SO SÁNH host với LOOPBACK_HOSTS và token: ${failClosed}`);
 const explains = /Refusing to start/.test(src) && /MAPPOSTER_TOKEN/.test(src);
 note(explains, 'I4', `thông điệp từ chối nêu được cách khắc phục: ${explains}`);
+
+// I5 — AC-8: README phải MÔ TẢ ĐÚNG THỰC TẾ. Không so chuỗi một chiều ("README
+// có chứa câu này") — thế thì gỡ guard `/mcp` khỏi http.ts vẫn xanh, mà đó
+// chính là lúc câu README thành lời nói dối. So HAI CHIỀU: điều README KHẲNG
+// ĐỊNH phải bằng đúng điều mã LÀM.
+const readme = read('README.md');
+const restStart = readme.indexOf('### REST endpoints');
+const restEnd = readme.indexOf('\n### ', restStart + 1);
+const restSection = restStart < 0 ? '' : readme.slice(restStart, restEnd < 0 ? undefined : restEnd);
+note(restSection.length > 0, 'I5', `tìm được mục '### REST endpoints' trong README: ${restSection.length > 0}`);
+// Gấp xuống một dòng: README ngắt dòng ~78 cột, nên regex nhiều từ phải chịu
+// được mọi chỗ xuống dòng chứ không được ghim vị trí wrap hôm nay.
+const flat = restSection.replace(/\s+/g, ' ');
+
+const readmeSaysMcpGuarded = /same bearer token \(`MAPPOSTER_TOKEN`\) as every other route, \*\*including the `\/mcp` transport itself\*\*/.test(flat);
+const codeGuardsMcp = guards >= 4 && beforeMcp;
+note(
+  readmeSaysMcpGuarded === codeGuardsMcp,
+  'I5',
+  `README nói bearer áp cho CẢ /mcp = ${readmeSaysMcpGuarded}; http.ts thật sự gác /mcp = ${codeGuardsMcp} (hai vế phải BẰNG nhau — lệch nghĩa là tài liệu nói sai về mã)`,
+);
+
+const readmeSaysFailClosed =
+  /\*\*refuses to start\*\* when `MAPPOSTER_HTTP_HOST` binds outside loopback and no token is set/.test(flat) &&
+  /`MAPPOSTER_TOKEN` stays optional for loopback use/.test(flat);
+note(
+  readmeSaysFailClosed === failClosed,
+  'I5',
+  `README ghi luật fail-closed (bắt buộc token ngoài loopback, KHÔNG bắt trên loopback) = ${readmeSaysFailClosed}; http.ts có chốt đó = ${failClosed} (hai vế phải BẰNG nhau)`,
+);
 
 console.log('');
 if (failures.length) { console.log(`auth-invariants: ${failures.length} vi phạm`); process.exit(1); }

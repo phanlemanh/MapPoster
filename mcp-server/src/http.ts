@@ -10,7 +10,7 @@ import { makeRenderDeps } from './deps';
 import { DEFAULT_MAX_BODY_BYTES, DEFAULT_CLIP_MAX_BYTES, envNumber, loadServerConfig } from '../config';
 import { ensureDist } from './ensureDist';
 import type { EncodeQuality } from './encodeAnimation';
-import { renderMapSchema, resolvedOf, type ToolDeps } from './tools';
+import { renderMapSchema, resolvedOf, resolvedOfClip, type ToolDeps } from './tools';
 import { resolveConfig } from './resolveConfig';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import { deliver } from './delivery';
@@ -364,7 +364,10 @@ export async function startHttpServer(
         try {
           try {
             if (!deps.renderClip || !deps.encodeAnimation) throw new Error('clip rendering not wired (renderClip/encodeAnimation deps missing)');
-            const { frames, settle } = await deps.renderClip(cfg);
+            // MỘT đối tượng, truyền NGUYÊN cho `resolvedOfClip` — xem chú
+            // thích cùng chỗ trong tools.ts.
+            const clipOut = await deps.renderClip(cfg);
+            const { frames, settle } = clipOut;
             const settleOut = { base64: settle.toString('base64'), format: 'png' as const, width: cfg.size.width, height: cfg.size.height };
             const motionOut = { ...(preset ? { preset } : {}), restAtSec: motion.restAtSec, script: motion };
 
@@ -401,7 +404,7 @@ export async function startHttpServer(
                     error: `clip is ${mp4.length} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
                     settle: settleOut,
                     motion: motionOut,
-                    resolved: resolvedOf(cfg),
+                    resolved: resolvedOfClip(cfg, clipOut),
                   }),
                 );
                 return;
@@ -422,7 +425,7 @@ export async function startHttpServer(
                   },
                   settle: settleOut,
                   motion: motionOut,
-                  resolved: resolvedOf(cfg),
+                  resolved: resolvedOfClip(cfg, clipOut),
                 }),
               );
             } catch (e) {
@@ -436,7 +439,7 @@ export async function startHttpServer(
                   ok: true,
                   settle: settleOut,
                   motion: motionOut,
-                  resolved: resolvedOf(cfg),
+                  resolved: resolvedOfClip(cfg, clipOut),
                   clipError: `encode failed: ${(e as Error).message ?? String(e)}`,
                 }),
               );

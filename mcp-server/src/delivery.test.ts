@@ -22,13 +22,23 @@ afterAll(async () => {
 
 describe('deliver', () => {
   it('mode=both writes a file and returns path + base64 + dims (AC-7)', async () => {
-    const r = await deliver(fakePng(1080, 1920), 'shot1', 'both', { sinkDir });
+    const png = fakePng(1080, 1920);
+    const r = await deliver(png, 'shot1', 'both', { sinkDir });
     expect(r.width).toBe(1080);
     expect(r.height).toBe(1920);
     expect(r.format).toBe('png');
     expect(r.path).toBeTruthy();
     expect(r.base64).toBeTruthy();
     await expect(fs.stat(r.path!)).resolves.toBeTruthy();
+    // AC-7 nói "tệp PNG tồn tại tại thư mục sink ĐÃ CẤU HÌNH" — `stat` thành
+    // công không nói gì về CHỖ tệp nằm, nên ghi ra ngoài sink vẫn xanh.
+    expect(path.dirname(r.path!)).toBe(sinkDir);
+    expect(path.basename(r.path!)).toBe('shot1.png');
+    // Và hai đường giao hàng phải là CÙNG một ảnh: `both` mà tệp trên đĩa lệch
+    // byte với base64 trả về (cắt cụt, ghi nhầm buffer) thì caller nhận hai
+    // thứ khác nhau mà mọi khẳng định trên đây vẫn xanh.
+    expect(await fs.readFile(r.path!)).toEqual(png);
+    expect(Buffer.from(r.base64!, 'base64')).toEqual(png);
   });
 
   it('mode=url writes a file but omits base64', async () => {

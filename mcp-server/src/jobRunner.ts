@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import { envNumber, DEFAULT_CLIP_MAX_BYTES, DEFAULT_CLIP_CONCURRENCY } from '../config';
 import { deliver } from './delivery';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
-import { resolvedOf, type ToolDeps } from './tools';
+import { resolvedOf, resolvedOfClip, type ToolDeps } from './tools';
 import { acquireClipSlotWaiting, prepareClipRenderWithSlot, MotionParamError } from './motionCompiler';
 import { GeocodeUpstreamError } from './geocode';
 import { slugify } from '../../src/lib/format';
@@ -127,7 +127,10 @@ export function createJobRunner({
       prepareClipRenderWithSlot(job.params as RenderMapParams, job.motionInput, release, env),
     );
     try {
-      const { frames, settle } = await deps.renderClip(cfg);
+      // MỘT đối tượng, truyền NGUYÊN cho `resolvedOfClip` — xem chú thích
+      // cùng chỗ trong tools.ts. Đây là file đã hai lần dính lỗi "sai biến".
+      const clipOut = await deps.renderClip(cfg);
+      const { frames, settle } = clipOut;
       const name = fileNameFor('clip', cfg.place.name);
       const settleOut = await deliver(settle, `${name}-settle`, 'url', { sinkDir: deps.sinkDir });
       const settleArtifact: JobArtifact = {
@@ -153,7 +156,7 @@ export function createJobRunner({
         return {
           status: 'done',
           artifacts: [settleArtifact],
-          resolved: resolvedOf(cfg),
+          resolved: resolvedOfClip(cfg, clipOut),
           motion: motionOut,
           degradeNote: `encode failed: ${(e as Error).message ?? String(e)}`,
         };
@@ -168,7 +171,7 @@ export function createJobRunner({
         return {
           status: 'failed',
           artifacts: [settleArtifact],
-          resolved: resolvedOf(cfg),
+          resolved: resolvedOfClip(cfg, clipOut),
           motion: motionOut,
           error: `clip is ${bytes} bytes, over MAPPOSTER_CLIP_MAX_BYTES=${cap} — lower fps/durationSec or size`,
           errorKind: 'input',
@@ -187,7 +190,7 @@ export function createJobRunner({
         durationSec: motion.durationSec,
         fps: motion.fps,
       };
-      return { status: 'done', artifacts: [settleArtifact, clipArtifact], resolved: resolvedOf(cfg), motion: motionOut };
+      return { status: 'done', artifacts: [settleArtifact, clipArtifact], resolved: resolvedOfClip(cfg, clipOut), motion: motionOut };
     } finally {
       // Trả chỗ dù kết thúc bằng lối nào. Một slot rò rỉ trong hệ CÓ hàng chờ
       // không phải là chậm — nó là treo vĩnh viễn cho mọi người phía sau.

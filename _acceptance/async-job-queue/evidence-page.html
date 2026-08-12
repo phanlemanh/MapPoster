@@ -31,7 +31,7 @@ ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}u
 </style></head><body><div class="wrap">
 <h1>Async job queue — nhận việc render rồi trả mã việc (Gói nền)</h1><div class="sub">Trang bằng chứng · <span class="mono">async-job-queue</span> · tier T2</div>
 <div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
-<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>manh 2026-08-06</b></span><span>enforcement: <b>strict</b></span></div></div>
+<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>(rỗng — Cổng 2 chờ người ký)</b></span><span>enforcement: <b>strict</b></span></div></div>
 <h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
 <tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
 <tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
@@ -184,7 +184,7 @@ comment), not merely asserted forward.</pre>
 <div class="card eval" id="E20"><h3><span class="badge neutral">PASS (JUDGE)</span> &nbsp;E20 · judgment</h3><p class="crit">AC-15</p>
 <div class="kv"><span>judged_by <b>judge-subagent (fresh context, blind)</b></span></div>
 <p class="note"><b>Phán đoán:</b> Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ &#39;OneHub chưa cần&#39; ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.</p>
-<div class="ov ovok">human_override: manh 2026-08-06 — CHẤP NHẬN — áp theo uỷ quyền đứng của chủ repo trong phiên (&#39;tự lái, không cần hỏi, cho đến khi hoàn tất&#39;) — KHÔNG phải người ký trực tiếp xem từng mục. Giám khảo mù chấm PASS: bốn thiếu sót đều được contract nêu đích danh kèm lý do, và restart-làm-mã-việc-vô-danh vẫn trả 404 đúng luồng AC-4 mà OneHub đã phải xử lý. Rủi ro còn lại vẫn như vòng trước: 404 không phân biệt &#39;việc mất&#39; với &#39;mã bịa&#39;; cần hợp đồng riêng cho job bền vững.</div>
+<div class="ov">human_override: <i>(RỖNG — chờ người ký ở Cổng 2)</i>. Chữ ký cũ ở ô này do agent tự điền theo &#39;uỷ quyền đứng&#39; và đã bị RÚT ở commit <code>33ae60b</code>: agent không ký thay người. Phán quyết PASS ở trên là của giám khảo mù, mang tính tham khảo. Rủi ro còn lại người ký nên cân: 404 không phân biệt &#39;việc mất sau restart&#39; với &#39;mã bịa&#39;; cần hợp đồng riêng cho job bền vững.</div>
 </div>
 <h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values are carried forward unchanged from the prior round per the re-verification instruction
 (not recomputed this round) — E4/E7/E9/E10/E15/E16/E17/E21/E22/E23 were `red` on the prior round&#39;s own

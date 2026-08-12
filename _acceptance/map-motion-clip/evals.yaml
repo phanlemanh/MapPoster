@@ -20,7 +20,7 @@ evals:
     criterion: AC-3
     executor: test
     cmd: config:executors.test.motion_invariants
-    expected: "exit 0; pulse bắt đầu sau restAtSec ĐƯỢC chấp nhận (loop-track), còn hai track one-shot cùng kind bị TỪ CHỐI với tiền tố O:"
+    expected: "exit 0; pulse BẮT ĐẦU SAU restAtSec (from=4.5 > restAtSec=4.2) ĐƯỢC chấp nhận vì là loop-track — luật O chỉ ràng buộc điểm kết của track one-shot; trần thật của pulse là đuôi clip, nên from=5.999 đạt còn from=6 (=durationSec) bị TỪ CHỐI với tiền tố L:; và hai track one-shot cùng kind bị TỪ CHỐI với tiền tố O:"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # ── AC-4: compiler an toàn trên TOÀN miền, không sinh clip đứng im ──────────
@@ -35,7 +35,7 @@ evals:
     criterion: AC-4
     executor: test
     cmd: config:executors.test.motion_compiler
-    expected: "exit 0; ca biên có tên: zoom 0/22 cho pushIn+drift, approach ở zoom 2/5/6, kinh độ ±179.5, override fps/durationSec ngoài dải báo lỗi nêu tên trường"
+    expected: "exit 0; ca biên có tên: pushIn clamp ở zoom 1/22 và drift ở zoom 0/22 — zoom 0 KHÔNG còn là ca clamp của pushIn mà là ca NÉM của chốt headroom fly-in, có test riêng; approach ở zoom 2/5/6 cộng biên 0.5 đạt và 0/0.4 ném; kinh độ ÂM sát antimeridian (-179.5 ở hai mức zoom, -179.99, -179.999) — hai ca +179.5 đã bị bỏ có chủ ý vì offset luôn TRỪ khỏi tâm nên chúng không thể fail dưới bất kỳ hiện thực nào; override fps/durationSec ngoài dải báo lỗi nêu tên trường"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # ── AC-5: toán nội suy ─────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ evals:
     criterion: AC-9
     executor: test
     cmd: config:executors.test.text_free
-    expected: "exit 0; với chrome:'clean' chữ DUY NHẤT vẽ lên canvas là dòng attribution (mọi fillText/strokeText khác làm đỏ); buildMapStyle phát 0 symbol layer khi roadLabels off và đúng ['road-label-major'] khi on"
+    expected: "exit 0; với chrome:'clean' chữ DUY NHẤT vẽ lên canvas là dòng attribution (mọi fillText/strokeText khác làm đỏ) — và `text.show` KHÔNG được khai bằng tay: test gọi applyRenderConfig(chrome:'clean') rồi đọc store đúng như textFromStore() của trang render, nên mắt xích thật `chrome → showText` (applyRenderConfig.ts:24) nằm TRONG lane; đổi hằng đó thành `showText = true` làm lane ĐỎ. Kèm ĐỐI CHỨNG chrome:'poster' đi cùng đường phải vẽ THÊM chữ (>1 lệnh, có 'Hanoi'), nên ca 'clean' không thể xanh vì canvas câm; buildMapStyle phát 0 symbol layer khi roadLabels off và đúng ['road-label-major'] khi on"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # ── AC-11: encoder hỏng → degrade, không sập, không rò file (should-NOT-crash)
@@ -111,8 +111,8 @@ evals:
   - id: E15
     criterion: AC-12
     executor: test
-    cmd: config:executors.test.clip_http
-    expected: "exit 0; clip vượt hạn mức đồng thời trả 429 (không xếp hàng vô hạn); pool.acquire có deadline nên /render thường không bị treo sau lưng clip"
+    cmd: config:executors.test.clip_backpressure
+    expected: "exit 0; nửa 429 — clip thứ hai khi đã chạm MAPPOSTER_CLIP_CONCURRENCY=1 trả 429 chứ không xếp hàng vô hạn (http.test.ts); nửa deadline — pool.acquire có acquireTimeoutMs nên waiter bị xếp hàng bị TỪ CHỐI bằng PoolAcquireTimeoutError và slot của nó được nhả, thay vì treo /render thường sau lưng clip (browserPool.test.ts), kèm nửa suppression: KHÔNG cấu hình acquireTimeoutMs thì waiter không bao giờ bị hết giờ"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   # ── AC-13, AC-14: judgment — T3 nên BẮT BUỘC verdict trực tiếp của người ───

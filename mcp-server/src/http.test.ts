@@ -14,7 +14,10 @@ vi.mock('./geocode', async () => ({
   resolveLocation: vi.fn(async (input: string | { lng: number; lat: number; zoom?: number }) => {
     if (typeof input === 'string' && input.toLowerCase().startsWith('zzz')) throw new Error(`No geocoding result for "${input}"`);
     return typeof input === 'string'
-      ? { center: [106.7, 10.78], zoom: 12, place: { name: 'HCMC', country: 'Vietnam', lat: 10.78, lng: 106.7 } }
+      // Echo tên caller gửi làm place.name, đúng như một geocoder thật trả về
+      // tên địa danh nó khớp được. Hằng 'HCMC' cũ khiến KHÔNG lane nào kiểm
+      // được tên có dấu đi trọn đường ra phản hồi — AC-1 đòi đúng điều đó.
+      ? { center: [106.7, 10.78], zoom: 12, place: { name: input, country: 'Vietnam', lat: 10.78, lng: 106.7 } }
       : { center: [input.lng, input.lat], zoom: input.zoom ?? 15, place: { name: '', country: '', lat: input.lat, lng: input.lng } };
   }),
   searchCandidates: vi.fn(async () => []),
@@ -34,6 +37,7 @@ vi.mock('./geocode', async () => ({
 import { readJsonBody, isAllowedRequest, startHttpServer, PayloadTooLargeError, type HttpServer } from './http';
 import type { ToolDeps } from './tools';
 import type { RenderConfig } from '../../src/render/renderConfig';
+import type { ClipAnchors } from '../../src/render/anchors';
 
 describe('isAllowedRequest (DNS-rebinding guard)', () => {
   const loopback = { allowedHosts: ['127.0.0.1', 'localhost', '[::1]'], allowedOrigins: [] as string[] };
@@ -418,12 +422,29 @@ describe('POST /render (REST)', () => {
 // exact config renderClipFrames would have received (chrome forced clean, motion attached)
 let seenClipConfig: RenderConfig | undefined;
 
+/**
+ * Anchors một lần render clip thật sẽ trả về, DẪN XUẤT TỪ `cfg`: `zoom + 1`
+ * khiến `resolved.camera.zoom` không thể trùng `resolved.zoom` một cách tình
+ * cờ, nên một hiện thực echo lại `cfg.camera` sẽ đỏ chứ không xanh nhầm.
+ */
+function fakeAnchors(cfg: RenderConfig): ClipAnchors {
+  return {
+    camera: { center: cfg.camera.center, zoom: cfg.camera.zoom + 1, bearing: 0, pitch: 0 },
+    points: (cfg.markers ?? []).map((m, index) => ({ index, lng: m.lng, lat: m.lat, xPct: 25, yPct: 75, onScreen: true })),
+    regions: (cfg.highlight?.regions ?? []).map((_r, index) => ({
+      index,
+      bboxCenterPct: [50, 50] as [number, number],
+      bboxPct: [10, 20, 90, 80] as [number, number, number, number],
+    })),
+  };
+}
+
 function fakeClipDeps(overrides: Partial<ToolDeps> = {}): ToolDeps {
   return {
     render: async () => PNG_1x1,
     renderClip: async (cfg) => {
       seenClipConfig = cfg;
-      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1 };
+      return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
     },
     encodeAnimation: async (_frames, opts) => {
       await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
@@ -441,8 +462,26 @@ interface ClipResBody {
   clip?: { base64: string; format: string; width: number; height: number; durationSec: number; fps: number; bytes: number };
   settle?: { base64: string; format: string; width: number; height: number };
   motion?: { preset?: string; restAtSec: number; script?: { fps: number; camera: unknown[] } };
-  resolved?: { center: [number, number] };
+  resolved?: { center: [number, number]; zoom: number; camera?: ClipAnchors['camera']; anchors?: { points: ClipAnchors['points']; regions: ClipAnchors['regions'] }; anchorsUnavailable?: string };
   clipError?: string;
+}
+
+/**
+ * ĐÚNG MỘT trong `anchors` / `anchorsUnavailable`, đo tại TỪNG lối ra.
+ *
+ * "resolved có anchors" là một nửa khẳng định: nó không loại trừ việc khối
+ * `resolved` mang CẢ HAI. Phát ra cả hai thì caller không có cách nào biết tin
+ * cái nào — và một `anchors` đã tự khai là không đo được vẫn sẽ bị đọc như số
+ * đo thật. Đo được: cho `resolvedOfClip` phát cả hai ở nhánh đo-được thì
+ * tools.test.ts đỏ 2 ca còn lane REST vẫn 61/61 xanh.
+ */
+function expectAnchorsXor(resolved: ClipResBody['resolved'], label: string): void {
+  const r = (resolved ?? {}) as Record<string, unknown>;
+  const hasAnchors = 'anchors' in r;
+  const hasReason = 'anchorsUnavailable' in r;
+  expect(hasAnchors !== hasReason, `${label}: anchors=${hasAnchors}, anchorsUnavailable=${hasReason}`).toBe(true);
+  // `camera` là số đo của CÙNG lần đọc anchors — đi và vắng cùng nhau.
+  expect('camera' in r, `${label}: camera đi cùng anchors`).toBe(hasAnchors);
 }
 
 describe('POST /render-clip', () => {
@@ -483,6 +522,144 @@ describe('POST /render-clip', () => {
     expect(body.resolved?.center).toBeDefined();
     expect(seenClipConfig?.chrome).toBe('clean'); // AC-9: caller xin 'poster' vẫn bị ép clean
     expect(seenClipConfig?.motion?.fps).toBe(18); // FPS_DEFAULT (motionCompiler.ts) — measured, see Task 9 report
+  });
+
+  it('resolved mang camera + anchors trên CẢ BA lối ra: 200, degrade encode, và 422 quá cỡ (PR #6)', async () => {
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }], regions: ['District 1'] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(0, fakeClipDeps());
+    const okBody = (await (await postJson(clipUrl(srv), body)).json()) as ClipResBody;
+    expect(okBody.ok).toBe(true);
+    expect(okBody.resolved?.camera).toEqual({ center: seenClipConfig!.camera.center, zoom: seenClipConfig!.camera.zoom + 1, bearing: 0, pitch: 0 });
+    // camera là camera NGHỈ, không phải camera trong config — nếu ai đó echo
+    // `cfg.camera` cho tiện thì hai con số này bằng nhau và bất biến chết lặng.
+    expect(okBody.resolved?.camera?.zoom).not.toBe(okBody.resolved?.zoom);
+    expect(okBody.resolved?.anchors?.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
+    expect(okBody.resolved?.anchors?.regions).toEqual([{ index: 0, bboxCenterPct: [50, 50], bboxPct: [10, 20, 90, 80] }]);
+    expectAnchorsXor(okBody.resolved, '200');
+    await srv.close();
+
+    // degrade: encoder ngã — khung đã chụp, anchors đã đo, không được vứt đi
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        encodeAnimation: async () => {
+          throw new Error('ffmpeg boom');
+        },
+      }),
+    );
+    const degraded = (await (await postJson(clipUrl(srv), body)).json()) as ClipResBody;
+    expect(degraded.clipError).toBeDefined();
+    expect(degraded.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
+    expect(degraded.resolved?.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(degraded.resolved, 'degrade encode');
+    await srv.close();
+
+    // 422 quá cỡ: cùng giao ước xuống-cấp
+    process.env.MAPPOSTER_CLIP_MAX_BYTES = '2';
+    srv = await startHttpServer(0, fakeClipDeps());
+    const over = await postJson(clipUrl(srv), body);
+    expect(over.status).toBe(422);
+    const overBody = (await over.json()) as ClipResBody;
+    expect(overBody.resolved?.camera?.zoom).toBe(seenClipConfig!.camera.zoom + 1);
+    expect(overBody.resolved?.anchors?.points).toHaveLength(1);
+    expectAnchorsXor(overBody.resolved, '422 quá cỡ');
+  });
+
+  it('nhánh KHÔNG đo được cũng cùng bất biến XOR — và ba lối ra trên không phải cả hai nhánh (PR #6)', async () => {
+    // Ba lối ra của ca trên (200 / degrade / 422) đều thuộc nhánh ĐO ĐƯỢC:
+    // chúng nói lên "phát đúng một" nhưng chỉ chứng kiến MỘT phía của union.
+    // Ca này bổ nhánh còn lại trên chính bề mặt REST.
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          return { frames: [PNG_1x1, PNG_1x1], settle: PNG_1x1, anchorsUnavailable: REASON };
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), body);
+    expect(res.status).toBe(200); // pitch không làm hỏng clip, chỉ làm anchors mất nghĩa
+    const j = (await res.json()) as ClipResBody;
+    expect(j.resolved?.anchorsUnavailable).toBe(REASON);
+    expectAnchorsXor(j.resolved, '200 không đo được');
+  });
+
+  it('AC-11: output.quality ĐI TỚI encoder trên lối REST, và vắng mặt thì encoder giữ nguyên mặc định cũ', async () => {
+    // Đây chính là nhánh mà `encodeQuality` phải được nâng ra ngoài `try`
+    // resolve (http.ts:327): `params` là block-scope của try đó, còn pha encode
+    // nằm ở try KHÁC. Đọc `params` ở đó là ReferenceError, và vì cả khối encode
+    // nằm trong catch-degrade nên lỗi ấy biến thành 'clip hỏng' IM LẶNG —
+    // response vẫn 200. Không phép kiểm nào của file này từng chạm `quality`,
+    // nên hồi quy đó chạy được trọn vẹn dưới một lane 100% xanh.
+    const seen: (string | undefined)[] = [];
+    const spyDeps = () =>
+      fakeClipDeps({
+        encodeAnimation: async (_frames, opts) => {
+          seen.push(opts.quality);
+          await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+          return opts.outPath;
+        },
+      });
+    const body = {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    };
+
+    srv = await startHttpServer(0, spyDeps());
+    const withQuality = await postJson(clipUrl(srv), { ...body, output: { quality: 'high' } });
+    expect(withQuality.status).toBe(200); // degrade im lặng cũng là 200 — nên KHÔNG đủ một mình
+    expect(((await withQuality.json()) as ClipResBody).clipError).toBeUndefined();
+    expect(seen).toEqual(['high']);
+    await srv.close();
+
+    // Nửa suppression của AC-11: không khai `quality` thì encoder KHÔNG được
+    // nhận một giá trị bịa ra — nó phải thấy `undefined` và tự rơi về
+    // 'standard' (crf 20), đúng tham số ffmpeg trước khi có núm này.
+    srv = await startHttpServer(0, spyDeps());
+    const withoutQuality = await postJson(clipUrl(srv), body);
+    expect(withoutQuality.status).toBe(200);
+    expect(seen).toEqual(['high', undefined]);
+  });
+
+  it('renderer không đo được anchors ⇒ 200 kèm anchorsUnavailable, clip vẫn ra đời (PR #6)', async () => {
+    const REASON = 'camera.pitch is 30 — anchors require pitch 0.';
+    srv = await startHttpServer(
+      0,
+      fakeClipDeps({
+        renderClip: async (cfg) => {
+          seenClipConfig = cfg;
+          return { frames: [PNG_1x1], settle: PNG_1x1, anchorsUnavailable: REASON };
+        },
+      }),
+    );
+    const res = await postJson(clipUrl(srv), {
+      location: { lng: 106.7, lat: 10.78, zoom: 14 },
+      camera: { pitch: 30 },
+      highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      motion: { preset: 'pushIn' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ClipResBody;
+    expect(body.ok).toBe(true);
+    expect(body.clip?.format).toBe('mp4'); // pitch không làm hỏng clip
+    expect(body.resolved?.anchorsUnavailable).toBe(REASON);
+    expect('anchors' in (body.resolved as object)).toBe(false);
+    expect('camera' in (body.resolved as object)).toBe(false);
   });
 
   it('400: an unresolvable location (geocoding found nothing) is the caller\'s fault, not ours (Decision 3)', async () => {
@@ -664,7 +841,7 @@ describe('POST /render-clip', () => {
           seenClipConfig = cfg;
           firstCallStarted();
           await gate;
-          return { frames: [PNG_1x1], settle: PNG_1x1 };
+          return { frames: [PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) };
         },
       }),
     );
@@ -707,13 +884,22 @@ describe('POST /jobs + POST /jobs/status', () => {
   const ask = (id: unknown) =>
     fetch(`${base}/jobs/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) });
 
-  async function boot(over: { maxQueued?: number; render?: ToolDeps['render'] } = {}) {
+  async function boot(over: { maxQueued?: number; render?: ToolDeps['render']; clip?: boolean } = {}) {
     sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-http-jobs-`);
     const store = createJobStore({ maxQueued: over.maxQueued });
     const deps = {
       sinkDir: sink,
       defaultDelivery: 'url',
       render: over.render ?? (async () => PNG_1x1),
+      ...(over.clip
+        ? {
+            renderClip: async (cfg: RenderConfig) => ({ frames: [PNG_1x1], settle: PNG_1x1, anchors: fakeAnchors(cfg) }),
+            encodeAnimation: async (_f: Buffer[], opts: { outPath: string }) => {
+              await fsp.writeFile(opts.outPath, Buffer.from('mp4!'));
+              return opts.outPath;
+            },
+          }
+        : {}),
     } as unknown as ToolDeps;
     const runner = createJobRunner({ store, deps, workers: 1 });
     server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, undefined, { store, runner });
@@ -734,10 +920,36 @@ describe('POST /jobs + POST /jobs/status', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(typeof body.id).toBe('string');
+    // `status` nằm trong hình dạng thân 202 mà AC-1 hứa. Không khẳng định nó thì
+    // bỏ hẳn trường khỏi phản hồi vẫn xanh.
+    expect(body.status).toBe('queued');
 
-    const first = await (await ask(body.id)).json();
-    expect(['queued', 'running', 'done']).toContain(first.status);
+    const askRes = await ask(body.id);
+    expect(askRes.status).toBe(200);
+    const first = await askRes.json();
+    // KHÔNG chấp nhận 'done': mệnh đề của AC-1 là "hỏi NGAY thì việc đã có mặt
+    // và CHƯA xong". Nới biên sang 'done' làm khẳng định hết phân biệt — một
+    // runner chạy đồng bộ ngay trong tay POST cũng lọt.
+    expect(['queued', 'running']).toContain(first.status);
     expect(first.id).toBe(body.id);
+  });
+
+  it('AC-1: tên có dấu đi qua sổ rồi ra phản hồi, GIỮ NGUYÊN TỪNG KÝ TỰ', async () => {
+    const { store, runner } = await boot();
+    const NAME = 'Đà Nẵng';
+    const id = (await (await submit({ kind: 'render', params: { location: NAME } })).json()).id;
+
+    // chặng 1 — cửa HTTP giải JSON rồi ghi vào sổ: không hỏng mã hoá, không NFC/NFD hoá
+    expect((store.get(id)!.params as { location: string }).location).toBe(NAME);
+    expect([...(store.get(id)!.params as { location: string }).location]).toEqual([...NAME]);
+
+    runner.kick();
+    await runner.drain();
+
+    // chặng 2 — sổ ra phản hồi
+    const done = await (await ask(id)).json();
+    expect(done.status).toBe('done');
+    expect(done.resolved.place.name).toBe(NAME);
   });
 
   it('AC-2: thân sai khuôn → 400 câu đọc được, và KHÔNG bản ghi nào được tạo', async () => {
@@ -745,6 +957,12 @@ describe('POST /jobs + POST /jobs/status', () => {
     const bads: unknown[] = [
       { kind: 'render' },                                             // thiếu params
       { kind: 'render', params: { location: { lng: 999, lat: 0 } } }, // kinh độ ngoài dải
+      // AC-2 nói "zoom ngoài dải → 400", nhưng bảng này trước đây chỉ có kinh
+      // độ — không ca nào chạm `zoomLevel` (z.number().min(0).max(22)). Zoom
+      // đi vào qua HAI cửa khác nhau, nên cả hai đều phải có ca:
+      { kind: 'render', params: { location: { lng: 106.7, lat: 10.78, zoom: 99 } } }, // zoom trong location
+      { kind: 'render', params: { location: 'x', camera: { zoom: 99 } } },            // zoom trong camera
+      { kind: 'render', params: { location: 'x', camera: { zoom: -1 } } },            // và đầu dưới của dải
       { kind: 'la-lam', params: { location: 'x' } },                  // loại việc lạ
       { kind: 'clip', params: { location: 'x' } },                    // clip mà thiếu motion
     ];
@@ -776,8 +994,38 @@ describe('POST /jobs + POST /jobs/status', () => {
     for (const id of ['khong-ton-tai', 42, null]) {
       const res = await ask(id);
       expect(res.status).toBe(404);
-      expect((await res.json()).ok).toBe(false);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      // Mệnh đề "KHÔNG ca nào trả 200 với trạng thái rỗng/undefined" cần được
+      // canh gác thật: một cửa trả 200 kèm `status: undefined` cũng thoả
+      // `ok === false` nếu chỉ kiểm ok.
+      expect(body.status).toBeUndefined();
     }
+  });
+
+  it('AC-4: mã ĐÃ BỊ DỌN cũng trả 404 — không phải 200 với trạng thái rỗng', async () => {
+    // ttl 0 nên bản ghi vừa kết thúc là đã quá hạn giữ ngay nhịp quét kế tiếp.
+    sink = await fsp.mkdtemp(`${tmpdir()}/mapposter-http-jobs-`);
+    const store = createJobStore({ ttlMs: 0 });
+    const deps = { sinkDir: sink, defaultDelivery: 'url', render: async () => PNG_1x1 } as unknown as ToolDeps;
+    const runner = createJobRunner({ store, deps, workers: 1 });
+    server = await startHttpServer(0, deps, '127.0.0.1', { allowedHosts: [], allowedOrigins: [] }, undefined, { store, runner });
+    base = server.url.replace(/\/mcp$/, '');
+
+    const id = (await (await submit({ kind: 'render', params: { location: 'Huế' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+    // trước khi dọn: mã có thật, hỏi ra 200
+    expect((await ask(id)).status).toBe(200);
+
+    // sổ bỏ bản ghi đã quá hạn giữ
+    expect(store.takeExpired(Date.now() + 1).map((r) => r.id)).toContain(id);
+
+    const res = await ask(id);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.status).toBeUndefined();
   });
 
   it('AC-5 đầu-cuối: việc xong trả base64 ĐÚNG byte thợ đã ghi', async () => {
@@ -791,7 +1039,46 @@ describe('POST /jobs + POST /jobs/status', () => {
     expect(Buffer.from(body.image.base64, 'base64')).toEqual(PNG_1x1);
     // và đúng tệp THỢ ghi, không phải tệp test tự đặt sẵn
     await expect(fsp.readFile(store.get(id)!.artifacts[0].path)).resolves.toEqual(PNG_1x1);
-    expect(body.resolved).toBeDefined();
+
+    // width/height mà AC-5 nêu đích danh — `toBeDefined()` trên riêng `resolved`
+    // để lọt cả một khối rỗng lẫn một khối thiếu hẳn hai trường kích thước.
+    const art = store.get(id)!.artifacts[0];
+    expect(body.image.width).toBe(art.width);
+    expect(body.image.height).toBe(art.height);
+    expect(typeof body.image.width).toBe('number');
+    expect(typeof body.image.height).toBe('number');
+
+    // và khối resolved CÙNG HÌNH DẠNG resolvedOf. Hai vế, vì mỗi vế bắt một lỗi
+    // khác: (1) cửa đưa nguyên khối sổ giữ ra, không cắt xén dọc đường;
+    // (2) khối đó mang đủ bộ trường resolvedOf hứa — bỏ sót một trường ở nguồn
+    // là đỏ, chứ không trôi qua như `toBeDefined()` cũ.
+    expect(body.resolved).toEqual(store.get(id)!.resolved);
+    for (const k of ['center', 'zoom', 'place', 'theme', 'chrome', 'highlights']) {
+      expect(Object.keys(body.resolved)).toContain(k);
+    }
+  });
+
+  it('bề mặt thứ ba: một việc CLIP xong thì /jobs/status trả resolved.camera + resolved.anchors (PR #6)', async () => {
+    const { runner } = await boot({ clip: true });
+    const id = (
+      await (
+        await submit({
+          kind: 'clip',
+          params: { location: { lng: 106.7, lat: 10.78, zoom: 14 }, highlight: { points: [{ lng: 106.7, lat: 10.78 }] } },
+          motion: { preset: 'pushIn' },
+        })
+      ).json()
+    ).id;
+    runner.kick();
+    await runner.drain();
+
+    const body = await (await ask(id)).json();
+    expect(body.status).toBe('done');
+    expect(body.resolved.camera).toBeDefined();
+    // fakeAnchors đặt zoom = cfg.camera.zoom + 1: nếu jobRunner echo `cfg.camera`
+    // (hoặc anchors của MỘT việc khác) thì đẳng thức này vỡ.
+    expect(body.resolved.camera.zoom).toBe(body.resolved.zoom + 1);
+    expect(body.resolved.anchors.points).toEqual([{ index: 0, lng: 106.7, lat: 10.78, xPct: 25, yPct: 75, onScreen: true }]);
   });
 
   it('AC-6: việc hỏng vẫn hỏi ra HTTP 200 — mã nói về câu hỏi, thân nói về việc', async () => {
@@ -809,6 +1096,24 @@ describe('POST /jobs + POST /jobs/status', () => {
     const body = await res.json();
     expect(body.status).toBe('failed');
     expect(body.errorKind).toBe('server');
+  });
+
+  it('AC-6: việc hỏng vì TRA TOẠ ĐỘ thất bại — vẫn 200, nhưng errorKind nói lỗi tại NGƯỜI GỌI', async () => {
+    // Cặp với ca trên. Chỉ có một trong hai thì `errorKind` không chứng minh
+    // được gì: một hiện thực đóng cứng 'server' cho MỌI lỗi vẫn xanh. Hai ca
+    // cạnh nhau mới làm nó phân biệt được caller-fault vs server-fault.
+    const { runner } = await boot();
+    const id = (await (await submit({ kind: 'render', params: { location: 'zzz-khong-co-thuc' } })).json()).id;
+    runner.kick();
+    await runner.drain();
+
+    const res = await ask(id);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('failed');
+    expect(body.errorKind).toBe('input');
+    expect(body.errorKind).not.toBe('server');
+    expect(body.error).toMatch(/No geocoding result/);
   });
 
   it('hỏi lặp cùng một mã luôn ra cùng câu trả lời', async () => {

@@ -57,7 +57,7 @@ evals:
     criterion: AC-8
     executor: script
     cmd: config:executors.script.auth_invariants
-    expected: "exit 0; chạy cùng script — bất biến I2/I3 là thứ giữ cho câu README ('bearer áp cho cả /mcp') tiếp tục đúng thay vì trôi lại thành sai như trước"
+    expected: "exit 0; bất biến I5 ĐỌC README.md (mục '### REST endpoints') và đối chiếu HAI CHIỀU với http.ts: 'README khẳng định bearer áp cho cả /mcp' phải BẰNG 'http.ts thật sự gác nhánh fall-through /mcp', và 'README ghi luật fail-closed' phải BẰNG 'http.ts có chốt đó' — sửa README về câu sai cũ ('bearer chỉ áp cho REST') HOẶC gỡ guard /mcp khỏi mã đều làm script đỏ"
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
 
   - id: E9

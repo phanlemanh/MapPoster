@@ -110,6 +110,46 @@
 {"ts": "2026-08-07T03:11:38Z", "round": 9, "evalId": "E12", "run_id": "tier0-agent-params-r9-clip_http-20260807-repin", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
 {"ts": "2026-08-07T03:13:47Z", "round": 9, "evalId": "E19", "run_id": "tier0-agent-params-r9-api-20260807-repin", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-07T03:13:57Z", "round": 9, "evalId": "E20", "run_id": "tier0-agent-params-r9-mcp-20260807-repin", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E1", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E2", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E3", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E4", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E5", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E6", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E7", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E8", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 10, "evalId": "E9", "run_id": "tier0-agent-params-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 10, "evalId": "E10", "run_id": "tier0-agent-params-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 10, "evalId": "E11", "run_id": "tier0-agent-params-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:53Z", "round": 10, "evalId": "E12", "run_id": "tier0-agent-params-r10-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T04:50:54Z", "round": 10, "evalId": "E13", "run_id": "tier0-agent-params-r10-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T04:50:57Z", "round": 10, "evalId": "E14", "run_id": "tier0-agent-params-r10-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T04:51:00Z", "round": 10, "evalId": "E15", "run_id": "tier0-agent-params-r10-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T04:50:51Z", "round": 10, "evalId": "E16", "run_id": "tier0-agent-params-r10-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T04:50:59Z", "round": 10, "evalId": "E17", "run_id": "tier0-agent-params-r10-geocode-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geocode.test.ts"}
+{"ts": "2026-08-07T04:51:16Z", "round": 10, "evalId": "E18", "run_id": "tier0-agent-params-r10-tier0_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
+{"ts": "2026-08-07T04:48:51Z", "round": 10, "evalId": "E19", "run_id": "tier0-agent-params-r10-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T04:52:19Z", "round": 10, "evalId": "E20", "run_id": "tier0-agent-params-r10-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E1", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E2", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E3", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E4", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E5", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E6", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E7", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E8", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 11, "evalId": "E9", "run_id": "tier0-agent-params-r11-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 11, "evalId": "E10", "run_id": "tier0-agent-params-r11-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 11, "evalId": "E11", "run_id": "tier0-agent-params-r11-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:01Z", "round": 11, "evalId": "E12", "run_id": "tier0-agent-params-r11-clip_http-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-07T05:58:03Z", "round": 11, "evalId": "E13", "run_id": "tier0-agent-params-r11-job_runner-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts": "2026-08-07T05:58:05Z", "round": 11, "evalId": "E14", "run_id": "tier0-agent-params-r11-resolve_config-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-07T05:58:09Z", "round": 11, "evalId": "E15", "run_id": "tier0-agent-params-r11-motion_compiler-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-07T05:58:00Z", "round": 11, "evalId": "E16", "run_id": "tier0-agent-params-r11-clip_tools-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-07T05:58:08Z", "round": 11, "evalId": "E17", "run_id": "tier0-agent-params-r11-geocode-20260807", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geocode.test.ts"}
+{"ts": "2026-08-07T05:58:23Z", "round": 11, "evalId": "E18", "run_id": "tier0-agent-params-r11-tier0_invariants-20260807", "exit_code": 0, "cmd": "npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
+{"ts": "2026-08-07T05:57:55Z", "round": 11, "evalId": "E19", "run_id": "tier0-agent-params-r11-api-20260807", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-07T05:55:15Z", "round": 11, "evalId": "E20", "run_id": "tier0-agent-params-r11-mcp-20260807", "exit_code": 0, "cmd": "npm run test:mcp"}
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E1","run_id":"tier0-agent-params-r10-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E2","run_id":"tier0-agent-params-r10-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E3","run_id":"tier0-agent-params-r10-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
@@ -130,23 +170,63 @@
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E18","run_id":"tier0-agent-params-r10-e18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E19","run_id":"tier0-agent-params-r10-e19-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T07:55:00Z","round":10,"evalId":"E20","run_id":"tier0-agent-params-r10-e20-20260807","exit_code":0,"cmd":"npm run test:mcp"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E1","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E2","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E3","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E4","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E5","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E6","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E7","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E8","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E9","run_id":"tier0-agent-params-r11-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E10","run_id":"tier0-agent-params-r11-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E11","run_id":"tier0-agent-params-r11-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E12","run_id":"tier0-agent-params-r11-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E13","run_id":"tier0-agent-params-r11-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E14","run_id":"tier0-agent-params-r11-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E15","run_id":"tier0-agent-params-r11-motion_compiler-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E16","run_id":"tier0-agent-params-r11-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E17","run_id":"tier0-agent-params-r11-geocode-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geocode.test.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E18","run_id":"tier0-agent-params-r11-tier0_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E19","run_id":"tier0-agent-params-r11-api-20260807","exit_code":0,"cmd":"npm test"}
-{"ts":"2026-08-07T09:43:26Z","round":11,"evalId":"E20","run_id":"tier0-agent-params-r11-mcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E1","run_id":"tier0-agent-params-r12-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E2","run_id":"tier0-agent-params-r12-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E3","run_id":"tier0-agent-params-r12-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E4","run_id":"tier0-agent-params-r12-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E5","run_id":"tier0-agent-params-r12-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E6","run_id":"tier0-agent-params-r12-e6-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E7","run_id":"tier0-agent-params-r12-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E8","run_id":"tier0-agent-params-r12-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E9","run_id":"tier0-agent-params-r12-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E10","run_id":"tier0-agent-params-r12-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E11","run_id":"tier0-agent-params-r12-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E12","run_id":"tier0-agent-params-r12-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E13","run_id":"tier0-agent-params-r12-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E14","run_id":"tier0-agent-params-r12-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E15","run_id":"tier0-agent-params-r12-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E16","run_id":"tier0-agent-params-r12-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E17","run_id":"tier0-agent-params-r12-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geocode.test.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E18","run_id":"tier0-agent-params-r12-e18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E19","run_id":"tier0-agent-params-r12-e19-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T08:25:00Z","round":12,"evalId":"E20","run_id":"tier0-agent-params-r12-e20-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E1","run_id":"tier0-agent-params-r13-e1-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E2","run_id":"tier0-agent-params-r13-e2-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E3","run_id":"tier0-agent-params-r13-e3-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E4","run_id":"tier0-agent-params-r13-e4-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E5","run_id":"tier0-agent-params-r13-e5-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E6","run_id":"tier0-agent-params-r13-e6-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E7","run_id":"tier0-agent-params-r13-e7-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E8","run_id":"tier0-agent-params-r13-e8-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":13,"evalId":"E9","run_id":"tier0-agent-params-r13-e9-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":13,"evalId":"E10","run_id":"tier0-agent-params-r13-e10-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":13,"evalId":"E11","run_id":"tier0-agent-params-r13-e11-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:04Z","round":13,"evalId":"E12","run_id":"tier0-agent-params-r13-e12-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T11:11:06Z","round":13,"evalId":"E13","run_id":"tier0-agent-params-r13-e13-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T11:11:13Z","round":13,"evalId":"E14","run_id":"tier0-agent-params-r13-e14-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T11:11:07Z","round":13,"evalId":"E15","run_id":"tier0-agent-params-r13-e15-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts":"2026-08-07T11:11:03Z","round":13,"evalId":"E16","run_id":"tier0-agent-params-r13-e16-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T11:11:14Z","round":13,"evalId":"E17","run_id":"tier0-agent-params-r13-e17-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/geocode.test.ts"}
+{"ts":"2026-08-07T11:11:22Z","round":13,"evalId":"E18","run_id":"tier0-agent-params-r13-e18-20260807","exit_code":0,"cmd":"npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"}
+{"ts":"2026-08-07T11:11:18Z","round":13,"evalId":"E19","run_id":"tier0-agent-params-r13-e19-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T11:13:22Z","round":13,"evalId":"E20","run_id":"tier0-agent-params-r13-e20-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E1", "run_id": "tier0-agent-params-r14-e1-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E2", "run_id": "tier0-agent-params-r14-e2-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E3", "run_id": "tier0-agent-params-r14-e3-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E4", "run_id": "tier0-agent-params-r14-e4-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E5", "run_id": "tier0-agent-params-r14-e5-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E6", "run_id": "tier0-agent-params-r14-e6-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E7", "run_id": "tier0-agent-params-r14-e7-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E8", "run_id": "tier0-agent-params-r14-e8-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:40Z", "round": 14, "evalId": "E9", "run_id": "tier0-agent-params-r14-e9-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:40Z", "round": 14, "evalId": "E10", "run_id": "tier0-agent-params-r14-e10-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:40Z", "round": 14, "evalId": "E11", "run_id": "tier0-agent-params-r14-e11-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:38Z", "round": 14, "evalId": "E12", "run_id": "tier0-agent-params-r14-e12-20260807", "exit_code": 0, "cmd": "test.clip_http"}
+{"ts": "2026-08-07T12:17:51Z", "round": 14, "evalId": "E13", "run_id": "tier0-agent-params-r14-e13-20260807", "exit_code": 0, "cmd": "test.job_runner"}
+{"ts": "2026-08-07T12:17:52Z", "round": 14, "evalId": "E14", "run_id": "tier0-agent-params-r14-e14-20260807", "exit_code": 0, "cmd": "test.resolve_config"}
+{"ts": "2026-08-07T12:17:36Z", "round": 14, "evalId": "E15", "run_id": "tier0-agent-params-r14-e15-20260807", "exit_code": 0, "cmd": "test.motion_compiler"}
+{"ts": "2026-08-07T12:17:40Z", "round": 14, "evalId": "E16", "run_id": "tier0-agent-params-r14-e16-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
+{"ts": "2026-08-07T12:17:53Z", "round": 14, "evalId": "E17", "run_id": "tier0-agent-params-r14-e17-20260807", "exit_code": 0, "cmd": "test.geocode"}
+{"ts": "2026-08-07T12:18:13Z", "round": 14, "evalId": "E18", "run_id": "tier0-agent-params-r14-e18-20260807", "exit_code": 0, "cmd": "script.tier0_invariants"}
+{"ts": "2026-08-07T12:16:34Z", "round": 14, "evalId": "E19", "run_id": "tier0-agent-params-r14-e19-20260807", "exit_code": 0, "cmd": "test.api"}
+{"ts": "2026-08-07T12:21:00Z", "round": 14, "evalId": "E20", "run_id": "tier0-agent-params-r14-e20-20260807", "exit_code": 0, "cmd": "test.mcp"}

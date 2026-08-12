@@ -204,6 +204,160 @@ test('motion: regionReveal keeps a sibling region visible, in its own colour, mi
   expect(blueCount).toBeGreaterThan(2000); // region 1's FILL, not just its outline, must still be drawn mid-reveal
 });
 
+/** Config chung cho nhóm test `anchors()`: một marker ở ĐÚNG tâm camera nghỉ,
+ * một marker xa hẳn ra ngoài khung, và một vùng vuông bao quanh tâm. */
+function anchorsConfig(over: { pitch?: number } = {}) {
+  return {
+    camera: { center: [106.7, 10.78], zoom: 13, ...(over.pitch != null ? { pitch: over.pitch } : {}) },
+    size: { width: 320, height: 568 },
+    theme: 'midnight-blue',
+    chrome: 'clean',
+    place: { name: 'M', country: 'VN', lat: 10.78, lng: 106.7 },
+    highlight: { regions: [region(0, '#ff0000')], color: null, fill: true, dim: false },
+    markers: [
+      { lng: 106.7, lat: 10.78, icon: 'pin', color: '#f43f5e', size: 32 }, // tâm khung nghỉ
+      { lng: 108.2, lat: 10.78, icon: 'pin', color: '#f43f5e', size: 32 }, // xa hẳn sang phải
+    ],
+    motion: {
+      fps: 12,
+      durationSec: 2,
+      restAtSec: 1.4,
+      camera: [
+        { t: 0, center: [106.7, 10.78], zoom: 11.5 },
+        { t: 1.1, center: [106.7, 10.78], zoom: 13, ease: 'easeInOut' },
+      ],
+      tracks: [{ kind: 'pinDrop', at: 1.1, dur: 0.3 }],
+    },
+  };
+}
+
+test('anchors: phần trăm dùng MẪU SỐ RIÊNG từng trục, đo trên map thật (bẫy 1)', async ({ page }) => {
+  await page.goto('/render.html?config=' + b64url(anchorsConfig()));
+  await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
+
+  const out = await page.evaluate(async () => {
+    const api = (window as unknown as MapPosterWindow).__mapposter;
+    await api.ready;
+    await api.renderMotionFrame(1.4, { pulsePhase: 0 }); // đúng thứ tự thật: chụp settle rồi mới đo
+    const anchors = api.anchors();
+    // Số liệu THÔ đọc thẳng từ MapLibre, để đối chiếu với công thức chứ không
+    // tin vào chính hàm đang được kiểm.
+    const map = (window as unknown as { __map: { project(ll: [number, number]): { x: number; y: number }; getCanvas(): HTMLCanvasElement } }).__map;
+    const c = map.getCanvas();
+    const p0 = map.project([106.7, 10.78]);
+    const p1 = map.project([108.2, 10.78]);
+    return { anchors, cssW: c.clientWidth, cssH: c.clientHeight, p0, p1 };
+  });
+
+  // Điều kiện tiên quyết: khung KHÔNG vuông, nếu không phép thử này không phân biệt được gì
+  expect(out.cssW).not.toBe(out.cssH);
+
+  const [center, far] = out.anchors.points;
+  expect(center.xPct).toBeCloseTo((out.p0.x / out.cssW) * 100, 3);
+  expect(center.yPct).toBeCloseTo((out.p0.y / out.cssH) * 100, 3);
+  // marker ở tâm camera nghỉ ⇒ đúng giữa khung theo cả hai trục
+  expect(center.xPct).toBeCloseTo(50, 1);
+  expect(center.yPct).toBeCloseTo(50, 1);
+  expect(center.onScreen).toBe(true);
+
+  // Chốt phân biệt: cùng MỘT toạ độ pixel y, hai mẫu số cho hai con số khác
+  // hẳn nhau — một hệ số chung sẽ trả về con số của trục kia.
+  expect(Math.abs((out.p0.y / out.cssW) * 100 - center.yPct)).toBeGreaterThan(1);
+
+  // Điểm ngoài khung: cờ onScreen tắt, phần trăm VẪN có nghĩa (>100)
+  expect(far.onScreen).toBe(false);
+  expect(far.xPct).toBeGreaterThan(100);
+  expect(far.xPct).toBeCloseTo((out.p1.x / out.cssW) * 100, 3);
+
+  // Vùng: hộp bao ôm lấy tâm khung
+  const [x0, y0, x1, y1] = out.anchors.regions[0].bboxPct;
+  expect(x0).toBeLessThan(50);
+  expect(x1).toBeGreaterThan(50);
+  expect(y0).toBeLessThan(50);
+  expect(y1).toBeGreaterThan(50);
+  expect(out.anchors.regions[0].bboxCenterPct[0]).toBeCloseTo(50, 1);
+  expect(out.anchors.regions[0].bboxCenterPct[1]).toBeCloseTo(50, 1);
+
+  // camera nghỉ = keyframe cuối (zoom 13), pitch 0
+  expect(out.anchors.camera.zoom).toBeCloseTo(13, 6);
+  expect(out.anchors.camera.center[0]).toBeCloseTo(106.7, 6);
+  expect(out.anchors.camera.pitch).toBe(0);
+});
+
+test('anchors: CHỈ ĐỌC — gọi nó xong, khung đuôi vẫn byte-identical (bẫy 2)', async ({ page }) => {
+  await page.goto('/render.html?config=' + b64url(anchorsConfig()));
+  await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
+
+  const { before, after } = await page.evaluate(async () => {
+    const api = (window as unknown as MapPosterWindow).__mapposter;
+    await api.ready;
+    const before = await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    api.anchors();
+    // Khung này đi nhánh CACHE (`restBase`): nếu anchors() đã `jumpTo` ở đâu
+    // đó, overlay sẽ được vẽ bằng camera sai lên ảnh nền đúng và byte lệch.
+    const after = await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    return { before: before.dataUrl, after: after.dataUrl };
+  });
+
+  expect(after).toBe(before);
+});
+
+test('anchors: NỔ TO khi camera không ở restAtSec, thay vì trả toạ độ sai lặng lẽ', async ({ page }) => {
+  await page.goto('/render.html?config=' + b64url(anchorsConfig()));
+  await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
+
+  const message = await page.evaluate(async () => {
+    const api = (window as unknown as MapPosterWindow).__mapposter;
+    await api.ready;
+    await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    await api.setCamera({ center: [0, 0], zoom: 3 }); // ai đó chèn một lời gọi vào giữa
+    try {
+      api.anchors();
+      return 'KHÔNG NÉM';
+    } catch (e) {
+      return (e as Error).message;
+    }
+  });
+
+  expect(message).toMatch(/restAtSec/);
+  expect(message).toMatch(/zoom|center/);
+});
+
+test('anchors: pitch != 0 — KHUNG VẪN RENDER, chỉ anchors() từ chối, nêu đích danh pitch', async ({ page }) => {
+  // Camera nghiêng là một năng lực ĐANG CHẠY ĐƯỢC: `applyRenderConfig` áp pitch
+  // lúc nạp trang và `cameraAt` không phát pitch, nên `jumpTo` mỗi khung không
+  // reset nó. Test này khoá cả hai nửa lại — khung vẫn ra, anchors thì không.
+  await page.goto('/render.html?config=' + b64url(anchorsConfig({ pitch: 45 })));
+  await page.waitForFunction(() => Boolean((window as unknown as { __mapposter?: unknown }).__mapposter), null, { timeout: 15_000 });
+
+  const out = await page.evaluate(async () => {
+    const api = (window as unknown as MapPosterWindow).__mapposter;
+    await api.ready;
+    const mid = await api.renderMotionFrame(0.5);
+    const rest = await api.renderMotionFrame(1.4, { pulsePhase: 0 });
+    const pitch = (window as unknown as { __map: { getPitch(): number } }).__map.getPitch();
+    let message: string;
+    try {
+      api.anchors();
+      message = 'KHÔNG NÉM';
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    return { mid: mid.dataUrl, rest: rest.dataUrl, pitch, message };
+  });
+
+  // nửa "năng lực còn nguyên": map thật sự nghiêng, và cả hai khung đều ra ảnh
+  expect(out.pitch).toBeCloseTo(45, 6);
+  expect(out.mid.startsWith('data:image/png')).toBe(true);
+  expect(out.rest.startsWith('data:image/png')).toBe(true);
+  expect(out.rest.length).toBeGreaterThan(2000);
+  expect(out.rest).not.toBe(out.mid);
+
+  // nửa "chốt còn nguyên": chỉ anchors() từ chối
+  expect(out.message).toMatch(/pitch/i);
+  expect(out.message).toMatch(/45/);
+});
+
 test('motion: verifyAndReapplyGeoAt guards a reverted highlight source even when highlight.fill is false (Finding 1)', async ({ page }) => {
   // `fill: false` ⇒ mapStyle.ts never creates the `highlight-fill` layer (see
   // its `if (highlight.fill)` gate) — the exact configuration the PRE-FIX

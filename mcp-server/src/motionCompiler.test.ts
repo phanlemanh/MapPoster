@@ -81,6 +81,29 @@ describe('compileMotion', () => {
     for (const k of s.camera) expect(k.bearing).toBe(45);
   });
 
+  it('DETERMINISM: config KHÔNG bearing biên dịch ra y nguyên — early return, không dựng lại script', () => {
+    // Nửa "gieo bearing" ở trên đã được canh. Nửa còn lại — bất biến xác định
+    // của repo trên khung đã render — thì chưa: `seedBearing` phải TRẢ VỀ CHÍNH
+    // object cũ khi bearing là null/0, chứ không map lại một mảng keyframe mới.
+    // Một bản map-vô-điều-kiện vẫn cho giá trị bằng nhau, nên `toEqual` không
+    // phân biệt được; chỉ khác biệt quan sát được là bearing KHÔNG được thêm
+    // vào như một khoá mang undefined.
+    for (const bearing of [undefined, 0, null as unknown as undefined]) {
+      const c = cfg({ camera: { center: [106.7, 10.78], zoom: 14.5, bearing } });
+      const s = compileMotion('pushIn', c);
+      expect(s.camera.length).toBeGreaterThan(1);
+      for (const k of s.camera) {
+        // KHÔNG `toBeUndefined()`: nó xanh cả khi khoá được thêm mang undefined,
+        // tức chính cái "dựng lại script" mà mệnh đề này loại trừ.
+        expect(Object.hasOwn(k, 'bearing'), `bearing=${String(bearing)}`).toBe(false);
+      }
+    }
+
+    // và hai lần biên dịch cùng một config cho ra kết quả bằng nhau từng phần
+    const c = cfg({ camera: { center: [106.7, 10.78], zoom: 14.5 } });
+    expect(compileMotion('pushIn', c)).toEqual(compileMotion('pushIn', c));
+  });
+
   // --- Boundary-value tests across the legal zoom/longitude domain (Findings 1-5) ---
   // The suite above only ever exercises zoom 14.5 / lng 106.7, which is why
   // none of the arithmetic overflows below were caught before.
@@ -172,6 +195,7 @@ import {
   ClipConcurrencyError,
   ClipSlotWaitTimeoutError,
   resetClipGateForTests,
+  prepareClipRenderWithSlot,
 } from './motionCompiler';
 
 describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => {
@@ -225,15 +249,60 @@ describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => 
     expect(order).toEqual([1, 2, 3]);
   });
 
-  it('slot được trả trên MỌI lối ra — kể cả khi bên giữ ném lỗi', async () => {
+  it('slot được ĐƯỜNG SẢN XUẤT trả khi bên giữ nó ném lỗi — không phải test tự gọi', async () => {
+    // Bản cũ tự viết `try { throw } catch { release() }`: chính TEST gọi
+    // release, nên nó chỉ chứng minh bộ đếm biết đếm — gỡ sạch `releaseClipSlot()`
+    // khỏi mã sản xuất thì ca đó VẪN xanh. Ở đây slot được đưa cho
+    // `prepareClipRenderWithSlot` và chỉ mã sản xuất mới có thể trả nó.
     const release = acquireClipSlot();
-    try {
-      throw new Error('bên giữ slot nổ giữa chừng');
-    } catch {
-      release();
-    }
-    // slot đã về, người chờ tiếp theo lấy được ngay
+    let releasedByTest = false;
+
+    await expect(
+      prepareClipRenderWithSlot(
+        { location: { lng: 106.7, lat: 10.78 } } as never,
+        { preset: 'khong-co-preset-nay' }, // hỏng ngay ở parseMotionParam, trước mọi lời gọi mạng
+        () => {
+          releasedByTest = true;
+          release();
+        },
+      ),
+    ).rejects.toThrow();
+
+    expect(releasedByTest).toBe(true); // chính nó gọi hàm nhả, không phải ca test
+    // và chỗ đã thật sự về: người chờ kế tiếp lấy được ngay
     await expect(acquireClipSlotWaiting({ timeoutMs: 10 })).resolves.toBeTypeOf('function');
+  });
+
+  it('slot được ĐƯỜNG SẢN XUẤT giao lại khi chuẩn bị THÀNH CÔNG — kèm trong ClipPreparation', async () => {
+    // NHÁNH CHẾT ĐÃ GỠ: bản cũ truyền `{ script: { fps: 12, durationSec: 1,
+    // camera: [] } }` — script đó KHÔNG BAO GIỜ hợp lệ (durationSec < 2, thiếu
+    // restAtSec, camera rỗng, thiếu tracks), nên `prepareClipRenderWithSlot`
+    // luôn reject, `.catch(() => undefined)` nuốt lỗi, `prep` luôn `undefined`
+    // và cả khối `if (prep)` không bao giờ chạy. Ba khẳng định mang đúng tên
+    // mệnh đề của ca test này là trang trí trong một lane nghiệm thu. Đầu vào
+    // dưới đây HỢP LỆ, và `prep` được khẳng định là có thật thay vì được canh
+    // sau một `if`.
+    const release = acquireClipSlot();
+    const prep = await prepareClipRenderWithSlot(
+      {
+        location: { lng: 106.7, lat: 10.78 },
+        size: { width: 540, height: 960 },
+        highlight: { points: [{ lng: 106.7, lat: 10.78 }] },
+      } as never,
+      { preset: 'pushIn' },
+      release,
+    );
+
+    // Nhánh THÀNH CÔNG thật sự chạy tới đây — không còn `if` nào bọc ngoài.
+    expect(prep).toBeDefined();
+    expect(prep.motion.camera.length).toBeGreaterThan(1); // đã compile ra script thật
+    expect(prep.releaseClipSlot).toBeTypeOf('function');
+    // slot vẫn ĐANG được giữ: chuẩn bị xong không có nghĩa là nhả chỗ, chỗ
+    // phải theo lời gọi cho tới lúc render xong.
+    expect(() => acquireClipSlot()).toThrow(ClipConcurrencyError);
+
+    prep.releaseClipSlot();
+    expect(() => acquireClipSlot()).not.toThrow(); // trả rồi thì lấy lại được
   });
 
   it('release là idempotent — gọi hai lần không cấp thừa một chỗ', async () => {

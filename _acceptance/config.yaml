@@ -45,6 +45,7 @@ executors:
     routing_invariants: "npx tsx _acceptance/road-routing/scripts/routing-invariants.ts"
     auth_invariants: "npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"
     anchors_invariants: "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"
+    input_caps_negctrl: "bash _acceptance/input-caps/negctrl/run-negctrl.sh"
   design:
     # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
     # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2

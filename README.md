@@ -178,6 +178,19 @@ of its own — 5000 would paint over the canvas, 0 would be invisible); an
 unknown `icon` is refused rather than silently falling back to `pin`, same as
 an unknown `theme` refuses rather than falling back to the default.
 
+Each array is capped at **32 entries** (`MAX_HIGHLIGHTS`). This is not a
+deployment knob, deliberately: every *named* entry costs one Nominatim lookup,
+and those are serialised behind the ≥1 req/s limiter the geocoder holds to stay
+inside Nominatim's usage policy — so the cost of a long array is not our CPU,
+it is sustained traffic at a shared public service under someone else's name,
+which no deployment gets to opt into by raising an env var. The refusal lands
+**before the first lookup**, not partway through the loop. Likewise
+`render_variants` caps `variants` at **24** (`MAX_VARIANTS`, comfortably clear
+of a one-variant-per-theme sweep — there are 13 themes): the fan-out is serial
+and each entry is a full headless render holding a page from `MAPPOSTER_POOL`,
+so an unbounded array is a way to occupy the shared pool indefinitely from a
+request body well under the 8 MiB cap.
+
 `camera.pitch` is bounded `0..60` (MapLibre's default `maxPitch` — passing 85
 used to be accepted and then silently clamped by the engine, which is
 accept-then-discard). `camera.bearing` is **normalized, not bounded**: any

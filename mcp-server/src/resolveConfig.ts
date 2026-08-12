@@ -95,11 +95,41 @@ const FORMAT_CATEGORY: Record<keyof typeof FORMATS, FormatInfo['category']> = {
 /** Max edge, matching the WebGL canvas budget the layouts are designed against. */
 export const MAX_EDGE = 4096;
 
+/**
+ * Max entries in `highlight.regions` / `highlight.points`, per array.
+ *
+ * Not a deployment knob like `MAPPOSTER_MAX_QUEUED_JOBS`: every *named* entry
+ * costs one Nominatim lookup, and those are serialised behind the ≥1 req/s
+ * limiter the geocoder holds to stay inside Nominatim's usage policy. So the
+ * cost of a long array is not our CPU — it is sustained traffic at a shared
+ * public service under someone else's name, which no deployment gets to opt
+ * into by raising an env var. 32 clears every real use (the widest sweep on
+ * the roadmap is a ~20-POI amenities scene) and bounds one call at ~32s of
+ * third-party lookups per array instead of the ~28h an unbounded 100k-name
+ * array would have cost.
+ */
+export const MAX_HIGHLIGHTS = 32;
+
 function assertDim(n: number, label: string): number {
   if (!Number.isInteger(n) || n <= 0 || n > MAX_EDGE) {
     throw new Error(`Invalid ${label}: ${n} (must be an integer between 1 and ${MAX_EDGE})`);
   }
   return n;
+}
+
+/**
+ * Bound an array whose every element costs a network round trip.
+ *
+ * Mirrored from the Zod `.max()` in tools.ts for the same reason
+ * `assertLayers`/`assertMarkerSize` are: `makeTools` and `resolveConfig` are
+ * both called directly (render_variants merges overrides onto an
+ * already-validated base, and the tests construct params by hand), so the
+ * schema boundary is bypassable and cannot be the only guard.
+ */
+function assertHighlightCount(n: number, label: string): void {
+  if (n > MAX_HIGHLIGHTS) {
+    throw new Error(`Too many ${label}: ${n} (max ${MAX_HIGHLIGHTS} — each named entry costs one geocoding request)`);
+  }
 }
 
 /** Runtime bounds, enforced even for callers that bypass the Zod layer
@@ -180,7 +210,13 @@ export function formatSize(format?: FormatInput): { width: number; height: numbe
   if (typeof format === 'object') {
     return { width: assertDim(format.width, 'width'), height: assertDim(format.height, 'height') };
   }
-  if (FORMATS[format]) return FORMATS[format];
+  // `Object.hasOwn`, not a truthiness test: FORMATS is a plain object literal,
+  // so `FORMATS['constructor']` walks up to Object.prototype and answers the
+  // Object function — truthy, and returned as if it were a size. The caller
+  // then got `{width: undefined}` and died later inside the renderer with an
+  // opaque TypeError instead of "Unknown format" here. Same shape of lookup
+  // the LAYOUTS/THEMES branches below already get right by using `.find`.
+  if (Object.hasOwn(FORMATS, format)) return FORMATS[format];
   const layout = LAYOUTS.find((l) => l.id === format);
   if (layout) return { width: layout.width, height: layout.height };
   throw new Error(`Unknown format: ${format}`);
@@ -553,6 +589,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   // load-bearing. Binding it once removes the implicit invariant that nothing
   // mutates `params` between two separate reads.
   const rawRegions = params.highlight?.regions ?? [];
+  assertHighlightCount(rawRegions.length, 'highlight.regions');
 
   // Validate every per-region colour here too — the region loop below hits the
   // network once per named region (resolveBoundary), so without this a bad
@@ -567,6 +604,7 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
   // above: the colour/size pass and the marker loop below both index into the
   // same array, and that index alignment is load-bearing.
   const rawPoints = params.highlight?.points ?? [];
+  assertHighlightCount(rawPoints.length, 'highlight.points');
 
   // Validate every per-point colour and size here too, before the base
   // location lookup below and before the marker loop's per-point

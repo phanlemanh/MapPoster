@@ -10,9 +10,22 @@ Ba quyết định của chủ repo (phiên 2026-08-06):
 1. **Hướng:** dùng mapeffect.app làm checklist tính năng, **tối ưu cho AI agent gọi qua API/MCP**,
    nhưng phủ đủ nghiệp vụ video bất động sản (routing km/phút, POI tiện ích, tour, vệ tinh,
    khoanh vùng). Đóng gói thành **công thức (recipe)** agent gọi một call ra video.
-2. **Ảnh vệ tinh:** dùng **VersaTiles Sentinel-2** (`tiles.versatiles.org/tiles/satellite`) —
-   miễn phí, không key, không vướng điều khoản tái phát hành như Esri/Maxar.
+2. **Ảnh vệ tinh:** ~~dùng **VersaTiles Sentinel-2** (`tiles.versatiles.org/tiles/satellite`) —
+   miễn phí, không key, không vướng điều khoản tái phát hành như Esri/Maxar.~~
+   **ĐÃ THAY THẾ 2026-08-07** → dùng **Sentinel-2 Global Mosaic, TỰ HOST**. Vòng rà giấy phép hôm
+   sau ([docs/research/2026-08-07-satellite-imagery-licensing.md](../../research/2026-08-07-satellite-imagery-licensing.md))
+   giữ nguyên nguồn dữ liệu nhưng bác endpoint công cộng: `tiles.versatiles.org` **không có ToS
+   lẫn SLA, và không tìm được pháp nhân đứng tên vận hành** — giấy phép *dữ liệu* sạch không đồng
+   nghĩa với việc *dịch vụ* có cam kết. Kèm attribution `"Contains modified Copernicus Sentinel
+   data [Year]"`, và NAIP làm nguồn phủ Mỹ (public domain, 0,3–0,6 m).
+   **Hệ quả về chi phí, chưa được phản ánh ở §5:** ước tính 5,0 ngày cho PR #8 được lập khi còn
+   giả định dùng endpoint công cộng — nó **không bao gồm** việc dựng và vận hành một tile server.
+   PR #8 phải được định giá lại trước khi cam kết.
 3. **Kiểm chứng trước:** chạy **spike `setNow()` 1 ngày** trước khi cam kết chi phí cluster motion.
+   **ĐÃ CHẠY 2026-08-06 → NO-GO** ([docs/research/2026-08-06-setnow-spike.md](../../research/2026-08-06-setnow-spike.md)):
+   `setNow()` cho khung byte-identical nhưng **chậm hơn ~3,5×**, vì vòng lặp khung ở đây không
+   dùng camera API có animation của MapLibre mà tính camera bằng giải tích rồi `jumpTo()`. Giữ
+   nguyên cách định cỡ cũ, không hạ cluster motion từ L xuống S.
 
 **Hạng mục bàn giao khi hoàn tất: 8 recipe** (§4) + toàn bộ API nền chúng cần (§5).
 
@@ -56,6 +69,27 @@ Ghi nhận ngoài lộ trình: auth `/mcp` là P0 bảo mật đang mở (owner 
 | 6 | `region-spotlight` | Approach: bay vào, viền vùng vẽ dần, dim xung quanh, settle | region (resolve live Nominatim), theme |
 | 7 | `route-journey` | Tuyến vẽ dần (routeDraw) + camera follow đầu tuyến; anchor đầu tuyến theo thời gian cho DOM đặt sprite | route{from, to, mode}, camera:'follow' |
 | 8 | `compare-locations` | Frame cả hai dự án + điểm quy chiếu → highlight lần lượt → `measures` về điểm quy chiếu | subjects[], reference |
+
+**Cập nhật 2026-08-12 — trạng thái bàn giao thực tế.** Tầng recipe (`list_recipes` +
+`render_recipe`) đã dựng, và `region-spotlight` (#6) đã render thật. Việc tách khung recipe ra
+làm SỚM thay vì để dồn vào PR #9 là một thay đổi so với §5 bên dưới, và nó đã trả lời được câu
+hỏi đắt nhất: mô hình recipe ở §2 đứng vững — sáu recipe còn lại là điền vào khung đã kiểm
+chứng chứ không còn là dựng khung.
+
+Đối chiếu từng recipe với **năng lực engine có thật hôm nay** (track mà `src/render/main.tsx`
+thực sự vẽ là `regionReveal`/`pinDrop`/`pulse`; `routeDraw` có trong schema nhưng main.tsx
+không xử lý và `motionCompiler.ts` truyền `routeCount: 0`):
+
+| # | Recipe | Chặn bởi |
+|---|---|---|
+| 1, 2, 3, 4, 8 | `property-intro`, `connectivity`, `amenities`, `location-tour`, `compare-locations` | **không gì** — làm được bằng preset có sẵn hoặc MotionScript thô |
+| 5 | `area-overview` | ảnh vệ tinh (PR #8) |
+| 7 | `route-journey` | `routeDraw` chưa được vẽ ở `main.tsx` (PR #10) |
+
+Ghi chú cho PR #10: comment ở `mcp-server/src/motionCompiler.ts:18` nói *"RenderConfig chưa mang
+routes — reserved v2"* **đã lỗi thời** — `RenderConfig.routes` tồn tại từ PR #2 và
+`applyRenderConfig` đã map vào store. Phần còn thiếu thật sự chỉ là vẽ tiến trình ở `main.tsx`
+và bỏ hằng `routeCount: 0`. Đáng đo lại 6,0 ngày của PR #10 trên căn cứ đó.
 
 ## 5. Lộ trình triển khai (thứ tự PR)
 

@@ -623,6 +623,14 @@ describe('createJobRunner — dọn tệp hết hạn (AC-12)', () => {
     // đỏ. Khai đúng thứ đo được, thay vì để mệnh đề trôi thành bất động.
     expect(path.basename(written), 'tên tệp phải là ASCII thuần sau slugify').toMatch(/^[\x20-\x7e]+$/);
     expect(path.basename(written)).not.toMatch(/[À-ɏḀ-ỿ]/);
+    // Và ĐI XUYÊN nghĩa là địa danh còn đọc được trong tên tệp. Đ phải thành d
+    // chứ không được rụng: 'ak-lak' vừa sai tên vừa dễ đụng địa danh khác.
+    //
+    // GIỮ CẢ HAI (giải xung đột hợp nhất PR #23 × PR #26): hai khẳng định đo hai
+    // thứ khác nhau và không cái nào bao cái nào. 'ASCII thuần' vẫn xanh khi Đ bị
+    // XOÁ HẲN ('ak-lak' cũng là ASCII); 'chứa dak-lak' vẫn xanh nếu phần còn lại
+    // của tên lỡ mang dấu. Bỏ một trong hai là mở lại đúng một nửa lỗ.
+    expect(path.basename(written)).toContain('dak-lak');
 
     const foreign = path.join(sinkDir, 'mapposter-cua-cong-cu-khac.png');
     await fsp.writeFile(foreign, PNG_1x1);

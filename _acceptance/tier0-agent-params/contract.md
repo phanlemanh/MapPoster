@@ -5,7 +5,7 @@ slug: tier0-agent-params
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: implemented
+status: verified
 approved_by: manh
 approved_at: 2026-08-06T13:54:51Z
 time_human_minutes: {gate1: 5, gate2: 12}

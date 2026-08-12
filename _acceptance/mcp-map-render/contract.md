@@ -5,7 +5,7 @@ slug: mcp-map-render
 owner: manh@mstar.vn
 risk_tier: T3
 surfaces: [api, cli]
-status: implemented
+status: verified
 approved_by: manh@mstar.vn
 approved_at: 2026-07-09T10:39:07Z
 time_human_minutes: {gate1: 3, gate2: 5}

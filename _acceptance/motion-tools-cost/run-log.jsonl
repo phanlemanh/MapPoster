@@ -84,3 +84,11 @@
 {"ts":"2026-08-07T07:55:00Z","round":6,"evalId":"E18","run_id":"motion-tools-cost-r6-e18-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
 {"ts":"2026-08-07T07:55:00Z","round":6,"evalId":"E19","run_id":"motion-tools-cost-r6-e19-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T07:55:00Z","round":6,"evalId":"E20","run_id":"motion-tools-cost-r6-e20-20260807","exit_code":0,"cmd":"npm run test:mcp"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E1","run_id":"motion-tools-cost-r7-clip_tools-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/tools.test.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E6","run_id":"motion-tools-cost-r7-resolve_config-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E11","run_id":"motion-tools-cost-r7-encode_animation-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/encodeAnimation.test.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E16","run_id":"motion-tools-cost-r7-motion_tools_invariants-20260807","exit_code":0,"cmd":"npx tsx _acceptance/motion-tools-cost/scripts/motion-tools-invariants.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E17","run_id":"motion-tools-cost-r7-job_runner-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/jobRunner.test.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E18","run_id":"motion-tools-cost-r7-clip_http-20260807","exit_code":0,"cmd":"npx vitest run mcp-server/src/http.test.ts"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E19","run_id":"motion-tools-cost-r7-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:27:03Z","round":7,"evalId":"E20","run_id":"motion-tools-cost-r7-mcp-20260807","exit_code":0,"cmd":"npm run test:mcp"}

@@ -270,3 +270,14 @@
 {"ts":"2026-08-07T07:55:00Z","round":25,"evalId":"E9","run_id":"mcp-map-render-r25-e9-20260807","exit_code":0,"cmd":"npm test"}
 {"ts":"2026-08-07T07:55:00Z","round":25,"evalId":"E10","run_id":"mcp-map-render-r25-e10-20260807","exit_code":0,"cmd":"npm run test:e2e"}
 {"ts":"2026-08-07T07:55:00Z","round":25,"evalId":"E11","run_id":"mcp-map-render-r25-e11-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E1","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E2","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E3","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E4","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E5","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E6","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E7","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E8","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E9","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E11","run_id":"mcp-map-render-r26-api-20260807","exit_code":0,"cmd":"npm test"}
+{"ts":"2026-08-07T09:19:24Z","round":26,"evalId":"E10","run_id":"mcp-map-render-r26-e2e-20260807","exit_code":0,"cmd":"npm run test:e2e"}

@@ -8,6 +8,7 @@ executors:
     api: "npm test"
     e2e: "npm run test:e2e"
     mcp: "npm run test:mcp"
+    mcp_protocol: "MCP_INTEGRATION=1 npx vitest run mcp-server/src/mcpProtocol.test.ts"
     motion_invariants: "npx vitest run src/render/motionScript.test.ts"
     motion_math: "npx vitest run src/render/motionMath.test.ts"
     motion_compiler: "npx vitest run mcp-server/src/motionCompiler.test.ts"

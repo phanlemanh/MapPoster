@@ -51,6 +51,16 @@ Two layers, both automated:
 | `npm run test:e2e` | **Playwright** E2E — drives the real UI in headless Chromium (SwiftShader WebGL) with Nominatim mocked: onboarding → search → theme/layout/style → multi-region highlight → drop a marker → export a PNG download. |
 | `npm run verify` | typecheck + Vitest + Playwright (full gate) |
 
+**The MCP protocol lane** (`mcp-server/src/mcpProtocol.test.ts`, inside
+`test:mcp`) spawns a **real** stdio MCP server and drives it over `tools/list`
+and `tools/call`. It exists because every other test calls `makeTools()`
+directly and therefore bypasses tool *registration* — and three real bugs walked
+through that gap in a single session, the worst of which left `render_recipe`
+completely unusable over MCP while 567 tests stayed green. The lane renders
+nothing and touches no network (its deepest case reaches `resolveConfig` via an
+unknown theme, which is rejected before the first geocode), so it adds real
+protocol coverage for about a second.
+
 `npm run build` runs the fast Vitest suite as a gate before bundling. The Playwright suite is kept separate (it starts a browser) — run it via `npm run test:e2e` or in CI. First-time E2E needs the browser: `npx playwright install chromium`.
 
 ## MCP map-render server
@@ -60,7 +70,7 @@ Two layers, both automated:
 ```bash
 npm run mcp:stdio      # run over stdio (local) — builds dist/ on first run if missing
 npm run mcp:http       # run over Streamable HTTP (hosted, port 4181)
-npm run test:mcp       # gated integration test (builds app + renders a real PNG)
+npm run test:mcp       # gated integration: builds app, renders a real PNG, and drives a real MCP server over the protocol
 ```
 
 The server serves the built app from `dist/` to its headless browser and rebuilds

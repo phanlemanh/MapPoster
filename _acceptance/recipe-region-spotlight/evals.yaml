@@ -1,0 +1,111 @@
+schema_version: 1
+feature_slug: recipe-region-spotlight
+
+# BẢN NHÁP — bám thẳng AC trong contract.md, CHƯA qua bước EVAL-GEN của skill
+# `acceptance`.
+#
+# Tệp này THIẾU khi hợp đồng được soạn: contract.md có mặt từ PR #28 nhưng
+# evals.yaml thì không, và không ai phát hiện suốt bốn PR sau đó — kể cả vòng
+# gate, vì `status: draft` khiến hợp đồng chưa bị soi. Một phép kiểm
+# trước-chuyến-bay (mọi tham chiếu executor có resolve không) mới lộ ra.
+#
+# surfaces: [api] — không bề mặt web, và AC-11 là bất biến cấu trúc chứ không
+# phải judgment, nên gói này không có eval judgment nào.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; render_recipe trả clip + settle + motion.script + resolved, đủ hình dạng render_clip trả"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; trường `recipe` có mặt trên CẢ nhánh thành công lẫn nhánh degrade encode-lỗi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; location BẰNG ĐÚNG region được truyền — không tách hai, vì country anchor rút từ location"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; highlight.dim === true, và truyền `dim` vào bị schema từ chối"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; tên recipe lạ bị từ chối kèm danh sách tên hợp lệ, và renderer có 0 lần gọi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; khoá gõ sai THUỘC hình dạng khai bị từ chối, renderer có 0 lần gọi"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # AC-6b khoá GIỚI HẠN chứ không khoá mong muốn: khoá ngoài hình dạng khai bị
+  # SDK nuốt trước khi handler chạy, nên `.strict()` không bao giờ thấy nó.
+  # Lane giao thức là chỗ DUY NHẤT chứng minh được điều đó, vì nó là chỗ duy
+  # nhất đi qua transport thật.
+  - id: E7
+    criterion: AC-6b
+    executor: test
+    cmd: config:executors.test.mcp_protocol
+    expected: "exit 0; qua tools/call thật: khoá ngoài hình dạng khai bị nuốt (lời gọi THÀNH CÔNG), khoá thuộc recipe khác thì bị .strict() từ chối"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E8
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; list_recipes trả đủ name/description/params/durationSec/example cho mọi mục"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E9
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; MỌI example trong catalog parse được bằng chính schema của recipe đó VÀ compile được"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E10
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; tập khoá `params` (mô tả) TRÙNG KHÍT tập khoá `schema` (thực thi), cho mọi recipe"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E11
+    criterion: AC-10
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; bộ tham số compile ra đi qua ĐÚNG prepareClipRender và cho chrome==='clean' + highlight.dim===true"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # AC-11 là bất biến CẤU TRÚC, không phải ca hành vi: mọi ca hành vi vẫn xanh
+  # nếu ai đó thêm một đường render riêng cho recipe.
+  - id: E12
+    criterion: AC-11
+    executor: test
+    cmd: config:executors.test.clip_tools
+    expected: "exit 0; quét recipes.ts (đã bóc comment) không thấy deps.render*/renderFrame/renderClipFrames — recipe chỉ đi qua render_clip"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E13
+    criterion: AC-12
+    executor: script
+    cmd: "git diff --quiet <verified_commit> HEAD -- src/lib/export.ts src/lib/mapStyle.ts"
+    expected: "exit 0; t3_paths có 0 dòng thay đổi trong phạm vi gói này"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

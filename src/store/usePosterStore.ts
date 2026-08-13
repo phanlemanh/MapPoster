@@ -30,6 +30,13 @@ interface PosterState {
   layoutId: string;
   layers: LayerState;
   detail: number; // 0..1
+  /** Nền bản đồ. Optional trong state đã lưu: một bản persist v2 cũ không có
+   *  khoá này, và Zustand merge sẽ lấy giá trị mặc định — nên KHÔNG cần bump
+   *  version. Bump là để đổi HÌNH DẠNG dữ liệu, không phải để thêm một cờ có
+   *  mặc định an toàn. */
+  basemap: 'vector' | 'satellite';
+  /** URL mẫu tile vệ tinh — xem doc `RenderConfig.satelliteTiles`. */
+  satelliteTiles?: string;
   showText: boolean;
   showCity: boolean;
   showCountry: boolean;
@@ -61,6 +68,7 @@ interface PosterState {
   setLayout: (id: string) => void;
   toggleLayer: (key: LayerKey) => void;
   setDetail: (v: number) => void;
+  setBasemap: (b: 'vector' | 'satellite') => void;
   setStyleFlags: (flags: Partial<Pick<PosterState, 'showText' | 'showCity' | 'showCountry' | 'showCoords'>>) => void;
   setFont: (f: FontKey) => void;
   addMarker: (icon: MarkerIconKey, lng: number, lat: number) => void;
@@ -141,6 +149,8 @@ export const usePosterStore = create<PosterState>()(
       layoutId: DEFAULT_LAYOUT_ID,
       layers: DEFAULT_LAYERS,
       detail: 0.6,
+      basemap: 'vector',
+      satelliteTiles: undefined,
       showText: true,
       showCity: true,
       showCountry: true,
@@ -173,6 +183,7 @@ export const usePosterStore = create<PosterState>()(
       setLayout: (id) => set({ layoutId: id }),
       toggleLayer: (key) => set((s) => ({ layers: { ...s.layers, [key]: !s.layers[key] } })),
       setDetail: (v) => set({ detail: Math.min(1, Math.max(0, v)) }),
+      setBasemap: (b) => set({ basemap: b }),
       setStyleFlags: (flags) => set(flags),
       setFont: (f) => set({ font: f }),
 

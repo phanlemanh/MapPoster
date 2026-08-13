@@ -3,6 +3,16 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { usePosterStore } from '../store/usePosterStore';
 import { buildMapStyle } from '../lib/mapStyle';
+
+/**
+ * URL mẫu tile ảnh vệ tinh, từ biến môi trường lúc build.
+ *
+ * `undefined` khi chưa cấu hình, và `buildMapStyle` khi đó KHÔNG đặt source
+ * raster — nền rơi về vector thay vì hiện một bản đồ trống. Đây là mặc định
+ * an toàn cho ứng dụng web; đường agent (mcp-server) thì TỪ CHỐI thẳng, vì ở
+ * đó một nền im lặng rơi về vector là thứ caller không nhìn thấy được.
+ */
+const SATELLITE_TILES: string | undefined = import.meta.env.VITE_SATELLITE_TILES;
 import { getTheme } from '../data/themes';
 import { setMapInstance } from '../lib/mapRef';
 import { markerSvg, getMarkerIcon } from '../data/markers';
@@ -55,6 +65,8 @@ export default function MapView() {
   const markers = usePosterStore((s) => s.markers);
   const selectedMarkerId = usePosterStore((s) => s.selectedMarkerId);
   const placingIcon = usePosterStore((s) => s.placingIcon);
+  const basemap = usePosterStore((s) => s.basemap);
+  const satelliteTiles = usePosterStore((s) => s.satelliteTiles);
   const highlightEnabled = usePosterStore((s) => s.highlightEnabled);
   const highlightRegions = usePosterStore((s) => s.highlightRegions);
   const highlightColor = usePosterStore((s) => s.highlightColor);
@@ -72,6 +84,8 @@ export default function MapView() {
         theme,
         layers: s.layers,
         detail: s.detail,
+        basemap: s.basemap,
+        satelliteTiles: s.satelliteTiles ?? SATELLITE_TILES,
         routes: s.routes,
         highlight: {
           enabled: s.highlightEnabled,
@@ -144,11 +158,13 @@ export default function MapView() {
         layers,
         detail,
         routes,
+        basemap,
+        satelliteTiles: satelliteTiles ?? SATELLITE_TILES,
         highlight: { enabled: highlightEnabled, regions: highlightRegions, color: highlightColor, fill: highlightFill, dim: highlightDim },
       }),
       { diff: true },
     );
-  }, [ready, themeId, layers, detail, routes, highlightEnabled, highlightRegions, highlightColor, highlightFill, highlightDim]);
+  }, [ready, themeId, layers, detail, routes, basemap, satelliteTiles, highlightEnabled, highlightRegions, highlightColor, highlightFill, highlightDim]);
 
   // --- fly to a newly chosen location ---
   useEffect(() => {

@@ -28,6 +28,7 @@ export interface RouteInput {
 
 export interface RenderMapParams {
   location: string | { lng: number; lat: number; zoom?: number };
+  basemap?: 'vector' | 'satellite';
   highlight?: {
     regions?: (string | { name: string; color?: string } | { geojson: GeoJSONFeatureCollection; color?: string })[];
     points?: (
@@ -126,6 +127,25 @@ function assertDim(n: number, label: string): number {
  * already-validated base, and the tests construct params by hand), so the
  * schema boundary is bypassable and cannot be the only guard.
  */
+/**
+ * `basemap: 'satellite'` chỉ phục vụ được khi có nguồn tile — TỪ CHỐI thẳng khi
+ * chưa cấu hình, không lặng lẽ rơi về vector.
+ *
+ * Đây là chỗ đường agent KHÁC đường web có chủ đích: ứng dụng web rơi về vector
+ * (người dùng nhìn thấy ngay và tự hiểu), còn caller ở đây là agent KHÔNG nhìn
+ * thấy ảnh — một nền im lặng rơi về vector sẽ trả về clip "thành công" với nội
+ * dung sai và không tầng nào phía sau bắt được. Cùng chính sách `theme` lạ bị
+ * từ chối thay vì rơi về mặc định.
+ */
+function assertBasemap(b: 'vector' | 'satellite' | undefined): 'vector' | 'satellite' | undefined {
+  if (b === 'satellite' && !process.env.MAPPOSTER_SATELLITE_TILES) {
+    throw new Error(
+      'basemap "satellite" requires MAPPOSTER_SATELLITE_TILES (a {z}/{x}/{y} tile URL template) — refusing rather than silently falling back to the vector basemap',
+    );
+  }
+  return b;
+}
+
 function assertHighlightCount(n: number, label: string): void {
   if (n > MAX_HIGHLIGHTS) {
     throw new Error(`Too many ${label}: ${n} (max ${MAX_HIGHLIGHTS} — each named entry costs one geocoding request)`);
@@ -760,6 +780,8 @@ export async function resolveConfig(params: RenderMapParams): Promise<RenderConf
     highlight,
     markers: markers.length ? markers : undefined,
     routes: routes.length ? routes : undefined,
+    basemap: assertBasemap(params.basemap),
+    satelliteTiles: params.basemap === 'satellite' ? process.env.MAPPOSTER_SATELLITE_TILES : undefined,
     measure: params.measure,
     layers:
       layers || params.labels

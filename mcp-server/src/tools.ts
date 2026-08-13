@@ -571,6 +571,7 @@ const layerStateSchema = z
   })
   .partial()
   .strict();
+const basemapSchema = z.enum(['vector', 'satellite']).optional();
 const fontSchema = z.enum(['Space Grotesk', 'Montserrat', 'Playfair Display', 'Oswald', 'Bebas Neue', 'Merriweather']);
 
 /**
@@ -608,6 +609,7 @@ const measureSchema = z
 
 const renderMapShape = {
   location: locationSchema,
+  basemap: basemapSchema,
   highlight: highlightSchema,
   format: formatSchema,
   theme: z.string().optional(),

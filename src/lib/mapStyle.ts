@@ -34,7 +34,36 @@ export interface BuildStyleArgs {
   detail: number;
   routes: RouteItem[];
   highlight?: HighlightArgs;
+  /**
+   * Nền bản đồ. `'satellite'` đặt một raster source dưới cùng và TẮT mọi layer
+   * "vẽ lại mặt đất" — landcover, landuse, park, water, waterway, building.
+   *
+   * Vì sao tắt chứ không chồng lên: sáu layer đó là BẢN VẼ của cùng thứ mà ảnh
+   * vệ tinh đã cho thấy thật. Chồng một mảng xanh phẳng lên tán cây thật, hay
+   * một khối xám lên mái nhà thật, không phải "thêm thông tin" mà là che mất
+   * thông tin bằng một phiên bản kém hơn của chính nó. Đường, ranh giới, nhãn
+   * và highlight thì GIỮ — chúng mang thông tin ảnh vệ tinh KHÔNG có.
+   *
+   * `background` cũng giữ: nó nằm dưới raster và chỉ lộ ra ở vùng tile chưa
+   * tải, nơi một nền theo theme dễ nhìn hơn một mảng trắng.
+   */
+  basemap?: 'vector' | 'satellite';
+  /** URL mẫu tile ảnh vệ tinh (`{z}/{x}/{y}`). Bắt buộc khi basemap='satellite'. */
+  satelliteTiles?: string;
 }
+
+/** Layer bị TẮT khi nền là ảnh vệ tinh — xem doc `basemap` ở trên. */
+const GROUND_PAINT_LAYERS = new Set(['landcover', 'landuse', 'park', 'water', 'waterway', 'building']);
+
+/**
+ * Attribution cho ảnh vệ tinh Sentinel-2 Global Mosaic.
+ *
+ * Câu chữ lấy đúng từ quyết định giấy phép 2026-08-07 (§8): chính sách
+ * Copernicus đòi ghi nguồn VÀ nói rõ nếu dữ liệu có xử lý. Ảnh mosaic là dữ
+ * liệu ĐÃ xử lý, nên "modified" phải có mặt — bỏ nó đi là vi phạm điều kiện
+ * chứ không phải rút gọn cho gọn.
+ */
+export const SATELLITE_ATTRIBUTION = 'Contains modified Copernicus Sentinel data';
 
 /** Build a world-sized polygon with the region punched out as holes (spotlight mask). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +99,7 @@ export const OPENFREEMAP_GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstac
  * opt-in exception is `layers.roadLabels`: names along MAJOR roads only —
  * motorway/trunk/primary/secondary — because that is wayfinding, not clutter.
  */
-export function buildMapStyle({ theme, layers, detail, routes, highlight }: BuildStyleArgs) {
+export function buildMapStyle({ theme, layers, detail, routes, highlight, basemap = 'vector', satelliteTiles }: BuildStyleArgs) {
   const c = theme.colors;
   const widthScale = 0.6 + detail * 0.9; // 0.6x .. 1.5x
   const showMinor = detail > 0.12;
@@ -96,6 +125,11 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
     name: `MapPoster – ${theme.name}`,
     sources: {
       openmaptiles: { type: 'vector', url: OPENFREEMAP_TILEJSON },
+      // Chỉ đặt khi thật sự dùng: một source thừa vẫn khiến MapLibre khởi tạo
+      // và có thể đi tải tile cho một nền không ai nhìn thấy.
+      ...(basemap === 'satellite' && satelliteTiles
+        ? { satellite: { type: 'raster', tiles: [satelliteTiles], tileSize: 256, attribution: SATELLITE_ATTRIBUTION } }
+        : {}),
       routes: {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: routeFeatures },
@@ -107,6 +141,12 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
         type: 'background',
         paint: { 'background-color': c.background },
       },
+      // Ngay TRÊN background và DƯỚI mọi thứ còn lại: ảnh vệ tinh là nền, không
+      // phải một lớp phủ. Đặt nó sau `background` để vùng tile chưa tải lộ ra
+      // màu theme chứ không phải mảng trắng.
+      ...(basemap === 'satellite' && satelliteTiles
+        ? [{ id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-opacity': 1 } }]
+        : []),
       // Landcover (wood / grass / natural) + landuse
       {
         id: 'landcover',
@@ -354,5 +394,19 @@ export function buildMapStyle({ theme, layers, detail, routes, highlight }: Buil
     }
   }
 
+  // Lọc SAU khi dựng, không rải điều kiện vào từng layer: 17 layer mà mỗi cái
+  // tự nhớ "có sống trên ảnh vệ tinh không" là 17 chỗ để quên. Một tập tên ở
+  // một chỗ (GROUND_PAINT_LAYERS) đọc được trong một cái liếc, và thêm layer
+  // mới thì chỉ phải quyết một lần là nó thuộc nhóm nào.
+  // Điều kiện phải là "raster THẬT SỰ có mặt", không phải "caller xin vệ tinh".
+  // Bản đầu chỉ kiểm `basemap === 'satellite'`, nên khi thiếu URL thì source
+  // raster không được dựng NHƯNG nhóm ground vẫn bị tắt — ra một bản đồ vừa
+  // mất mặt đất vừa không có ảnh thay thế, tệ hơn cả hai lựa chọn. Một test
+  // bắt được trước khi ship; hai điều kiện phải đi cùng nhau vì chúng mô tả
+  // cùng một sự kiện.
+  if (basemap === 'satellite' && satelliteTiles) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    style.layers = style.layers.filter((l: any) => !GROUND_PAINT_LAYERS.has(l.id));
+  }
   return style;
 }

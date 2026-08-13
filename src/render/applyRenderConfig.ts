@@ -71,6 +71,8 @@ export function applyRenderConfig(cfg: RenderConfig): void {
     // trong cùng tiến trình, nên set-có-điều-kiện sẽ để tuyến của lần trước
     // còn nguyên trên bản đồ sau — đúng lớp lỗi mà `lockMap` từng mắc.
     routes,
+    basemap: cfg.basemap ?? 'vector',
+    satelliteTiles: cfg.satelliteTiles,
     highlightRegions,
     highlightEnabled: highlightRegions.length > 0,
     highlightFill: cfg.highlight?.fill ?? true,

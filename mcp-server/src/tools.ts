@@ -427,6 +427,10 @@ export function makeTools(deps: ToolDeps) {
         // `.strict()`: khoá gõ sai bị TỪ CHỐI chứ không bị lặng lẽ bỏ qua —
         // caller là agent không nhìn thấy ảnh, nên một tham số bị lờ đi trả về
         // clip "thành công" nhưng sai nội dung, và không ai phát hiện được.
+        //
+        // Qua MCP, chốt này chỉ phủ được các khoá CÓ trong RECIPE_TOOL_SHAPE:
+        // khoá ngoài tập đó bị SDK loại bỏ trước khi tới đây (đã đo). Xem khối
+        // chú thích ở đầu recipes.ts — giới hạn của biên, không phải của chốt.
         const parsed = spec.schema.safeParse(rest);
         if (!parsed.success) {
           const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(gốc)'}: ${i.message}`).join('; ');

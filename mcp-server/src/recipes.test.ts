@@ -123,6 +123,35 @@ describe('MCP registration — tầng mà mọi test khác đi vòng qua', () =>
     }
   });
 
+  // Khoá lại GIỚI HẠN, không phải mong muốn. `.strict()` của recipe chỉ nhìn
+  // thấy những khoá lọt qua được hình dạng KHAI với MCP; SDK loại bỏ phần còn
+  // lại trước đó. Ca này tồn tại để tài liệu không lại hứa rộng hơn thứ đo được
+  // — nếu ai đó về sau tìm ra cách từ chối được cả khoá ngoài tập, ca này sẽ đỏ
+  // và bắt họ cập nhật README + contract cùng lúc.
+  it('a key outside the declared shape is stripped by the boundary, NOT refused by .strict()', () => {
+    const parsed = z.object(RECIPE_TOOL_SHAPE).parse({
+      recipe: 'region-spotlight',
+      region: 'Hoàn Kiếm, Hà Nội',
+      khoaRac: 1,
+    }) as Record<string, unknown>;
+    // ĐÚNG MỘT khẳng định, có chủ đích. Bản đầu của ca này còn kiểm luôn
+    // "phần còn lại vẫn hợp lệ" — và negative control cho thấy nó đỏ vì
+    // `region` bị mất chứ không vì `khoaRac` còn lại, tức tên ca nói một
+    // đằng còn thứ nó gác là một nẻo. Phần kia nay là ca riêng bên dưới.
+    expect('khoaRac' in parsed, 'nếu khoá lạ CÒN sau khi parse thì .strict() sẽ bắt được nó — README và contract phải sửa lại').toBe(false);
+  });
+
+  it('a key that belongs to ANOTHER recipe does survive the boundary, and .strict() refuses it', () => {
+    const parsed = z.object(RECIPE_TOOL_SHAPE).parse({
+      recipe: 'region-spotlight',
+      region: 'Hoàn Kiếm, Hà Nội',
+      pois: ['X'], // tham số của `amenities`, nên nó CÓ trong hình dạng khai
+    }) as Record<string, unknown>;
+    expect('pois' in parsed).toBe(true);
+    const { recipe: _r, ...rest } = parsed;
+    expect(RECIPES['region-spotlight'].schema.safeParse(rest).success).toBe(false);
+  });
+
   it('a call parsed through the DECLARED shape still carries the recipe params through', () => {
     // Mô phỏng đúng thứ SDK làm: parse lời gọi bằng z.object(inputSchema).
     const parsed = z.object(RECIPE_TOOL_SHAPE).parse({

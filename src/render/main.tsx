@@ -259,6 +259,19 @@ let lastAppliedRevealProgress: number | null = null;
  * signal, independent of whether the `highlight-fill` layer exists at all. */
 let lastAppliedHighlightData: GeoJSONFeatureCollection | null = null;
 
+/** Bản sao `routes` của `highlightBaseData`: dữ liệu THẬT mà mapStyle đã dựng
+ * cho source `routes` (mỗi feature đã mang `properties.color`/`width`), chụp
+ * một lần lúc trang sẵn sàng. `routeDraw` cắt từ ĐÂY chứ không từ
+ * `cfg.routes[i].geojson` thô, vì cùng lý do Finding 2 đã ghi cho vùng: cắt
+ * từ dữ liệu thô thì màu và hình sẽ "pop" ở p=1 khi dữ liệu thật quay lại. */
+let routesBaseData: GeoJSONFeatureCollection | null = null;
+/** Cặp cache cho `applyRouteAt`, đúng vai trò `lastAppliedRevealProgress` và
+ * `lastAppliedHighlightData` — xem doc của hai biến đó. Tách riêng chứ không
+ * dùng chung: một khung có thể có CẢ regionReveal lẫn routeDraw ở hai tiến
+ * độ khác nhau, gộp cache là để một track ghi đè cache của track kia. */
+let lastAppliedRouteProgress: number | null = null;
+let lastAppliedRouteData: GeoJSONFeatureCollection | null = null;
+
 const ready = (async () => {
   cfg = await load();
   applyRenderConfig(cfg);
@@ -286,6 +299,10 @@ const ready = (async () => {
   // page-ready time — see highlightBaseData doc comment above.
   const highlightSrc = (map.getStyle().sources as Record<string, { data?: unknown } | undefined>).highlight;
   if (highlightSrc && highlightSrc.data) highlightBaseData = highlightSrc.data as GeoJSONFeatureCollection;
+
+  // Cùng lý do, cùng thời điểm, cho source `routes` — xem doc `routesBaseData`.
+  const routesSrc = (map.getStyle().sources as Record<string, { data?: unknown } | undefined>).routes;
+  if (routesSrc && routesSrc.data) routesBaseData = routesSrc.data as GeoJSONFeatureCollection;
 
   // Capture the highlight-fill layer's real configured opacity — see
   // highlightFillOpacity doc comment above (Finding 3: stop duplicating
@@ -435,6 +452,105 @@ function computeRevealData(regions: RenderHighlightRegion[], regionIndex: number
   if (p >= 1) return highlightBaseData ?? rawFull ?? { type: 'FeatureCollection', features: [] };
   if (highlightBaseData) return revealFromBase(highlightBaseData.features, regionFeatureRange(regions, regionIndex), p);
   return rawFull ? revealRawFallback(rawFull, p) : { type: 'FeatureCollection', features: [] };
+}
+
+/** Cắt một feature tuyến theo tiến độ chiều dài.
+ *
+ * Đơn giản hơn `sliceFeatureForReveal` một bậc: vùng phải bóc Polygon →
+ * MultiPolygon → từng ring rồi mới cắt được, còn tuyến ĐÃ là chuỗi toạ độ.
+ * `sliceRing` nhận `[number, number][]` nên dùng lại nguyên vẹn — nó không có
+ * gì riêng cho vòng khép kín, tên gọi chỉ phản ánh nơi nó ra đời.
+ *
+ * `p >= 1` trả về feature GỐC (tham chiếu cũ, không phải bản sao) để đuôi clip
+ * không tích luỹ sai số — cùng khế ước `sliceRing` giữ ở p>=1. */
+function sliceRouteFeature(f: GeoJSONFeatureCollection['features'][number], p: number): GeoJSONFeatureCollection['features'] {
+  if (p >= 1) return [f];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const g = (f as any)?.geometry;
+  const lines: [number, number][][] =
+    g?.type === 'LineString' ? [g.coordinates] : g?.type === 'MultiLineString' ? g.coordinates : [];
+  const out: GeoJSONFeatureCollection['features'] = [];
+  for (const line of lines) {
+    const sliced = sliceRing(line, p);
+    // Cắt TỪNG nhánh ở CÙNG p, giống cách vùng cắt từng ring — nếu chỉ vẽ
+    // nhánh đầu thì một MultiLineString sẽ có nhánh biến mất suốt lúc vẽ rồi
+    // bật lại ở p=1 (đúng Finding E của vùng).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (sliced) out.push({ type: 'Feature', properties: (f as any).properties ?? {}, geometry: { type: 'LineString', coordinates: sliced } } as never);
+  }
+  return out;
+}
+
+/** Dải feature mà route thứ `routeIndex` chiếm trong `routesBaseData`.
+ *
+ * mapStyle gộp MỌI tuyến vào một FeatureCollection duy nhất, mỗi tuyến đóng
+ * góp N feature, nên phải cộng dồn đúng như `regionFeatureRange` làm cho vùng. */
+function routeFeatureRange(routes: NonNullable<RenderConfig['routes']>, routeIndex: number): [number, number] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const count = (r: (typeof routes)[number] | undefined) => (r?.geojson?.features ?? []).filter((f: any) => f?.geometry).length;
+  let start = 0;
+  for (let i = 0; i < routeIndex; i++) start += count(routes[i]);
+  return [start, start + count(routes[routeIndex])];
+}
+
+/** Tuyến ĐANG vẽ thì cắt; mọi tuyến khác đi qua nguyên vẹn — đúng cách
+ * `revealFromBase` giữ vùng anh em hiện suốt lúc vẽ (Finding 2). */
+function routeDrawFromBase(baseFeatures: GeoJSONFeatureCollection['features'], range: [number, number], p: number): GeoJSONFeatureCollection {
+  const [start, end] = range;
+  const feats: GeoJSONFeatureCollection['features'] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  baseFeatures.forEach((f: any, i: number) => {
+    if (i < start || i >= end) {
+      feats.push(f);
+      return;
+    }
+    feats.push(...sliceRouteFeature(f, p));
+  });
+  return { type: 'FeatureCollection', features: feats };
+}
+
+/** Áp tiến độ `routeDraw` tại tClamped vào source `routes`.
+ *
+ * Bản sao có chủ đích của `applyGeoAt`, gồm cả cache bỏ-ghi-nếu-không-đổi
+ * (Finding 5) và khế ước trả về đối tượng ĐÃ ghi để lưới an toàn đọc lại được.
+ * Không gộp hai hàm: chúng ghi hai source khác nhau, và một khung có thể có cả
+ * hai track ở hai tiến độ khác nhau. */
+async function applyRouteAt(map: MlMap, tClamped: number, force = false): Promise<GeoJSONFeatureCollection | null> {
+  const motion = cfg.motion;
+  if (!motion) return null;
+  const draw = motion.tracks.find((t) => t.kind === 'routeDraw');
+  const routes = cfg.routes;
+  if (!draw || draw.kind !== 'routeDraw' || !routes?.length) return null;
+  const src = map.getSource('routes') as { setData(d: unknown): void } | undefined;
+  if (!src || !routesBaseData) return null;
+
+  // KHÔNG có `draw.ease`: track `routeDraw` không khai trường đó, khác
+  // `regionReveal` (motionScript.ts:16-17 và :51-52). `trackProgress` mặc
+  // định `easeInOut`, tức tuyến vẫn vào/ra mượt như vùng. Thêm `ease` cho
+  // routeDraw là ĐỔI HỢP ĐỒNG công khai của MotionScript, nên để thành quyết
+  // định riêng chứ không kèm lén vào gói này.
+  const p = trackProgress(tClamped, draw.t0, draw.t1);
+  if (!force && lastAppliedRouteProgress === p) return lastAppliedRouteData;
+
+  const dataToApply = p >= 1 ? routesBaseData : routeDrawFromBase(routesBaseData.features, routeFeatureRange(routes, draw.routeIndex ?? 0), p);
+  src.setData(dataToApply);
+  lastAppliedRouteProgress = p;
+  lastAppliedRouteData = dataToApply;
+  await waitSourceLoaded(map, 'routes');
+  return dataToApply;
+}
+
+/** Lưới an toàn cho `applyRouteAt`, cùng lớp lỗi mà `verifyAndReapplyGeoAt`
+ * đóng cho vùng: một `setStyle({diff:true})` chen vào sau lượt ghi sẽ dựng lại
+ * TOÀN BỘ style từ `buildMapStyle()`, tức đặt một đối tượng MỚI cho source
+ * `routes` và xoá sạch tiến độ vừa áp. So bằng THAM CHIẾU vì MapLibre trả về
+ * đúng đối tượng cuối cùng được `setData()`. */
+async function verifyAndReapplyRouteAt(map: MlMap, tClamped: number, applied: GeoJSONFeatureCollection | null): Promise<void> {
+  if (applied === null) return; // không có routeDraw ở lượt này — không có gì để kiểm
+  const sources = map.getStyle().sources as Record<string, { data?: unknown } | undefined>;
+  if (sources.routes?.data === applied) return;
+  await applyRouteAt(map, tClamped, true);
+  await idleOnce(map);
 }
 
 /** Áp trạng thái địa lý tại tClamped vào map (nguồn highlight + opacity fill).
@@ -637,9 +753,14 @@ window.__mapposter = {
       // over a pre-motion snapshot.
       animBase = null;
       const applied = await applyGeoAt(map, tClamped);
+      // routeDraw ghi source `routes`, độc lập với source `highlight` — áp
+      // TRƯỚC lượt `idleOnce` chung để cả hai lượt re-tile của worker cùng
+      // lắng trong một lần chờ, thay vì trả tiền chờ hai lần mỗi khung.
+      const appliedRoute = await applyRouteAt(map, tClamped);
       await idleOnce(map);
       // Finding 1: idempotent restyle guard — see verifyAndReapplyGeoAt doc.
       await verifyAndReapplyGeoAt(map, tClamped, applied);
+      await verifyAndReapplyRouteAt(map, tClamped, appliedRoute);
       const snap = await snapshotMap(map, cfg.size.width, cfg.size.height);
       if (atRest) restBase = snap; // tail of the clip: camera settled, only the pulse changes → reuse
       else restBase = null;

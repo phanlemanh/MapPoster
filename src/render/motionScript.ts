@@ -153,9 +153,12 @@ export function validateMotionScript(value: unknown, ctx: MotionContext): Motion
       throw new Error(`I: regionReveal regionIndex ${t.regionIndex ?? 0} but config has ${ctx.regionCount} region(s)`);
     }
     if (t.kind === 'routeDraw') {
-      // RenderConfig chưa mang routes — reserved cho v2 (spec §11); mọi routeDraw bị chặn ở validate.
+      // Luật này KHÔNG đổi từ ngày đầu — chỉ có `ctx.routeCount` từng bị cho
+      // ăn hằng số 0 nên nó chặn mọi routeDraw. Nay `motionContextOf` đọc
+      // `cfg.routes` thật, và luật làm đúng việc của nó: một track trỏ vào
+      // tuyến không tồn tại vẫn bị từ chối.
       if ((t.routeIndex ?? 0) >= ctx.routeCount) {
-        throw new Error(`I: routeDraw routeIndex ${t.routeIndex ?? 0} but config has ${ctx.routeCount} route(s) — reserved for v2`);
+        throw new Error(`I: routeDraw routeIndex ${t.routeIndex ?? 0} but config has ${ctx.routeCount} route(s)`);
       }
     }
     if ((t.kind === 'pinDrop' || t.kind === 'pulse') && (('pointIndex' in t ? (t.pointIndex ?? 0) : 0) >= ctx.pointCount)) {

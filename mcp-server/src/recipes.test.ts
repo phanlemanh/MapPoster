@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { z } from 'zod';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -31,7 +32,7 @@ vi.mock('./geocode', () => ({
 }));
 
 import { RECIPES, listRecipes, getRecipe } from './recipes';
-import { makeTools, type ToolResult } from './tools';
+import { makeTools, RECIPE_TOOL_SHAPE, type ToolResult } from './tools';
 import { prepareClipRender } from './motionCompiler';
 import type { RenderConfig } from '../../src/render/renderConfig';
 
@@ -102,6 +103,34 @@ describe('recipe catalog', () => {
     for (const forbidden of ['deps.renderClip', 'deps.render', 'deps.encodeAnimation', 'renderClipFrames', 'renderFrame']) {
       expect(code, `recipes.ts gọi ${forbidden} — recipe phải uỷ nhiệm qua render_clip, nếu không nó sẽ trôi khỏi AC-9/trần khung/khe clip/nhánh degrade`).not.toContain(forbidden);
     }
+  });
+});
+
+describe('MCP registration — tầng mà mọi test khác đi vòng qua', () => {
+  // Vì sao ca này tồn tại: `render_recipe` từng KHAI với MCP chỉ `{recipe,
+  // delivery}`. MCP SDK dựng `z.object(inputSchema)` và Zod LOẠI BỎ khoá không
+  // khai, nên qua đúng giao thức agent dùng, một lời gọi hợp lệ trả về
+  // "region: Required". Mọi test khác gọi `makeTools()` trực tiếp nên không ca
+  // nào chạm tới lỗi đó — nó sống sót qua review, CI, và một lần merge.
+  it('the declared MCP input shape covers every parameter every recipe accepts', () => {
+    const declared = new Set(Object.keys(RECIPE_TOOL_SHAPE));
+    expect(declared.has('recipe')).toBe(true);
+    for (const [name, spec] of Object.entries(RECIPES)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const key of Object.keys((spec.schema as any).shape)) {
+        expect(declared.has(key), `render_recipe không khai '${key}' với MCP, nên tham số này của recipe '${name}' sẽ bị Zod loại bỏ trước khi tới handler`).toBe(true);
+      }
+    }
+  });
+
+  it('a call parsed through the DECLARED shape still carries the recipe params through', () => {
+    // Mô phỏng đúng thứ SDK làm: parse lời gọi bằng z.object(inputSchema).
+    const parsed = z.object(RECIPE_TOOL_SHAPE).parse({
+      recipe: 'compare-locations',
+      subjects: ['A', 'B'],
+      reference: 'C',
+    });
+    expect(parsed).toMatchObject({ recipe: 'compare-locations', subjects: ['A', 'B'], reference: 'C' });
   });
 });
 

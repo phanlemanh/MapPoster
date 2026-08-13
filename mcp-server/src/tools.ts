@@ -530,6 +530,36 @@ const cameraSchema = z
   })
   .optional();
 const deliverySchema = z.enum(['both', 'url', 'inline']).optional();
+
+/**
+ * Hình dạng input mà `render_recipe` KHAI với MCP — và nó phải khai đủ mọi khoá
+ * mọi recipe nhận, không có lối tắt.
+ *
+ * Bản đầu chỉ khai `{recipe, delivery}` kèm chú thích rằng đây là "passthrough
+ * có chủ đích". **Sai.** MCP SDK dựng `z.object(inputSchema)` và Zod **loại bỏ**
+ * mọi khoá không khai, nên `region`/`subjects`/`pois` không bao giờ tới được
+ * handler: qua đúng giao thức mà agent dùng, `render_recipe` trả về "region:
+ * Required" cho một lời gọi hoàn toàn hợp lệ. Tool hỏng hoàn toàn ở bề mặt duy
+ * nhất nó tồn tại để phục vụ.
+ *
+ * Không test nào bắt được, vì mọi test đều gọi `makeTools()` TRỰC TIẾP và do đó
+ * đi vòng qua chính tầng đăng ký này — cùng lớp mù mà `registerTool` luôn có:
+ * nó là chỗ duy nhất trong file này không có ai đo.
+ *
+ * Cách khai: rút hợp của mọi khoá từ chính `RECIPES` nên không có bản sao để
+ * lệch, và để `z.unknown().optional()` vì kiểm THẬT nằm ở handler, trên đúng
+ * schema `.strict()` của recipe được gọi — khai kiểu cụ thể ở đây sẽ là bản
+ * sao thứ hai của cùng một luật, và hai bản sao thì sớm muộn lệch nhau.
+ */
+export const RECIPE_TOOL_SHAPE: z.ZodRawShape = (() => {
+  const shape: Record<string, z.ZodTypeAny> = { recipe: z.string().min(1), delivery: deliverySchema };
+  for (const spec of Object.values(RECIPES)) {
+    for (const key of Object.keys((spec.schema as unknown as { shape: Record<string, unknown> }).shape)) {
+      shape[key] = z.unknown().optional();
+    }
+  }
+  return shape;
+})();
 const layerStateSchema = z
   .object({
     landcover: z.boolean(), buildings: z.boolean(), water: z.boolean(), parks: z.boolean(),
@@ -664,16 +694,11 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     { description: 'List the ready-made scene recipes render_recipe accepts — each with its parameters, default duration, and a working example call.', inputSchema: {} },
     () => t.list_recipes(),
   );
-  // inputSchema mở (passthrough) có chủ đích: mỗi recipe mang schema tham số
-  // RIÊNG, và một schema gộp ở đây sẽ hoặc lỏng tới mức vô nghĩa, hoặc phải
-  // chép lại từng recipe rồi trôi khỏi bản gốc trong recipes.ts. Việc kiểm
-  // chặt (`.strict()`, từ chối khoá lạ) làm ở handler, trên đúng schema của
-  // recipe được gọi — một chỗ duy nhất, không có bản sao để lệch.
   s.registerTool(
     'render_recipe',
     {
       description: `Render a ready-made scene in one call. Known recipes: ${Object.keys(RECIPES).join(', ')}. Call list_recipes for each one's parameters and a working example.`,
-      inputSchema: { recipe: z.string().min(1), delivery: deliverySchema },
+      inputSchema: RECIPE_TOOL_SHAPE,
     },
     (a: { recipe: string; delivery?: DeliveryMode }) => t.render_recipe(a),
   );

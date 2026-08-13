@@ -274,7 +274,18 @@ the renderer itself would silently drift out of all of them.
 Two boundaries worth knowing. Each recipe's parameter schema is **strict**: a
 mistyped key is refused rather than ignored, because the caller is an agent that
 cannot see the image, so a silently-dropped parameter returns a "successful"
-clip with the wrong content and nothing downstream can catch it. And
+clip with the wrong content and nothing downstream can catch it.
+
+**Over MCP that guard only covers half the cases, and the gap is not ours to
+close.** The SDK builds `z.object(inputSchema)` from the tool's *declared*
+shape and Zod strips anything outside it **before** the handler runs. So a
+mistyped key that happens to be another recipe's parameter (`pois` sent to
+`region-spotlight`) does reach the handler and *is* refused — while a key
+matching no recipe at all (`them`, `foo`) is swallowed by the SDK and the call
+succeeds. Measured directly against a freshly started MCP server. We cannot
+refuse what we never receive; this paragraph is the only honest mitigation, so
+treat `list_recipes` as the source of truth for parameter names rather than
+relying on a typo being caught. And
 `region-spotlight` does **not** expose `dim` as a parameter — switching the dim
 off leaves the plain `approach` preset, which a caller can reach through
 `render_clip` directly; a recipe that can turn off its own defining trait has no

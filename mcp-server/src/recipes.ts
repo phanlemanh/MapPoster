@@ -17,6 +17,18 @@
  *   2. Schema tham số là `.strict()`: một khoá gõ sai bị từ chối chứ không bị
  *      lặng lẽ bỏ qua. Với caller không nhìn thấy ảnh, một tham số bị lờ đi là
  *      một sai lệch vô hình — nó trả về clip "thành công" nhưng sai nội dung.
+ *
+ *      **Nhưng qua MCP thì `.strict()` chỉ bắt được MỘT NỬA, và đây là giới
+ *      hạn không vá được ở phía ta.** MCP SDK dựng `z.object(inputSchema)` từ
+ *      hình dạng tool KHAI (`RECIPE_TOOL_SHAPE` trong tools.ts) và Zod **loại
+ *      bỏ** mọi khoá không có trong đó TRƯỚC khi handler chạy. Nên:
+ *        - khoá gõ sai TRÙNG tham số của một recipe khác (`pois` gửi cho
+ *          `region-spotlight`) → tới được handler → `.strict()` TỪ CHỐI ✓
+ *        - khoá gõ sai KHÔNG trùng recipe nào (`them`, `khoaRac`) → bị SDK
+ *          nuốt trước → handler không bao giờ thấy → lời gọi THÀNH CÔNG ✗
+ *      Đo trực tiếp qua một server MCP dựng mới: `{recipe:'region-spotlight',
+ *      region:'…', khoaRac:1}` render ra clip bình thường. Không thể từ chối
+ *      thứ chưa bao giờ nhận — chỉ có thể khai đúng nó ở đây.
  */
 import { z } from 'zod';
 import type { RenderMapParams } from './resolveConfig';

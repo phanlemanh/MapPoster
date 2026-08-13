@@ -93,6 +93,8 @@ export interface ComposeOpts {
   /** radar-pulse ripples drawn under the markers (animation frames) */
   pulse?: PulseOpts;
   onProgress?: (msg: string) => void;
+  /** Nền bản đồ của khung này — quyết định attribution nào được nung vào pixel. */
+  basemap?: 'vector' | 'satellite';
 }
 
 /** Expanding radar rings around a marker: radius grows with an ease-out, the
@@ -227,7 +229,7 @@ export async function composeOverlays(map: MlMap, base: HTMLCanvasElement, opts:
   }
 
   // 5) license attribution baked into the image
-  drawAttribution(ctx, out.width, out.height, opts.text.color);
+  drawAttribution(ctx, out.width, out.height, opts.text.color, opts.basemap);
 
   return out;
 }
@@ -265,7 +267,22 @@ export async function exportPoster(opts: ExportOptions): Promise<void> {
  */
 export const ATTRIBUTION_TEXT = '© OpenStreetMap contributors · OpenMapTiles · OpenFreeMap · MapLibre';
 
-function drawAttribution(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+/**
+ * Attribution ĐẦY ĐỦ cho một khung, tuỳ nền bản đồ.
+ *
+ * Một HÀM chứ không phải thêm một hằng thứ hai: nghĩa vụ ghi nguồn cộng dồn —
+ * dùng ảnh vệ tinh KHÔNG thay thế nghĩa vụ với dữ liệu OSM bên dưới, vì đường,
+ * ranh giới và nhãn vẫn là OSM. Hai hằng rời rạc mời gọi đúng lỗi "thay vì
+ * cộng", và đó là một lỗi giấy phép chứ không phải một lỗi hiển thị.
+ *
+ * Chuỗi Sentinel lấy từ quyết định 2026-08-07: chính sách Copernicus đòi ghi
+ * nguồn VÀ nói rõ dữ liệu đã qua xử lý.
+ */
+export function attributionFor(basemap?: 'vector' | 'satellite'): string {
+  return basemap === 'satellite' ? `${ATTRIBUTION_TEXT} · Contains modified Copernicus Sentinel data` : ATTRIBUTION_TEXT;
+}
+
+function drawAttribution(ctx: CanvasRenderingContext2D, W: number, H: number, color: string, basemap?: 'vector' | 'satellite') {
   const size = Math.max(9, Math.min(W, H) * 0.011);
   ctx.save();
   ctx.font = `500 ${size}px 'Inter', sans-serif`;
@@ -275,7 +292,7 @@ function drawAttribution(ctx: CanvasRenderingContext2D, W: number, H: number, co
   ctx.fillStyle = color;
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
   ctx.shadowBlur = size * 0.4;
-  ctx.fillText(ATTRIBUTION_TEXT, W - size * 1.2, H - size * 1.2);
+  ctx.fillText(attributionFor(basemap), W - size * 1.2, H - size * 1.2);
   ctx.restore();
 }
 

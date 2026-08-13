@@ -62,6 +62,18 @@ export interface RenderConfig {
   };
   markers?: RenderMarker[];
   routes?: RenderRoute[];
+  /** Nền bản đồ. Mặc định 'vector'. */
+  basemap?: 'vector' | 'satellite';
+  /**
+   * URL mẫu tile vệ tinh, ĐI CÙNG config chứ không đọc từ env lúc build.
+   *
+   * Lý do: trang render là một bundle đã build, được mcp-server phục vụ. Một
+   * `import.meta.env.VITE_*` bị nung vào lúc `vite build`, nên biến môi trường
+   * lúc CHẠY của mcp-server không bao giờ với tới nó — `basemap:'satellite'`
+   * sẽ qua được cửa kiểm ở server rồi im lặng rơi về vector ở trang. Đưa URL
+   * vào config là cách duy nhất để hai đầu nói cùng một thứ.
+   */
+  satelliteTiles?: string;
   /** Echoed back through `resolved.measures`; the render page ignores it. */
   measure?: { pairs?: [number, number][] };
   /** Motion clip script — the static renderFrame() path ignores this field. */

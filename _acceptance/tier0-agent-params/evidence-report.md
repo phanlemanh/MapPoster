@@ -3,15 +3,29 @@ schema_version: 2
 feature_slug: tier0-agent-params
 verdict: PASS
 failed_evals: []
-reason: "I3 thôi là danh sách sáu tên cứng: sổ chốt phải khớp mã, mỗi chốt phải được gọi, mỗi nhãn đã đăng ký phải còn ở call site, và 53 tên trường Zod phải khớp bản ghim. Cả ba đột biến expected khai đều exit 1."
-verified_by: fresh-context verification subagent
+reason: "Vòng 15 ghim lại ở baf27d3: 20/20 eval máy chạy tươi, 0 đỏ."
+verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
+verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
 human_signoff:
 ---
 
 # Evidence Report: tier0-agent-params
+
+## Vòng 15 — ghim lại ở `baf27d3`; 20/20 eval máy chạy tươi, 0 đỏ
+
+Bằng chứng cả 9 gói đang ghim ở `ace12a0` (07.08) — **50 commit** trước HEAD, với **23 tệp không-miễn-trừ** đã đổi, gồm CẢ HAI `t3_paths`. Ký lên bằng chứng đó chỉ đổi tên vi phạm từ *human_signoff rỗng* sang *evidence stale*, không mở được gì. Vòng này ghim lại ở HEAD.
+
+Toàn bộ 194 eval của 12 gói chạy trong MỘT vòng: 34 lệnh duy nhất sau khử trùng lặp, chạy tươi, **188/188 eval máy thoát 0** trong 180 giây. Riêng gói này: 20/20.
+
+**Gói này là lý do vòng verify tồn tại.** Chạy tại HEAD trước khi ghim, `tier0-invariants` **ĐỎ** — 2 vi phạm I3: sổ chốt thiếu `assertBasemap`/`assertHighlightCount`, và hợp đồng Zod thêm 4 tên trường. I3 là bộ dò trôi hai chiều và nó làm đúng việc: phiên này nới bề mặt input mà sổ chưa được xem lại. Nếu vòng này không chạy, chữ ký sẽ đặt lên một `verdict: PASS` trong khi thước đo riêng của gói đang đỏ.
+
+Bản vá `4a1bea0` là **xem lại**, không phải ghim cho xanh. Hai chốt mới được đăng ký kèm ghi chú `assertBasemap` canh MÔI TRƯỜNG chứ không chỉ đầu vào, và `assertHighlightCount` là chốt dùng chung nên ghim cả hai nhãn. Bốn "trường Zod mới" tách làm hai loại: `basemap`/`recipe` là trường thật ⇒ ghim; `RECIPE_TOOL_SHAPE`/`shape` chỉ là chú thích kiểu TypeScript bị bộ trích khoá bắt nhầm ⇒ bóc trước khi trích, chứ ghim vào sổ sẽ mở đường cho một trường thật tên `shape` sau này lọt qua.
+
+Đối chứng âm sau khi vá (chèn rồi khôi phục `tools.ts`, cây sạch sau đó): trường mới `smuggled` ⇒ FAIL; trường mới tên `shape` ⇒ FAIL (phép bóc KHÔNG làm nó mù — đây là rủi ro chính của bản vá); xoá `bearing` ⇒ FAIL.
+
+`verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
 ## Vòng 14 — I3 thôi là danh sách sáu tên cứng
 

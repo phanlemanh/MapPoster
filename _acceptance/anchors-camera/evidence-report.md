@@ -3,15 +3,23 @@ schema_version: 2
 feature_slug: anchors-camera
 verdict: PASS
 failed_evals: []
-reason: "I6 nay ở cấp CALL SITE và bắt được `it.skip` ở đúng `tệp:dòng` trong khi vitest vẫn thoát 0; E14/E15 nay đỏ khi resolvedOfClip phát CẢ HAI. Ba eval bị trượt vòng 4 đều đã có khẳng định phân biệt được."
-verified_by: fresh-context verification subagent
+reason: "Vòng 6 ghim lại ở baf27d3: 20/20 eval máy chạy tươi, 0 đỏ."
+verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
+verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
 human_signoff:
 ---
 
 # Evidence Report: anchors-camera
+
+## Vòng 6 — ghim lại ở `baf27d3`; 20/20 eval máy chạy tươi, 0 đỏ
+
+Bằng chứng cả 9 gói đang ghim ở `ace12a0` (07.08) — **50 commit** trước HEAD, với **23 tệp không-miễn-trừ** đã đổi, gồm CẢ HAI `t3_paths`. Ký lên bằng chứng đó chỉ đổi tên vi phạm từ *human_signoff rỗng* sang *evidence stale*, không mở được gì. Vòng này ghim lại ở HEAD.
+
+Toàn bộ 194 eval của 12 gói chạy trong MỘT vòng: 34 lệnh duy nhất sau khử trùng lặp, chạy tươi, **188/188 eval máy thoát 0** trong 180 giây. Riêng gói này: 20/20.
+
+`verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
 ## Vòng 5 — ba eval trượt của vòng 4 đã được vá thật
 

@@ -262,6 +262,9 @@ render_recipe({ "recipe": "region-spotlight", "region": "Hoàn Kiếm, Hà Nội
 | `amenities` | Pushes into the project and pulses around it, with nearby amenities pinned in the same frame; returns straight-line distance from the project to each one | `location`, `pois[]` |
 | `compare-locations` | Frames several projects together with one reference point, drifts around them, and returns straight-line distance from the reference to each project | `subjects[]`, `reference` |
 | `route-journey` | Draws a road-following route from A to B while the camera tracks the drawing head, settling once the route completes; returns the router's own distance and duration | `from`, `to`, `mode` |
+| `location-tour` | Visits each stop in turn — flies in, holds, pulls back, moves on. Dwell is split evenly across stops, not set per stop | `stops[]` |
+| `connectivity` | Opens on every connecting route then draws in on the project; each route reports the router's own km and minutes | `location`, `from[]` |
+| `area-overview` | Zones each in their own colour with everything outside them dimmed, drifting slowly. Defaults to the satellite basemap | `location`, `zones[]` |
 
 **Two limits of the recipe layer, stated rather than hidden.** `compile()` is
 synchronous and runs *before* geocoding, so it never knows real coordinates —

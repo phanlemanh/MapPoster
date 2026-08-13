@@ -535,6 +535,90 @@ export const RECIPES: Record<string, RecipeSpec> = {
         motion: compact({ preset: 'converge' as const, fps: p.fps, durationSec: p.durationSec }),
       }),
   },
+
+  'area-overview': {
+    description:
+      'Toàn cảnh một khu vực với từng phân khu tô màu riêng và mọi thứ ngoài chúng bị làm mờ, camera trôi chậm. Mặc định nền ảnh vệ tinh — cần MAPPOSTER_SATELLITE_TILES cấu hình sẵn, nếu chưa có thì truyền basemap:"vector".',
+    params: {
+      location: 'Khu vực tổng — nơi camera khung tới, và là anchor quốc gia. Tên hoặc {lng,lat}.',
+      zones: 'Các phân khu, mỗi mục là {geojson, color?}. GeoJSON là lối duy nhất cho ranh giới chưa có trong OpenStreetMap — đúng ca của một dự án đang phân lô. Từ 1 tới 12.',
+      basemap: 'Nền bản đồ: "satellite" (mặc định) hoặc "vector". Nền vệ tinh cần MAPPOSTER_SATELLITE_TILES; thiếu nó thì lời gọi bị TỪ CHỐI chứ không lặng lẽ đổi nền.',
+      theme: 'Một id trong list_themes. Trên nền vệ tinh, theme chỉ còn chi phối đường, ranh giới và chữ — sáu layer vẽ lại mặt đất bị tắt.',
+      format: 'Một tên trong list_formats. Mặc định "tiktok".',
+      fps: 'Ghi đè fps của preset drift (12..30).',
+      durationSec: 'Ghi đè thời lượng của preset drift (2..12 giây).',
+    },
+    schema: z
+      .object({
+        location: placeRef,
+        zones: z
+          .array(z.object({ geojson: z.any(), color: hexColor.optional() }).strict())
+          .min(1)
+          .max(12),
+        basemap: z.enum(['vector', 'satellite']).optional(),
+        theme: z.string().min(1).optional(),
+        format: z.string().min(1).optional(),
+        fps: z.number().int().optional(),
+        durationSec: z.number().optional(),
+      })
+      .strict(),
+    durationSec: 6,
+    example: {
+      recipe: 'area-overview',
+      location: 'Thủ Đức, TP.HCM',
+      // Hình học THẬT, không phải FeatureCollection rỗng: một mảng features
+      // rỗng vẫn compile được nên vẫn qua được bất biến "ví dụ phải chạy" —
+      // nhưng render ra thì chẳng có phân khu nào. Ví dụ trong catalog là thứ
+      // agent chép nguyên, nên nó phải ra được đúng cảnh mô tả.
+      zones: [
+        {
+          geojson: {
+            type: 'FeatureCollection',
+            features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.75, 10.84], [106.79, 10.84], [106.79, 10.87], [106.75, 10.87], [106.75, 10.84]]] } }],
+          },
+          color: '#e8b04b',
+        },
+        {
+          geojson: {
+            type: 'FeatureCollection',
+            features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[106.79, 10.84], [106.83, 10.84], [106.83, 10.87], [106.79, 10.87], [106.79, 10.84]]] } }],
+          },
+          color: '#4ba3e8',
+        },
+      ],
+      basemap: 'vector',
+      format: 'tiktok',
+    },
+    compile: (p: {
+      location: string | { lng: number; lat: number };
+      zones: { geojson: unknown; color?: string }[];
+      basemap?: 'vector' | 'satellite';
+      theme?: string;
+      format?: string;
+      fps?: number;
+      durationSec?: number;
+    }): CompiledRecipeCall =>
+      compact({
+        location: p.location,
+        format: p.format ?? 'tiktok',
+        theme: p.theme,
+        // Mặc định vệ tinh: đây là recipe DUY NHẤT trong catalog mà nền ảnh
+        // thật là một phần của ý đồ — "hiện trạng khu đất" chỉ đọc được từ ảnh.
+        // Nhưng nó là THAM SỐ chứ không phải hằng, vì nguồn tile có thể chưa
+        // được cấu hình và một recipe không dùng được thì không phải một recipe.
+        basemap: p.basemap ?? 'satellite',
+        highlight: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          regions: p.zones.map((z) => compact({ geojson: z.geojson, color: z.color }) as any),
+          // `dim` KHÔNG phải tham số: "mọi thứ ngoài phân khu bị làm mờ" chính
+          // là thứ phân biệt cảnh này với một bản đồ có mấy vùng tô màu. Tắt
+          // được nó thì recipe mất ranh giới của chính nó.
+          dim: true,
+          fill: true,
+        },
+        motion: compact({ preset: 'drift' as const, fps: p.fps, durationSec: p.durationSec }),
+      }),
+  },
 };
 
 /** Tên recipe lạ bị từ chối kèm danh sách tên hợp lệ — không rơi về mặc định. */

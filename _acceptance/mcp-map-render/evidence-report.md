@@ -1,17 +1,37 @@
 ---
 schema_version: 2
 feature_slug: mcp-map-render
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason: "Vòng 30 ghim lại ở baf27d3: 11/11 eval máy chạy tươi, 0 đỏ; E12 chờ phán xét người."
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
 verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
-human_signoff:
+human_signoff: manh — 2026-08-13 (ủy quyền trong phiên; ghi bởi Claude, không phải commit tay của người duyệt)
 ---
 
 # Evidence Report: mcp-map-render
+
+## Phán xét người — 2026-08-13, trên artefact dựng lại tại HEAD
+
+manh phán trực tiếp; Claude chép vào ô `human_override` mà kit dành sẵn, KHÔNG phán thay.
+
+Artefact được **dựng lại trước khi hỏi**. Bản mà giám khảo mù xem ở các vòng trước sinh từ
+`ffb92d5` (06.08), trong khi `main.tsx` +187, `motionCompiler.ts` +138, `mapStyle.ts` +55,
+`export.ts` +20 và `anchors.ts` (mới hoàn toàn) đã đổi từ đó — hỏi phán xét trên vật liệu lỗi
+thời thì chính phán xét đó hỏng. Kiểm trước khi dựng: định nghĩa preset `approach` KHÔNG đổi
+(chỉ union type nới ra), đường vẽ `regionReveal` KHÔNG đổi, và mọi thay đổi chạm pixel ở
+`mapStyle.ts`/`export.ts` đều bị chặn sau `basemap === 'satellite' && satelliteTiles`; nhưng đó
+là suy luận từ đọc code nên vẫn dựng lại thật thay vì tin.
+
+Dựng qua HTTP server **tươi từ source** sau khi `vite build` lại `dist/` — tiến trình MCP đang
+chạy trong phiên là bản CŨ (schema tool của nó vẫn ghi `preset: approach|pushIn|drift`).
+
+Ba khung lấy theo **số khung chính xác** (`select=eq(n,N)`), không phải `-ss` trước `-i`: bản đầu
+seek theo keyframe nên khung dán nhãn "2.1s / đang vẽ" thực tế đã vẽ gần xong — nhãn nói sai thì
+phán xét sai theo.
+
 
 ## Vòng 30 — ghim lại ở `baf27d3`; 11/11 eval máy chạy tươi, 0 đỏ
 
@@ -364,7 +384,7 @@ _**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔ
   verdict: PASS
   rationale: |
     Ảnh 1080×1920 đúng khung tiktok, nền navy với đường phố vàng cam đặc trưng midnight-blue; lưới đường và khối nhà liền mạch, không ô tile trống/vỡ hay răng cưa. Ghim trắng nằm gần chính giữa khung (≈540/1080 ngang, 910/1920 dọc — lệch nhẹ ~50px) và tương phản rõ trên nền tối. Đủ cả ba yêu cầu của AC-12: căn giữa, highlight rõ, tile/đường không vỡ.
-  human_override:
+  human_override: PASS — manh, 2026-08-13. Phán trên ảnh DỰNG LẠI TẠI HEAD: Võ Văn Tần, Quận 3 HCMC, tiktok 1080×1920, midnight-blue, point highlight, zoom 16. Tiêu chí 'căn đúng giữa' có bằng chứng cấu trúc chứ không phải mắt — resolved.center [106.6893957, 10.7758788] TRÙNG ĐÚNG toạ độ điểm highlight, nên căn giữa là theo cấu trúc; pin nằm cao hơn tâm khung vì mũi pin mới là điểm neo. Hai tiêu chí còn lại (highlight đọc được, tile/đường không vỡ) thuần thị giác, người duyệt xác nhận.
 ## Analyst
 
 Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E11.

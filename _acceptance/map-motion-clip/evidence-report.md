@@ -1,17 +1,37 @@
 ---
 schema_version: 2
 feature_slug: map-motion-clip
-verdict: PENDING-JUDGMENT
+verdict: PASS
 failed_evals: []
 reason: "Vòng 15 ghim lại ở baf27d3: 15/15 eval máy chạy tươi, 0 đỏ; E16, E17 chờ phán xét người."
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
 verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
-human_signoff:
+human_signoff: manh — 2026-08-13 (ủy quyền trong phiên; ghi bởi Claude, không phải commit tay của người duyệt)
 ---
 
 # Evidence Report: map-motion-clip
+
+## Phán xét người — 2026-08-13, trên artefact dựng lại tại HEAD
+
+manh phán trực tiếp; Claude chép vào ô `human_override` mà kit dành sẵn, KHÔNG phán thay.
+
+Artefact được **dựng lại trước khi hỏi**. Bản mà giám khảo mù xem ở các vòng trước sinh từ
+`ffb92d5` (06.08), trong khi `main.tsx` +187, `motionCompiler.ts` +138, `mapStyle.ts` +55,
+`export.ts` +20 và `anchors.ts` (mới hoàn toàn) đã đổi từ đó — hỏi phán xét trên vật liệu lỗi
+thời thì chính phán xét đó hỏng. Kiểm trước khi dựng: định nghĩa preset `approach` KHÔNG đổi
+(chỉ union type nới ra), đường vẽ `regionReveal` KHÔNG đổi, và mọi thay đổi chạm pixel ở
+`mapStyle.ts`/`export.ts` đều bị chặn sau `basemap === 'satellite' && satelliteTiles`; nhưng đó
+là suy luận từ đọc code nên vẫn dựng lại thật thay vì tin.
+
+Dựng qua HTTP server **tươi từ source** sau khi `vite build` lại `dist/` — tiến trình MCP đang
+chạy trong phiên là bản CŨ (schema tool của nó vẫn ghi `preset: approach|pushIn|drift`).
+
+Ba khung lấy theo **số khung chính xác** (`select=eq(n,N)`), không phải `-ss` trước `-i`: bản đầu
+seek theo keyframe nên khung dán nhãn "2.1s / đang vẽ" thực tế đã vẽ gần xong — nhãn nói sai thì
+phán xét sai theo.
+
 
 ## Vòng 15 — ghim lại ở `baf27d3`; 15/15 eval máy chạy tươi, 0 đỏ
 
@@ -380,13 +400,13 @@ _**Đính chính cho vòng này:** khác vòng trước, vòng hiện tại KHÔ
   verdict: PASS
   rationale: |
     Xem trực tiếp khung trích từ E16-clip.mp4 (6s, 18fps, 1080×1920). (1) t=0.0s toàn cảnh thành phố, chưa tô ranh giới. (2) Vẽ dần chứ không bật đột ngột: t=2.2s chưa có gì, t=2.5s chỉ phần phía tây được tô, t=2.7s gần phủ hết, t=3.0s đầy đủ — diff pixel giữa 2.5s và 2.7s cho mean 6.94 / max 92, thay đổi thị giác rõ trong khoảng ngắn. (3) Đuôi đứng yên: khung 3.5s so khung cuối 5.9s cho mean 0.125 / max 14, chỉ là nhiễu nén. Ba nhịp đọc ra rành mạch.
-  human_override:
+  human_override: PASS — manh, 2026-08-13. Phán trên artefact DỰNG LẠI TẠI HEAD (bản giám khảo mù ở trên dùng clip từ ffb92d5, 06.08): clip approach cho Quận Ba Đình + ba khung theo số khung chính xác t=1.0s (reveal 0%) / t=2.5s (reveal 50%) / t=5.0s (reveal 100%, nghỉ). Đo nhịp 3: YAVG ảnh hiệu tb 0.0004 so với 4.6258 và 3.4025 ở hai nhịp trước — chênh ~10.000 lần. SUY DIỄN ĐƯỢC GHI RÕ: lúc trình bày đã nêu 'đứng yên hoàn toàn' còn hai cách đọc — bit-exact thì TRƯỢT (chỉ 1/32 khung có hiệu 0 tuyệt đối, phần dư là nhiễu nén h.264), 'không có chuyển động camera' thì ĐẠT; người duyệt trả lời PASS không nêu bảo lưu nên chép theo cách đọc thứ hai. Nếu ý là bit-exact, phán quyết này phải lật lại.
 - eval: E17
   judged_by: judge-subagent (fresh context, blind, vòng 2 sau khi vá)
   verdict: PASS
   rationale: |
     Commit b4150be thêm test thứ hai ghim ATTRIBUTION_TEXT bằng literal độc lập cộng bốn toContain riêng từng credit — không còn tự tham chiếu, và literal khớp đúng chuỗi spec §2.3 quy định. Kết hợp test thứ nhất (textCalls phải bằng đúng [ATTRIBUTION_TEXT]), hai test khoá cả hai nửa: SỐ LƯỢNG (không lệnh fillText/strokeText nào khác lọt) và NỘI DUNG (chuỗi vẽ ra phải đúng literal giấy phép OSM). Mỗi test có đường fail thật — đổi số lệnh vẽ thì test 1 đỏ, đổi nội dung hằng thì test 2 đỏ — nên không tautological.
-  human_override:
+  human_override: PASS — manh, 2026-08-13. Hai câu hỏi con có bằng chứng máy: (a) ngoại lệ CÓ ghi tường minh — spec 2026-08-03-map-motion-clip-design.md:86-97 gọi đích danh drawAttribution trong src/lib/export.ts kèm ngày quyết định của chủ repo 2026-08-04; (b) khoá CÓ giữ — đối chứng âm chèn ctx.fillText('GIÁ 12 TỶ — CHỮ LẬU', 40, 80) cạnh attribution làm test đỏ ngay (expected [ …(2) ] to deeply equal [ Array(1) ]), và test có sẵn đối chứng ngược chrome:'poster' vẽ THÊM chữ nên ca 'clean' không xanh vì canvas câm. Câu thứ ba là chính sách: nướng attribution vào pixel để tuân thủ giấy phép OSM không phụ thuộc bên tiêu thụ, đổi lấy một lỗ trong bất biến 'clip không chữ' — người duyệt chấp nhận đánh đổi này.
 ## Analyst
 
 Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract's own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15.

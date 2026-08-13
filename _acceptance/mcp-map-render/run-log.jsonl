@@ -336,3 +336,14 @@
 {"ts": "2026-08-13T09:45:11Z", "round": 30, "evalId": "E9", "run_id": "mcp-map-render-r30-api-20260813", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-13T09:45:11Z", "round": 30, "evalId": "E10", "run_id": "mcp-map-render-r30-e2e-20260813", "exit_code": 0, "cmd": "npm run test:e2e"}
 {"ts": "2026-08-13T09:45:11Z", "round": 30, "evalId": "E11", "run_id": "mcp-map-render-r30-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E1", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E2", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E3", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E4", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E5", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E6", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E7", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E8", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E9", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E10", "run_id": "mcp-map-render-r31-e2e-20260813", "exit_code": 0, "cmd": "npm run test:e2e"}
+{"ts": "2026-08-13T23:20:00Z", "round": 31, "evalId": "E11", "run_id": "mcp-map-render-r31-api-20260813", "exit_code": 0, "cmd": "npm test"}

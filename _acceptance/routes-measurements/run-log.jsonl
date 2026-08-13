@@ -228,3 +228,23 @@
 {"ts": "2026-08-13T09:45:11Z", "round": 14, "evalId": "E16", "run_id": "routes-measurements-r14-routes_demo-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
 {"ts": "2026-08-13T09:45:11Z", "round": 14, "evalId": "E17", "run_id": "routes-measurements-r14-api-20260813", "exit_code": 0, "cmd": "npm test"}
 {"ts": "2026-08-13T09:45:11Z", "round": 14, "evalId": "E18", "run_id": "routes-measurements-r14-mcp-20260813", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E1", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E19", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E2", "run_id": "routes-measurements-r15-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E3", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E4", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E5", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E6", "run_id": "routes-measurements-r15-apply_render_config-20260813", "exit_code": 0, "cmd": "npx vitest run src/render/applyRenderConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E7", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E8", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E9", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E10", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E11", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E12", "run_id": "routes-measurements-r15-geometry-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/geometry.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E13", "run_id": "routes-measurements-r15-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E14", "run_id": "routes-measurements-r15-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E15", "run_id": "routes-measurements-r15-routes_invariants-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E20", "run_id": "routes-measurements-r15-routes_invariants-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/routes-invariants.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E16", "run_id": "routes-measurements-r15-routes_demo-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/routes-measurements/scripts/demo-routes.ts"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E17", "run_id": "routes-measurements-r15-api-20260813", "exit_code": 0, "cmd": "npm test"}
+{"ts": "2026-08-13T23:20:00Z", "round": 15, "evalId": "E18", "run_id": "routes-measurements-r15-mcp-20260813", "exit_code": 0, "cmd": "npm run test:mcp"}

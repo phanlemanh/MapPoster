@@ -3,15 +3,25 @@ schema_version: 2
 feature_slug: async-job-queue
 verdict: PASS
 failed_evals: []
-reason: "E17 nay RÚT MỌI specifier module rồi lọc, nên node:fs/promises không lọt; thêm nửa should-FIRE cho chính bộ rút. E16 khai đúng thứ ca có dấu đo được."
-verified_by: fresh-context verification subagent
+reason: "Vòng 18 ghim lại ở baf27d3: 24/24 eval máy chạy tươi, 0 đỏ."
+verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
+verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
 human_signoff:
 ---
 
 # Evidence Report: async-job-queue
+
+## Vòng 18 — ghim lại ở `baf27d3`; 24/24 eval máy chạy tươi, 0 đỏ
+
+Bằng chứng cả 9 gói đang ghim ở `ace12a0` (07.08) — **50 commit** trước HEAD, với **23 tệp không-miễn-trừ** đã đổi, gồm CẢ HAI `t3_paths`. Ký lên bằng chứng đó chỉ đổi tên vi phạm từ *human_signoff rỗng* sang *evidence stale*, không mở được gì. Vòng này ghim lại ở HEAD.
+
+Toàn bộ 194 eval của 12 gói chạy trong MỘT vòng: 34 lệnh duy nhất sau khử trùng lặp, chạy tươi, **188/188 eval máy thoát 0** trong 180 giây. Riêng gói này: 24/24.
+
+24/25 eval máy xanh. E20 (AC-15) là phán xét, **đã kết luận ở vòng trước** và kết luận đó còn hiệu lực — không có gì trong 50 commit vừa rồi chạm vào điều nó phán.
+
+`verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
 ## Vòng 17 — E17 chặn MỌI module fs, không còn hai regex đoán hình dạng
 

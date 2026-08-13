@@ -1,0 +1,13 @@
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E1", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E2", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E3", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E4", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E5", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E6", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E7", "run_id": "recipe-region-spotlight-r1-mcp_protocol-20260813", "exit_code": 0, "cmd": "MCP_INTEGRATION=1 npx vitest run mcp-server/src/mcpProtocol.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E8", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E9", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E10", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E11", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E12", "run_id": "recipe-region-spotlight-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E13", "run_id": "recipe-region-spotlight-r1-recipe_t3_untouched-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/recipe-region-spotlight/scripts/t3-untouched.ts"}

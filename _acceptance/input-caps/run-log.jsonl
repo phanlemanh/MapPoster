@@ -1,0 +1,9 @@
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E1", "run_id": "input-caps-r1-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E2", "run_id": "input-caps-r1-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E3", "run_id": "input-caps-r1-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E4", "run_id": "input-caps-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E5", "run_id": "input-caps-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E6", "run_id": "input-caps-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E7", "run_id": "input-caps-r1-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E8", "run_id": "input-caps-r1-resolve_config-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/resolveConfig.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 1, "evalId": "E9", "run_id": "input-caps-r1-input_caps_negctrl-20260813", "exit_code": 0, "cmd": "bash _acceptance/input-caps/negctrl/run-negctrl.sh"}

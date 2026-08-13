@@ -3,15 +3,27 @@ schema_version: 2
 feature_slug: map-motion-clip
 verdict: PENDING-JUDGMENT
 failed_evals: []
-reason: "E12 nay đi qua đúng mắt xích chrome→showText: test gọi applyRenderConfig rồi đọc store, và đổi hằng thành showText = true làm lane đỏ. E16/E17 giữ PENDING-JUDGMENT, human_override để trống."
-verified_by: fresh-context verification subagent
+reason: "Vòng 15 ghim lại ở baf27d3: 15/15 eval máy chạy tươi, 0 đỏ; E16, E17 chờ phán xét người."
+verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ace12a0202d660d0a9eca837528b43b5e07e2e4a
+verified_commit: baf27d3b94673ba706de51fdd9e45776224f0bc2
 human_signoff:
 ---
 
 # Evidence Report: map-motion-clip
+
+## Vòng 15 — ghim lại ở `baf27d3`; 15/15 eval máy chạy tươi, 0 đỏ
+
+Bằng chứng cả 9 gói đang ghim ở `ace12a0` (07.08) — **50 commit** trước HEAD, với **23 tệp không-miễn-trừ** đã đổi, gồm CẢ HAI `t3_paths`. Ký lên bằng chứng đó chỉ đổi tên vi phạm từ *human_signoff rỗng* sang *evidence stale*, không mở được gì. Vòng này ghim lại ở HEAD.
+
+Toàn bộ 194 eval của 12 gói chạy trong MỘT vòng: 34 lệnh duy nhất sau khử trùng lặp, chạy tươi, **188/188 eval máy thoát 0** trong 180 giây. Riêng gói này: 15/15.
+
+15/17 eval máy xanh. E16 (AC-13, đọc ba nhịp) và E17 (AC-14, ngoại lệ attribution có chính đáng không) là **hai trong ba phán xét người** còn treo — cả hai đều là đọc thị giác một clip, máy không thay được.
+
+`verdict: PENDING-JUDGMENT` — E16, E17 chờ phán xét người. Không eval máy nào đỏ.
+
+`verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
 ## Vòng 14 — E12 đã đi qua mắt xích chrome→showText
 

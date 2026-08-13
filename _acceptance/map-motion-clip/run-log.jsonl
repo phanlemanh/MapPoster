@@ -202,3 +202,18 @@
 {"ts": "2026-08-07T12:17:38Z", "round": 14, "evalId": "E13", "run_id": "map-motion-clip-r14-e13-20260807", "exit_code": 0, "cmd": "test.clip_http"}
 {"ts": "2026-08-07T12:17:40Z", "round": 14, "evalId": "E14", "run_id": "map-motion-clip-r14-e14-20260807", "exit_code": 0, "cmd": "test.clip_tools"}
 {"ts": "2026-08-07T12:17:39Z", "round": 14, "evalId": "E15", "run_id": "map-motion-clip-r14-e15-20260807", "exit_code": 0, "cmd": "test.clip_backpressure"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E1", "run_id": "map-motion-clip-r15-motion_invariants-20260813", "exit_code": 0, "cmd": "npx vitest run src/render/motionScript.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E2", "run_id": "map-motion-clip-r15-motion_invariants-20260813", "exit_code": 0, "cmd": "npx vitest run src/render/motionScript.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E3", "run_id": "map-motion-clip-r15-motion_invariants-20260813", "exit_code": 0, "cmd": "npx vitest run src/render/motionScript.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E4", "run_id": "map-motion-clip-r15-compiler_domain_sweep-20260813", "exit_code": 0, "cmd": "npx tsx _acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E5", "run_id": "map-motion-clip-r15-motion_compiler-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/motionCompiler.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E6", "run_id": "map-motion-clip-r15-motion_math-20260813", "exit_code": 0, "cmd": "npx vitest run src/render/motionMath.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E7", "run_id": "map-motion-clip-r15-mcp-20260813", "exit_code": 0, "cmd": "npm run test:mcp"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E8", "run_id": "map-motion-clip-r15-clip_http-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E9", "run_id": "map-motion-clip-r15-clip_http-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E10", "run_id": "map-motion-clip-r15-clip_http-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E11", "run_id": "map-motion-clip-r15-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E12", "run_id": "map-motion-clip-r15-text_free-20260813", "exit_code": 0, "cmd": "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E13", "run_id": "map-motion-clip-r15-clip_http-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E14", "run_id": "map-motion-clip-r15-clip_tools-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/tools.test.ts"}
+{"ts": "2026-08-13T09:45:11Z", "round": 15, "evalId": "E15", "run_id": "map-motion-clip-r15-clip_backpressure-20260813", "exit_code": 0, "cmd": "npx vitest run mcp-server/src/http.test.ts mcp-server/src/browserPool.test.ts"}

@@ -103,7 +103,8 @@ và bỏ hằng `routeCount: 0`. Đáng đo lại 6,0 ngày của PR #10 trên c
 | #5 | Road routing OSRM (`route.ts` mới; production self-host, FOSSGIS chỉ để spike) | 3.5 | — |
 | #6 | `resolved.anchors` + `resolved.camera` | 4.5 | `compare-locations` |
 | #7 | Tour preset (van-Wijk densify) + POI catalog 6→23 icon (Material Symbols FILLED, Apache-2.0) + stagger cơ bản | 5.0 | `amenities`, `location-tour` |
-| #8 | **Satellite basemap VersaTiles** — mở nguyên gói: `basemap:'vector'\|'satellite'`, attribution theo provider, quy tắc theme override. **T3 thật** (mapStyle.ts + export.ts), +1.5 ngày gate | 5.0 | `property-intro`, `area-overview` |
+| #8a | **Satellite basemap — phần MÃ**: `basemap:'vector'\|'satellite'`, attribution theo provider, quy tắc theme override. **T3 thật** (mapStyle.ts + export.ts), +1.5 ngày gate | ~~5.0~~ **3.5–4.0** | `area-overview` |
+| #8b | **Hạ tầng tile server** — dựng và vận hành Sentinel-2 Global Mosaic tự host | **chưa định giá** | (chặn #8a lên production) |
 | #9 | **`render_recipe` + `list_recipes`** — 7 recipe (1-6, 8) | 3.5 | 7/8 recipe |
 | #10 | routeDraw + camera follow → recipe `route-journey` | ~~6.0~~ **2.5–3.5** | recipe cuối |
 
@@ -150,6 +151,35 @@ Căn cứ nhịp cho việc ưu tiên #10: [2026-08-13-mapeffect-motion-benchmar
 §2.3 — demo tuyến của mapeffect có mật độ chuyển động cao nhất trong bộ và gần như
 không nghỉ, tức `routeDraw` mở khoá một *hạng nhịp* MapPoster chưa có, không phải một
 hiệu ứng phụ.
+
+**Đính chính 2026-08-13 — PR #8 đo lại, và kết luận KHÁC #10.** Với #10 con số sai. Với #8
+**con số gần đúng nhưng thiếu hẳn một hạng mục**, nên đã tách làm hai dòng.
+
+*Phần mã, cân theo analog:*
+
+| Việc | Đo được |
+|---|---|
+| Plumbing `basemap` qua tools → resolveConfig → RenderConfig → applyRenderConfig | ~0,5 ngày (Tier 0 làm 12 tham số trong 3,0 ngày ⇒ ~0,2/tham số; cái này nặng hơn vì đổi *cấu trúc* style chứ không chỉ thêm một cờ) |
+| `mapStyle.ts` — thêm raster source/layer **và** quy tắc theme override | 1,0–1,5 ngày. Đây mới là việc thật: style hiện có **17 layer**, và landcover/water/parks/buildings đều trở nên sai khi nằm trên ảnh vệ tinh. Quyết định layer nào sống sót là thiết kế, không phải gõ mã. |
+| `export.ts` — attribution theo provider | ~0,5 ngày. `drawAttribution` chỉ **13 dòng**, nhưng `ATTRIBUTION_TEXT` đang được dùng ở **8 nơi**; nó phải thành một hàm của basemap, và test khoá "clip text-free" phải theo. |
+| Thuế gate T3 | +1,5 ngày (giữ nguyên — cả hai `t3_paths` đều bị chạm, khác hẳn #10 vốn không chạm cái nào) |
+
+*Và một phát hiện làm gói này rẻ hơn tưởng:* **recipe `area-overview` gần như KHÔNG tốn gì
+thêm.** Nó cần "từng phân khu hiện màu riêng + dim ngoài + drift chậm" — `highlight.regions[]`
+đã nhận `{geojson, color}` nội tuyến, `highlight.dim` đã có, preset `drift` đã có. Khi
+`basemap` tồn tại thì recipe chỉ là một `compile` như sáu cái đang chạy.
+
+*Hạng mục bị thiếu hẳn — lý do tách #8b:* ước tính 5,0 được lập khi §1.2 còn giả định dùng
+endpoint công cộng `tiles.versatiles.org`. Quyết định 2026-08-07 bác endpoint đó và chọn
+**tự host**. Tự host Sentinel-2 Global Mosaic không phải engineer-days viết mã — nó là dung
+lượng lưu trữ ở mức TB cho tile toàn cầu ở zoom dùng được, một tile server, băng thông, và
+**chi phí vận hành định kỳ**. Không con số ngày công nào diễn tả được nó, nên đừng gộp.
+
+*Hệ quả về thứ tự, và đây là phần dùng được ngay:* **#8a KHÔNG bị chặn bởi #8b.** Tham số
+`basemap` và quy tắc theme override dựng và kiểm được trên **bất kỳ** nguồn raster nào — kể
+cả một nguồn tạm để phát triển. Nên phần mã chạy được ngay, còn quyết định hạ tầng chỉ chặn
+lúc **lên production**. Tách hai dòng để một quyết định tiền không giữ con tin ba tuần công
+việc mã.
 
 **Tổng ≈ 39 engineer-days** (gồm thuế gate; chi tiết thuế: nghiên cứu §7).
 Điểm giá trị sớm: sau PR #2, toàn bộ năng lực cho `region-spotlight` đã sẵn (agent gọi được

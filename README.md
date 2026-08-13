@@ -261,14 +261,19 @@ render_recipe({ "recipe": "region-spotlight", "region": "Hoàn Kiếm, Hà Nội
 | `property-intro` | Flies into a project's boundary, draws it in, drops a pin on the project — surroundings stay **lit**, because they are what is being sold. Boundary takes an OSM name *or* inline GeoJSON, the only route for a plot that isn't in OSM | `location`, `boundary` |
 | `amenities` | Pushes into the project and pulses around it, with nearby amenities pinned in the same frame; returns straight-line distance from the project to each one | `location`, `pois[]` |
 | `compare-locations` | Frames several projects together with one reference point, drifts around them, and returns straight-line distance from the reference to each project | `subjects[]`, `reference` |
+| `route-journey` | Draws a road-following route from A to B while the camera tracks the drawing head, settling once the route completes; returns the router's own distance and duration | `from`, `to`, `mode` |
 
 **Two limits of the recipe layer, stated rather than hidden.** `compile()` is
 synchronous and runs *before* geocoding, so it never knows real coordinates —
 which means a recipe cannot author absolute camera keyframes. Anything needing
 them (a multi-stop tour that pauses at each stop, "zoom back to the project at
-the end", following a route) is out of reach here, and every recipe above
-therefore uses a **preset** and lets `resolveConfig` auto-frame the union of its
-highlights. Second, `motionScript.ts` forbids more than one one-shot track of the
+the end") is out of reach *at the recipe layer* — every recipe above therefore
+uses a **preset** and lets `resolveConfig` auto-frame the union of its
+highlights. When absolute keyframes are genuinely needed, the way through is to
+push the authoring down into the **preset** compiler, which runs *after*
+resolution and so does have real geometry: `route-journey` needs the camera to
+track the drawing head, so it calls the `follow` preset, and that preset samples
+the route and emits the keyframes itself. Second, `motionScript.ts` forbids more than one one-shot track of the
 same kind per script, so **staggered beats are impossible** — amenity pins and
 compared projects appear *together*, not in sequence. The catalog descriptions
 say what the recipe does, not what the spec wished for.

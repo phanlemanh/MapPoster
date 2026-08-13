@@ -71,6 +71,16 @@ const lngLat = z.object({ lng: z.number().min(-180).max(180), lat: z.number().mi
 const placeRef = z.union([z.string().min(1), lngLat]);
 
 /**
+ * `location` của render_clip nhận `{lng, lat}`, còn `routes[].route.from/to`
+ * nhận TUPLE `[lng, lat]` (`RouteInput` trong resolveConfig.ts:20-21). Hai
+ * hình dạng khác nhau cho cùng một khái niệm là chuyện nội bộ của engine —
+ * tầng recipe che nó đi thay vì bắt agent nhớ, vì agent chỉ đọc catalog.
+ */
+function asRouteEnd(v: string | { lng: number; lat: number }): string | [number, number] {
+  return typeof v === 'string' ? v : [v.lng, v.lat];
+}
+
+/**
  * GIỚI HẠN CỦA MÔ HÌNH RECIPE — đọc trước khi thêm recipe mới.
  *
  * `compile()` là hàm ĐỒNG BỘ, THUẦN, không có deps, và nó chạy **trước**
@@ -87,6 +97,12 @@ const placeRef = z.union([z.string().min(1), lngLat]);
  * được compile SAU khi config đã resolve, nên nó có toạ độ thật. Khung hình thì
  * để `resolveConfig` tự auto-frame theo union của highlight — đó là đường duy
  * nhất tầng recipe có để "ôm trọn nhiều đối tượng" mà không đoán toạ độ.
+ *
+ * **Và đó cũng là LỐI GIẢI khi thật sự cần keyframe tuyệt đối:** đẩy việc
+ * authoring xuống tầng preset. `route-journey` cần camera bám đầu tuyến — bất
+ * khả ở đây — nên nó gọi preset `follow`, và chính preset đó lấy mẫu hình học
+ * tuyến rồi phát ra keyframe. Một recipe muốn tour nhiều chặng hay "zoom về
+ * đích ở cuối" thì đi đường này, đừng cố tính bbox trong `compile`.
  *
  * Giới hạn thứ hai, từ `motionScript.ts`: **không được có quá một track one-shot
  * cùng loại** trong một script. Nên mọi nhịp "so le" (pin drop từng POI theo
@@ -346,6 +362,70 @@ export const RECIPES: Record<string, RecipeSpec> = {
         // ĐỐI, mà compile() chạy trước geocode nên không có toạ độ (xem ghi chú
         // GIỚI HẠN ở đầu file). drift để engine tự trôi quanh khung đã auto-frame.
         motion: compact({ preset: 'drift' as const, fps: p.fps, durationSec: p.durationSec }),
+      }),
+  },
+
+  'route-journey': {
+    description:
+      'Vẽ dần một tuyến bám đường thật từ điểm đi tới điểm đến, camera bám theo đầu nét vẽ, dừng khi tuyến đủ. Trả kèm quãng đường và thời gian router báo về trong resolved.routes.',
+    params: {
+      from: 'Điểm đi — tên ("Chợ Bến Thành") hoặc {lng,lat}. Cũng là nơi camera bắt đầu.',
+      to: 'Điểm đến — tên hoặc {lng,lat}.',
+      mode: 'Phương tiện: car | moto | walk. Mặc định "car". Lưu ý moto ánh xạ sang profile driving của OSRM và điều đó được báo lại trong resolved.routes[0].provider.',
+      theme: 'Một id trong list_themes.',
+      format: 'Một tên trong list_formats. Mặc định "tiktok".',
+      color: 'Màu hex của tuyến, ví dụ "#ff5a3c". Nên đặt rõ: accent của phần lớn theme nằm sát dải màu đường bộ nên tuyến dễ chìm vào nền.',
+      width: 'Bề rộng nét tuyến, 1..16. Mặc định 8 — dày hơn mặc định 4 của render_clip vì tuyến ở đây là chủ thể, không phải nền.',
+      fps: 'Ghi đè fps của preset follow (12..30).',
+      durationSec: 'Ghi đè thời lượng của preset follow (2..12 giây).',
+    },
+    schema: z
+      .object({
+        from: placeRef,
+        to: placeRef,
+        mode: z.enum(['car', 'moto', 'walk']).optional(),
+        theme: z.string().min(1).optional(),
+        format: z.string().min(1).optional(),
+        color: hexColor.optional(),
+        width: z.number().min(1).max(16).optional(),
+        fps: z.number().int().optional(),
+        durationSec: z.number().optional(),
+      })
+      .strict(),
+    durationSec: 6,
+    example: {
+      recipe: 'route-journey',
+      from: 'Chợ Đồng Xuân, Hà Nội',
+      to: 'Nhà hát Lớn Hà Nội',
+      mode: 'car',
+      color: '#ff5a3c',
+      format: 'tiktok',
+    },
+    compile: (p: {
+      from: string | { lng: number; lat: number };
+      to: string | { lng: number; lat: number };
+      mode?: 'car' | 'moto' | 'walk';
+      theme?: string;
+      format?: string;
+      color?: string;
+      width?: number;
+      fps?: number;
+      durationSec?: number;
+    }): CompiledRecipeCall =>
+      compact({
+        // `location` = điểm đi: nó cấp country anchor cho `to` khi `to` là một
+        // cái tên, cùng cơ chế highlight dùng — nên một địa danh trùng tên ở
+        // nước khác không thể lặng lẽ kéo tuyến đi.
+        location: p.from,
+        format: p.format ?? 'tiktok',
+        theme: p.theme,
+        routes: [compact({ route: compact({ from: asRouteEnd(p.from), to: asRouteEnd(p.to), mode: p.mode ?? 'car' }), color: p.color, width: p.width ?? 8 })],
+        // `follow` là đặc trưng không tắt được: bỏ nó đi thì đây chỉ là một
+        // tuyến tĩnh, thứ gọi thẳng render_clip được. Preset này cũng là chỗ
+        // DUY NHẤT trong catalog phát ra camera keyframe tuyệt đối — nó làm
+        // được vì compile của PRESET chạy SAU resolveConfig, khác compile của
+        // RECIPE (xem khối GIỚI HẠN ở đầu tệp).
+        motion: compact({ preset: 'follow' as const, fps: p.fps, durationSec: p.durationSec }),
       }),
   },
 };

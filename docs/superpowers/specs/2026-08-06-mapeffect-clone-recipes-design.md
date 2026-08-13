@@ -105,7 +105,51 @@ và bỏ hằng `routeCount: 0`. Đáng đo lại 6,0 ngày của PR #10 trên c
 | #7 | Tour preset (van-Wijk densify) + POI catalog 6→23 icon (Material Symbols FILLED, Apache-2.0) + stagger cơ bản | 5.0 | `amenities`, `location-tour` |
 | #8 | **Satellite basemap VersaTiles** — mở nguyên gói: `basemap:'vector'\|'satellite'`, attribution theo provider, quy tắc theme override. **T3 thật** (mapStyle.ts + export.ts), +1.5 ngày gate | 5.0 | `property-intro`, `area-overview` |
 | #9 | **`render_recipe` + `list_recipes`** — 7 recipe (1-6, 8) | 3.5 | 7/8 recipe |
-| #10 | routeDraw + camera follow *(amendment invariant)* → recipe `route-journey` | 6.0 | recipe cuối |
+| #10 | routeDraw + camera follow → recipe `route-journey` | ~~6.0~~ **2.5–3.5** | recipe cuối |
+
+**Đính chính 2026-08-13 — PR #10 đo lại: 6,0 → 2,5–3,5 ngày.** Con số 6,0 và nhãn
+*(amendment invariant)* được lập khi chưa ai cân phần việc thật. Đã cân bằng cách tìm
+bản analog **đã chạy** rồi đo nó, thay vì ước lượng.
+
+*Không cần làm — đã có sẵn:* source `routes` là `type: 'geojson'` nên `setData()` được
+ngay; `sliceRing` (`src/render/motionMath.ts`) nhận `[number, number][]` — **đúng hình
+dạng toạ độ của một LineString** — nên hàm cắt theo tiến độ dùng lại **không sửa**;
+layer `route-line` đã có; và `camera: z.array(keyframe).min(1)` **không có trần trên**.
+
+*Cần làm, cân theo analog:* bỏ hằng `routeCount: 0` (**1 dòng**, `motionCompiler.ts:18`);
+nhánh vẽ dần ở `main.tsx` theo mẫu `applyGeoAt` (**48 dòng**, 446–494 — bản tuyến ít hơn
+vì LineString không phải bóc vòng như Polygon); lưới an toàn theo mẫu
+`verifyAndReapplyGeoAt` (**13 dòng**, 524–537); một biến thể LineString của
+`sliceFeatureForReveal`.
+
+*Ba khoản làm giá đổi hẳn:*
+
+1. **Không đụng `t3_path`.** Vẽ dần là `setData` lên một source geojson đã tồn tại —
+   không sửa `mapStyle.ts` lẫn `export.ts`. Gói này là **T2**, không phải T3, nên thuế
+   gate T3 mà 6,0 đã tính vào là không phát sinh.
+2. **Bất biến không cần amendment.** Luật ở `motionScript.ts:155` — `routeIndex <
+   routeCount` — **đúng và giữ nguyên**. Thứ sai là *giá trị context* bị đặt cứng `0`
+   kèm comment "RenderConfig chưa mang routes", trong khi `RenderConfig.routes` đã có
+   từ PR #2 và `applyRenderConfig` đã map vào store. Sửa một hằng số nói dối ≠ sửa một
+   quyết định thiết kế. Nhãn *(amendment invariant)* do đó đã gỡ khỏi bảng.
+3. **Camera follow có thể tốn 0 thay đổi engine.** `cameraAt` chỉ nội suy giữa keyframe,
+   nhưng **preset compiler chạy SAU `resolveConfig`** nên nó có hình học tuyến thật: lấy
+   mẫu N điểm dọc tuyến rồi phát ra N keyframe. Schema không giới hạn số keyframe.
+   "Follow" trở thành **làm dày keyframe** — đúng kỹ thuật §5 đã dự tính cho preset tour.
+
+*Ba rủi ro CHƯA đo được, và là lý do để dải chứ không một con số:* (a) cạnh tranh
+`setData` — `verifyAndReapplyGeoAt` tồn tại vì highlight từng hỏng do đúng cơ chế này,
+tuyến gần như chắc chắn cần lưới tương tự, biết hình dạng nhưng chưa biết chi phí;
+(b) tính định danh byte của khung clip — thêm một đường `setData` thứ hai là thêm một
+chỗ có thể phá nó; (c) **chi phí mỗi khung** — giờ mỗi khung có hai lượt setData +
+retile thay vì một, mà spike đo 1,1 s/khung ở 1080×1920 và phần tăng thêm chưa ai đo.
+Rủi ro (c) đáng đo trước khi cam kết: nó rẻ, và là thứ duy nhất có thể đẩy con số
+ngược lên.
+
+Căn cứ nhịp cho việc ưu tiên #10: [2026-08-13-mapeffect-motion-benchmark.md](../../research/2026-08-13-mapeffect-motion-benchmark.md)
+§2.3 — demo tuyến của mapeffect có mật độ chuyển động cao nhất trong bộ và gần như
+không nghỉ, tức `routeDraw` mở khoá một *hạng nhịp* MapPoster chưa có, không phải một
+hiệu ứng phụ.
 
 **Tổng ≈ 39 engineer-days** (gồm thuế gate; chi tiết thuế: nghiên cứu §7).
 Điểm giá trị sớm: sau PR #2, toàn bộ năng lực cho `region-spotlight` đã sẵn (agent gọi được

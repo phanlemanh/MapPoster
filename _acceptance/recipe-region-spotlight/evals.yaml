@@ -106,6 +106,14 @@ evals:
   - id: E13
     criterion: AC-12
     executor: script
-    cmd: "git diff --quiet <verified_commit> HEAD -- src/lib/export.ts src/lib/mapStyle.ts"
-    expected: "exit 0; t3_paths có 0 dòng thay đổi trong phạm vi gói này"
+    # Sửa 2026-08-13 ở Cổng 2 đầu tiên. Bản cũ:
+    #   git diff --quiet <verified_commit> HEAD -- src/lib/export.ts src/lib/mapStyle.ts
+    # Hai lỗi: (1) placeholder `<verified_commit>` chưa từng được thay ⇒ eval
+    # CHƯA BAO GIỜ chạy được; (2) ở vòng verify thì `verified_commit` CHÍNH LÀ
+    # HEAD, nên nó rút thành `git diff HEAD HEAD` — rỗng vĩnh viễn, không bao
+    # giờ đỏ nổi. Bản mới đo đúng ý định "trong phạm vi gói này": không commit
+    # nào của TẦNG RECIPE được đồng thời chạm t3_paths — độc lập với việc gói
+    # anh em `satellite-basemap` đã đổi cả hai file ở PR #8a theo thủ tục T3.
+    cmd: config:executors.script.recipe_t3_untouched
+    expected: "exit 0; mọi commit chạm mcp-server/src/recipes.ts đều KHÔNG chạm src/lib/export.ts hay src/lib/mapStyle.ts"
     evidence_required: [run_id, exit_code, verifier, verified_at]

@@ -49,6 +49,7 @@ executors:
     anchors_invariants: "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"
     input_caps_negctrl: "bash _acceptance/input-caps/negctrl/run-negctrl.sh"
     basemap_invariants: "npx tsx _acceptance/satellite-basemap/scripts/basemap-invariants.ts"
+    recipe_t3_untouched: "npx tsx _acceptance/recipe-region-spotlight/scripts/t3-untouched.ts"
   design:
     # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
     # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2

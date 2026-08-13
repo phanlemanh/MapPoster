@@ -2,11 +2,13 @@
 // phía server vì keyframe cần toạ độ thật — thứ chỉ có sau resolveConfig.
 import { z } from 'zod';
 import { validateMotionScript, DEFAULT_MAX_CLIP_FRAMES, type MotionContext, type MotionScript, type MotionTrack } from '../../src/render/motionScript';
+// CÙNG hai hàm trang render dùng, có chủ đích — xem `follow` bên dưới.
+import { trackProgress, sliceRing } from '../../src/render/motionMath';
 import type { RenderConfig } from '../../src/render/renderConfig';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
 import { envNumber, DEFAULT_CLIP_CONCURRENCY, DEFAULT_JOB_SLOT_WAIT_MS } from '../config';
 
-export type MotionPreset = 'approach' | 'pushIn' | 'drift';
+export type MotionPreset = 'approach' | 'pushIn' | 'drift' | 'follow';
 export interface PresetOverrides {
   fps?: number;
   durationSec?: number;
@@ -40,6 +42,12 @@ const FPS_DEFAULT = 18;
 const APPROACH = { dur: 6, rest: 4.2, arrive: 2.6, reveal0: 1.8, reveal1: 3.2, pin: 3.5, pinDur: 0.5, zoomOut: 3.5 };
 const PUSH_IN = { dur: 5.5, rest: 3.9, arrive: 2.4, pin: 0.9, pinDur: 0.5, pulseFrom: 2.6, period: 1.8, rings: 2, zoomIn: 1.8 };
 const DRIFT = { dur: 6, rest: 4.2, reveal0: 1.5, reveal1: 3.0, zoomDelta: 0.35 };
+// `follow`: tuyến vẽ dần trong khi camera bám ĐẦU tuyến. `draw0` là lúc nét
+// đầu tiên xuất hiện; việc vẽ kết thúc ĐÚNG ở `rest` để khung nghỉ là khung
+// đầu tiên có tuyến đủ — đó cũng là khung `resolved.anchors` đo được.
+// `samples` = số keyframe camera phát ra; 18 cho ~4 keyframe/giây ở thời lượng
+// mặc định, đủ mượt mà không phình script.
+const FOLLOW = { dur: 6, rest: 4.2, draw0: 0.4, samples: 18, zoomIn: 0.5 };
 
 // motionScript.ts keyframe.zoom schema bound: z.number().min(0).max(22).
 // Every zoom in this file is a resolved camera.zoom plus/minus a fixed preset
@@ -107,6 +115,32 @@ function assertValidOverrides(preset: MotionPreset, o?: PresetOverrides): void {
   }
 }
 
+/**
+ * Hình học tuyến ĐẦU TIÊN, gộp thành một chuỗi toạ độ liền để camera bám.
+ *
+ * `null` khi không có tuyến nào — `follow` ném lỗi nêu tên, không im lặng rơi
+ * về một preset khác.
+ *
+ * Nối MỌI nhánh lại (một tuyến có thể là nhiều feature, hoặc một
+ * MultiLineString) thay vì chỉ lấy nhánh đầu: camera phải đi hết tuyến, và
+ * `routeDraw` ở trang render cũng cắt mọi nhánh ở cùng tiến độ. Chỗ nối giữa
+ * hai nhánh rời nhau sẽ là một bước nhảy của camera — chấp nhận được vì tuyến
+ * do OSRM trả về là một chuỗi liền; ghi ra đây để ai gặp ca tuyến đứt đoạn
+ * biết đó là giới hạn đã biết, không phải lỗi mới.
+ */
+function routePolyline(cfg: RenderConfig): [number, number][] | null {
+  const feats = cfg.routes?.[0]?.geojson?.features;
+  if (!feats?.length) return null;
+  const out: [number, number][] = [];
+  for (const f of feats) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g = (f as any)?.geometry;
+    if (g?.type === 'LineString') out.push(...(g.coordinates as [number, number][]));
+    else if (g?.type === 'MultiLineString') for (const line of g.coordinates as [number, number][][]) out.push(...line);
+  }
+  return out.length >= 2 ? out : null;
+}
+
 function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): MotionScript {
   assertValidOverrides(preset, o);
   const fps = o?.fps ?? FPS_DEFAULT;
@@ -158,6 +192,40 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
         { kind: 'pinDrop', at: PUSH_IN.pin * k, dur: PUSH_IN.pinDur * k },
         { kind: 'pulse', from: PUSH_IN.pulseFrom * k, periodSec: PUSH_IN.period, rings: PUSH_IN.rings },
       ],
+    };
+  }
+
+  if (preset === 'follow') {
+    const coords = routePolyline(cfg);
+    if (!coords) throw new Error('preset follow needs routes — it draws a route while the camera tracks its head');
+    const kf = (o?.durationSec ?? FOLLOW.dur) / FOLLOW.dur;
+    const rest = FOLLOW.rest * kf;
+    const t0 = FOLLOW.draw0 * kf;
+    // Vẽ kết thúc ĐÚNG ở `rest`: khung nghỉ là khung đầu tiên có tuyến đủ, và
+    // cũng là khung `resolved.anchors` đo được (anchors chỉ đo ở trạng thái nghỉ).
+    const t1 = rest;
+    const followZoom = clampZoom(zoom + FOLLOW.zoomIn);
+
+    // ĐỒNG BỘ THEO CẤU TRÚC, không theo trùng hợp: tiến độ ở mỗi keyframe lấy
+    // từ CHÍNH `trackProgress` mà trang render gọi cho track `routeDraw`, và
+    // đầu tuyến lấy từ CHÍNH `sliceRing` mà nó cắt bằng. Nếu ở đây tự viết lại
+    // easing hay phép nội suy, camera sẽ trôi khỏi nét vẽ ở mọi khung giữa —
+    // một sai lệch không test kết-quả nào bắt được vì cả hai phía đều "đúng"
+    // theo công thức riêng của mình.
+    const camera = Array.from({ length: FOLLOW.samples }, (_, i) => {
+      const t = (rest * i) / (FOLLOW.samples - 1);
+      const p = trackProgress(t, t0, t1);
+      const drawn = sliceRing(coords, p);
+      const head = drawn?.[drawn.length - 1] ?? coords[0];
+      return { t, center: [head[0], head[1]] as [number, number], zoom: followZoom, ...(i > 0 ? { ease: 'easeInOut' as const } : {}) };
+    });
+
+    return {
+      fps,
+      durationSec: FOLLOW.dur * kf,
+      restAtSec: rest,
+      camera,
+      tracks: [{ kind: 'routeDraw', t0, t1 }],
     };
   }
 
@@ -250,7 +318,7 @@ export const MOTION_REQUIRED_MSG = 'motion is required: { preset: "approach"|"pu
  * unreachable from either public surface.
  */
 const presetMotionParamSchema = z.object({
-  preset: z.enum(['approach', 'pushIn', 'drift']),
+  preset: z.enum(['approach', 'pushIn', 'drift', 'follow']),
   fps: z.number().int().optional(),
   durationSec: z.number().optional(),
 });

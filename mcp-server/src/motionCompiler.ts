@@ -15,7 +15,13 @@ export interface PresetOverrides {
 export function motionContextOf(cfg: RenderConfig, maxFrames?: number): MotionContext {
   return {
     regionCount: cfg.highlight?.regions.length ?? 0,
-    routeCount: 0, // RenderConfig chưa mang routes — reserved v2 (spec §11)
+    // Trước đây đặt cứng 0 kèm chú thích "RenderConfig chưa mang routes —
+    // reserved v2". Chú thích đó ĐÃ SAI từ PR #2: `RenderConfig.routes` tồn
+    // tại, và `applyRenderConfig` map nó vào store. Hằng số này là thứ duy
+    // nhất chặn `routeDraw`, không phải bất biến ở motionScript.ts:155 — luật
+    // `routeIndex < routeCount` vẫn đúng và giữ nguyên; nó chỉ đang được cho
+    // ăn một con số bịa.
+    routeCount: cfg.routes?.length ?? 0,
     pointCount: cfg.markers?.length ?? 0,
     maxFrames,
   };

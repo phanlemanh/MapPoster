@@ -333,3 +333,43 @@ describe('cổng slot clip — hai chính sách trên MỘT bộ đếm', () => 
     release();
   });
 });
+
+describe('motionContextOf đọc routeCount từ cfg.routes', () => {
+  // Ca này tồn tại vì một negative control chỉ ra rằng thay đổi một dòng ở tâm
+  // PR routeDraw — bỏ hằng `routeCount: 0` — KHÔNG có test nào phủ: mọi ca
+  // khác dựng `ctx` bằng tay nên đi vòng qua đúng hàm này. Hằng số cũ có thể
+  // quay lại mà cả bộ vẫn xanh.
+  const withRoutes = (n: number) =>
+    ({
+      highlight: { regions: [] },
+      markers: [],
+      routes: Array.from({ length: n }, () => ({
+        geojson: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[105.8, 21.0], [105.9, 21.1]] } }] },
+        color: '#e8b04b',
+        width: 4,
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+  it('không có routes ⇒ 0', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(motionContextOf({ highlight: { regions: [] }, markers: [] } as any).routeCount).toBe(0);
+  });
+
+  it('có N routes ⇒ N — KHÔNG phải hằng số 0', () => {
+    expect(motionContextOf(withRoutes(1)).routeCount).toBe(1);
+    expect(motionContextOf(withRoutes(3)).routeCount).toBe(3);
+  });
+
+  it('một routeDraw đi qua validate được khi cfg mang tuyến thật', () => {
+    const script = {
+      fps: 12,
+      durationSec: 4,
+      restAtSec: 2.8,
+      camera: [{ t: 0, center: [105.85, 21.03] as [number, number], zoom: 12 }],
+      tracks: [{ kind: 'routeDraw' as const, t0: 0.5, t1: 2.5 }],
+    };
+    expect(() => validateMotionScript(script, motionContextOf(withRoutes(1)))).not.toThrow();
+    expect(() => validateMotionScript(script, motionContextOf(withRoutes(0)))).toThrow(/routeDraw/);
+  });
+});

@@ -118,6 +118,17 @@ const GUARDS: Record<string, GuardEntry> = {
   },
   assertMarkerSize: { fields: ['highlight.points[].size'] },
   assertMarkerIcon: { fields: ['highlight.points[].icon', 'highlight.pointIcon'], labels: ['highlight.pointIcon'] },
+  // Chốt này canh MÔI TRƯỜNG chứ không chỉ đầu vào: `satellite` bị từ chối khi
+  // MAPPOSTER_SATELLITE_TILES chưa đặt. Nên phép kiểm (b) "có gọi" ở đây yếu hơn
+  // các chốt khác — nó không chứng minh được nhánh ném thật sự với tới; đó là
+  // việc của `basemap_invariants` + src/lib/basemap.test.ts.
+  assertBasemap: { fields: ['basemap'] },
+  // Chốt DÙNG CHUNG cho hai trường, đúng lớp mà (c) tồn tại để canh: xoá một
+  // trong hai call-site vẫn để `called` = true. Ghim cả hai nhãn.
+  assertHighlightCount: {
+    fields: ['highlight.regions[]', 'highlight.points[]'],
+    labels: ['highlight.regions', 'highlight.points'],
+  },
 };
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -160,7 +171,19 @@ const stripForKeys = (s: string): string =>
     .replace(/'[^'\n]*'/g, "''")
     .replace(/"[^"\n]*"/g, '""')
     .replace(/`[^`\n]*`/g, '``')
-    .replace(/\/\^[^\n]*?\/[gimsuy]*/g, 'RE');
+    .replace(/\/\^[^\n]*?\/[gimsuy]*/g, 'RE')
+    // CHÚ THÍCH KIỂU TypeScript KHÔNG phải khoá schema. `RECIPE_TOOL_SHAPE:
+    // z.ZodRawShape` và `shape: Record<string, z.ZodTypeAny>` là khai báo, không
+    // phải trường do caller truyền vào. Ghim chúng vào sổ (d) sẽ nhét nhiễu của
+    // hệ kiểu vào bản ghim VÀ mở đường cho một trường thật tên `shape` sau này
+    // lọt vào mà không ai thấy — đúng thứ (d) sinh ra để chặn.
+    //
+    // Chỉ bóc HAI dạng đang thật sự có mặt, cố ý KHÔNG bóc mọi `: <Kiểu>`: giá
+    // trị của một khoá Zod luôn là biểu thức (`z.string()`, `zoomLevel`,
+    // `basemapSchema` — đều thường), còn `z.ZodRawShape`/`Record<…>` thì không
+    // thể là biểu thức. Dạng chú thích kiểu MỚI sẽ làm (d) kêu lại và được xem
+    // lại lần nữa — giữ phép kiểm ồn ào là có chủ đích, không phải thiếu sót.
+    .replace(/:\s*(?:z\.Zod\w+|Record<[^>\n]*>)/g, ' ');
 const schemaRegion = (() => {
   const code = stripForKeys(toolsSrc);
   const from = code.indexOf('const zoomLevel =');
@@ -168,10 +191,22 @@ const schemaRegion = (() => {
   return from >= 0 && to > from ? code.slice(from, to) : '';
 })();
 const PINNED_ZOD_FIELDS = [
-  'aeroway', 'bearing', 'buildings', 'camera', 'center', 'chrome', 'color', 'coords', 'delivery', 'detail',
+  // Ghim lại 2026-08-13 sau khi xem lại I3: `basemap` (nền ảnh vệ tinh, chốt
+  // assertBasemap) và `recipe` (tên công thức trong RECIPE_TOOL_SHAPE). Xem
+  // ghi chú `recipe` ở dưới — nó KHÔNG đi qua resolveConfig nên không có chốt
+  // trong sổ GUARDS, và đó là có lý do.
+  'aeroway', 'basemap', 'bearing', 'buildings', 'camera', 'center', 'chrome', 'color', 'coords', 'delivery', 'detail',
   'dim', 'fill', 'focus', 'font', 'format', 'from', 'geojson', 'height', 'highlight', 'icon', 'index', 'kind',
   'labels', 'landcover', 'layers', 'location', 'measure', 'message', 'mode', 'name', 'output', 'paddingPct',
   'pairs', 'parks', 'pitch', 'placeName', 'pointIcon', 'points', 'quality', 'query', 'rail', 'regions',
+  // `recipe` KHÔNG có chốt trong sổ GUARDS, và đó là đúng chứ không phải lỗ
+  // hổng: nó không bao giờ tới resolveConfig. `render_recipe` tra
+  // `getRecipe(name)`, hàm này NÉM với tên lạ — và dùng `Object.hasOwn` chứ
+  // không phải phép thử chân trị, nên `__proto__`/`constructor` cũng không lọt.
+  // Phần tham số riêng của từng recipe thì qua `spec.schema.safeParse`
+  // (`.strict()`). Cả hai đều nằm trên đường GỌI THẲNG — đúng đường mà I3 quan
+  // tâm, không phải chỉ ở lớp Zod.
+  'recipe',
   'roadLabels', 'roads', 'route', 'routes', 'size', 'theme', 'to', 'via', 'water', 'width', 'zoom',
 ];
 const zodFields = [...new Set([...schemaRegion.matchAll(/(?:^|[{,(\s])(\w+)\s*:/gm)].map((m) => m[1]))].sort();

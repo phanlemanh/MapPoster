@@ -428,6 +428,113 @@ export const RECIPES: Record<string, RecipeSpec> = {
         motion: compact({ preset: 'follow' as const, fps: p.fps, durationSec: p.durationSec }),
       }),
   },
+
+  'location-tour': {
+    description:
+      'Ghé lần lượt từng địa điểm: vào gần, dừng lại, lùi ra rồi bay sang chặng kế. Camera dừng thật ở mỗi chặng — khoảng dừng chia đều theo số chặng và thời lượng, không đặt riêng từng chặng được.',
+    params: {
+      stops: 'Danh sách chặng theo THỨ TỰ ghé — mỗi mục là tên hoặc {lng,lat}. Từ 2 tới 6. Thứ tự trong mảng là thứ tự camera đi.',
+      theme: 'Một id trong list_themes.',
+      format: 'Một tên trong list_formats. Mặc định "tiktok".',
+      icon: `Biểu tượng ghim cho mọi chặng — một trong: ${MARKER_ICONS.map((m) => m.key).join(', ')}. Mặc định "pin".`,
+      fps: 'Ghi đè fps của preset tour (12..30).',
+      durationSec: 'Ghi đè thời lượng của preset tour (2..12 giây). Càng nhiều chặng thì mỗi chặng càng ngắn — cân nhắc tăng thời lượng khi đi từ 4 chặng trở lên.',
+    },
+    schema: z
+      .object({
+        stops: z.array(placeRef).min(2).max(6),
+        theme: z.string().min(1).optional(),
+        format: z.string().min(1).optional(),
+        icon: markerIcon.optional(),
+        fps: z.number().int().optional(),
+        durationSec: z.number().optional(),
+      })
+      .strict(),
+    durationSec: 8,
+    example: {
+      recipe: 'location-tour',
+      stops: ['Hồ Hoàn Kiếm, Hà Nội', 'Văn Miếu, Hà Nội', 'Lăng Chủ tịch Hồ Chí Minh, Hà Nội'],
+      format: 'tiktok',
+    },
+    compile: (p: {
+      stops: (string | { lng: number; lat: number })[];
+      theme?: string;
+      format?: string;
+      icon?: MarkerIconKey;
+      fps?: number;
+      durationSec?: number;
+    }): CompiledRecipeCall =>
+      compact({
+        // Chặng ĐẦU làm `location`: nó cấp country anchor cho mọi chặng đặt
+        // bằng tên. Khung hình không lấy từ đây — preset `tour` phát keyframe
+        // tuyệt đối cho từng chặng.
+        location: p.stops[0],
+        format: p.format ?? 'tiktok',
+        theme: p.theme,
+        // THỨ TỰ mảng là thứ tự camera ghé: preset đọc `cfg.markers` theo đúng
+        // thứ tự này. Đây là đặc trưng không tắt được của recipe.
+        highlight: { points: p.stops.map((s) => (typeof s === 'string' ? { query: s, icon: p.icon ?? ('pin' as const) } : { ...s, icon: p.icon ?? ('pin' as const) })) },
+        motion: compact({ preset: 'tour' as const, fps: p.fps, durationSec: p.durationSec }),
+      }),
+  },
+
+  connectivity: {
+    description:
+      'Mở từ toàn cảnh thấy mọi tuyến kết nối rồi thu dần về dự án. Mỗi tuyến bám đường thật và trả kèm số km và số phút router báo về trong resolved.routes. LƯU Ý: các tuyến hiện CÙNG LÚC — engine không dựng được nhịp vẽ so le từng tuyến.',
+    params: {
+      location: 'Dự án — đích camera thu về, và là điểm cuối của mọi tuyến. Tên hoặc {lng,lat}.',
+      from: 'Các điểm xuất phát, mỗi tuyến một điểm — tên hoặc {lng,lat}. Từ 1 tới 6. Mọi tuyến đều chạy VỀ dự án.',
+      mode: 'Phương tiện dùng cho mọi tuyến: car | moto | walk. Mặc định "car".',
+      theme: 'Một id trong list_themes.',
+      format: 'Một tên trong list_formats. Mặc định "tiktok".',
+      color: 'Màu hex dùng cho mọi tuyến. Nên đặt rõ: accent của phần lớn theme nằm sát dải màu đường bộ.',
+      width: 'Bề rộng nét tuyến, 1..16. Mặc định 6.',
+      fps: 'Ghi đè fps của preset converge (12..30).',
+      durationSec: 'Ghi đè thời lượng của preset converge (2..12 giây).',
+    },
+    schema: z
+      .object({
+        location: placeRef,
+        from: z.array(placeRef).min(1).max(6),
+        mode: z.enum(['car', 'moto', 'walk']).optional(),
+        theme: z.string().min(1).optional(),
+        format: z.string().min(1).optional(),
+        color: hexColor.optional(),
+        width: z.number().min(1).max(16).optional(),
+        fps: z.number().int().optional(),
+        durationSec: z.number().optional(),
+      })
+      .strict(),
+    durationSec: 6,
+    example: {
+      recipe: 'connectivity',
+      location: 'Nhà hát Lớn Hà Nội',
+      from: ['Chợ Đồng Xuân, Hà Nội', 'Văn Miếu, Hà Nội'],
+      color: '#ff5a3c',
+      format: 'tiktok',
+    },
+    compile: (p: {
+      location: string | { lng: number; lat: number };
+      from: (string | { lng: number; lat: number })[];
+      mode?: 'car' | 'moto' | 'walk';
+      theme?: string;
+      format?: string;
+      color?: string;
+      width?: number;
+      fps?: number;
+      durationSec?: number;
+    }): CompiledRecipeCall =>
+      compact({
+        location: p.location,
+        format: p.format ?? 'tiktok',
+        theme: p.theme,
+        // Dự án ở index 0 — `converge` thu về ĐIỂM ĐẦU, nên thứ tự này là đặc
+        // trưng của recipe chứ không phải tình cờ.
+        highlight: { points: [typeof p.location === 'string' ? { query: p.location, icon: 'home' as const } : { ...p.location, icon: 'home' as const }] },
+        routes: p.from.map((f) => compact({ route: compact({ from: asRouteEnd(f), to: asRouteEnd(p.location), mode: p.mode ?? 'car' }), color: p.color, width: p.width ?? 6 })),
+        motion: compact({ preset: 'converge' as const, fps: p.fps, durationSec: p.durationSec }),
+      }),
+  },
 };
 
 /** Tên recipe lạ bị từ chối kèm danh sách tên hợp lệ — không rơi về mặc định. */

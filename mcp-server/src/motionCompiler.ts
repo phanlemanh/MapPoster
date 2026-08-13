@@ -8,7 +8,7 @@ import type { RenderConfig } from '../../src/render/renderConfig';
 import { resolveConfig, type RenderMapParams } from './resolveConfig';
 import { envNumber, DEFAULT_CLIP_CONCURRENCY, DEFAULT_JOB_SLOT_WAIT_MS } from '../config';
 
-export type MotionPreset = 'approach' | 'pushIn' | 'drift' | 'follow';
+export type MotionPreset = 'approach' | 'pushIn' | 'drift' | 'follow' | 'tour' | 'converge';
 export interface PresetOverrides {
   fps?: number;
   durationSec?: number;
@@ -48,6 +48,14 @@ const DRIFT = { dur: 6, rest: 4.2, reveal0: 1.5, reveal1: 3.0, zoomDelta: 0.35 }
 // `samples` = số keyframe camera phát ra; 18 cho ~4 keyframe/giây ở thời lượng
 // mặc định, đủ mượt mà không phình script.
 const FOLLOW = { dur: 6, rest: 4.2, draw0: 0.4, samples: 18, zoomIn: 0.5 };
+// `tour`: ghé từng chặng — vào gần, dừng lại, lùi ra, bay sang chặng kế.
+// `arrive`/`depart` là vị trí TƯƠNG ĐỐI trong ô thời gian của mỗi chặng, nên
+// nhịp co giãn đúng theo số chặng lẫn theo `durationSec` mà không cần công
+// thức riêng cho từng ca.
+const TOUR = { dur: 8, rest: 5.76, arrive: 0.18, depart: 0.78, zoomIn: 1.4, zoomOut: 1.2 };
+// `converge`: mở từ toàn cảnh rồi thu về chủ thể. Không mang track nào —
+// đặc trưng của nó nằm ở ĐƯỜNG ĐI của camera, không ở hiệu ứng lớp.
+const CONVERGE = { dur: 6, rest: 4.32, zoomOut: 1.6 };
 
 // motionScript.ts keyframe.zoom schema bound: z.number().min(0).max(22).
 // Every zoom in this file is a resolved camera.zoom plus/minus a fixed preset
@@ -195,6 +203,59 @@ function compile(preset: MotionPreset, cfg: RenderConfig, o?: PresetOverrides): 
     };
   }
 
+  if (preset === 'tour') {
+    const stops = cfg.markers ?? [];
+    if (stops.length < 2) throw new Error('preset tour needs at least 2 highlight points — it flies between stops');
+    const kt = (o?.durationSec ?? TOUR.dur) / TOUR.dur;
+    const rest = TOUR.rest * kt;
+    const slot = rest / stops.length;
+    const near = clampZoom(zoom + TOUR.zoomIn);
+    const far = clampZoom(zoom - TOUR.zoomOut);
+
+    // Zoom-out-fly-zoom-in: mỗi chặng có keyframe ĐẾN và keyframe RỜI ở cùng
+    // toạ độ (khoảng giữa chúng là lúc camera đứng yên — chính là "dwell"), và
+    // giữa hai chặng là một keyframe ở TRUNG ĐIỂM tại zoom xa hơn. Không nội
+    // suy thẳng từ chặng này sang chặng kia: ở zoom gần thì đó là một cú trượt
+    // ngang chóng mặt, còn lùi ra rồi vào lại đọc ra được là "đi từ đâu tới đâu".
+    const camera: { t: number; center: [number, number]; zoom: number; ease?: 'easeInOut' }[] = [];
+    stops.forEach((s, i) => {
+      const base = i * slot;
+      camera.push({ t: base + TOUR.arrive * slot, center: [s.lng, s.lat], zoom: near, ...(i > 0 ? { ease: 'easeInOut' as const } : {}) });
+      camera.push({ t: base + TOUR.depart * slot, center: [s.lng, s.lat], zoom: near });
+      const next = stops[i + 1];
+      if (next) {
+        camera.push({
+          t: base + slot + (TOUR.arrive * slot) / 2,
+          center: [(s.lng + next.lng) / 2, (s.lat + next.lat) / 2],
+          zoom: far,
+          ease: 'easeInOut',
+        });
+      }
+    });
+    // Keyframe đầu ở t>0 — đẩy về 0 để clip không đứng hình trước khi bắt đầu.
+    camera[0].t = 0;
+    return { fps, durationSec: TOUR.dur * kt, restAtSec: rest, camera, tracks: [] };
+  }
+
+  if (preset === 'converge') {
+    const kc = (o?.durationSec ?? CONVERGE.dur) / CONVERGE.dur;
+    const rest = CONVERGE.rest * kc;
+    // Đích = điểm đầu nếu có (theo quy ước của recipe: chủ thể luôn ở index 0),
+    // nếu không thì chính tâm khung đã auto-frame.
+    const subject = cfg.markers?.[0];
+    const target: [number, number] = subject ? [subject.lng, subject.lat] : [...center];
+    return {
+      fps,
+      durationSec: CONVERGE.dur * kc,
+      restAtSec: rest,
+      camera: [
+        { t: 0, center: [...center], zoom: clampZoom(zoom - CONVERGE.zoomOut) },
+        { t: rest, center: target, zoom, ease: 'easeInOut' },
+      ],
+      tracks: [],
+    };
+  }
+
   if (preset === 'follow') {
     const coords = routePolyline(cfg);
     if (!coords) throw new Error('preset follow needs routes — it draws a route while the camera tracks its head');
@@ -318,7 +379,7 @@ export const MOTION_REQUIRED_MSG = 'motion is required: { preset: "approach"|"pu
  * unreachable from either public surface.
  */
 const presetMotionParamSchema = z.object({
-  preset: z.enum(['approach', 'pushIn', 'drift', 'follow']),
+  preset: z.enum(['approach', 'pushIn', 'drift', 'follow', 'tour', 'converge']),
   fps: z.number().int().optional(),
   durationSec: z.number().optional(),
 });

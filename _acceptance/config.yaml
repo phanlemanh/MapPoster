@@ -25,6 +25,7 @@ executors:
     clip_backpressure: "npx vitest run mcp-server/src/http.test.ts mcp-server/src/browserPool.test.ts"
     clip_tools: "npx vitest run mcp-server/src/tools.test.ts"
     text_free: "npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts"
+    basemap: "npx vitest run src/lib/basemap.test.ts"
     job_store: npx vitest run mcp-server/src/jobStore.test.ts
     job_runner: npx vitest run mcp-server/src/jobRunner.test.ts
     job_http: npx vitest run mcp-server/src/http.test.ts
@@ -47,6 +48,7 @@ executors:
     auth_invariants: "npx tsx _acceptance/mcp-auth/scripts/auth-invariants.ts"
     anchors_invariants: "npx tsx _acceptance/anchors-camera/scripts/anchors-invariants.ts"
     input_caps_negctrl: "bash _acceptance/input-caps/negctrl/run-negctrl.sh"
+    basemap_invariants: "npx tsx _acceptance/satellite-basemap/scripts/basemap-invariants.ts"
   design:
     # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
     # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2

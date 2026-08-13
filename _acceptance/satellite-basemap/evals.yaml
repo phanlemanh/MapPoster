@@ -1,0 +1,96 @@
+schema_version: 1
+feature_slug: satellite-basemap
+
+# BẢN NHÁP — bám thẳng AC trong contract.md, CHƯA qua bước EVAL-GEN của skill
+# `acceptance`. Mỗi eval trỏ vào một executor đã khai trong _acceptance/config.yaml.
+#
+# surfaces: [api, web] — có hai eval loại judgment (AC-11, AC-12) vì đây là gói
+# T3, và cả hai ĐANG BỊ CHẶN bởi PR #8b (chưa có nguồn tile để render cảnh thật).
+# Chúng được khai ở đây thay vì bỏ trống, để hồ sơ nói đúng thứ nó thiếu.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; nền vệ tinh loại ĐÚNG sáu layer nhóm ground, và MỌI layer khác đều còn — hai chiều"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; layer raster ở vị trí thứ hai, ngay trên background"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; thiếu URL => không dựng source raster VÀ không tắt nhóm ground"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; nhánh vector không có source lẫn layer raster"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; attribution vệ tinh CHỨA TRỌN chuỗi OSM cũ và thêm phần Copernicus"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; chữ 'modified' có mặt trong attribution nền vệ tinh"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E7
+    criterion: AC-7
+    executor: test
+    cmd: config:executors.test.basemap
+    expected: "exit 0; nền vector giữ nguyên chuỗi cũ, không lẫn Sentinel"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # Bất biến "clip không chữ" nằm ở lane RIÊNG của nó: gói này chạm export.ts,
+  # nên phải chứng minh nó KHÔNG làm hỏng thứ file đó tồn tại để giữ.
+  - id: E8
+    criterion: AC-6
+    executor: test
+    cmd: config:executors.test.text_free
+    expected: "exit 0; với chrome:'clean', attribution vẫn là chuỗi DUY NHẤT được vẽ — nhánh basemap không mở đường cho chữ nào khác"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E9
+    criterion: AC-8
+    executor: test
+    cmd: config:executors.test.resolve_config
+    expected: "exit 0; đường agent TỪ CHỐI basemap satellite khi thiếu MAPPOSTER_SATELLITE_TILES, thông điệp nêu tên biến"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  # AC-9/AC-10 là tính chất CẤU TRÚC — một ca hành vi vẫn xanh khi chúng gãy,
+  # nên chúng cần phép quét mã, giống AC-11 của recipe-region-spotlight.
+  - id: E10
+    criterion: AC-10
+    executor: script
+    cmd: config:executors.script.basemap_invariants
+    expected: "exit 0; URL tile đi qua RenderConfig; KHÔNG có import.meta.env.VITE_SATELLITE_TILES nào là đường DUY NHẤT tới trang render"
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E11
+    criterion: AC-11
+    executor: judgment
+    evidence_required: [judged_by, verdict, rationale]
+    blocked_by: "PR #8b — chưa có nguồn tile để render một cảnh trên ảnh vệ tinh THẬT"
+
+  - id: E12
+    criterion: AC-12
+    executor: judgment
+    evidence_required: [judged_by, verdict, rationale]
+    blocked_by: "PR #8b — cùng lý do E11"

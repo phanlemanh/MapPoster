@@ -1,4 +1,0 @@
-{
-  "//": "The acceptance-gate kit ships these as CommonJS, but the repo root declares \"type\": \"module\", so Node refuses `require` here. Scope them back to CommonJS rather than editing kit-owned files, which a kit update would overwrite.",
-  "type": "commonjs"
-}

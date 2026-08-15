@@ -66,9 +66,25 @@ risk_tiers:
     # Bộ gate vendored (đường dẫn CHÍNH XÁC, KHÔNG phải glob): nâng chính cái thước
     # không được làm hết hạn evidence đã ghim verified_commit — thước đo ≠ product code.
     - "scripts/pre-merge-check.sh"
+    # Kit 2.0.0 đổi hậu tố .js → .cjs (CommonJS khoá bằng tên file, không phụ
+    # thuộc "type" trong package.json của repo tiêu thụ) và thêm 3 lib.
+    - "scripts/recheck-evidence.cjs"
+    - "lib/evidence-core.cjs"
+    - "lib/gap-probe.cjs"
+    - "lib/workspace-record.cjs"
+    - "lib/ac-line.cjs"
+    - "lib/md-section.cjs"
+    # GIỮ tên CŨ: hồ sơ đã ký trước 2.0.0 ghim verified_commit ở thời điểm các
+    # tên này còn sống. Bỏ dòng cũ đi thì một lần đổi tên thuần tuý của THƯỚC ĐO
+    # sẽ làm hết hạn bằng chứng của SẢN PHẨM.
     - "scripts/recheck-evidence.js"
     - "lib/evidence-core.js"
     - "lib/gap-probe.js"
+    # lib/package.json: vá {"type":"commonjs"} của bộ gate cũ, 2.0.0 gỡ vì hậu
+    # tố .cjs làm thay. Nó thuộc THƯỚC ĐO, nên chính lần XOÁ nó cũng không được
+    # làm hết hạn bằng chứng — đo được: thiếu dòng này, một lần chạy không
+    # --base cho 9/9 hồ sơ stale, đúng vết f557763.
+    - "lib/package.json"
   t3_paths:
     - "src/lib/export.ts"
     - "src/lib/mapStyle.ts"

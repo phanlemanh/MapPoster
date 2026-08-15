@@ -2,6 +2,12 @@
 # pre-merge-check.sh — CI gate for the Acceptance-Gate Kit.
 #
 # Usage: pre-merge-check.sh [repo_root] [--slug <slug>]... [--base <ref>] [--no-t1-escape]
+#        pre-merge-check.sh ... [--recheck-all]
+#
+# --recheck-all: re-check the committed evidence of EVERY slug, including those
+# outside the PR diff. Without it the re-check rule is scoped to slugs the PR
+# touches (see RECHECK-DIFF-SCOPE-GUARD below). Use it after raising the bar in
+# lib/evidence-core.cjs, to re-measure the whole archive against the new bar.
 #
 # --no-t1-escape: turn off ONLY the T1-escape backstop for push-event runs
 # (commits landing directly on the main branch have no PR premise); every other
@@ -29,7 +35,7 @@
 #     changed since that commit (committed or in the working tree). A report
 #     without verified_commit (older template) only gets a NOTE.
 #   - (recheck: strict) the committed evidence still passes the gate's own
-#     L1/L2/L3 bar, re-checked via scripts/recheck-evidence.js + lib/evidence-core.js
+#     L1/L2/L3 bar, re-checked via scripts/recheck-evidence.cjs + lib/evidence-core.cjs
 #     (the same core the hook runs) — catches a report hand-edited after the
 #     write-time hook, or written under ACCEPTANCE_GATE_BYPASS. Default `warn`
 #     only advises (so legacy reports from older templates don't block adopters);
@@ -47,10 +53,15 @@ violations=0
 # Bật khi lưới giữ-chỗ nổ ít nhất một lần; dùng để in ĐÚNG MỘT dòng cảnh báo
 # về phạm vi hẹp của chính lưới đó ở cuối lần chạy.
 NARROW_NET_SEEN=""
+# Bật khi răng cross-layer phải chấm bằng khuôn awk nội bộ vì thiếu node hoặc
+# lib/ac-line.cjs. Răng VẪN chạy (awk rộng hơn nên không rụng dòng nào), nhưng đó
+# là một định nghĩa "dòng criterion" khác với ba consumer JS — in đúng một dòng ở
+# cuối lần chạy để chỗ lệch có tiếng, thay vì âm thầm như trước.
+AC_LINE_FALLBACK_SEEN=""
 
-# CI evidence re-checker shipped alongside this script (needs ../lib/evidence-core.js).
+# CI evidence re-checker shipped alongside this script (needs ../lib/evidence-core.cjs).
 HERE="$(cd "$(dirname "$0")" && pwd)"
-RECHECK="$HERE/recheck-evidence.js"
+RECHECK="$HERE/recheck-evidence.cjs"
 
 ROOT="."
 SLUGS=()
@@ -70,6 +81,7 @@ BASE="${PRE_MERGE_BASE:-}"
 # đang dạy consumer truyền đúng `--base`, nên opt-in sẽ làm răng tắt IM LẶNG trên
 # mọi repo tiêu thụ đang chạy — biến một sửa lỗi thành lỗ fail-open hàng loạt.
 T1_ESCAPE=1
+RECHECK_ALL=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --slug)
@@ -97,6 +109,13 @@ while [ $# -gt 0 ]; do
     --no-t1-escape)
       # Không nhận tham số — `reason` là hằng, giữ ranh giới "không thêm cờ nào khác".
       T1_ESCAPE=0; shift ;;
+    --recheck-all)
+      # Ép re-check TOÀN BỘ hồ sơ, kể cả ngoài phạm vi diff. Đây là đường CỨU
+      # cho cái mà việc thu phạm vi làm mất: thước thôi hồi tố. Siết bar trong
+      # `lib/evidence-core.cjs` xong thì chạy một lượt có cờ này để đo lại cả
+      # kho theo thước mới — không có nó, "hồ sơ cũ không bao giờ bị đo lại"
+      # là mất vĩnh viễn, không phải mất tạm.
+      RECHECK_ALL=1; shift ;;
     -*)
       # `-*` chứ không phải `--*`: một gạch cũng là lỗi gõ, và bản chỉ bắt hai
       # gạch để lọt `-no-t1-escape` y nguyên. Nuốt cờ lạ vào ROOT là fail-open
@@ -126,7 +145,7 @@ fi
 # lỗi NỘI TẠI của cổng -> exit 2, không phải violation của feature. EXPECTED
 # là danh sách ĐÓNG, CỐ ĐỊNH, không phụ thuộc config — thêm khối luật mới
 # PHẢI thêm tên vào đây (suite P48 + RL7a canh hai chiều bằng máy).
-LEDGER_EXPECTED="per-slug gap-probe t1-escape"
+LEDGER_EXPECTED="per-slug gap-probe t1-escape veto-trace"
 # set -- xoá positional params — hợp lệ vì đứng SAU vòng parse args ở trên.
 set -- $LEDGER_EXPECTED
 LEDGER_K=$#
@@ -152,7 +171,7 @@ ledger_count() { # <tên> — số lần tên xuất hiện trong sổ. Thuần 
 # đọc config, xác định phạm vi diff, in ấn và đếm; LUẬT nằm trong lib. Bản awk
 # cũ đã lệch thật: một dòng JSON hỏng mở được van thoát ở bash trong khi thẻ
 # Cổng 1 loại nó (AC-13). Parity giữ bằng comment là parity không có răng.
-GP_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/gap-probe.js"
+GP_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/gap-probe.cjs"
 
 ACC="$ROOT/_acceptance"
 if [ ! -d "$ACC" ]; then
@@ -251,12 +270,23 @@ if [ -f "$ACC/config.yaml" ]; then
   fi
   cfg_rc="$(sed -n 's/^[[:space:]]*recheck:[[:space:]]*//p' "$ACC/config.yaml" | head -1 | sed 's/[[:space:]]*#.*$//')"
   case "$cfg_rc" in strict|warn|off) RECHECK_MODE="$cfg_rc" ;; esac
-  T1_GLOBS="$(sed -n '/^  t1_skip_globs:/,/^  [a-zA-Z0-9_-]*:/p' "$ACC/config.yaml" \
-    | sed -n 's/^[[:space:]]*-[[:space:]]*//p' \
-    | sed -e 's/[[:space:]]*#.*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//" -e 's/[[:space:]]*$//')"
-  T3_PATHS="$(sed -n '/^  t3_paths:/,/^  [a-zA-Z0-9_-]*:/p' "$ACC/config.yaml" \
-    | sed -n 's/^[[:space:]]*-[[:space:]]*//p' \
-    | sed -e 's/[[:space:]]*#.*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//" -e 's/[[:space:]]*$//')"
+  # Đọc danh sách config qua MỘT nguồn luật (lib/workspace-record.cjs
+  # configList) khi có node — bản sed chỉ còn là fallback cho máy thiếu node.
+  # Hai bản đọc từng lệch ở hình dạng key-line-comment (bug round 16
+  # product-map-uat-session): bản sed đọc được, bản JS trả rỗng — giữ hai bản
+  # ngang hàng là giữ chỗ cho lần lệch kế tiếp (AC-1 workspace-reader-unification;
+  # quan hệ hai-bản-đồng-kết-luận vẫn do case P130 ghim).
+  WSREC_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/workspace-record.cjs"
+  config_list() {
+    if [ -f "$WSREC_LIB" ] && command -v node >/dev/null 2>&1; then
+      _cl_out="$(node -e 'const l=require(process.argv[1]);const fs=require("fs");process.stdout.write(l.configList(fs.readFileSync(process.argv[2],"utf8"),process.argv[3]).join("\n"))' "$WSREC_LIB" "$ACC/config.yaml" "$1" 2>/dev/null)" && { printf '%s\n' "$_cl_out"; return; }
+    fi
+    sed -n "/^  $1:/,/^  [a-zA-Z0-9_-]*:/p" "$ACC/config.yaml" \
+      | sed -n 's/^[[:space:]]*-[[:space:]]*//p' \
+      | sed -e 's/[[:space:]]*#.*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//" -e 's/[[:space:]]*$//'
+  }
+  T1_GLOBS="$(config_list t1_skip_globs)"
+  T3_PATHS="$(config_list t3_paths)"
   REQ_HUMAN_COMMIT="$(sed -n 's/^[[:space:]]*require_human_commit:[[:space:]]*//p' "$ACC/config.yaml" | head -1 | sed 's/[[:space:]]*#.*$//' | tr '[:upper:]' '[:lower:]')"
   AGENT_AUTHORS="$(sed -n '/^  agent_authors:/,/^  [a-zA-Z0-9_-]*:/p' "$ACC/config.yaml" \
     | sed -n 's/^[[:space:]]*-[[:space:]]*//p' \
@@ -473,6 +503,30 @@ if [ "$GAP_PROBE_MODE" != "off" ] && [ "$DIFF_READY" -eq 0 ]; then
   gap_probe_not_enforced "$DIFF_SKIP_NOTE (luật chỉ xét slug có file trong diff PR)"
 fi
 
+# ─── stale-theo-diff-pr (1.39.2): phạm vi luật staleness ────────────────────
+# Không có phạm vi diff (không --base, hoặc base có mà diff không dựng được —
+# shallow/orphan/force-push) thì luật staleness chạy trên TOÀN BỘ slug như
+# trước bản 1.39.2 (fail-safe, hành vi cũ). Tắt-phạm-vi phải THẤY ĐƯỢC (AC-4):
+# đúng MỘT dòng hằng cho cả lần chạy — chuỗi cố định để CI grep được, cố ý
+# không chứa chữ "skipped" (guard fail-closed của gate.yml grep chuỗi đó cho
+# răng T1-escape, dòng này không được lẫn vào).
+if [ "$DIFF_READY" -eq 0 ]; then
+  echo "NOTE: staleness scope — no PR diff scope; the stale-evidence rule checks ALL slugs (pass --base <ref> to scope it to slugs whose _acceptance/<slug>/ files are in the PR diff)"
+fi
+
+# ─── RECHECK-DIFF-SCOPE (1.41.0): phạm vi luật re-check ─────────────────────
+# Cùng fail-safe với staleness: không dựng được phạm vi diff thì kiểm TẤT như
+# trước. Tắt-phạm-vi phải THẤY ĐƯỢC — đúng MỘT dòng hằng cho cả lần chạy, cố ý
+# không chứa chữ "skipped" (guard fail-closed của gate.yml grep chuỗi đó cho
+# răng T1-escape, dòng này không được lẫn vào).
+RECHECK_SKIPPED=0
+if [ "$RECHECK_MODE" != off ] && [ "$RECHECK_ALL" -eq 0 ] && [ "$DIFF_READY" -eq 0 ]; then
+  echo "NOTE: recheck scope — no PR diff scope; the committed-evidence re-check runs on ALL slugs (pass --base <ref> to scope it, or --recheck-all to force the full sweep)"
+fi
+if [ "$RECHECK_MODE" != off ] && [ "$RECHECK_ALL" -eq 1 ]; then
+  echo "NOTE: recheck scope — --recheck-all: the committed-evidence re-check runs on ALL slugs, ignoring the PR diff scope"
+fi
+
 # per-slug: hai đường dẫn độc lập về lexical — vòng đếm dưới đây dùng biến
 # _sd, vòng luật thật dùng dir. Tiêm hỏng một vòng thì con số lệch và điểm
 # nghẽn từ chối kết luận (AC-9: bắt cả biến thể CHƯA nghĩ ra).
@@ -546,6 +600,46 @@ for dir in "$ACC"/*/; do
   # content, not a boundary. Exiting on any heading truncated the scan and every
   # AC after the first sub-heading went untagged (teeth silently off).
   xl_acs="$(awk '/^#/ && !/^###/ {insec=0} tolower($0) ~ /^##[[:space:]]+criteria/{insec=1; next} insec && tolower($0) ~ /^[[:space:]]*[-*].*\(cross-layer\)/ { if (match($0, /AC-[0-9]+/)) print substr($0, RSTART, RLENGTH) }' "$contract" | sort -u)"
+  # "Thế nào là một dòng criterion" có MỘT nguồn: lib/ac-line.cjs — cùng nơi
+  # gate-card.js, eval-coverage-lint.js và evidence-page.js đọc. Khi có node +
+  # lib, kết quả của nó ĐÈ khuôn awk ở trên; khuôn awk ở lại làm đường lùi cho
+  # máy thiếu node (cùng nếp fail-open có tiếng với gap-probe/recheck-evidence).
+  #
+  # Vì sao KHÔNG xoá awk đi cho gọn: nó RỘNG hơn cả ba khuôn JS nên không rụng
+  # dòng nào — bỏ nó là tự tay tắt răng chặn trên máy thiếu node, đúng chiều hỏng
+  # tệ nhất cho một cổng CHẶN. (Luật diff-chỉ-thêm của DV5 cũng cấm sửa dòng cũ.)
+  # Cái awk KHÔNG làm được, và đây là lý do có khối này: nó không phân biệt được
+  # dòng THAM CHIẾU CHÉO (`- **AC-5, AC-9 chưa có gì** (cross-layer)` là văn xuôi
+  # trong Notes) với một tiêu chí thật, nên nó chấm oan và chặn merge nhầm;
+  # parseAC loại đúng dạng đó bằng AC_XREF. Nó cũng đóng section ở h1 trong khi
+  # lib/md-section.cjs coi h1 là nội dung.
+  AC_LINE_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/ac-line.cjs"
+  if [ -f "$AC_LINE_LIB" ] && command -v node >/dev/null 2>&1; then
+    if xl_from_lib="$(AGK_CONTRACT="$contract" node -e '
+        const { parseAC } = require(process.argv[1]);
+        const { section } = require(process.argv[2]);
+        const t = require("fs").readFileSync(process.env.AGK_CONTRACT, "utf8");
+        const out = new Set();
+        for (const l of section(t, "Criteria")) {
+          const a = parseAC(l);
+          if (a && /\(cross-layer\)/i.test(a.gwt)) out.add(a.id);
+          // Dòng trên là khuôn CŨ: regex trần trên `gwt`, nên nó KHÔNG phân biệt
+          // được criterion MANG Dấu với criterion TRÍCH DẪN Dấu (hồ sơ giải thích
+          // Dấu cho người mới) → VIOLATION GIẢ chặn merge. Hồ sơ ngược #36.
+          // Luật diff-chỉ-thêm (DV5) cấm sửa dòng cũ của file này, nên phần sửa
+          // là một dòng ĐÈ: parseAC nay trả `crossLayer` tính theo cùng luật với
+          // `judgment` (bỏ code span qua uncoded()), và nó là tiếng nói cuối.
+          if (a && a.crossLayer === false) out.delete(a.id);
+        }
+        process.stdout.write([...out].sort().join("\n"));
+      ' "$AC_LINE_LIB" "$(dirname "$AC_LINE_LIB")/md-section.cjs" 2>/dev/null)"; then
+      xl_acs="$xl_from_lib"
+    else
+      AC_LINE_FALLBACK_SEEN=1
+    fi
+  else
+    AC_LINE_FALLBACK_SEEN=1
+  fi
   if [ -n "$xl_acs" ]; then
     if [ ! -f "${dir}evals.yaml" ]; then
       echo "NOTE [$slug]: cross-layer criteria declared but no evals.yaml — pairing unverifiable (fail-open)"
@@ -558,16 +652,29 @@ for dir in "$ACC"/*/; do
       # key names here: a block opening on an unlisted key would fail to flush,
       # leaking the previous block's `layer:` onto it — false-green, the exact
       # failure these teeth exist to stop. Open wide, discriminate on syntax.
+      # Thân block scalar (`expected: >` — khuôn mặc định của eval-gen — hay
+      # `cmd: |`) là DATA, phải bị nuốt trọn: một bullet "- baseline: green"
+      # trong thân từng khớp luật flush và reset crit giữa block (false
+      # VIOLATION), còn một dòng prose "layer: backend-effect" trong thân từng
+      # pair hộ eval UI-only (false-green — đúng thứ răng này chặn).
       xl_paired="$(awk '
         function flush() { if (lay=="backend-effect" && crit!="") print crit }
+        { if (inblk) { if ($0 ~ /^[[:space:]]*$/) next; if (match($0, /[^[:space:]]/) - 1 > blkind) next; inblk = 0 } }
         tolower($0) ~ /^[[:space:]]*-[[:space:]]*[a-z_]+:([[:space:]]|$)/ { flush(); crit=""; lay="" }
+        /^[[:space:]]*(-[[:space:]]*)?[A-Za-z_][A-Za-z0-9_-]*:[[:space:]]*[>|][+0-9-]*[[:space:]]*(#.*)?$/ { inblk = 1; blkind = match($0, /[^[:space:]]/) - 1; next }
         tolower($0) ~ /^[[:space:]]*(-[[:space:]]*)?criterion:[[:space:]]*/ {v=$0; sub(/^[^:]*:[[:space:]]*/,"",v); gsub(/["'\'']/,"",v); sub(/[[:space:]]+#.*$/,"",v); sub(/[[:space:]]+$/,"",v); crit=v}
         tolower($0) ~ /^[[:space:]]*(-[[:space:]]*)?layer:[[:space:]]*/ {v=tolower($0); sub(/^[^:]*:[[:space:]]*/,"",v); gsub(/["'\'']/,"",v); sub(/[[:space:]]+#.*$/,"",v); sub(/[[:space:]]+$/,"",v); lay=v}
         END { flush() }
       ' "${dir}evals.yaml" | sort -u)"
       while IFS= read -r xac; do
         [ -n "$xac" ] || continue
-        if ! printf '%s\n' "$xl_paired" | grep -qx "$xac"; then
+        # `xl_paired` giữ giá trị criterion NGUYÊN VĂN từ evals.yaml, mà nhiều repo
+        # viết kèm chữ mô tả cho người đọc (`criterion: AC-7 (ghi sổ phía sau)`).
+        # So nguyên-chuỗi (`grep -qx`) thì mã "AC-7" không bao giờ khớp những dòng
+        # đó → luật bắn dương-tính-giả cho MỌI tiêu chí có nhãn (cross-layer).
+        # Neo ĐẦU CHUỖI + biên không-phải-số: thiếu biên thì "AC-1" khớp nhầm
+        # "AC-16 (...)" và luật tự tạo xanh-giả — đúng thứ nó sinh ra để chặn. (P183)
+        if ! printf '%s\n' "$xl_paired" | grep -qE "^${xac}([^0-9]|$)"; then
           echo "VIOLATION [$slug]: $xac is tagged (cross-layer) but no eval of it declares layer: backend-effect — a cross-layer criterion would merge on UI-only evidence; add the paired test/script eval, or untag it with the human's signoff at Gate 1"
           violations=$((violations+1))
         fi
@@ -602,7 +709,7 @@ XLACS
       elif [ ! -f "$GP_LIB" ]; then
         gap_probe_not_enforced "thiếu $GP_LIB (mang cổng vào repo phải copy CẢ lib/)"
       else
-        gap_probe_not_enforced "node lib/gap-probe.js classify thất bại trên $slug"
+        gap_probe_not_enforced "node lib/gap-probe.cjs classify thất bại trên $slug"
       fi
     else
       GP_RAN=1
@@ -656,6 +763,50 @@ XLACS
     warn) echo "WARNING [$slug]: enforcement_mode=warn — gate only warned (not blocked) when this PASS was written; evidence present but not hard-enforced" ;;
   esac
   if [ -z "$signoff" ]; then
+    # ── Cổng Bằng chứng xanh-sạch thôi mời ký (hồ sơ veto-co-dau-vet, đợt 2)
+    # Chữ ký lui về đúng nơi có ĐÁNH-ĐỔI. Ở đây «sạch» là một danh sách ĐÓNG,
+    # và MỌI điều kiện phải HIỆN DIỆN-và-rỗng chứ không phải vắng — bỏ hẳn một
+    # mục khỏi báo cáo là đường sạch-giả rẻ nhất (gap-probe P1). Hạng đọc từ
+    # CONTRACT (owner đặt), báo cáo không tự phong hạng cho mình.
+    # Bản khai người-đọc của danh sách này sống ở khối DIEU-KIEN-SACH-V trong
+    # hợp đồng; bộ răng của hồ sơ đối chiếu hành vi dưới đây với khối đó.
+    # verdict=PASS đã được chốt ở trên (nhánh verdict != PASS đã continue).
+    clean_ok=1; clean_why=""
+    _cdir="$(dirname "$report")"
+    _tier="$(front_field "$_cdir/contract.md" risk_tier | tr '[:lower:]' '[:upper:]')"
+    [ "$_tier" = "T2" ] || { clean_ok=0; clean_why="hạng $_tier (chỉ T2 được đi tiếp không ký)"; }
+    if [ "$clean_ok" -eq 1 ] && grep -qiE '(^|[^a-z])UNCERTAIN([^a-z]|$)' "$report"; then
+      clean_ok=0; clean_why="có mục UNCERTAIN"
+    fi
+    if [ "$clean_ok" -eq 1 ]; then
+      for _sec in "Known limits" "Ngoài hợp đồng"; do
+        # section() trả MẢNG RỖNG cho cả «tiêu đề vắng» lẫn «tiêu đề có mà
+        # thân rỗng» — hai ca này phải khác nhau (vắng ≠ rỗng), nên sự hiện
+        # diện của tiêu đề phải hỏi RIÊNG. Chân đỏ (4) bắt đúng chỗ này.
+        _body="$(node -e '
+          const {section}=require(process.argv[1]);
+          const fs=require("fs");
+          const t=fs.readFileSync(process.argv[2],"utf8");
+          const h=process.argv[3];
+          const has=t.split("\n").some(l=>/^#{1,6}\s+/.test(l)
+            && l.replace(/^#{1,6}\s+/,"").trim().toLowerCase()===h.toLowerCase());
+          if(!has){process.stdout.write("__VANG__");process.exit(0);}
+          process.stdout.write(section(t,h).join("\n").trim()?"__CO__":"");
+        ' "$ROOT/lib/md-section.cjs" "$report" "$_sec" 2>/dev/null || printf '__LOI__')"
+        case "$_body" in
+          __VANG__) clean_ok=0; clean_why="mục «$_sec» VẮNG khỏi báo cáo (vắng ≠ rỗng)"; break ;;
+          __CO__)   clean_ok=0; clean_why="mục «$_sec» có nội dung"; break ;;
+          __LOI__)  clean_ok=0; clean_why="không đọc được mục «$_sec» (fail-closed)"; break ;;
+        esac
+      done
+    fi
+    if [ "$clean_ok" -eq 1 ]; then
+      # Đường xanh-sạch KHÔNG có chữ ký để kiểm tiếp — các chốt dưới (giữ-chỗ,
+      # provenance commit chữ ký) đều nói về một chuỗi không tồn tại ở đây.
+      echo "NOTE [$slug]: xanh-sạch — máy đi tiếp, KHÔNG mời ký (verdict PASS · 0 UNCERTAIN · không bypass · Known limits rỗng · Ngoài hợp đồng rỗng · hạng T2). Cửa veto vẫn mở."
+      continue
+    fi
+    echo "NOTE [$slug]: không đủ điều kiện xanh-sạch để đi tiếp không ký — $clean_why"
     echo "VIOLATION [$slug]: verdict PASS but human_signoff is empty (Gate 2 pending)"
     violations=$((violations+1)); continue
   fi
@@ -741,12 +892,46 @@ GLOBS2
   # evidence. Reports without the field (older template) and clones where the
   # commit is unreachable (rebase/squash/shallow fetch) only get a NOTE.
   vc="$(front_field "$report" verified_commit)"
+  # ─── stale-theo-diff-pr (1.39.2): sử liệu ngoài diff im lặng TRỌN khối ────
+  # Ngữ nghĩa: staleness bảo vệ "bằng chứng mô tả cây ĐANG merge". Hồ sơ đã
+  # merge là sử liệu bất biến qua git — một nhánh mới ĐƯƠNG NHIÊN đổi code sau
+  # verified_commit của mọi feature cũ, nên soi chúng là chặn-mọi-PR-vì-lịch-sử
+  # (2 lần cắn + 4 lần re-pin bắc cầu ở repo tiêu thụ, sổ vấp dòng 68). Phạm
+  # vi dùng ĐÚNG hàm slug_in_diff mà luật gap-probe dùng (ledger d-116) — một
+  # nguồn ngữ nghĩa slug↔diff, không parser thứ ba. Bọc TRỌN khối (cả
+  # phantom-pin/shallow/no-vc NOTE): pin của sử liệu sau squash-merge thành
+  # SHA-ma là số phận tự nhiên của lịch sử, không phải lỗi của PR đang merge;
+  # đánh đổi (pin ma ngoài diff vô hình — chạm hồ sơ là nổ lại) owner ký có
+  # mắt tại Cổng 1 hồ sơ stale-theo-diff-pr. Dòng vc= ở TRÊN cố ý nằm NGOÀI
+  # guard: khối re-pin phía dưới so lane với vc của CHÍNH slug này — skip phép
+  # gán là rò vc slug trước sang (đúng lớp rò-trạng-thái gap-probe P0-2).
+  # Guard kiểm DIFF_READY chứ KHÔNG kiểm $BASE: base-có-mà-diff-không-dựng-được
+  # (clone shallow CI) phải rơi về kiểm-tất, không phải tắt im (gap-probe P0-1).
+  if [ "$DIFF_READY" -eq 1 ] && ! slug_in_diff "$slug"; then # STALE-DIFF-SCOPE-GUARD
+    : # sử liệu ngoài diff — không soi verified_commit (AC-2); chạm hồ sơ là nó vào diff và bị soi lại như thường (AC-3)
+  else
   if [ -z "$vc" ]; then
     echo "NOTE [$slug]: report has no verified_commit (older template) — evidence is not pinned to a commit; code drift since verify is NOT machine-checked. Re-verify to pin."
   elif ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
     echo "NOTE [$slug]: verified_commit present but $ROOT is not a git repo here — staleness unverifiable"
   elif ! git -C "$ROOT" rev-parse --quiet --verify "$vc^{commit}" >/dev/null 2>&1; then
-    echo "NOTE [$slug]: verified_commit $vc not found in this clone (rebase/squash or shallow fetch?) — staleness unverifiable; re-verify to re-pin"
+    # Pin không giải được nghĩa là staleness KHÔNG được kiểm cho hồ sơ này. Hai
+    # nguyên nhân rất khác nhau từng nấp sau cùng một dòng NOTE:
+    #   - clone nông / fetch thiếu: commit có thể vẫn lành, ta chỉ không thấy nó ở
+    #     đây. Không-kiểm-được ≠ sai, nên NOTE và để một clone đầy đủ phán.
+    #   - clone đầy đủ mà commit thật sự không tồn tại: pin là MA. Re-pin vào một
+    #     SHA nhánh rồi bị squash-merge vứt đi sinh ra đúng cảnh này, và nó câm —
+    #     hồ sơ đó tắt thanh chắn trong khi cổng vẫn in "clean". Đo trên một repo
+    #     tiêu thụ: 136/136 hồ sơ ghim vào commit không clone nào có, 135 NOTE,
+    #     không đỏ dòng nào.
+    # Nên: chỉ hạ xuống NOTE khi CHỨNG MINH được là nông. `unknown` (git quá cũ
+    # không trả lời được) giữ nguyên hành vi khoan dung cũ, có chủ đích. (P184)
+    shallow="$(git -C "$ROOT" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)"
+    if [ "$shallow" = false ]; then
+      echo "VIOLATION [$slug]: verified_commit $vc does not exist in this repo — the pin is a phantom, so staleness is NOT machine-checked (evidence could be arbitrarily out of date and this gate would not notice). Usual cause: re-pinned to a branch SHA that squash-merge discarded. Re-pin to a commit that lives on the target branch."
+      violations=$((violations+1)); continue
+    fi
+    echo "NOTE [$slug]: verified_commit $vc not found in this SHALLOW clone (fetch-depth) — staleness unverifiable here; a full clone decides"
   else
     stale="$(stale_files "$ROOT" "$vc")"
     if [ -n "$stale" ]; then
@@ -755,11 +940,57 @@ GLOBS2
       violations=$((violations+1)); continue
     fi
   fi
+  fi # đóng STALE-DIFF-SCOPE-GUARD — từ đây trở đi mọi luật chạy cho CẢ slug ngoài diff (AC-2 vế "vẫn chạy")
   # run-log presence: the re-check below reconciles report run_ids against
   # _acceptance/<slug>/run-log.jsonl (machine-written at verify). A missing log
   # (older verify flow) is tolerated but must be visible.
   if [ ! -f "$dir/run-log.jsonl" ]; then
     echo "NOTE [$slug]: no run-log.jsonl (older verify flow) — run_id provenance is not machine-logged; report run_ids are unreconciled. Re-verify to generate the log."
+  fi
+  # Re-pin provenance (delta-verify-repin, additive): new-form "### Re-pin"
+  # sections cite run_id on its own line — the lane must be logged per-slug
+  # ({"kind":"repin"} line), its sha must equal verified_commit, and every
+  # suites_exit element must be 0 (a red lane cannot back a signature).
+  # Old-form sections (no "run_id:" line) are grandfathered — no rule applies.
+  # Ngữ pháp ranh giới section THỐNG NHẤT với recheck-evidence.cjs (fix S4-r2):
+  # section chỉ kết thúc ở heading cấp 1-3 (# / ## / ### + khoảng trắng) —
+  # #### sub-heading là NỘI DUNG của section; run_id bắt không phân biệt hoa
+  # thường (recheck dùng flag i). Hai reader lệch ngữ pháp = một bên fail-open.
+  repin_ids="$(awk '/^### Re-pin/{s=1;next} /^(#|##|###)[[:space:]]/{s=0} s { low=tolower($0); if (match(low, /^[[:space:]]*run_id[:=][[:space:]]*/)) { t=substr($0, RSTART+RLENGTH); sub(/[ \t·,].*$/,"",t); if(t!="")print t } }' "$report")"
+  if [ -n "$repin_ids" ]; then
+    if [ ! -f "$dir/run-log.jsonl" ]; then
+      echo "VIOLATION [$slug]: re-pin run_id cited in ### Re-pin but _acceptance/$slug/run-log.jsonl does not exist — no lane was ever logged for this workspace"
+      violations=$((violations+1)); continue
+    fi
+    repin_bad=""
+    repin_current=""
+    while IFS= read -r rid; do
+      [ -n "$rid" ] || continue
+      rline="$(grep -F "\"run_id\":\"$rid\"" "$dir/run-log.jsonl" | grep -F '"kind":"repin"' | tail -1)"
+      if [ -z "$rline" ]; then
+        echo "VIOLATION [$slug]: re-pin run_id \"$rid\" cited in ### Re-pin but no {\"kind\":\"repin\"} line with that run_id in run-log.jsonl — the lane never logged this re-pin; re-run the lane, do not hand-mint run_ids"
+        repin_bad=1; continue
+      fi
+      rsha="$(printf '%s' "$rline" | sed -n 's/.*"sha":"\([0-9a-fA-F]\{7,40\}\)".*/\1/p')"
+      # Hotfix sự-kiện-thứ-hai: sha-khớp chuyển thành quan hệ tổng hợp bên dưới
+      # (ít nhất MỘT citation khớp vc) — section cũ có sha lịch sử là hợp lệ.
+      if [ -n "$vc" ] && [ "$rsha" = "$vc" ]; then repin_current=1; fi
+      if ! printf '%s' "$rline" | grep -Eq '"suites_exit":[[:space:]]*\[[0-9][0-9, ]*\]'; then
+        echo "VIOLATION [$slug]: re-pin line for run_id \"$rid\" has no well-formed suites_exit array — a lane that never recorded its suite results cannot back a signature; re-run the lane"
+        repin_bad=1; continue
+      fi
+      if printf '%s' "$rline" | grep -Eq '"suites_exit":[[:space:]]*\[[0-9, ]*[1-9]'; then
+        echo "VIOLATION [$slug]: re-pin line for run_id \"$rid\" has nonzero suites_exit — a red lane cannot back a signature; fix the suites and run a NEW lane"
+        repin_bad=1; continue
+      fi
+    done <<REPINIDS
+$repin_ids
+REPINIDS
+    if [ -n "$vc" ] && [ -z "$repin_current" ]; then
+      echo "VIOLATION [$slug]: none of the cited re-pin lane(s) matches verified_commit $vc — the current pin has no backing lane; re-pin against the verified commit, do not hand-edit the pin"
+      repin_bad=1
+    fi
+    if [ -n "$repin_bad" ]; then violations=$((violations+1)); continue; fi
   fi
   # observed (schema v2): older reports with screenshot evidence never faced the
   # inspected-frames bar — tolerated, but must be visible.
@@ -785,9 +1016,34 @@ NETIDS
   fi
   # Re-verify the COMMITTED evidence with the same core the hook runs — catches a
   # report hand-edited after the write-time hook, or written under bypass.
+  # ─── RECHECK-DIFF-SCOPE (1.41.0): sử liệu ngoài diff không bị re-check ────
+  # Ngữ nghĩa GIỐNG luật staleness: bar này bảo vệ "bằng chứng đi kèm cây ĐANG
+  # merge". Hồ sơ đã merge là sử liệu; soi lại chúng ở MỌI lượt CI biến một
+  # quyết định đã duyệt trong quá khứ thành cái chặn mọi PR tương lai vì lý do
+  # không liên quan gì tới PR đó. Đã cắn thật: hồ sơ lưu-kho gỡ khoá
+  # `executors.script.mirror_sync` (tiêu chí AC-9 của nó), và 21 hồ sơ ĐÃ KÝ có
+  # eval trỏ khoá ấy lập tức chặn merge — không hồ sơ nào trong 21 nằm trong
+  # diff, không hồ sơ nào sửa được mà không viết vào vật đã ký.
+  # Phạm vi dùng ĐÚNG hàm `slug_in_diff` mà gap-probe và staleness dùng — một
+  # nguồn ngữ nghĩa slug↔diff, không parser thứ ba.
+  # Guard kiểm DIFF_READY chứ KHÔNG kiểm $BASE: base-có-mà-diff-không-dựng-được
+  # (clone shallow CI) phải rơi về kiểm-tất, không phải tắt im.
+  # ĐÁNH ĐỔI, khai thẳng: thước thôi HỒI TỐ. Siết bar trong evidence-core.cjs
+  # về sau sẽ không tự đo lại hồ sơ cũ. Đường cứu là cờ `--recheck-all`; không
+  # có cờ đó thì cái mất này là vĩnh viễn chứ không phải tạm.
   if [ "$RECHECK_MODE" != off ]; then
     if [ -f "$RECHECK" ] && command -v node >/dev/null 2>&1; then
+      # Guard đặt Ở ĐÂY, ôm đúng MỘT dòng gọi node, và dòng ấy giữ NGUYÊN VĂN cả
+      # thụt lề — kể cả khi trông lệch mắt. Lý do: răng `additive-only` (DV5)
+      # đòi diff của tệp này so với base CHỈ ĐƯỢC THÊM, không dòng luật cũ nào
+      # bị xoá/sửa. Bản đầu của tôi viết lại `if [ "$RECHECK_MODE" != off ]`
+      # thành `elif` và DV5 đỏ đúng như nó phải đỏ. Nắn thụt lề cho đẹp ở đây
+      # là xoá một dòng luật cũ — đúng thứ răng ấy sinh ra để chặn.
+      if [ "$RECHECK_ALL" -eq 0 ] && [ "$DIFF_READY" -eq 1 ] && ! slug_in_diff "$slug"; then # RECHECK-DIFF-SCOPE-GUARD
+        RECHECK_SKIPPED=$((RECHECK_SKIPPED+1)); recheck_out=""; rc=0
+      else
       recheck_out="$(node "$RECHECK" "$report" 2>&1)"; rc=$?
+      fi
       if [ "$rc" -eq 1 ]; then
         if [ "$RECHECK_MODE" = strict ]; then label="VIOLATION"; else label="NOTE"; fi
         echo "$label [$slug]: committed evidence fails re-check (recheck: $RECHECK_MODE):"
@@ -797,15 +1053,76 @@ NETIDS
         echo "NOTE [$slug]: evidence re-check unavailable (exit $rc) — ${recheck_out:-skipped}"
       fi
     else
-      echo "NOTE [$slug]: evidence re-check not vendored (recheck-evidence.js/node missing) — committed-evidence bar NOT enforced"
+      echo "NOTE [$slug]: evidence re-check not vendored (recheck-evidence.cjs/node missing) — committed-evidence bar NOT enforced"
     fi
   fi
   echo "OK [$slug]: $verdict, signed off by $signoff"
 done
 
+# Cắt im lặng đọc y hệt "đã phủ hết" — nên số hồ sơ KHÔNG được re-check phải in
+# ra. Chỉ in khi có cắt thật: lần chạy không cắt gì thì thêm một dòng hằng là
+# rác, và một dòng rác lặp lại là dòng người đọc học cách bỏ qua.
+if [ "$RECHECK_SKIPPED" -gt 0 ]; then
+  echo "NOTE: recheck scope — $RECHECK_SKIPPED slug ngoài diff PR không được re-check (sử liệu; dùng --recheck-all để quét toàn bộ)"
+fi
+
 # per-slug chỉ được ghi `ran` khi vòng lặp nhìn thấy ĐÚNG số thư mục mà phép
 # đếm độc lập nhìn thấy.
 [ "$SLUG_SEEN" -eq "$SLUG_EXPECTED_N" ] && ledger_mark ran per-slug
+
+# ─── veto-có-dấu-vết (đợt 2) ────────────────────────────────────────────────
+# Hai luật, hai kiểu hỏng khác nhau nên hai thông điệp:
+#   (1) ĐẾM cửa đang mở — cắt im lặng đọc y hệt «đã phủ hết», nên phải in
+#       đích danh slug, không chỉ tổng.
+#   (2) CHIỀU ĐỔI, không phải trạng thái cuối. Đây là lỗ P0 của gap-probe:
+#       owner gõ `da-veto`, máy sửa ngược về `mo` (hoặc xoá hẳn khoá) thì
+#       trạng thái cuối trông sạch và veto của người bốc hơi không dấu vết.
+#       So với BASE của diff; đường xử hợp lệ (có entry sổ quyết định khớp
+#       slug) KHÔNG bị chặn oan.
+VETO_OPEN_N=0; VETO_OPEN_SLUGS=""
+if [ -d "$ACC" ]; then
+  for dir in "$ACC"/*/; do
+    [ -d "$dir" ] || continue
+    slug="$(basename "$dir")"
+    contract="$dir/contract.md"
+    [ -f "$contract" ] || continue
+    vstate="$(front_field "$contract" veto_state | tr '[:upper:]' '[:lower:]')"
+    case "$vstate" in
+      mo)
+        VETO_OPEN_N=$((VETO_OPEN_N+1))
+        VETO_OPEN_SLUGS="$VETO_OPEN_SLUGS $slug" ;;
+      da-veto)
+        echo "VIOLATION [$slug]: veto_state=da-veto chưa xử — owner đã veto, hồ sơ không được merge ở trạng thái này. Xử bằng một trong hai đường rồi ghi entry sổ quyết định: quay hồ sơ về status draft để làm lại phạm vi, hoặc owner duyệt tay (approved_by)."
+        violations=$((violations+1)) ;;
+    esac
+    # chiều ghi-ngược — chỉ xét được khi dựng nổi phạm vi diff
+    if [ "$DIFF_READY" -eq 1 ] && slug_in_diff "$slug"; then
+      base_c="$(git -C "$ROOT" show "$BASE_SHA:_acceptance/$slug/contract.md" 2>/dev/null || true)"
+      if [ -n "$base_c" ]; then
+        base_v="$(printf '%s\n' "$base_c" | sed -n '/^---[[:space:]]*$/,/^---[[:space:]]*$/p' \
+                  | sed -n 's/^veto_state[[:space:]]*:[[:space:]]*//p' | head -1 \
+                  | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+        base_status="$(printf '%s\n' "$base_c" | sed -n '/^---[[:space:]]*$/,/^---[[:space:]]*$/p' \
+                  | sed -n 's/^status[[:space:]]*:[[:space:]]*//p' | head -1 | tr -d '[:space:]')"
+        if [ "$base_v" = "da-veto" ] && [ "$vstate" != "da-veto" ]; then
+          if [ -s "$dir/decisions.jsonl" ] && grep -q "veto" "$dir/decisions.jsonl" 2>/dev/null; then
+            echo "NOTE [$slug]: veto đã xử — veto_state da-veto -> ${vstate:-(gỡ khoá)} kèm entry sổ quyết định"
+          else
+            echo "VIOLATION [$slug]: veto_state da-veto -> ${vstate:-(gỡ khoá)} mà KHÔNG có entry sổ quyết định ghi việc xử — veto là quyết định của người, không được xoá bằng một lượt ghi của máy. Ghi entry vào decisions.jsonl rồi chạy lại."
+            violations=$((violations+1))
+          fi
+        elif [ -n "$base_v" ] && [ -z "$vstate" ] && [ "$base_status" != "draft" ]; then
+          echo "VIOLATION [$slug]: khoá veto_state biến mất khỏi một hồ sơ đã rời draft (base: $base_v) — gỡ khoá là xoá dấu vết cửa veto. Giữ khoá, hoặc ghi entry sổ quyết định cho việc xử."
+          violations=$((violations+1))
+        fi
+      fi
+    fi
+  done
+fi
+if [ "$VETO_OPEN_N" -gt 0 ]; then
+  echo "NOTE: cửa veto đang mở — $VETO_OPEN_N hồ sơ máy đã đi trước mà owner chưa veto:$VETO_OPEN_SLUGS"
+fi
+ledger_mark ran veto-trace
 
 # gap-probe ghi sổ ở ĐÚNG MỘT chỗ, sau khi đã biết trọn lịch sử lần chạy. Bản
 # trước mark từ HAI nơi độc lập — `declared-off` trong gap_probe_not_enforced()
@@ -900,6 +1217,10 @@ if [ "$LEDGER_ENABLED" -eq 1 ]; then
     echo "NOTE: VIOLATION [ledger] là lỗi NỘI TẠI của cổng pre-merge (một khối luật bị trượt qua hoặc sổ lệch) — KHÔNG phải lỗi trong thay đổi của bạn. Bước kế tiếp: báo maintainer của kit kèm TOÀN BỘ output lần chạy này; đừng sửa feature của bạn để né nó."
     exit 2
   fi
+fi
+
+if [ -n "$AC_LINE_FALLBACK_SEEN" ]; then
+  echo "NOTE: cross-layer teeth graded with the built-in awk pattern, not lib/ac-line.cjs (node or the lib was unavailable). The teeth still fire — the awk form is WIDER than the shared parser, so it drops no criterion — but it does not reject cross-reference bullets and it closes the Criteria section at an H1, so a blocking finding reported above may be spurious. Install node / vendor lib/ac-line.cjs to grade on the same definition the rest of the kit uses."
 fi
 
 if [ -n "$NARROW_NET_SEEN" ]; then

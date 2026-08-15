@@ -24,7 +24,7 @@ jobs:
   drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Thiếu secret thì BỎ QUA có thông báo, không fail đỏ: một workflow đỏ vì
       # thiếu cấu hình sẽ bị ngó lơ trong một tuần, rồi khi nó đỏ vì lý do THẬT

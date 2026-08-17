@@ -225,6 +225,7 @@ T3_PATHS=""
 # email-glob blocklist for the signoff commit's author.
 REQ_HUMAN_COMMIT=""
 AGENT_AUTHORS=""
+LEGACY_SIGN_KNOB=0
 if [ -f "$ACC/config.yaml" ]; then
   cfg_req="$(sed -n 's/^[[:space:]]*required_for:[[:space:]]*//p' "$ACC/config.yaml" | head -1 | sed 's/[[:space:]]*#.*$//')"
   [ -n "$cfg_req" ] && REQUIRED_FOR="$cfg_req"
@@ -304,6 +305,70 @@ fm_field() { # <file> <key> — first frontmatter-style "key: value" line, norma
   # (mirrors the hook's tolerance for quotes/comments on these lines).
   sed -n "s/^${2}:[[:space:]]*//p" "$1" | head -1 \
     | sed -e 's/[[:space:]]*#.*$//' -e 's/^["'"'"']//' -e 's/["'"'"']$//' -e 's/[[:space:]]*$//'
+}
+
+# Vết giờ của làn V phải PARSE ĐƯỢC, không chỉ khác rỗng (cùng luật với hook
+# `vetoGateState`): một chuỗi rác lọt qua thì NOTE đếm cửa-veto mất khả năng
+# đọc «cửa này mở bao lâu rồi».
+date_parseable() { # <chuỗi>
+  [ -n "$1" ] || return 1
+  if command -v node >/dev/null 2>&1; then
+    node -e 'process.exit(Number.isNaN(Date.parse(process.argv[1]))?1:0)' "$1" 2>/dev/null && return 0
+    return 1
+  fi
+  printf '%s' "$1" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?(Z|[+-][0-9]{2}:?[0-9]{2})?)?$'
+}
+
+# ── Bộ kiểm SÁU ĐIỀU KIỆN xanh-sạch (đợt 2) — MỘT bản, hai chỗ gọi ─────────
+# Trước hồ sơ cong-chan-nham-cho khối này nằm inline trong luật chữ-ký-rỗng.
+# Luật Gate-1 (làn V) cần ĐÚNG bộ kiểm ấy, nên nó được rút thành hàm thay vì
+# chép: hai bản «sáu điều kiện» trôi khỏi nhau là lớp lỗi bên-viết-bên-đọc.
+# Đặt CLEAN_WHY khi không sạch; trả 0 = sạch, 1 = không.
+xanh_sach_check() { # <report path>
+  local report="$1" clean_ok=1 clean_why="" _cdir _tier _sec _body _v _bp _ack
+  CLEAN_WHY=""
+  [ -f "$report" ] || { CLEAN_WHY="không có evidence-report.md"; return 1; }
+  # SÁU điều kiện, khai đủ ở ĐÂY (không dựa vào chốt nào chạy trước): hai chỗ
+  # gọi hàm này đứng ở hai vị trí khác nhau trong luồng, nên hàm phải tự đủ.
+  _v="$(front_field "$report" verdict)"
+  [ "$_v" = "PASS" ] || { clean_ok=0; clean_why="verdict=$_v (chỉ PASS mới xanh-sạch)"; }
+  if [ "$clean_ok" -eq 1 ]; then
+    _bp="$(front_field "$report" bypass_used | tr '[:upper:]' '[:lower:]')"
+    _ack="$(front_field "$report" bypass_ack)"
+    case "$_bp" in true|1|yes) clean_ok=0; clean_why="bypass_used=$_bp${_ack:+ (có bypass_ack)}" ;; esac
+  fi
+  _cdir="$(dirname "$report")"
+  _tier="$(front_field "$_cdir/contract.md" risk_tier | tr '[:lower:]' '[:upper:]')"
+  if [ "$clean_ok" -eq 1 ] && [ "$_tier" != "T2" ]; then
+    clean_ok=0; clean_why="hạng $_tier (chỉ T2 được đi tiếp không ký)"
+  fi
+  if [ "$clean_ok" -eq 1 ] && grep -qiE '(^|[^a-z])UNCERTAIN([^a-z]|$)' "$report"; then
+    clean_ok=0; clean_why="có mục UNCERTAIN"
+  fi
+  if [ "$clean_ok" -eq 1 ]; then
+    for _sec in "Known limits" "Ngoài hợp đồng"; do
+    # section() trả MẢNG RỖNG cho cả «tiêu đề vắng» lẫn «tiêu đề có mà
+    # thân rỗng» — hai ca này phải khác nhau (vắng ≠ rỗng), nên sự hiện
+    # diện của tiêu đề phải hỏi RIÊNG. Chân đỏ (4) bắt đúng chỗ này.
+    _body="$(node -e '
+      const {section}=require(process.argv[1]);
+      const fs=require("fs");
+      const t=fs.readFileSync(process.argv[2],"utf8");
+      const h=process.argv[3];
+      const has=t.split("\n").some(l=>/^#{1,6}\s+/.test(l)
+      && l.replace(/^#{1,6}\s+/,"").trim().toLowerCase()===h.toLowerCase());
+      if(!has){process.stdout.write("__VANG__");process.exit(0);}
+      process.stdout.write(section(t,h).join("\n").trim()?"__CO__":"");
+    ' "$ROOT/lib/md-section.cjs" "$report" "$_sec" 2>/dev/null || printf '__LOI__')"
+    case "$_body" in
+      __VANG__) clean_ok=0; clean_why="mục «$_sec» VẮNG khỏi báo cáo (vắng ≠ rỗng)"; break ;;
+      __CO__)   clean_ok=0; clean_why="mục «$_sec» có nội dung"; break ;;
+      __LOI__)  clean_ok=0; clean_why="không đọc được mục «$_sec» (fail-closed)"; break ;;
+    esac
+    done
+  fi
+  CLEAN_WHY="$clean_why"
+  [ "$clean_ok" -eq 1 ]
 }
 
 front_field() { # <file> <key> — read <key> from the LEADING --- frontmatter block only
@@ -585,8 +650,34 @@ for dir in "$ACC"/*/; do
       true|1|yes)
         echo "NOTE [$slug]: gate1_skipped: true — user explicitly skipped Gate 1 (approved_by empty tolerated, audit trail)" ;;
       *)
-        echo "VIOLATION [$slug]: status=$status but approved_by is empty and gate1_skipped is not true — Gate 1 approval was never recorded (contract skipped the gate)"
-        violations=$((violations+1)); continue ;;
+        # ── LÀN V (hồ sơ cong-chan-nham-cho): hook ghi-lúc-viết đã cho làn này
+        # đi từ đợt 2; lưới biên merge phải hiểu ĐÚNG như thế, nếu không mọi hồ
+        # sơ máy-đi-trước vẫn phải xin một chữ duyệt ở đây — đúng trạm thu phí
+        # đợt 2 dựng để gỡ. Cửa mở khi ĐỦ: veto_state=mo · vết giờ parse được ·
+        # hạng T2 · VÀ (bằng chứng xanh-sạch sáu điều kiện HOẶC đã có chữ ký).
+        # Vế cuối là QUAN HỆ, không phải cái nhãn: `mo` gõ tay lên một hồ sơ
+        # không sạch mà chưa ai ký thì vẫn chặn (gap-probe P0 của hồ sơ này).
+        _vst="$(front_field "$contract" veto_state | tr '[:upper:]' '[:lower:]')"
+        _vat="$(front_field "$contract" veto_opened_at)"
+        _vrep="$dir/evidence-report.md"
+        if [ "$_vst" = "mo" ]; then
+          _vsig="$(front_field "$_vrep" human_signoff 2>/dev/null)"
+          if [ "$tier" != "T2" ]; then
+            echo "VIOLATION [$slug]: status=$status but approved_by is empty — làn V chỉ T2, hồ sơ này hạng $tier: T3 chạm lõi cưỡng chế / dữ liệu / API phá vỡ nên LUÔN cần người ở Cổng 1. Điền approved_by (+ approved_at)."
+            violations=$((violations+1)); continue
+          elif [ -z "$_vat" ] || ! date_parseable "$_vat"; then
+            echo "VIOLATION [$slug]: status=$status but approved_by is empty — veto_opened_at ${_vat:+\"$_vat\" }không đọc được: làn V ĐÒI một mốc thời gian parse được, không có nó thì đây là bỏ cổng im lặng chứ không phải cửa veto có dấu vết."
+            violations=$((violations+1)); continue
+          elif [ -n "$_vsig" ] || xanh_sach_check "$_vrep"; then
+            echo "NOTE [$slug]: làn V — máy đi trước, Cổng 1 không có chữ duyệt; cửa veto mở"
+          else
+            echo "VIOLATION [$slug]: status=$status but approved_by is empty — làn V đòi xanh-sạch hoặc chữ ký ($CLEAN_WHY). Máy được đi trước khi bằng chứng tự đứng vững; hồ sơ này thì không, nên nó cần người: điền approved_by, hoặc ký Cổng 2."
+            violations=$((violations+1)); continue
+          fi
+        else
+          echo "VIOLATION [$slug]: status=$status but approved_by is empty and gate1_skipped is not true — Gate 1 approval was never recorded (contract skipped the gate)"
+          violations=$((violations+1)); continue
+        fi ;;
     esac
   fi
 
@@ -772,34 +863,7 @@ XLACS
     # hợp đồng; bộ răng của hồ sơ đối chiếu hành vi dưới đây với khối đó.
     # verdict=PASS đã được chốt ở trên (nhánh verdict != PASS đã continue).
     clean_ok=1; clean_why=""
-    _cdir="$(dirname "$report")"
-    _tier="$(front_field "$_cdir/contract.md" risk_tier | tr '[:lower:]' '[:upper:]')"
-    [ "$_tier" = "T2" ] || { clean_ok=0; clean_why="hạng $_tier (chỉ T2 được đi tiếp không ký)"; }
-    if [ "$clean_ok" -eq 1 ] && grep -qiE '(^|[^a-z])UNCERTAIN([^a-z]|$)' "$report"; then
-      clean_ok=0; clean_why="có mục UNCERTAIN"
-    fi
-    if [ "$clean_ok" -eq 1 ]; then
-      for _sec in "Known limits" "Ngoài hợp đồng"; do
-        # section() trả MẢNG RỖNG cho cả «tiêu đề vắng» lẫn «tiêu đề có mà
-        # thân rỗng» — hai ca này phải khác nhau (vắng ≠ rỗng), nên sự hiện
-        # diện của tiêu đề phải hỏi RIÊNG. Chân đỏ (4) bắt đúng chỗ này.
-        _body="$(node -e '
-          const {section}=require(process.argv[1]);
-          const fs=require("fs");
-          const t=fs.readFileSync(process.argv[2],"utf8");
-          const h=process.argv[3];
-          const has=t.split("\n").some(l=>/^#{1,6}\s+/.test(l)
-            && l.replace(/^#{1,6}\s+/,"").trim().toLowerCase()===h.toLowerCase());
-          if(!has){process.stdout.write("__VANG__");process.exit(0);}
-          process.stdout.write(section(t,h).join("\n").trim()?"__CO__":"");
-        ' "$ROOT/lib/md-section.cjs" "$report" "$_sec" 2>/dev/null || printf '__LOI__')"
-        case "$_body" in
-          __VANG__) clean_ok=0; clean_why="mục «$_sec» VẮNG khỏi báo cáo (vắng ≠ rỗng)"; break ;;
-          __CO__)   clean_ok=0; clean_why="mục «$_sec» có nội dung"; break ;;
-          __LOI__)  clean_ok=0; clean_why="không đọc được mục «$_sec» (fail-closed)"; break ;;
-        esac
-      done
-    fi
+    if xanh_sach_check "$report"; then :; else clean_ok=0; clean_why="$CLEAN_WHY"; fi
     if [ "$clean_ok" -eq 1 ]; then
       # Đường xanh-sạch KHÔNG có chữ ký để kiểm tiếp — các chốt dưới (giữ-chỗ,
       # provenance commit chữ ký) đều nói về một chuỗi không tồn tại ở đây.
@@ -840,50 +904,33 @@ XLACS
     NARROW_NET_SEEN=1
     continue
   fi
-  # Human-signoff provenance: the signature is text in an AI-writable file —
-  # the git history of the commit that INTRODUCED it is the only
-  # machine-checkable attribution. Standard flow: verify commits the
-  # machine-written report first; the reviewer lands the signature in its own
-  # commit touching only human-owned lines (human_signoff / human_override /
-  # verdict upgrade / bypass_ack). Comment-only and blank +/- lines tolerated.
+  # ── Provenance chữ ký (hồ sơ cong-chan-nham-cho, 16/08) ──────────────────
+  # TRƯỚC: chữ ký phải nằm trong commit RIÊNG chỉ-trường-người, author không
+  # khớp blocklist — ba VIOLATION. Lớp ấy xác thực AI GÕ CHUỖI, không xác thực
+  # QUYẾT ĐỊNH có đúng; mối đe doạ nó chặn (máy giả chữ ký) chưa từng xảy ra,
+  # còn phí thì thật: squash-merge giết hạt commit và chặn mọi PR. Provenance
+  # nay lấy từ forge — người approve / bấm merge PR — và chiều GHI chữ ký hiện
+  # ra ngay dưới đây để người merge nhìn thấy nó ra đời. ADR 0012.
+  # Hai khoá cũ còn trong config vẫn ĐỌC ĐƯỢC (đường đọc-cũ) nhưng chỉ đổi lấy
+  # một dòng nhắc cho CẢ lần chạy, in ở cuối.
+  # CCNC-ALLOWLIST: 2 dòng dưới là chỗ DUY NHẤT hai tên khoá cũ còn được nhắc.
   if [ "$REQ_HUMAN_COMMIT" = "true" ] || [ -n "$AGENT_AUTHORS" ]; then
-    if ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
-      echo "NOTE [$slug]: signoff provenance unverifiable — $ROOT is not a git repo here (signoff.require_human_commit/agent_authors set)"
-    else
-      rel_report="${report#"$ROOT"/}"
-      sign_commit="$(git -C "$ROOT" log --format=%H -S"human_signoff: $signoff" -- "$rel_report" 2>/dev/null | head -1)"
-      [ -z "$sign_commit" ] && sign_commit="$(git -C "$ROOT" log --format=%H -S"$signoff" -- "$rel_report" 2>/dev/null | head -1)"
-      if [ -z "$sign_commit" ]; then
-        if [ "$REQ_HUMAN_COMMIT" = "true" ]; then
-          echo "VIOLATION [$slug]: human_signoff present but not found in any commit of $rel_report — the reviewer must COMMIT the signoff themselves (signoff.require_human_commit)"
-          violations=$((violations+1)); continue
-        fi
-      else
-        if [ -n "$AGENT_AUTHORS" ]; then
-          author="$(git -C "$ROOT" log -1 --format=%ae "$sign_commit" 2>/dev/null)"
-          hit=""
-          while IFS= read -r g; do
-            [ -n "$g" ] || continue
-            case "$author" in $g) hit="$g" ;; esac
-          done <<GLOBS2
-$AGENT_AUTHORS
-GLOBS2
-          if [ -n "$hit" ]; then
-            echo "VIOLATION [$slug]: signoff commit $sign_commit authored by \"$author\" — matches signoff.agent_authors blocklist ($hit); Gate 2 must be signed by a human identity"
-            violations=$((violations+1)); continue
-          fi
-        fi
-        if [ "$REQ_HUMAN_COMMIT" = "true" ]; then
-          nonhuman="$(git -C "$ROOT" show --format= --unified=0 "$sign_commit" -- "$rel_report" 2>/dev/null \
-            | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
-            | grep -vE '^[+-][[:space:]]*((human_signoff|human_override|verdict|bypass_ack)[[:space:]]*:|#|$)')"
-          if [ -n "$nonhuman" ]; then
-            echo "VIOLATION [$slug]: the commit introducing human_signoff ($sign_commit) also edits the report body — the Gate-2 signature must land in its own human-fields-only commit (signoff.require_human_commit). Offending lines:"
-            printf '%s\n' "$nonhuman" | head -5 | sed 's/^/    /'
-            violations=$((violations+1)); continue
-          fi
-        fi
-      fi
+    LEGACY_SIGN_KNOB=1
+  fi
+  # Chiều GHI chữ ký: diff PR đưa human_signoff từ rỗng → khác rỗng thì nói ra.
+  # Đây là lưới THAY cho lớp cũ: rẻ, không chặn ai, và đặt đúng chỗ người quyết
+  # đang nhìn (trang PR) thay vì bắt một nghi thức commit.
+  # Phạm vi: CHỈ hồ sơ nằm trong diff PR — dùng ĐÚNG hàm slug_in_diff mà luật
+  # staleness/gap-probe dùng. Không thu phạm vi thì mọi hồ sơ sử liệu đều in
+  # một dòng mỗi lần chạy (đo thật: 20+ dòng), đúng lớp loãng-tín-hiệu.
+  if [ -n "$BASE" ] && slug_in_diff "$slug" && command -v git >/dev/null 2>&1 && git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    rel_report="$(cd "$ROOT" 2>/dev/null && git ls-files --full-name -- "${report#"$ROOT"/}" 2>/dev/null | head -1)"
+    [ -n "$rel_report" ] || rel_report="${report#"$ROOT"/}"
+    base_sig="$(git -C "$ROOT" show "$BASE:$rel_report" 2>/dev/null \
+      | awk '!f && NF==0 {next} !f && /^---[[:space:]]*$/ {f=1; next} !f {exit} /^---[[:space:]]*$/ {exit} {print}' \
+      | sed -n 's/^human_signoff:[[:space:]]*//p' | head -1 | sed -e 's/[[:space:]]*$//')"
+    if [ -z "$base_sig" ]; then
+      echo "NOTE [$slug]: chữ ký mới trong diff — $signoff — provenance ở forge: người bấm merge xác nhận đây là quyết định của người"
     fi
   fi
   # Stale-evidence check: the PASS certifies the tree at verified_commit. Any
@@ -1225,6 +1272,10 @@ fi
 
 if [ -n "$NARROW_NET_SEEN" ]; then
   echo "NOTE: the placeholder net that just fired matches a SHORT FIXED prefix list — pending, tbd, todo, n/a, none, unsigned, waiting, a bare > | or -, and an unfilled <...> template. NOTHING else. A holding note phrased any other way (\"FIXME\", \"LGTM\", \"ok\", or one written in another language) passes this gate. Rewording the line is NOT a fix; put a real approver name + date there."
+fi
+
+if [ "$LEGACY_SIGN_KNOB" -eq 1 ]; then
+  echo "NOTE: signoff.require_human_commit/agent_authors đã hết hiệu lực từ 2.1 — provenance chữ ký lấy từ forge (PR approval / người bấm merge); gỡ khoá khỏi config.yaml"
 fi
 
 if [ "$violations" -gt 0 ]; then

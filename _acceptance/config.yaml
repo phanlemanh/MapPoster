@@ -91,7 +91,9 @@ risk_tiers:
 signoff:
   required_for: [T2, T3]
   approvers: ["manh"]
-  require_human_commit: true
+  # require_human_commit ĐÃ GỠ 17/08 (kit 2.1.0, ADR 0012): chữ ký là quyết định
+  # người phát ngôn, máy ghi hộ và commit một lượt; trách nhiệm đọc ở forge
+  # (người approve / bấm merge PR).
 dev_server:
   start: "npm run dev"
   url: "http://localhost:5173"

@@ -31,222 +31,173 @@ ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}u
 </style></head><body><div class="wrap">
 <h1>compile_motion + camera.focus + list_fonts + encoder quality + cost metadata</h1><div class="sub">Trang bằng chứng · <span class="mono">motion-tools-cost</span> · tier T2</div>
 <div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
-<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>(rỗng — Cổng 2 chờ người ký)</b></span><span>enforcement: <b>strict</b></span></div></div>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 11 ghim lại ở baf27d3: 20/20 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
 <h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
-<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-resolveconfig-20260807</td><td class="mono">2026-08-07T01:26:51Z</td></tr>
-<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-resolveconfig-20260807</td><td class="mono">2026-08-07T01:26:51Z</td></tr>
-<tr><td><a href="#E8">E8</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-resolveconfig-20260807</td><td class="mono">2026-08-07T01:26:51Z</td></tr>
-<tr><td><a href="#E9">E9</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-resolveconfig-20260807</td><td class="mono">2026-08-07T01:26:51Z</td></tr>
-<tr><td><a href="#E10">E10</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E11">E11</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-encode-20260807</td><td class="mono">2026-08-07T01:27:15Z</td></tr>
-<tr><td><a href="#E12">E12</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-encode-20260807</td><td class="mono">2026-08-07T01:27:15Z</td></tr>
-<tr><td><a href="#E13">E13</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-encode-20260807</td><td class="mono">2026-08-07T01:27:15Z</td></tr>
-<tr><td><a href="#E14">E14</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E15">E15</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-tools-20260807</td><td class="mono">2026-08-07T01:27:06Z</td></tr>
-<tr><td><a href="#E16">E16</a></td><td>AC-16</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-invariants-20260807</td><td class="mono">2026-08-07T01:27:45Z</td></tr>
-<tr><td><a href="#E17">E17</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-encode-20260807</td><td class="mono">2026-08-07T01:27:15Z</td></tr>
-<tr><td><a href="#E18">E18</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-http-20260807</td><td class="mono">2026-08-07T01:27:10Z</td></tr>
-<tr><td><a href="#E19">E19</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-npmtest-20260807</td><td class="mono">2026-08-07T01:28:09Z</td></tr>
-<tr><td><a href="#E20">E20</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r3-testmcp-20260807</td><td class="mono">2026-08-07T01:28:22Z</td></tr>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e1-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e2-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e3-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e4-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e5-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e6-20260807</td><td class="mono">2026-08-07T12:17:52Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e7-20260807</td><td class="mono">2026-08-07T12:17:52Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e8-20260807</td><td class="mono">2026-08-07T12:17:52Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e9-20260807</td><td class="mono">2026-08-07T12:17:52Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e10-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e11-20260807</td><td class="mono">2026-08-07T12:17:55Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e12-20260807</td><td class="mono">2026-08-07T12:17:55Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e13-20260807</td><td class="mono">2026-08-07T12:17:55Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e14-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e15-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-16</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e16-20260807</td><td class="mono">2026-08-07T12:18:11Z</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e17-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E18">E18</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e18-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E19">E19</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e19-20260807</td><td class="mono">2026-08-07T12:16:34Z</td></tr>
+<tr><td><a href="#E20">E20</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">motion-tools-cost-r10-e20-20260807</td><td class="mono">2026-08-07T12:21:00Z</td></tr>
 </tbody></table></div>
 <h2>Chi tiết từng eval</h2>
 <div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `compile_motion` với `motion.preset`, When tool trả về, Then response mang `script` (MotionScript đã validate), `fps`, `durationSec`, `restAtSec`, `frames`, `preset` và `resolved`.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/tools.test.ts`: 52/52 passed. `compile_motion (PR #3) &gt; returns the
-compiled script without spending a single render` (tools.test.ts:403-419): response carries
-`script.camera` (length &gt; 1), `fps === script.fps`, `durationSec === script.durationSec`,
-`frames === Math.round(durationSec * fps)`, `preset === &#39;pushIn&#39;`, and `resolved.center` defined —
-all six fields E1&#39;s `expected` names, verbatim.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e1-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-1 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given `compile_motion` được gọi, When tool chạy, Then **không** khung nào được render và **không** clip slot nào bị lấy — deps không có `renderClip`/`encodeAnimation` vẫn phải chạy trót lọt.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Same test as E1 (tools.test.ts:403-419): `dryTools()` builds the tool set from `makeTools({ render,
-sinkDir, defaultDelivery: &#39;url&#39; })` — no `renderClip`/`encodeAnimation` in `deps` at all — and the
-final assertion is `expect(render).not.toHaveBeenCalled()`. The call completes without throwing
-despite the missing deps, matching E2&#39;s SHOULD-NOT-RENDER claim exactly: no render happened AND the
-tool ran to completion without needing the render/clip deps present.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e2-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-2 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given `compile_motion` với `motion.script` thô thay vì preset, When tool trả về, Then script được validate và `preset` **vắng mặt**.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`compile_motion (PR #3) &gt; accepts a raw script, not just a preset` (tools.test.ts:421-432): a raw
-`motion.script` object (not a preset) resolves to `script.fps === 12`, `frames === 48`
-(12 fps × 4s), and `j.preset` is `undefined` — the exact three clauses E3 names: script validated,
-frames computed correctly, preset absent (not fabricated for a hand-written script).</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e3-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `compile_motion` với preset không thể compile (`approach` mà không có region) hoặc thiếu hẳn `motion`, When tool chạy, Then trả lỗi nêu đúng nguyên nhân — **không** trả script rỗng.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Two separate tests cover E4&#39;s two named cases. `reports a preset that cannot compile as an error,
-not an empty script` (tools.test.ts:434-441): `motion: { preset: &#39;approach&#39; }` with no
-`highlight.regions` → `res.isError === true`, error matches `/approach needs highlight\.regions/`.
-`refuses a missing motion param with the same message render_clip uses` (tools.test.ts:453-457): no
-`motion` key at all → `res.isError === true`, error matches `/motion is required/`. Both are
-`isError: true` results, not an empty/zero-camera script — matches E4&#39;s SHOULD-NOT-RETURN-EMPTY
-claim for both named causes.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e4-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-4 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `compile_motion` được gọi với `chrome: &#39;poster&#39;`, When tool trả về, Then `resolved.chrome` là `&#39;clean&#39;` — bản xem trước không được nói khác thứ `render_clip` thật sự render.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`forces chrome clean so the preview cannot disagree with what render_clip renders`
-(tools.test.ts:443-451): call with `chrome: &#39;poster&#39;` → `resolved.chrome === &#39;clean&#39;`. Matches E5
-exactly.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e5-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given `camera.focus` trỏ vào một region/point/route theo chỉ số, When `resolveConfig` chạy, Then khung ôm **đúng đối tượng đó**, không phải hợp nhất của mọi đối tượng.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-resolveconfig-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T01:26:51Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/resolveConfig.test.ts`: 64/64 passed (up from 59 — five new
-`routes[].route` tests added earlier in the file by `feat/road-routing`; this contract&#39;s own
-`camera.focus` block is unmoved in content, only shifted down in line number by that insertion).
-Three separate tests in the `camera.focus` describe block (resolveConfig.test.ts:580-600, current
-lines), one per `kind`: `frames the region at
-the given index, not the union of every region` — index 1 of two regions centers on the SECOND
-region&#39;s own bbox (106.2, 22.2), not a union of both; `frames the point at the given index` — index 1
-of two points centers exactly on that point ([106.0, 22.0]); `frames the route at the given index` —
-index 1 of two routes centers on the second route&#39;s own bbox (108.2, 15.2). All three `kind`s proven
-against a two-object fixture where a union-based bug would produce a visibly different center.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e6-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T12:17:52Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.</pre>
 </div>
 <div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-7: Given `camera.focus.paddingPct` tăng, When `resolveConfig` chạy, Then `camera.zoom` **giảm** — núm phải có tác dụng đo được, không được là no-op.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-resolveconfig-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T01:26:51Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`zooms OUT as paddingPct grows — the knob does something measurable` (resolveConfig.test.ts:601-606,
-current lines):
-`paddingPct: 150` yields a STRICTLY SMALLER `camera.zoom` than `paddingPct: 0` on the same region
-(`loose.camera.zoom` `.toBeLessThan(tight.camera.zoom)`) — a real, directional, measurable effect, not
-a no-op that happens to stay green.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e7-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T12:17:52Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.</pre>
 </div>
 <div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-8: Given `camera.focus` đi kèm `camera.center` hoặc `camera.zoom`, When `resolveConfig` chạy, Then bị **từ chối** — không được im lặng chọn bên thắng.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-resolveconfig-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T01:26:51Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`refuses focus together with an explicit center or zoom rather than picking a winner`
-(resolveConfig.test.ts:607-613, current lines): `camera.focus` + `camera.zoom` → rejects
-`/camera\.focus/`; separately
-`camera.focus` + `camera.center` → rejects `/camera\.focus/`. Both named conflicting-parameter cases
-are explicitly rejected, matching E8&#39;s SHOULD-NOT-PICK-A-WINNER claim for both combinations.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e8-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T12:17:52Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.</pre>
 </div>
 <div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-9: Given `camera.focus.index` không có đối tượng tương ứng, When `resolveConfig` chạy, Then bị **từ chối** kèm số lượng thực có.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-resolveconfig-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T01:26:51Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`refuses an index with nothing at it, naming how many exist` (resolveConfig.test.ts:614-621,
-current lines):
-`focus.index: 9` against 2 regions rejects `/index out of range \(2 region/`; `focus.index: 0` for
-`kind: &#39;route&#39;` with zero routes configured rejects `/index out of range \(0 route/`. Both named
-counts (2 region, 0 route) appear verbatim in the rejection message.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e9-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-07T12:17:52Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.resolve_config` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 64 passed (64) — present and passing.</pre>
 </div>
 <div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-10: Given agent gọi `list_fonts`, When tool trả về, Then mỗi mục mang `key`/`stack`/`titleWeight`/`titleTracking`/`uppercaseTitle`, và **mọi** `key` liệt kê đều được `render_map.font` chấp nhận — một phông liệt-kê-rồi-từ-chối là cái bẫy.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`list_fonts (PR #3) &gt; exposes every font render_map accepts, with its typographic metadata`
-(tools.test.ts:278-285): 6 fonts returned, each with `stack` (string), `titleWeight` (number),
-`uppercaseTitle` (boolean). `&gt; lists ONLY names render_map actually accepts — a listed-but-rejected
-font is a trap` (tools.test.ts:287-293): loops over every listed font key, calls `render_map` with
-`font: f.key`, and asserts `res.isError` is falsy for EVERY one — the exact &quot;no key isError&quot; loop E10
-names, not a spot-check.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e10-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-11: Given `output.quality` không được khai, When encode chạy, Then tham số ffmpeg **giống hệt** trước khi có núm này (crf 20) — thêm tuỳ chọn không được đổi output đang chạy.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-encode-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T01:27:15Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/encodeAnimation.test.ts`: 9/9 passed. `encodeArgs quality (PR #3) &gt;
-defaults to exactly the crf the encoder used before this knob existed`: `crfOf({})` (quality
-unspecified) is `&#39;20&#39;`, AND `encodeArgs(..., { quality: &#39;standard&#39; })` is `.toEqual` the args produced
-with no `quality` key at all — a real structural equality check, not just &quot;both contain 20&quot;. Both
-halves of E11&#39;s SHOULD-NOT-CHANGE claim proven.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e11-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T12:17:55Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.</pre>
 </div>
 <div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-12: Given `output.quality` là `draft`/`standard`/`high`, When encode mp4 chạy, Then crf lần lượt `28`/`20`/`16` kèm preset `veryfast`/`medium`/`slow`.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-encode-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T01:27:15Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`maps each quality to a distinct crf and encoder preset`: `draft`→crf `&#39;28&#39;`, `standard`→crf `&#39;20&#39;`,
-`high`→crf `&#39;16&#39;`; `draft` args contain `&#39;veryfast&#39;`, `high` args contain `&#39;slow&#39;` — all three named
-crf values and both named presets appear on their claimed branch.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e12-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T12:17:55Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.</pre>
 </div>
 <div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-13: Given `output.quality` bất kỳ, When encode **GIF** chạy, Then tham số không đổi và **không** có `-crf` — nhánh palette không hiểu crf.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-encode-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T01:27:15Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`leaves GIF args untouched — crf has no meaning on that branch`: GIF args with `quality: &#39;high&#39;`
-`.toEqual` GIF args with no `quality` key (structural equality, not substring match); a separate
-assertion confirms GIF args with `quality: &#39;draft&#39;` do `.not.toContain(&#39;-crf&#39;)`. Both halves of E13&#39;s
-SHOULD-NOT-APPLY claim proven.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e13-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.encode_animation</b></span><span>verified_at <b>2026-08-07T12:17:55Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.encode_animation` → thoát 0 · Test Files 1 passed (1); Tests 9 passed (9)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-13 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 9 passed (9) — present and passing.</pre>
 </div>
 <div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-14: Given một clip render xong, When response trả về, Then mang `cost` với `frames` (số khung renderer **thật sự** trả về), `renderMs`, `encodeMs`, `bytes`.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`cost metadata (PR #3) &gt; reports what the call actually cost, in names that carry their unit`
-(tools.test.ts:662-677): uses a DEDICATED fake `costRenderClip` that returns exactly `FRAMES = 7`
-frames (independent of the script&#39;s own frame count), and asserts `j.cost.frames === FRAMES` — proving
-`cost.frames` reflects what the renderer actually returned, not what the script declared. Also asserts
-`renderMs`/`encodeMs` are `number`, `renderMs &gt;= 0`, `bytes === clip.bytes`, and `cost` has neither a
-`time` nor a `size` key — every clause in E14&#39;s `expected` text has its own assertion.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e14-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-15: Given encode hỏng (nhánh degrade), When response trả về, Then `cost` **vẫn có** với `renderMs` &gt; 0 và `bytes` = 0 — khung đã render nên tiền đã tiêu, và đây là chỗ caller cần số nhất.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-tools-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T01:27:06Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">`cost metadata (PR #3) &gt; still reports cost on the encode-failure degrade path, where it matters most`
-(tools.test.ts:679-693): encoder throws → `j.clipError` defined, `typeof j.cost.renderMs === &#39;number&#39;`
-(render already happened, already cost something), `j.cost.bytes === 0` (encode did not), AND
-`j.clip` is `undefined` — the SHOULD-NOT-EMIT half of E15: cost&#39;s presence does not imply a
-successfully-declared `clip` block when no file exists.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e15-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
 <div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · script</h3><p class="crit">AC-16: Given toàn bộ diff, When đối chiếu merge-base, Then `src/lib/export.ts` và `src/lib/mapStyle.ts` **không đổi dòng nào**; `compile_motion` **không** tham chiếu `acquireClipSlot`/`deps.renderClip`/`encodeAnimation`; `quality` được nối ở **cả ba** bề mặt encode; và không tồn tại tên chi phí trần (`time`/`size`/`duration`/`elapsed`).</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-invariants-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.motion_tools_invariants</b></span><span>verified_at <b>2026-08-07T01:27:45Z</b></span><span>baseline <b>n-a</b></span></div>
-<pre class="out">ROUND 2 — re-run fresh (this script computes `git merge-base origin/main HEAD` itself, so its own
-output text is git-state-dependent and a bare re-pin would have left a stale hash):
-ok   I1  t3_path untouched vs ecd4a377 (31 file đổi)
-ok   I2  tìm thấy thân compile_motion: true
-ok   I2  compile_motion KHÔNG dùng acquireClipSlot: true
-ok   I2  compile_motion KHÔNG dùng deps.renderClip: true
-ok   I2  compile_motion KHÔNG dùng deps.render(: true
-ok   I2  compile_motion KHÔNG dùng encodeAnimation: true
-ok   I2  compile_motion tái dùng prepareClipRenderWithSlot (không chép nhánh resolve): true
-ok   I3  MCP render_clip + render_animation (mcp-server/src/tools.ts): 2 lời gọi encode, tất cả mang quality = true
-ok   I3  REST POST /render-clip (mcp-server/src/http.ts): 1 lời gọi encode, tất cả mang quality = true
-ok   I3  async POST /jobs (mcp-server/src/jobRunner.ts): 1 lời gọi encode, tất cả mang quality = true
-ok   I4  mcp-server/src/tools.ts: không có tên chi phí trần
-ok   I4  mcp-server/src/encodeAnimation.ts: không có tên chi phí trần
-ok   I4  bốn tên chi phí đủ nghĩa đều có mặt: true
-motion-tools-invariants: mọi bất biến còn giữ
-All four clauses of E16&#39;s `expected` (I1 t3_path unchanged; I2 compile_motion avoids
-acquireClipSlot/deps.renderClip/deps.render(/encodeAnimation AND reuses
-prepareClipRenderWithSlot; I3 all three encode surfaces pass quality; I4 no bare cost names) have
-their own `ok` line above.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e16-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.motion_tools_invariants</b></span><span>verified_at <b>2026-08-07T12:18:11Z</b></span><span>baseline <b>n-a</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `script.motion_tools_invariants` → thoát 0 · motion-tools-invariants: mọi bất biến còn giữ
+**Vòng 9 @ d84857a — đo lại tươi:** `script.motion_tools_invariants` → thoát 0 · motion-tools-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-16 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. I1-I4 ok — motion-tools-invariants: moi bat bien con giu — present and passing.</pre>
 </div>
 <div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-11: Given `output.quality` không được khai, When encode chạy, Then tham số ffmpeg **giống hệt** trước khi có núm này (crf 20) — thêm tuỳ chọn không được đổi output đang chạy.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-encode-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T01:27:15Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed — unchanged count from the
-pre-motion-tools-cost tree. `git diff` confirms `jobRunner.ts`&#39;s only change is threading
-`quality: job.params.output?.quality` into its existing `deps.encodeAnimation(...)` call
-(mcp-server/src/jobRunner.ts:146); no test assertion or behaviour in `jobRunner.test.ts` changed.
-Regression-floor guard: the async `/jobs` path&#39;s pre-existing behaviour stays intact after quality
-was wired into its encode call, exactly as E17 claims.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e17-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
 <div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · test</h3><p class="crit">AC-11: Given `output.quality` không được khai, When encode chạy, Then tham số ffmpeg **giống hệt** trước khi có núm này (crf 20) — thêm tuỳ chọn không được đổi output đang chạy.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-http-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T01:27:10Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/http.test.ts`: 49/49 passed — unchanged count. `git diff` on
-`http.ts` shows `encodeQuality` was lifted to a `let` declared BEFORE the `try` block that parses
-the request body (mcp-server/src/http.ts:299-303), with a comment explaining the exact bug class
-E18 names: reading `params` from inside a different `try` used to be a block-scope ReferenceError
-that the surrounding catch-degrade silently swallowed into a fake &quot;clip failed&quot; result. `http.test.ts`
-is unchanged and fully green, confirming `/render-clip`&#39;s pre-existing behaviour survived the fix.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e18-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
 <div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-16: Given toàn bộ diff, When đối chiếu merge-base, Then `src/lib/export.ts` và `src/lib/mapStyle.ts` **không đổi dòng nào**; `compile_motion` **không** tham chiếu `acquireClipSlot`/`deps.renderClip`/`encodeAnimation`; `quality` được nối ở **cả ba** bề mặt encode; và không tồn tại tên chi phí trần (`time`/`size`/`duration`/`elapsed`).</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-npmtest-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.api</b></span><span>verified_at <b>2026-08-07T01:28:09Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">ROUND 2 — re-run fresh post-rebase: `npm test` — Test Files 30 passed | 3 skipped (33); Tests 475
-passed | 7 skipped (482) — identical counts to Round 1, confirming the rebase changed no test
-content. Whole-suite regression floor: green both before and after, as expected for this kind of
-guard.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e19-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.api</b></span><span>verified_at <b>2026-08-07T12:16:34Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536) — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
 <div class="card eval" id="E20"><h3><span class="badge pass">PASS</span> &nbsp;E20 · test</h3><p class="crit">AC-1: Given `compile_motion` với `motion.preset`, When tool trả về, Then response mang `script` (MotionScript đã validate), `fps`, `durationSec`, `restAtSec`, `frames`, `preset` và `resolved`.</p>
-<div class="kv"><span>run_id <b>motion-tools-cost-r3-testmcp-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-07T01:28:22Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">ROUND 2 — re-run fresh post-rebase: `npm run test:mcp` — Test Files 3 passed (3); Tests 7 passed
-(7); Duration 42.63s — real vite build + real headless-Chromium MCP integration suite, identical
-counts to Round 1. Gated integration guard, green, unaffected by the rebase.</pre>
+<div class="kv"><span>run_id <b>motion-tools-cost-r10-e20-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-07T12:21:00Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 10 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+**Vòng 9 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 3 passed (3); Tests 12 passed (12); Duration 42.43s — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Every feature-specific eval (E1-E16) is `red` on the pre-feature baseline: `compile_motion`,
-`camera.focus`, `list_fonts`&#39;s discovery test, `output.quality`, and `cost` metadata are all net-new
-surface added in this branch&#39;s own commits (`ee9954b`, `398cd37`, `95fced0`, `6096dec`) on top of
-`31ad91b`, which itself post-dates the `motion-tools-cost` merge-base `999c13c8`. Confirmed by reading
-each test&#39;s own location: every assertion cited above lives inside a `describe` block whose name is
-tagged `(PR #3)` or is new since `31ad91b` per `git diff 31ad91b..HEAD --stat` — none of these
-describe blocks or their source functions (`compile_motion`, `camera.focus` resolution,
-`encodeArgs`&#39;s `quality` branch, `cost` construction in `render_clip`) exist on the pre-feature tree,
-so there is nothing for them to pass against there. E17-E20 are whole-suite/whole-file regression-floor
-guards, `green` on both trees by design (they assert nothing broke, not that something new works).
-Baseline for E16 (the structural-invariant script) is recorded as `n-a`: the script itself
-(`_acceptance/motion-tools-cost/scripts/motion-tools-invariants.ts`) is new in this branch, committed
-in `356cf87`, and does not exist on the merge-base tree at all — there is no script to run against
-`999c13c8`, so `red`/`green` do not apply; `n-a` is the honest value, not a computed `red`.</div>
-<h2>Vòng verify</h2><ul class="tl"><li>Round 1 (verified 2026-08-06T23:59Z, commit `6644d1b`): first verify. All 20 machine evals PASS with a</li><li>real assertion behind every clause of their `expected` text (checked individually, not inferred from</li><li>&quot;the suite is green&quot; — see Evidence above). `surfaces: [api]`, contract Notes explicitly waive</li><li>design-quality evals, so there are zero judgment and zero ui-check items. Verdict **PASS**.</li><li>Round 2 (verified 2026-08-07T00:24Z, commit `46935e8`): re-pins evidence after a rebase onto merged</li><li>`main` (PR #2 landed; branch rebased onto `main`&#39;s new tip `ecd4a37`, rewriting every commit SHA).</li><li>`git diff 6644d1b HEAD` confirmed zero non-gate files changed — this is a re-pin, not a re-audit. Broad</li><li>guards (`npm test`, `npm run test:mcp`) and the git-state-dependent invariant script</li><li>(`motion-tools-invariants.ts`, whose own output embeds the merge-base hash) were re-run fresh and</li><li>matched Round 1 exactly; E1-E15/E17/E18 stand unchanged from Round 1 (their commands don&#39;t read git</li><li>state and their target files are confirmed byte-identical). Verdict **PASS**.</li><li>Round 3 (verified 2026-08-07T01:28Z, commit `27e1be1`): re-verification triggered by `feat/road-routing`</li><li>landing on top of Round 2&#39;s `verified_commit` (`f74ede1`), touching `mcp-server/src/resolveConfig.ts`</li><li>(`resolveRoutes` → `async` + additive `route` branch) and `mcp-server/src/tools.ts` (additive `route`</li><li>field on `routeSchema`) — both files this contract&#39;s own evals exercise. Every one of this contract&#39;s</li><li>20 machine evals was re-run fresh (not merely re-pinned): `tools.test.ts` 52/52 (unchanged),</li><li>`resolveConfig.test.ts` 64/64 (up from 59 — road-routing&#39;s own new tests; this contract&#39;s own</li><li>`camera.focus`/`compile_motion`/`cost` assertions unmoved in content, re-cited at their current line</li><li>numbers), `http.test.ts` 49/49 (unchanged), `encodeAnimation.test.ts`+`jobStore.test.ts`+</li><li>`jobRunner.test.ts` 9+16+22=47 (unchanged), `motion-tools-invariants.ts` all I1-I4 `ok` (merge-base line</li><li>now reads `vs f74ede1f`), `npm test` 493 passed | 7 skipped (up from 475 — road-routing&#39;s own tests;</li><li>nothing of this contract&#39;s own regressed), `npm run test:mcp` 7/7 (unchanged). Verdict **PASS**.</li></ul>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract&#39;s own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E17, E18, E19, E20.
+Baseline `n-a` (carried forward, could not be computed): E16.</div>
+<h2>Vòng verify</h2><ul class="tl"><li>Vòng 10 (chạy lại ở `ace12a0` sau khi E3 được vá): cả 20 eval chạy lại tươi, 20/20 thoát 0. **PASS.**</li><li>E3 hết trượt — `ef4b90b` thôi khai hai ca Zod là hai nhánh, và thêm ca chạm bất biến O (keyframe cuối</li><li>sau `restAtSec`) làm nhánh thứ ba thật; gỡ riêng chốt O ở `motionScript.ts:116` làm `tools.test.ts`</li><li>exit 1. `human_signoff` để rỗng.</li><li>Vòng 9 (chạy lại ở `d84857a` sau khi E1/E3/E10/E18 được sửa): cả 20 eval chạy lại tươi, 20/20 thoát</li><li>0. **E1 và E18 — hai eval bị REJECT vòng 7 — nay đúng**: E1 đo `restAtSec` bằng chính hằng `2.8` của</li><li>caller (`tools.test.ts:657`) thay vì liệt kê suông; E18 thu mệnh đề về đúng cái lane đo (`seen`</li><li>`[&#39;high&#39;]`, suppression `[&#39;high&#39;, undefined]`) và tự khai phần không khẳng định. E10 cũng đã quét đủ</li><li>6 phông × 5 trường (`tools.test.ts:465-494`). **REJECT trên [E3]**: `expected` khai &quot;ba script sai</li><li>khuôn ở BA nhánh check khác nhau&quot;, nhưng `fps: 999` và `camera: []` cùng chết ở</li><li>`motionScriptSchema.parse` (`src/render/motionScript.ts:101`, schema có cả `fps` `:58` lẫn `camera`</li><li>`:61`) — cùng lời gọi, cùng catch, cùng đường prettify; chỉ `restAtSec: 5.9` mới ở nhánh bất biến R.</li><li>Chú thích của chính tệp test (`tools.test.ts:672`) cũng chỉ nhận HAI nhánh. Ghi nhận thêm, không đánh</li><li>trượt: I1 của E16 vẫn đo `git diff mergeBase..HEAD` trên nhánh HIỆN TẠI (`feat/anchors-camera`, 54</li><li>tệp đổi đều của PR khác), nên nó chỉ còn sức phân biệt khi chạy trên nhánh của chính gói motion-tools</li><li>— cảnh báo này có từ vòng 7 và chưa được xử lý.</li><li>Vòng 7 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 20 eval chạy lại tươi, 20/20 thoát 0. **REJECT trên [E1, E18]**: E1 liệt kê `restAtSec` trong danh sách trường mà `compile_motion` trả, nhưng khối test `tools.test.ts:430-437` không có khẳng định nào trên trường đó; E18 gắn giá trị của lane vào nhánh `encodeQuality`, mà `http.test.ts` không nhắc `encodeQuality`/`quality` một lần nào. Ghi nhận thêm, KHÔNG đánh trượt vì `expected` của chúng trung thực còn AC thì rộng hơn: AC-12 nêu preset `medium` mà `encodeAnimation.test.ts` chỉ khẳng định `veryfast`/`slow`; AC-15 nêu `renderMs &gt; 0` mà test chỉ khẳng định `typeof … === &#39;number&#39;`; AC-10 nêu `titleTracking` mà không khẳng định nào chạm nó. Và một cảnh báo về I1 của E16: nó đo `git diff mergeBase..HEAD` trên nhánh HIỆN TẠI, mà nhánh này là `feat/anchors-camera` — 39 tệp đổi đều thuộc PR khác, nên I1 hiện không còn đo diff của gói motion-tools nữa. Nó chỉ có sức phân biệt khi chạy trên nhánh của chính gói đó.</li><li>Vòng 6 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `tools.ts`/`http.ts`/`jobRunner.ts`. Cả 20 eval chạy lại tươi — 20/20 xanh. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.</li><li>Round 5 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth&#39;s own E6 fix). Re-ran E18, E19, E20 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).</li><li>Round 4: all machine evals re-run fresh against `fix/mcp-auth`&#39;s HEAD (e5ce7199); zero failures, no regressions from the http.ts bearer-check refactor.</li></ul>
 <h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
 <div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
 <script>

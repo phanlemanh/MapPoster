@@ -1,0 +1,6 @@
+{
+  "feature_plain": "Agent hỏi được đường đi thực tế từ chỗ này tới chỗ kia và nhận về đường bám mặt đường kèm số ki-lô-mét và số phút.",
+  "scope_plain": "Chưa tự dựng máy tìm đường riêng, chưa có nhà cung cấp thứ hai, chưa vẽ dần tuyến trong video, và bên gọi không được tự chọn máy tìm đường.",
+  "decisions": [],
+  "decisions_plain": []
+}

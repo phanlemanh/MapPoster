@@ -78,6 +78,14 @@
     {
       "id": "d-20260805T092412Z-9154",
       "p": "Kết quả clip ở đường mới mang đủ thời lượng và số khung mỗi giây như đường cũ — đổi lại bên tiêu thụ dọn sang không mất dữ liệu trong im lặng."
+    },
+    {
+      "id": "d-20260805T222956Z-gate2",
+      "p": "Chốt duyệt ở vòng 5 và ghi nhận 8 việc còn dang dở thay vì soi tiếp — đổi lại, việc dọn sổ trước khi xoá tệp có thể để lại tệp mồ côi mà không ai truy lại được."
+    },
+    {
+      "id": "d-20260806T024804Z-a017",
+      "p": "KHÔNG làm nốt phần còn thiếu của lối tra tên địa danh ngược lần này — đổi lại, khi dịch vụ bản đồ ngoài ngã, người gọi bị báo nhầm là họ nhập sai nên sẽ không thử lại."
     }
   ]
 }

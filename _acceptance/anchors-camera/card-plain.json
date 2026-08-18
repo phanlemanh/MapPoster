@@ -1,0 +1,6 @@
+{
+  "feature_plain": "Video bản đồ trả kèm chỗ đứng của từng điểm và từng vùng trên khung hình, để lớp chữ bên ngoài đặt nhãn giá đúng vị trí mà không phải dò ảnh.",
+  "scope_plain": "Chưa đo được chỗ đứng khi bản đồ nghiêng, chưa có chỗ đứng cho tuyến đường, và ghim vẽ sẵn trong ảnh có thể lệch khoảng hai điểm ảnh so với chỗ đứng trả về.",
+  "decisions": [],
+  "decisions_plain": []
+}

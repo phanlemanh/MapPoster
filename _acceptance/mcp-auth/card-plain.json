@@ -1,0 +1,6 @@
+{
+  "feature_plain": "Cửa điều khiển bản đồ nay đòi khoá mới cho vào, và nếu mở ra ngoài máy nội bộ mà thiếu khoá thì máy chủ từ chối khởi động thay vì chạy toang.",
+  "scope_plain": "Chưa đổi sang cách đăng nhập khác, chưa giới hạn số lần gọi theo từng khoá, và chạy tại chỗ trên máy mình vẫn không cần khoá.",
+  "decisions": [],
+  "decisions_plain": []
+}

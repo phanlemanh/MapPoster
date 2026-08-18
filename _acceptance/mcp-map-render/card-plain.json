@@ -245,6 +245,114 @@
     {
       "id": "d-20260710T160000Z-51003",
       "p": "Dấu thời gian của bài kiểm giao diện sai ba vòng liên tiếp; tiêu chí đó đang được chống lưng bởi lần chạy test do chính phiên này thực hiện, không phải bởi bài kiểm đó."
+    },
+    {
+      "id": "d-20260710T170000Z-52001",
+      "p": "Người duyệt xem ảnh poster dựng qua trợ lý rồi chấp nhận đạt — đổi lại, vùng tô sáng do người gọi tự cấp hình khối vẫn chưa được kiểm cấu trúc ở cửa vào."
+    },
+    {
+      "id": "d-20260710T170000Z-52002",
+      "p": "Chữ ký vòng đó do máy tạo commit chứ không phải người tự gõ — đổi lại, chốt «người phải tự ký» khi ấy chỉ có hiệu lực nhờ máy tự kiềm chế, không nhờ cơ chế."
+    },
+    {
+      "id": "d-20260710T171000Z-53001",
+      "p": "Phát hiện chính bộ cổng hỏng: bước kiểm lại bằng chứng đã lưu chưa từng chạy nổi lần nào trong kho này — đổi lại, mọi lần chạy trước đều dừng sớm nên không ai biết."
+    },
+    {
+      "id": "d-20260710T171000Z-53002",
+      "p": "Chữa bằng cách thêm khai báo riêng cạnh bộ cổng thay vì sửa file do bộ cổng sở hữu — đổi lại, bản nâng cấp bộ cổng sau này không ghi đè mất bản chữa."
+    },
+    {
+      "id": "d-20260710T180500Z-54001",
+      "p": "Rút lại một khẳng định sai đã nói với người duyệt về cách cổng kiểm mốc mã nguồn — đổi lại, hoá ra chốt đó vừa bắt đúng hai file vừa thêm."
+    },
+    {
+      "id": "d-20260710T180500Z-54002",
+      "p": "Chọn chạy lại vòng nghiệm thu thay vì nới danh sách miễn trừ cho chính mình đi qua — đổi lại, tốn thêm một vòng nhưng cổng không bị tự nới."
+    },
+    {
+      "id": "d-20260710T190000Z-55001",
+      "p": "Vòng 9 dừng vì hạ tầng chết giữa chừng chứ không phải vì sản phẩm sai — đổi lại, chạy tiếp từ điểm dừng thay vì hạ cấp thành đạt."
+    },
+    {
+      "id": "d-20260710T200000Z-56001",
+      "p": "Đo thật và thấy tô sáng cả một thành phố thì ảnh không dựng nổi, treo hơn 22 giây rồi báo hết giờ — đổi lại, lộ ra đây đúng là việc gốc dự án cần mà chín vòng kiểm trước bỏ lọt vì chỉ thử một quận."
+    },
+    {
+      "id": "d-20260710T200000Z-56002",
+      "p": "KHÔNG hợp nhất khi còn một lỗi nặng chưa đóng — đổi lại, giữ đúng luật dừng người duyệt đặt từ vòng 5."
+    },
+    {
+      "id": "d-20260710T205000Z-57001",
+      "p": "Chữa tận gốc: dữ liệu dựng ảnh thôi nhét vào đường dẫn mà giữ trong bộ nhớ tiến trình — đổi lại, tô sáng cả thành phố từ treo-hết-giờ nay ra ảnh trong 7 giây."
+    },
+    {
+      "id": "d-20260710T205000Z-57002",
+      "p": "Cấu hình sai kiểu số nay báo lỗi ngay lúc khởi động thay vì âm thầm tắt giới hạn — đổi lại, máy dừng sớm và nói thẳng tên biến sai."
+    },
+    {
+      "id": "d-20260710T205000Z-57003",
+      "p": "Thêm một phép thử hồi quy dựng ảnh thật với vùng lớn — đổi lại, đây là phép thử lẽ ra phải có từ vòng đầu, có nó thì lỗi nặng đã không lọt chín vòng."
+    },
+    {
+      "id": "d-20260710T210000Z-58001",
+      "p": "Siết tiêu chí nghiệm thu: bắt buộc dựng nổi vùng cỡ cả thành phố, và cấu hình số phải kiểm lúc khởi động — đổi lại, chỉ thêm ràng buộc chứ không nới cái nào."
+    },
+    {
+      "id": "d-20260710T213500Z-59001",
+      "p": "Vòng 10 chết trước khi kịp ghi báo cáo — đổi lại, sửa hai lỗi đã tìm được rồi chạy lại để có báo cáo ghim đúng mốc mã nguồn."
+    },
+    {
+      "id": "d-20260710T213500Z-59002",
+      "p": "Đo thật và thấy hai tham số góc nhìn máy ảnh bị nuốt im lặng, đặt gì cũng ra ảnh y hệt — đổi lại, chữa xong thì ba góc cho ra ba ảnh khác nhau."
+    },
+    {
+      "id": "d-20260710T213500Z-59003",
+      "p": "Một lỗi do chính máy gây ra ở vòng trước lọt lưới vì thư mục kịch bản chưa từng được kiểm kiểu — đổi lại, đưa thư mục đó vào diện kiểm để không tái diễn."
+    },
+    {
+      "id": "d-20260710T220000Z-60001",
+      "p": "Rút lại cáo buộc bằng chứng bị dùng lại đã nêu suốt ba vòng — đổi lại, nguyên nhân là máy đem giờ địa phương so với giờ quốc tế, bằng chứng thực ra đều tươi."
+    },
+    {
+      "id": "d-20260710T220000Z-60002",
+      "p": "Vòng 11 chuyển sang chờ người quyết vì máy chạy sạch và không còn lỗi nặng — đổi lại, còn hai lỗi vừa và một lỗi nhẹ để người cân."
+    },
+    {
+      "id": "d-20260710T220000Z-60003",
+      "p": "Chấp nhận ba rủi ro và mở việc riêng sau khi đẩy mã — đổi lại, một yêu cầu hợp lệ vẫn có thể xếp hàng rất nhiều lượt dựng ảnh, hoặc gọi dịch vụ tra địa danh liên tục hàng giờ."
+    },
+    {
+      "id": "d-20260711T000000Z-61001",
+      "p": "Xếp file cấu hình chạy tự động vào diện miễn trừ thay vì nghiệm thu lại từ đầu — đổi lại, chỉ miễn thứ không phải mã chạy thật, không nới chốt đúng-sai."
+    },
+    {
+      "id": "d-20260711T015500Z-62001",
+      "p": "Vòng 13 bị tưởng là chết giữa chừng nên định chạy lại — đổi lại, báo cáo cũ không bị ghi đè nên chữ ký vẫn còn nguyên."
+    },
+    {
+      "id": "d-20260711T020000Z-62002",
+      "p": "Rút lại kết luận vòng 13 đã chết — đổi lại, nó vẫn đang chạy, và bài học là đừng khẳng định trạng thái khi chưa kiểm đủ."
+    },
+    {
+      "id": "d-20260711T023000Z-63001",
+      "p": "Vòng 13 chờ người quyết và không còn lỗi nặng — đổi lại, người duyệt chọn sửa hai lỗi phép thử rồi nghiệm thu lần cuối."
+    },
+    {
+      "id": "d-20260711T023000Z-63002",
+      "p": "Hai phép thử tích hợp nay chạy tuần tự và tự chặn kiểu đạt-giả — đổi lại, chậm hơn nhưng thôi xanh nhầm."
+    },
+    {
+      "id": "d-20260711T023000Z-63003",
+      "p": "Chấp nhận lần bắt tay đầu tiên bị chặn khoảng 10 giây vì máy dựng bản chạy xong mới phục vụ — đổi lại, cách khác chỉ dời khối chặn sang lúc dựng ảnh chứ không làm nó biến mất."
+    },
+    {
+      "id": "d-20260806T053449Z-24605",
+      "p": "Ký lại cả ba hợp đồng ở cùng một mốc mã nguồn — đổi lại, ảnh và clip minh hoạ dùng lại từ vòng trước, hợp lệ vì đường dựng chúng không đổi một ký tự."
+    },
+    {
+      "id": "d-20260818T031406Z-ooc13",
+      "p": "Ghi nhận một lỗ của bộ dựng thẻ: hồ sơ gốc có 13 lỗi ngoài hợp đồng nhưng thẻ chỉ dựng ra 3 mà không báo gì — đổi lại, vòng này người duyệt phải đọc thẳng hồ sơ gốc, còn bộ thẻ cần thêm cờ khi số mục dựng được ít hơn số mục đếm được."
     }
   ]
 }

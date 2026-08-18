@@ -1,0 +1,22 @@
+{
+  "feature_plain": "MapPoster dựng được video bản đồ chuyển động — bay vào địa điểm, vẽ dần ranh giới, rồi đứng hẳn lại — và giao video đó không có chữ, để lớp chữ bên ngoài tự đặt.",
+  "scope_plain": "Chưa nhận việc theo mã việc (mỗi clip giữ đường dây khoảng hai phút), chưa vẽ dần tuyến đường, chưa nghiêng hay xoay trình diễn, chưa ảnh vệ tinh, và chưa có âm thanh.",
+  "decisions": [
+    {
+      "id": "E16",
+      "q": "Đoạn video này có ra ba nhịp rõ — mở, vẽ ranh, đứng yên — không?",
+      "why": "Máy chỉ đo được video có đủ khung hình và đuôi có đứng yên về mặt số liệu. Chỉ anh mới quyết được nó có NGHĨA: mở đầu có thấy bối cảnh thành phố không, ranh giới quận có vẽ dần chứ không hiện đột ngột không, đuôi có đứng hẳn không. Đây đúng là câu hỏi gốc mà cả gói này sinh ra để trả lời."
+    },
+    {
+      "id": "E17",
+      "q": "Chỉ mỗi dòng ghi nguồn bản đồ được in vào ảnh — chấp nhận chứ?",
+      "why": "Cả gói dựng trên một nguyên tắc: chữ không được in vào ảnh, để lớp chữ bên ngoài kiểm soát nội dung và cổng chống bịa còn hiệu lực. Gói này mở đúng MỘT ngoại lệ — dòng ghi nguồn bản đồ, là nghĩa vụ giấy phép bắt buộc. Anh quyết ngoại lệ đó chính đáng và đã khoá đủ chặt, hay là một lỗ vừa được hợp thức hoá."
+    }
+  ],
+  "decisions_plain": [
+    {
+      "id": "d-20260806T053449Z-7733",
+      "p": "Ký lại cả ba hợp đồng ở cùng một mốc mã nguồn thay vì ký lẻ từng cái — đổi lại, ảnh và clip minh hoạ dùng lại từ vòng trước, hợp lệ vì đường dựng chúng không đổi một ký tự."
+    }
+  ]
+}

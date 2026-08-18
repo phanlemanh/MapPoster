@@ -1,0 +1,6 @@
+{
+  "feature_plain": "Agent vẽ được tuyến đường lên bản đồ và hỏi được số đo hình học — bao xa, rộng bao nhiêu, tuyến dài bao nhiêu.",
+  "scope_plain": "Chưa tự tìm đường thực tế giữa hai chỗ, chưa vẽ dần tuyến trong video, chỉ đo được giữa hai điểm chứ chưa đo giữa hai vùng, và chưa xử được tuyến vắt qua đường đổi ngày.",
+  "decisions": [],
+  "decisions_plain": []
+}

@@ -1,0 +1,35 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;padding:24px"><style>
+.gc{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:640px;margin:0 auto;color:#1f1f1d;line-height:1.5}
+.gc .card{background:#fff;border:1px solid #e6e4de;border-radius:14px;padding:16px 18px}
+.gc .h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.gc .ft{font-size:16px;font-weight:600}.gc .sub{font-size:12px;color:#6c6a64;margin-top:2px}
+.gc .chip{font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.gc .amber{background:#FAEEDA;color:#633806}.gc .teal{background:#E1F5EE;color:#085041}.gc .coral{background:#FAECE7;color:#712B13}.gc .gray{background:#f1efe8;color:#444441}
+.gc .lab{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#8a887f;margin:16px 0 8px;font-weight:600}
+.gc .grp{border-radius:10px;padding:11px 14px;margin-bottom:8px}.gc .gdo{background:#E1F5EE}.gc .gnot{background:#f4f2ec}
+.gc .li{font-size:14px;margin:0 0 6px;padding-left:17px;position:relative}.gc .li:last-child{margin-bottom:0}
+.gc .li:before{content:"";position:absolute;left:1px;top:7px;width:7px;height:7px;border-radius:50%}
+.gc .gdo .li{color:#085041}.gc .gdo .li:before{background:#1D9E75}.gc .gnot .li{color:#56544d}.gc .gnot .li:before{background:#b4b2a9}
+.gc .item{background:#FAEEDA;border:1px solid #EF9F27;border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.gc .q{font-size:14px;font-weight:600;color:#412402;margin:0 0 3px}.gc .ai{font-size:12px;color:#854F0B;margin:0 0 9px}
+.gc .flag{display:flex;gap:8px;font-size:13px;padding:8px 11px;border-radius:9px;margin-bottom:6px}
+.gc .fwarn{background:#FAEEDA;color:#633806}.gc .finfo{background:#f4f2ec;color:#56544d}.gc .fok{background:#E1F5EE;color:#085041}.gc .fred{background:#FAECE7;color:#712B13}
+.gc .mach{background:#f4f2ec;border-radius:9px;padding:11px 13px;font-size:13px;color:#56544d}.gc .mach b{color:#1f1f1d}
+.gc .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-top:12px;border-top:1px solid #e6e4de}
+.gc .rev{font-size:12px;color:#9a988f}
+.gc .btns{display:flex;gap:8px}
+.gc .b{font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid;background:transparent;cursor:pointer}
+.gc .bn{border-color:#cfcdc4;color:#3f3e39}.gc .yes{background:#E1F5EE;border-color:#5DCAA5;color:#085041;font-weight:600}.gc .no{border-color:#F0997B;color:#993C1D}
+</style>
+<div class="gc"><div class="card">
+<div class="h"><div><div class="ft">Video bản đồ trả kèm chỗ đứng của từng điểm và từng vùng trên khung hình, để lớp chữ bên ngoài đặt nhãn giá đúng vị trí mà không phải dò ảnh.</div><div class="sub">Cổng 2 · ký duyệt</div></div><span class="chip teal">máy đã xong — ký nhanh</span></div>
+<a href="evidence-page.html" style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#E6F1FB;border:1px solid #B5D4F4;border-radius:10px;padding:9px 13px;margin:11px 0 2px;text-decoration:none;color:#0C447C;font-size:13px"><b>Bằng chứng đầy đủ — ảnh chụp + chạy thật</b><span style="font-size:12px;color:#185FA5;white-space:nowrap">đã mở trong trình duyệt</span></a>
+<div class="lab">Việc chỉ mình bạn quyết được — 1 việc</div>
+<div class="item"><p class="q">Xác nhận các phần đã cắt/hoãn ngoài phạm vi:</p><p class="ai">Chưa đo được chỗ đứng khi bản đồ nghiêng, chưa có chỗ đứng cho tuyến đường, và ghim vẽ sẵn trong ảnh có thể lệch khoảng hai điểm ảnh so với chỗ đứng trả về.</p><div class="btns"><button class="b bn">Đồng ý cắt</button><button class="b no">Không, kéo vào</button></div></div>
+<div class="lab">Lưu ý trước khi ký</div><div class="flag fred">Không tính được baseline A/B thật cho vòng này: mọi khối test của gói (anchors.test.ts, anchors-invariants.ts, khối trang giả trong renderFrame.test.ts, các khối PR #6 trong tools/http/jobRunner/renderClip.test.ts, bốn ca anchors trong e2e) đều là tệp hoặc khối MỚI — trên diffBase chúng không tồn tại, nên không có phép đo cũ để so. Ghi n-a thay vì bịa red. Bù lại bằng thứ mạnh hơn baseline, làm trực tiếp trong vòng này: đột biến E1 (4 ca đỏ khi nhét lại lỗi một-mẫu-số) và đối chứng âm NEG-E8 (byte lệch khi camera bị dời). Cả hai chứng minh khẳng định phân biệt được, chứ không chỉ chứng minh nó từng đỏ trên cây mã cũ. Không phân biệt (xanh trên cả hai phía, đúng thiết kế): E19 và E20 — hai regression guard tổng. E19 chứng minh gói này KHÔNG đụng hai t3_path; E20 chứng minh không bề mặt nào hồi quy. Cả hai là guard cố ý, không phải eval hỏng.</div><div class="flag fred">Có eval ngẫu nhiên (pass-rate hỗn hợp) — Không lệnh nào đi qua ctx.providers.invoke hay một bộ sinh LLM. Mọi lane Node đều tất định, chạy một lần, thoát 0. MỘT lane KHÔNG tất định — config:executors.test.mcp (E11). Vòng này phải chạy nó bốn lần: | lần | kết quả | ca đỏ | |---|---|---| | 1 | 1 failed \| 11 passed (12), 88,84 s | renderClip.test.ts › &quot;pitch != 0: clip VẪN render đủ khung + settle&quot; | | 2 | 1 failed \| 11 passed (12), 97,74 s | renderFrame.test.ts › &quot;renders a config far larger than a URL could carry (&gt;16 KB)&quot; | | 3 | 12 passed (12), 87,37 s | — | | 4 | 12 passed (12), 65,80 s | — | Cả hai lần đỏ là TimeoutError: page.waitForFunction: Timeout 20000ms exceeded ở renderFrame.ts:137/:219, và hai ca khác nhau đỏ — dấu hiệu của trần thời gian, không phải của một khẳng định hỏng. Hai lần đỏ rơi vào lúc load average ~21-28 (bốn lane kiểm song song); hai lần xanh chạy khi máy rảnh. Mạng không phải nguyên nhân: curl https://tiles.openfreemap.org/planet trả 200 trong 0,40 s ngay giữa vòng. Đây đúng là rủi ro mà _acceptance/config.yaml đã ghi trong chú thích feature_loop.suite_keys (trần chờ 20 s vỡ khi hai bộ trình duyệt giành nhau). Khối bằng chứng của E11 ghim lần chạy thứ 4 (05:55:15Z, thoát 0). Người ký nên biết: lane này không tất định dưới tải; CI chạy song song sẽ đỏ giả. Đây là món nợ vận hành, không phải lỗi của gói anchors-camera.</div><div class="flag fok">Cổng chạy thật, bằng chứng máy đầy đủ (run_id · exit 0 · verifier).</div>
+<details style="margin-top:14px"><summary style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#8a887f;font-weight:600;cursor:pointer">Máy đã lo (liếc qua, không cần làm gì)</summary>
+<div class="mach" style="margin-top:8px"><b>20/20 phép kiểm máy đều đạt</b> · 2 canh hồi quy · bằng chứng đủ, không lỗi.</div>
+</details>
+<div class="lab">👉 VIỆC CỦA ANH</div><div class="grp gdo"><p class="li"><b>Xác nhận phần cắt/hoãn</b> — làm gì: đọc mục xác nhận phạm vi ở trên; ở đâu: trả lời trong phiên đang trình thẻ; trả lời dạng: «đồng ý cắt» hoặc «kéo vào: nêu mục».</p><p class="li"><b>Ký hay trả</b> — làm gì: sau khi trả lời các mục trên, chốt hồ sơ; ở đâu: trả lời trong phiên đang trình thẻ; trả lời dạng: «Ký» hoặc «Trả lại: nêu lý do».</p><p class="li">Trả lời mẫu (một dòng, điền vào chỗ trống): «cắt/hoãn: ___; ký hay trả: ___»</p></div>
+<div class="foot"><span class="rev">↻ Đảo ngược dễ: trả lại → quay về code, không mất gì.</span><div class="btns"><button class="b no">Trả lại</button><button class="b yes">Ký duyệt</button></div></div>
+</div></div>

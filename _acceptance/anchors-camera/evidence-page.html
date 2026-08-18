@@ -1,0 +1,333 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · anchors-camera</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>resolved.anchors + resolved.camera — toạ độ màn hình cho tầng DOM</h1><div class="sub">Trang bằng chứng · <span class="mono">anchors-camera</span> · tier T2</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 6 ghim lại ở baf27d3: 20/20 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e1-20260807</td><td class="mono">2026-08-07T12:17:57Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-1</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e2-20260807</td><td class="mono">2026-08-07T12:18:05Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e3-20260807</td><td class="mono">2026-08-07T12:17:57Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e4-20260807</td><td class="mono">2026-08-07T12:17:57Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e5-20260807</td><td class="mono">2026-08-07T12:17:57Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e6-20260807</td><td class="mono">2026-08-07T12:19:20Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-5</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e7-20260807</td><td class="mono">2026-08-07T12:18:05Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e8-20260807</td><td class="mono">2026-08-07T12:19:20Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e9-20260807</td><td class="mono">2026-08-07T12:17:58Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e10-20260807</td><td class="mono">2026-08-07T12:19:20Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e11-20260807</td><td class="mono">2026-08-07T12:21:00Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-7</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e12-20260807</td><td class="mono">2026-08-07T12:18:05Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e13-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e14-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e15-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e16-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e17-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E18">E18</a></td><td>AC-10</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e18-20260807</td><td class="mono">2026-08-07T12:18:05Z</td></tr>
+<tr><td><a href="#E19">E19</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e19-20260807</td><td class="mono">2026-08-07T12:17:41Z</td></tr>
+<tr><td><a href="#E20">E20</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">anchors-camera-r5-e20-20260807</td><td class="mono">2026-08-07T12:16:34Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given một điểm chiếu ra `(x, y)` trong khung CSS `cssW × cssH`, When `pctOf` chạy, Then `xPct` chia cho `cssW` còn `yPct` chia cho `cssH` — **hai mẫu số khác nhau**; một hệ số tỉ lệ chung phải làm test đỏ trên khung **không vuông** (khung vuông không phân biệt được hai công thức).</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e1-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.anchors</b></span><span>verified_at <b>2026-08-07T12:17:57Z</b></span><span>baseline <b>n-a (tệp test mới trong PR này — trên diffBase không tồn tại phép đo nào để so)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run src/render/anchors.test.ts — Test Files 1 passed (1); Tests 13 passed (13).
+Khung dùng trong file: 1079x1921, 600x1200, 400x800, 1000x2000 — không cái nào vuông.
+Thay cho baseline: đột biến trực tiếp (bản chép ngoài repo) đổi yPct sang mẫu số cssW →
+Tests 4 failed | 9 passed (13). Khẳng định phân biệt được.</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · script</h3><p class="crit">AC-1: Given một điểm chiếu ra `(x, y)` trong khung CSS `cssW × cssH`, When `pctOf` chạy, Then `xPct` chia cho `cssW` còn `yPct` chia cho `cssH` — **hai mẫu số khác nhau**; một hệ số tỉ lệ chung phải làm test đỏ trên khung **không vuông** (khung vuông không phân biệt được hai công thức).</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e2-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.anchors_invariants</b></span><span>verified_at <b>2026-08-07T12:18:05Z</b></span><span>baseline <b>n-a (script mới trong PR này)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ (I6 quét 38 tệp test, 3 bí danh gác bằng env)
+**Vòng 4 @ d84857a — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chữ của `expected` đã được sửa sau vòng 1 và phần MANG TẢI giờ khớp mã: nó nói &quot;CÓ ÍT
+NHẤT MỘT ca test dùng khung không vuông&quot;, đúng bằng thứ script khẳng định
+(`discriminating.length &gt; 0`, anchors-invariants.ts:213-219). Stdout vòng này:
+&quot;ok I4 anchors.ts KHÔNG có hệ số tỉ lệ chung: true&quot; và
+&quot;ok I4 4/6 ca test có cssW != cssH (vd 1079x1921)&quot; — con số 4/6 trong `expected` khớp
+chính xác.
+ĐÍNH CHÍNH BẮT BUỘC (xem mục &quot;Một sai sót chữ nghĩa còn lại&quot;): mệnh đề phụ &quot;hai ca
+vuông là ca vùng-rỗng trả null&quot; SAI. Hai ca không phân biệt được là
+anchors.test.ts:53 (`{cssW: 0, cssH: 100}` — khung suy biến phải NÉM, KHÔNG vuông) và
+anchors.test.ts:79 (`{cssW: 100, cssH: 100}` — vùng rỗng trả null, ca vuông DUY NHẤT).
+Sai sót này không nói quá độ phủ nên không đánh trượt eval, nhưng phải sửa trước khi ký.</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-2: Given một điểm nằm ngoài khung, When `pctOf` chạy, Then `onScreen` là `false` nhưng `xPct`/`yPct` **vẫn được trả** (có thể âm hoặc &gt; 100) — tầng DOM tự quyết vẽ mũi tên chỉ hướng hay bỏ qua; nuốt điểm là xoá thông tin nó cần.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e3-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.anchors</b></span><span>verified_at <b>2026-08-07T12:17:57Z</b></span><span>baseline <b>n-a (tệp test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E1. anchors.test.ts:37-50 — khung 400x800: điểm x=-40 cho onScreen=false
+NHƯNG xPct=-10, yPct=50 vẫn được trả; điểm y=1200 cho yPct=150. Ca đúng mép (0, 800)
+khẳng định onScreen=true. Phần trăm không bị nuốt, đúng như AC-2 đòi.</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-3: Given một vùng có nhiều toạ độ, When `regionAnchorOf` chạy, Then `bboxPct` bao đúng cực trị và `bboxCenterPct` nằm trong bbox đó; vùng không có toạ độ nào trả `null` chứ không phải bbox rỗng ở gốc toạ độ.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e4-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.anchors</b></span><span>verified_at <b>2026-08-07T12:17:57Z</b></span><span>baseline <b>n-a (tệp test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E1. anchors.test.ts:58-81 — khung 1000x2000, bốn đỉnh (100,200)-(300,600):
+bboxPct toEqual([10, 10, 30, 30]) đúng cực trị, bboxCenterPct toEqual([20, 20]) nằm
+trong bbox. Vùng rỗng: regionAnchorOf(0, [], ...) toBeNull() — không bịa hộp rỗng ở gốc.
+(Vòng 1 chép tên cũ `centroidPct` ở đúng chỗ này; `a46aec7` đã đổi tên trường và khối
+này được viết lại theo tên hiện hành — xem mục Iterations.)</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-4: Given `anchors()` được gọi khi camera **không** ở `restAtSec`, When nó chạy, Then nó **ném** kèm thông điệp nêu cả giá trị đọc được lẫn giá trị kỳ vọng — **không** trả toạ độ tính từ camera bất ngờ.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e5-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.anchors</b></span><span>verified_at <b>2026-08-07T12:17:57Z</b></span><span>baseline <b>n-a (tệp test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.anchors` → thoát 0 · Test Files 1 passed (1); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Lỗ hổng của vòng 1 đã được bịt và vòng này CHỨNG MINH LẠI bằng chính đột biến đã dùng
+để đánh trượt nó. anchors.test.ts:156-159 nay ghim CẢ HAI phía, mỗi phía một khẳng
+định riêng: toThrow(/13\.25/) VÀ toThrow(/13\.26/) (giá trị đọc được), cộng
+toThrow(/106\.71/) và toThrow(/300/). Đột biến lặp lại trong worktree dùng-một-lần
+(git worktree --detach a46aec7, KHÔNG đụng cây làm việc): bỏ sạch bốn chỗ nội suy
+${actual.*} khỏi ba thông điệp problems.push ở anchors.ts:182,184,185 →
+&quot;Test Files 1 failed (1); Tests 1 failed | 12 passed (13)&quot;, đỏ tại
+anchors.test.ts:157 với thông điệp &quot;expected [Function] to throw error matching
+/13\.26/ but got &#39;anchors: map camera is not at restAtSec=3.9 (zoom  ≠ 13.25)...&#39;&quot;.
+Cùng đột biến ấy ở vòng 1 để 13/13 XANH. Clause nay có đường đỏ thật.</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-4: Given `anchors()` được gọi khi camera **không** ở `restAtSec`, When nó chạy, Then nó **ném** kèm thông điệp nêu cả giá trị đọc được lẫn giá trị kỳ vọng — **không** trả toạ độ tính từ camera bất ngờ.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e6-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.e2e</b></span><span>verified_at <b>2026-08-07T12:19:20Z</b></span><span>baseline <b>n-a (ca e2e mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.e2e` → thoát 0 · 18 passed (56.4s)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.e2e` → thoát 0 · playwright 18 passed
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npm run test:e2e — 18 passed (1.0m). Ca &quot;anchors: NỔ TO khi camera không ở restAtSec&quot;
+(render-mode.spec.ts:305): sau renderMotionFrame(1.4), chèn setCamera({center:[0,0],
+zoom:3}), rồi gọi anchors() trong try/catch; nếu không ném thì trả chuỗi &#39;KHÔNG NÉM&#39;,
+chuỗi đó không khớp /restAtSec/ nên ca sẽ đỏ. Khẳng định: message toMatch(/restAtSec/)
+và toMatch(/zoom|center/). Trên MapLibre thật, không phải giả lập.</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · script</h3><p class="crit">AC-5: Given `anchors()` được gọi, When nó chạy xong, Then nó **không** dời camera và **không** đụng `restBase`/`animBase`/`lastApplied*`; và khung đuôi clip render sau đó vẫn **byte-identical** với khi không gọi.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e7-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.anchors_invariants</b></span><span>verified_at <b>2026-08-07T12:18:05Z</b></span><span>baseline <b>n-a (script mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ (I6 quét 38 tệp test, 3 bí danh gác bằng env)
+**Vòng 4 @ d84857a — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E2. I5 trích được thân anchors() (1744 ký tự) rồi soi bảy cấm: jumpTo,
+gán restBase, gán animBase, gán lastApplied*, setData, setPaintProperty, await — cả
+bảy đều &quot;KHÔNG chứa: true&quot;. Thêm chốt khoảng đệm: giữa lần chụp settle và lời gọi
+anchors() trong renderFrame.ts không có lượt vào trang nào (869 ký tự đệm, đã bỏ chú
+thích trước khi soi).</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-5: Given `anchors()` được gọi, When nó chạy xong, Then nó **không** dời camera và **không** đụng `restBase`/`animBase`/`lastApplied*`; và khung đuôi clip render sau đó vẫn **byte-identical** với khi không gọi.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e8-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.e2e</b></span><span>verified_at <b>2026-08-07T12:19:20Z</b></span><span>baseline <b>n-a (ca e2e mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.e2e` → thoát 0 · 18 passed (56.4s)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.e2e` → thoát 0 · playwright 18 passed
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E6. Ca &quot;anchors: CHỈ ĐỌC — gọi nó xong, khung đuôi vẫn byte-identical&quot;
+(render-mode.spec.ts:287): renderMotionFrame(1.4) → anchors() → renderMotionFrame(1.4),
+khẳng định expect(after).toBe(before) trên dataUrl. Nửa suppression này ĐỎ ĐƯỢC —
+xem đối chứng âm NEG-E8 ở mục tường thuật (chạy lại vòng 2, 1 passed).</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-6: Given `camera.pitch != 0`, When clip render, Then clip **vẫn ra đủ khung + settle** (pitch nghiêng là năng lực MapLibre đang chạy được — gỡ nó là hồi quy), nhưng `resolved` mang `anchorsUnavailable` **nêu đích danh pitch và giá trị của nó**, và `anchors()` của trang vẫn tự từ chối.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e9-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.render_frame</b></span><span>verified_at <b>2026-08-07T12:17:58Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.render_frame` → thoát 0 · Test Files 1 passed (1); Tests 5 passed | 4 skipped (9)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.render_frame` → thoát 0 · Test Files 1 passed (1); Tests 3 passed | 4 skipped (7)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run mcp-server/src/renderFrame.test.ts — Test Files 1 passed (1); Tests 3
+passed | 3 skipped (6). Ba ca chạy là khối &quot;trang giả&quot; KHÔNG bị gate (ba ca bỏ qua là
+khối integration sau MCP_INTEGRATION=1). Khối trang giả đếm lời gọi thật:
+calls.anchors++ bên trong __mapposter.anchors. pitch 30 → expect(calls.anchors).toBe(0)
+kèm frames dài 4 và calls.motionFrames toBe(5) (4 khung + settle); pitch 0 →
+expect(calls.anchors).toBe(1) làm đối chứng dương. Quan sát LỜI GỌI, không phải
+quan sát &quot;không ném&quot;.</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-6: Given `camera.pitch != 0`, When clip render, Then clip **vẫn ra đủ khung + settle** (pitch nghiêng là năng lực MapLibre đang chạy được — gỡ nó là hồi quy), nhưng `resolved` mang `anchorsUnavailable` **nêu đích danh pitch và giá trị của nó**, và `anchors()` của trang vẫn tự từ chối.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e10-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.e2e</b></span><span>verified_at <b>2026-08-07T12:19:20Z</b></span><span>baseline <b>n-a (ca e2e mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.e2e` → thoát 0 · 18 passed (56.4s)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.e2e` → thoát 0 · playwright 18 passed
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E6. Ca &quot;anchors: pitch != 0 — KHUNG VẪN RENDER&quot; (render-mode.spec.ts:326):
+__map.getPitch() toBeCloseTo(45, 6) đọc từ MapLibre thật; mid và rest đều
+startsWith(&#39;data:image/png&#39;); rest.length toBeGreaterThan(2000); rest not.toBe(mid);
+rồi message toMatch(/pitch/i) và /45/. Ghi chú độ phủ ở mục trên: kiểm ở mức chuỗi
+data-URL, sàn kích thước chỉ áp cho rest — nửa byte-thật do E11 gánh.</pre>
+</div>
+<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-6: Given `camera.pitch != 0`, When clip render, Then clip **vẫn ra đủ khung + settle** (pitch nghiêng là năng lực MapLibre đang chạy được — gỡ nó là hồi quy), nhưng `resolved` mang `anchorsUnavailable` **nêu đích danh pitch và giá trị của nó**, và `anchors()` của trang vẫn tự từ chối.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e11-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-07T12:21:00Z</b></span><span>baseline <b>n-a (ca mới trong bộ có gác)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npm run test:mcp (MCP_INTEGRATION=1, vite build production + Chromium thật) — Test
+Files 3 passed (3); Tests 12 passed (12); 69.93s. Ca &quot;pitch != 0: clip VẪN render đủ
+khung + settle&quot; (renderClip.test.ts): frames toHaveLength(24) = 12fps x 2s, rồi VÒNG
+LẶP khẳng định f.subarray(0,8) toEqual Buffer([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,
+0x0a]) cho TỪNG khung, cộng cùng phép ấy cho settle. anchors toBeUndefined();
+anchorsUnavailable toMatch(/pitch/i) và /45/. Đây là chỗ &quot;PNG thật&quot; được kiểm ở mức
+byte giải mã, không phải mức chuỗi.</pre>
+</div>
+<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · script</h3><p class="crit">AC-7: Given bất kỳ lối ra nào của cả ba bề mặt (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`) — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, When `resolved` trả về, Then nó mang **đúng một** trong `anchors` / `anchorsUnavailable`: **không bao giờ cả hai, không bao giờ không có gì**.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e12-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.anchors_invariants</b></span><span>verified_at <b>2026-08-07T12:18:05Z</b></span><span>baseline <b>n-a (script mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ (I6 quét 38 tệp test, 3 bí danh gác bằng env)
+**Vòng 4 @ d84857a — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E2. I3 GỌI THẬT: await import(&#39;mcp-server/src/tools.ts&#39;) rồi chạy
+resolvedOfClip(probeCfg, outcome) cho hai nhánh. Stdout: &quot;resolvedOfClip(đo được) phát
+ra ĐÚNG MỘT: anchors=true, anchorsUnavailable=false&quot; và &quot;resolvedOfClip(không đo được)
+phát ra ĐÚNG MỘT: anchors=false, anchorsUnavailable=true&quot;, cộng hai dòng &quot;camera đi
+cùng anchors&quot; (true / false). Không phải regex — khẳng định là hasAnchors !== hasReason
+trên giá trị trả về thật. Ba bề mặt cũng được đếm: mỗi bề mặt 3 lối ra dùng
+resolvedOfClip(cfg, clipOut), 1 lời gọi deps.renderClip, 1 chỗ giữ NGUYÊN outcome,
+tháo rời=false, và 0 lối ra còn dùng resolvedOf(cfg) trần.</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-7: Given bất kỳ lối ra nào của cả ba bề mặt (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`) — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, When `resolved` trả về, Then nó mang **đúng một** trong `anchors` / `anchorsUnavailable`: **không bao giờ cả hai, không bao giờ không có gì**.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e13-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run mcp-server/src/tools.test.ts — Test Files 1 passed (1); Tests 59 passed
+(59). Nhánh CÓ anchors phủ cả ba lối ra: thành công, degrade (encodeAnimation ném
+&#39;ffmpeg boom&#39;), và từ chối quá cỡ (MAPPOSTER_CLIP_MAX_BYTES=2 → ok toBe(false)) — mỗi
+lối ra khẳng định resolved.camera.zoom và resolved.anchors.points. Nhánh KHÔNG đo được
+phủ hai lối ra (thành công + degrade), mỗi lối ra khẳng định anchorsUnavailable toBe
+REASON cộng &#39;anchors&#39; in resolved toBe(false) và &#39;camera&#39; in resolved toBe(false).
+Ghi chú: lối ra quá cỡ chưa có ca ở nhánh anchorsUnavailable; bất biến XOR ở mức hàm
+do I3 (E12) gánh cho cả ba.</pre>
+</div>
+<div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-7: Given bất kỳ lối ra nào của cả ba bề mặt (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`) — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, When `resolved` trả về, Then nó mang **đúng một** trong `anchors` / `anchorsUnavailable`: **không bao giờ cả hai, không bao giờ không có gì**.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e14-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run mcp-server/src/http.test.ts — Test Files 1 passed (1); Tests 57 passed
+(57). Ca &quot;resolved mang camera + anchors trên CẢ BA lối ra: 200, degrade encode, và 422
+quá cỡ&quot; khẳng định đủ ba, kèm nửa should-NOT thật:
+expect(okBody.resolved?.camera?.zoom).not.toBe(okBody.resolved?.zoom). Ca thứ hai
+khẳng định nhánh không đo được: status 200, clip.format &#39;mp4&#39; (pitch không làm hỏng
+clip), anchorsUnavailable toBe REASON, và cả &#39;anchors&#39; lẫn &#39;camera&#39; đều không có mặt.</pre>
+</div>
+<div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-7: Given bất kỳ lối ra nào của cả ba bề mặt (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`) — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, When `resolved` trả về, Then nó mang **đúng một** trong `anchors` / `anchorsUnavailable`: **không bao giờ cả hai, không bao giờ không có gì**.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e15-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run mcp-server/src/jobRunner.test.ts — Test Files 1 passed (1); Tests 25
+passed (25). Đúng lớp lỗi mà hợp đồng nêu (jobRunner đã hai lần dùng sai biến): ca
+&quot;mỗi việc mang anchors + camera của CHÍNH nó&quot; chạy hai việc a và b với toạ độ khác
+nhau (108.44/11.94 vs 109.19/12.24) và khẳng định từng việc trả đúng toạ độ của mình —
+một lời gọi dùng nhầm biến của việc trước sẽ đỏ. Cộng ca nhánh anchorsUnavailable
+(việc VẪN xong, artifacts [&#39;clip&#39;,&#39;settle&#39;], không có anchors lẫn camera) và ca
+degrade + quá cỡ vẫn mang camera + anchors.</pre>
+</div>
+<div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · test</h3><p class="crit">AC-8: Given `resolved` mang `anchors`, When kiểm, Then `camera` đi **cùng** nó và vắng **cùng** nó — `camera` là số đo của chính lần đọc đó, không phải echo lại `cfg.camera`.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e16-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E13. Chốt &quot;không echo cfg.camera&quot; là thật và có răng: fakeAnchors() dẫn
+xuất camera từ cfg với zoom + 1 (tools.test.ts:54), nên nếu ai đó trả lại cfg.camera
+cho tiện thì resolved.camera.zoom sẽ bằng resolved.zoom và khẳng định
+expect(j.resolved.camera.zoom).not.toBe(j.resolved.zoom) đỏ ngay. Nửa &quot;vắng cùng nhau&quot;
+do ca resolvedOfClip nhánh không đo được gánh: &#39;camera&#39; in r toBe(false).</pre>
+</div>
+<div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-9: Given `anchors.points[i]`, When đối chiếu, Then `index` khớp một-một với `resolved.highlights.points[i]` (lấy từ `cfg.markers`, không phải từ store).</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e17-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>n-a (khối test mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E13. j.resolved.anchors.points toEqual([{index: 0, lng: 106.7, lat:
+10.78, xPct: 50, yPct: 50, onScreen: true}]) và j.resolved.highlights.points
+toHaveLength(1); khối resolved cũ không bị nuốt (j.resolved.place toBeDefined).
+Ghi chú độ phủ ở mục trên: tương ứng một-một chỉ được thử ở n=1; thứ tự ở n=2 được
+chứng minh gián tiếp ở e2e nhưng không đối chiếu sang highlights.points.</pre>
+</div>
+<div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · script</h3><p class="crit">AC-10: Given mã nguồn, When quét, Then **không** tồn tại `anchorsAt` hay bất kỳ đường nào chiếu ở `t` tuỳ ý; và `t3_paths` (`src/lib/export.ts`, `src/lib/mapStyle.ts`) có **0 dòng** thay đổi.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e18-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.anchors_invariants</b></span><span>verified_at <b>2026-08-07T12:18:05Z</b></span><span>baseline <b>n-a (script mới)</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ (I6 quét 38 tệp test, 3 bí danh gác bằng env)
+**Vòng 4 @ d84857a — đo lại tươi:** `script.anchors_invariants` → thoát 0 · anchors-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy E2. I1: &quot;t3_path untouched vs 972a1e4f (19 file đổi)&quot; — src/lib/export.ts
+và src/lib/mapStyle.ts đúng 0 dòng đổi so với merge-base, nên xếp T2 là đúng. I2: bốn
+dòng ok — không tệp nào nhắc anchorsAt (đã bỏ chú thích trước khi soi, nên chính lời
+giải thích trong doc không tự biến thành vi phạm), MapPosterApi.anchors khai báo KHÔNG
+tham số, hiện thực cũng KHÔNG tham số, và cả 5 lời gọi anchors() trong repo đều rỗng.</pre>
+</div>
+<div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-10: Given mã nguồn, When quét, Then **không** tồn tại `anchorsAt` hay bất kỳ đường nào chiếu ở `t` tuỳ ý; và `t3_paths` (`src/lib/export.ts`, `src/lib/mapStyle.ts`) có **0 dòng** thay đổi.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e19-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.text_free</b></span><span>verified_at <b>2026-08-07T12:17:41Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.text_free` → thoát 0 · Test Files 2 passed (2); Tests 20 passed (20)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.text_free` → thoát 0 · Test Files 2 passed (2); Tests 19 passed (19)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npx vitest run src/lib/export.test.ts src/lib/mapStyle.test.ts — Test Files 2 passed
+(2); Tests 19 passed (19), 0 bỏ qua. Bộ không rỗng và không bị bỏ qua toàn phần (đó là
+kiểu thoát-0-vô-nghĩa duy nhất đáng lo ở một nửa suppression). Xanh trên cả hai phía
+theo thiết kế — hai t3_path không có dòng nào đổi, nên eval này chứng minh &quot;không đụng
+vào&quot;, không chứng minh gì về gói này. Sức nặng thật của AC-10 nằm ở E18/I1.</pre>
+</div>
+<div class="card eval" id="E20"><h3><span class="badge pass">PASS</span> &nbsp;E20 · test</h3><p class="crit">AC-7: Given bất kỳ lối ra nào của cả ba bề mặt (MCP `render_clip`, REST `POST /render-clip`, async `POST /jobs`) — kể cả nhánh xuống cấp encode-lỗi và nhánh từ chối quá cỡ, When `resolved` trả về, Then nó mang **đúng một** trong `anchors` / `anchorsUnavailable`: **không bao giờ cả hai, không bao giờ không có gì**.</p>
+<div class="kv"><span>run_id <b>anchors-camera-r5-e20-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.api</b></span><span>verified_at <b>2026-08-07T12:16:34Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 5 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+**Vòng 4 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+npm test — Test Files 33 passed | 2 skipped (35); Tests 527 passed | 9 skipped (536);
+3.07s. Con số 527 trong `expected` khớp chính xác số ca XANH. Chín ca bỏ qua là khối
+integration có gác sau MCP_INTEGRATION=1 (ba trong renderFrame.test.ts, còn lại ở
+renderClip/stdioChannel) — chúng được chạy riêng ở E11. Hồi quy tổng sau khi ClipFrames
+đổi kiểu: không bề mặt nào đỏ.</pre>
+</div>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Không tính được baseline A/B thật cho vòng này: mọi khối test của gói (anchors.test.ts,
+anchors-invariants.ts, khối trang giả trong renderFrame.test.ts, các khối PR #6 trong
+tools/http/jobRunner/renderClip.test.ts, bốn ca anchors trong e2e) đều là tệp hoặc khối MỚI —
+trên diffBase chúng không tồn tại, nên không có phép đo cũ để so. Ghi `n-a` thay vì bịa `red`.
+Bù lại bằng thứ mạnh hơn baseline, làm trực tiếp trong vòng này: đột biến E1 (4 ca đỏ khi
+nhét lại lỗi một-mẫu-số) và đối chứng âm NEG-E8 (byte lệch khi camera bị dời). Cả hai chứng
+minh khẳng định phân biệt được, chứ không chỉ chứng minh nó từng đỏ trên cây mã cũ.
+Không phân biệt (xanh trên cả hai phía, đúng thiết kế): E19 và E20 — hai regression guard
+tổng. E19 chứng minh gói này KHÔNG đụng hai t3_path; E20 chứng minh không bề mặt nào hồi quy.
+Cả hai là guard cố ý, không phải eval hỏng.</div>
+<h2>Variance (eval ngẫu nhiên)</h2><div class="flag fred">Không lệnh nào đi qua `ctx.providers.invoke` hay một bộ sinh LLM. Mọi lane Node đều tất
+định, chạy một lần, thoát 0.
+**MỘT lane KHÔNG tất định — `config:executors.test.mcp` (E11).** Vòng này phải chạy nó bốn
+lần:
+| lần | kết quả | ca đỏ |
+|---|---|---|
+| 1 | `1 failed \| 11 passed (12)`, 88,84 s | `renderClip.test.ts` › &quot;pitch != 0: clip VẪN render đủ khung + settle&quot; |
+| 2 | `1 failed \| 11 passed (12)`, 97,74 s | `renderFrame.test.ts` › &quot;renders a config far larger than a URL could carry (&gt;16 KB)&quot; |
+| 3 | `12 passed (12)`, 87,37 s | — |
+| 4 | `12 passed (12)`, 65,80 s | — |
+Cả hai lần đỏ là `TimeoutError: page.waitForFunction: Timeout 20000ms exceeded` ở
+`renderFrame.ts:137`/`:219`, và **hai ca khác nhau** đỏ — dấu hiệu của trần thời gian, không
+phải của một khẳng định hỏng. Hai lần đỏ rơi vào lúc `load average` ~21-28 (bốn lane kiểm
+song song); hai lần xanh chạy khi máy rảnh. Mạng không phải nguyên nhân:
+`curl https://tiles.openfreemap.org/planet` trả 200 trong 0,40 s ngay giữa vòng. Đây đúng là
+rủi ro mà `_acceptance/config.yaml` đã ghi trong chú thích `feature_loop.suite_keys` (trần
+chờ 20 s vỡ khi hai bộ trình duyệt giành nhau). Khối bằng chứng của E11 ghim lần chạy thứ 4
+(05:55:15Z, thoát 0). **Người ký nên biết: lane này không tất định dưới tải; CI chạy song
+song sẽ đỏ giả.** Đây là món nợ vận hành, không phải lỗi của gói anchors-camera.</div>
+<h2>Vòng verify</h2><ul class="tl"><li>Vòng 5 (chạy lại ở `ace12a0` sau khi E14/E15/E18 được vá): cả 20 eval chạy lại tươi, 20/20 thoát 0. **PASS.**</li><li>E18 hết trượt — `60d1d62` chuyển I6 sang cấp CALL SITE, quét 38 tệp test, bỏ miễn trừ theo tệp; đột biến</li><li>`it.skip` ở `geometry.test.ts:5` làm script exit 1 nêu đúng `tệp:dòng` trong khi `vitest` vẫn exit 0, và</li><li>đột biến `const RUN = false` làm I6c đỏ. E14/E15 hết trượt — ca XOR mới ở `http.test.ts`/`jobRunner.test.ts`</li><li>đỏ dưới đột biến &quot;resolvedOfClip phát CẢ HAI&quot;, mutant mà bản cũ vẫn xanh. Không hồi quy: khối `describe`</li><li>mới của `mcp-map-render` ở `renderFrame.test.ts:314` không chiếm chỗ ca `pitch 30` (`:272`) của E9.</li><li>`human_signoff` để rỗng: Cổng 2 chờ người ký.</li><li>Vòng 4 (chạy lại ở `d84857a` sau REJECT vòng 5 trên [E20]): 20/20 eval máy thoát 0, không lệnh nào</li><li>đỏ. **Bản vá I6 đứng vững và E20 đã hết khai suông** — M-D được tái dựng trong worktree dùng-một-lần:</li><li>`it(`→`it.skip(` ngoài ba tệp gated cho `npm test` `541 passed | 11 skipped` (vẫn thoát 0) trong khi</li><li>`anchors-invariants` nay thoát mã 1 với `FAIL I6`; nửa `.only` bắn ở cả tệp gated lẫn không gated;</li><li>danh sách `GATED` khớp đúng ba tệp có cổng `MCP_INTEGRATION`; phạm vi quét 38 tệp là TOÀN BỘ tệp test</li><li>của repo. **REJECT trên [E14, E15, E18]**. E18 nói &quot;đổi `it(` thành `it.skip(` **ngoài khối gated**</li><li>phải làm ĐỎ&quot;, nhưng I6 miễn theo TỆP: `it.skip` ở `renderFrame.test.ts:272` — khối &quot;trang giả&quot; KHÔNG</li><li>gated, đúng ca mà E9 nêu đích danh — để cả lane E18 lẫn lane E9 xanh. E14/E15 gán &quot;bất biến XOR&quot; cho</li><li>`http.test.ts`/`jobRunner.test.ts`, nhưng đột biến cho `resolvedOfClip` phát ra CẢ HAI trên nhánh</li><li>đo-được để hai lane đó XANH (61/61 và 28/28) trong khi E12/E13 ĐỎ — chúng chỉ canh một chiều. Ghi</li><li>nhận thêm, KHÔNG đánh trượt: câu dẫn cuối của E20 (&quot;tính chất đó do I6 gánh&quot;) thừa hưởng đúng lỗ của</li><li>E18 và sẽ tự đúng khi I6 được siết xuống mức khối; E6 gọi lời chèn giữa chừng là &quot;jumpTo&quot; trong khi</li><li>ca test dùng `setCamera` (cùng đường mã, chữ lỏng).</li><li>Vòng 2 (chạy lại sau REJECT): ghim ở `a46aec7` (tổ tiên của HEAD; ở đây là chính HEAD). Cả</li><li>20 eval chạy lại tươi, 20/20 thoát 0. Hai lỗ của vòng 1 đã bịt và được kiểm lại bằng đúng</li><li>phép thử đã đánh trượt chúng: **E5** — đột biến gỡ sạch `${actual.*}` khỏi ba thông điệp</li><li>nay làm ĐỎ (`1 failed | 12 passed`, đỏ tại `anchors.test.ts:157` trên `/13\.26/`), trong</li><li>khi vòng 1 nó để 13/13 xanh; **E2** — chữ đã đổi từ &quot;MỌI ca&quot; sang &quot;CÓ ÍT NHẤT MỘT ca&quot;, khớp</li><li>đúng `discriminating.length &gt; 0`. Đổi tên `centroidPct` → `bboxCenterPct` (`a46aec7`) sạch</li><li>trên mọi bề mặt: quét toàn repo chỉ còn tên cũ ở bản ghi vòng 1 của chính tệp này, và khối</li><li>E4 đã được viết lại theo tên hiện hành nên tên cũ chỉ còn ở phần lịch sử; `tsc -b` và</li><li>`tsc -p mcp-server/tsconfig.json` cùng thoát 0. E10/E17/E20 đối chiếu lại: cả ba đúng với mã</li><li>(527/9/536; E10 tự nhận không kiểm byte PNG; E17 tự nhận chỉ n=1 và Out of scope có mục đó).</li><li>CÒN LẠI MỘT SAI SÓT: mệnh đề phụ của E2 &quot;hai ca vuông là ca vùng-rỗng trả null&quot; sai — chỉ</li><li>MỘT ca vuông (`anchors.test.ts:79`), ca kia là khung suy biến `{cssW: 0, cssH: 100}`</li><li>(`:53`). Không đánh trượt (không nói quá độ phủ, và mệnh đề mang tải có chốt phân biệt</li><li>được), nhưng phải sửa chữ trước khi ký — câu thay thế đã ghi sẵn ở mục riêng.</li><li>Ghi chú vận hành: `npm run test:mcp` (E11) FLAKE dưới tải — hai lần đầu đỏ ở</li><li>`page.waitForFunction` trần 20 s (hai ca KHÁC nhau đỏ), hai lần sau xanh 12/12 khi máy rảnh.</li><li>Không phải hồi quy; xem mục Variance.</li><li>Vòng 1: E2 và E5 TRƯỢT — không phải vì lệnh đỏ (cả 20 lệnh đều thoát 0) mà vì `expected` của</li><li>chúng khẳng định thứ không test nào canh gác. E2 nói &quot;MỌI ca test dùng khung không vuông&quot;</li><li>trong khi script chỉ kiểm ≥1 và tự in &quot;4/6&quot;. E5 nói thông điệp nêu &quot;CẢ giá trị đọc được&quot; trong</li><li>khi đột biến bỏ hết `${actual.*}` vẫn để 13/13 xanh. Trả về cho bên hiện thực: E2 sửa chữ</li><li>trong `evals.yaml` (hoặc siết script cho đúng chữ); E5 cần một khẳng định thật trên giá trị</li><li>đọc được, ví dụ `toThrow(/13\.26/)`. Mười tám eval còn lại xanh và đã được soi từng clause;</li><li>ba nghi vấn nặng nhất (E9 đếm lời gọi, E12 gọi thật `resolvedOfClip`, E11 kiểm magic PNG từng</li><li>khung) đều đứng vững.</li></ul>
+<h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

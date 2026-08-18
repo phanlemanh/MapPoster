@@ -31,166 +31,210 @@ ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}u
 </style></head><body><div class="wrap">
 <h1>Async job queue — nhận việc render rồi trả mã việc (Gói nền)</h1><div class="sub">Trang bằng chứng · <span class="mono">async-job-queue</span> · tier T2</div>
 <div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
-<div class="meta"><span>Verified by: <b>fresh-context verification subagent</b></span><span>Human signoff: <b>(rỗng — Cổng 2 chờ người ký)</b></span><span>enforcement: <b>strict</b></span></div></div>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 18 ghim lại ở baf27d3: 24/24 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
 <h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
-<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E4">E4</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
-<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E6">E6</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E7">E7</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E8">E8</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E9">E9</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E10">E10</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E11">E11</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E12">E12</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E12-20260806</td><td class="mono">2026-08-06T15:54:31Z</td></tr>
-<tr><td><a href="#E13">E13</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E13-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E14">E14</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E15">E15</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E16">E16</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E17">E17</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
-<tr><td><a href="#E18">E18</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E1-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E19">E19</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E13-20260806</td><td class="mono">2026-08-06T15:54:35Z</td></tr>
-<tr><td><a href="#E21">E21</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
-<tr><td><a href="#E22">E22</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E23">E23</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E4-20260806</td><td class="mono">2026-08-06T15:54:36Z</td></tr>
-<tr><td><a href="#E24">E24</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E25">E25</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-E7-20260806</td><td class="mono">2026-08-06T15:54:37Z</td></tr>
-<tr><td><a href="#E20">E20</a></td><td>AC-15</td><td>judgment</td><td><span class="badge neutral">PASS (JUDGE)</span></td><td class="mono">—</td><td class="mono">—</td></tr>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e1-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e2-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e3-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e4-20260807</td><td class="mono">2026-08-07T12:17:50Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e5-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e6-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e7-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e8-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e9-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e10-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e11-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e12-20260807</td><td class="mono">2026-08-07T12:17:40Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e13-20260807</td><td class="mono">2026-08-07T12:17:37Z</td></tr>
+<tr><td><a href="#E14">E14</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e14-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E15">E15</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e15-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E16">E16</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e16-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E17">E17</a></td><td>AC-12</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e17-20260807</td><td class="mono">2026-08-07T12:17:50Z</td></tr>
+<tr><td><a href="#E18">E18</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e18-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E19">E19</a></td><td>AC-14</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e19-20260807</td><td class="mono">2026-08-07T12:17:36Z</td></tr>
+<tr><td><a href="#E20">E20</a></td><td>AC-15</td><td>judgment</td><td><span class="badge neutral">PASS (GIÁM KHẢO MÙ) — `HUMAN_OVERRIDE` RỖNG, ĐÃ RÚT Ở `33AE60B`; CHỜ NGƯỜI</span></td><td class="mono">—</td><td class="mono">—</td></tr>
+<tr><td><a href="#E21">E21</a></td><td>AC-16</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e21-20260807</td><td class="mono">2026-08-07T12:17:50Z</td></tr>
+<tr><td><a href="#E22">E22</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e22-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E23">E23</a></td><td>AC-17</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e23-20260807</td><td class="mono">2026-08-07T12:17:50Z</td></tr>
+<tr><td><a href="#E24">E24</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e24-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
+<tr><td><a href="#E25">E25</a></td><td>AC-15</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">async-job-queue-r17-e25-20260807</td><td class="mono">2026-08-07T12:17:51Z</td></tr>
 </tbody></table></div>
 <h2>Chi tiết từng eval</h2>
-<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/http.test.ts`: 49/49 passed. `POST /jobs` → 202 {ok:true,id,status};
-immediate `POST /jobs/status` → 200 with status ∈ {queued,running}. At least one case uses a
-diacritic-bearing Vietnamese place name asserted to survive verbatim through the store and back.</pre>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given một thân yêu cầu hợp lệ tới `POST /jobs`, When gọi, Then trả `202` với</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e1-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Malformed body (missing location / zoom out of range / unknown kind) → 400 with a readable message
-(not a raw ZodError); store asserted to stay empty after each case.</pre>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given thân sai khuôn (thiếu `location`, `zoom` ngoài dải, `kind` lạ), When</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e2-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Queue-full → 429 at the HTTP layer; store record count unchanged.</pre>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given số việc đang chờ đã chạm trần, When `POST /jobs`, Then trả `429` và sổ</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e3-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-3</p>
-<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/jobStore.test.ts`: 16/16 passed. The store rejects at its own cap
-independent of the HTTP layer — `JobQueueFullError` thrown directly from `store.create()`.</pre>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-3: Given số việc đang chờ đã chạm trần, When `POST /jobs`, Then trả `429` và sổ</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e4-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-07T12:17:50Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-3 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.</pre>
 </div>
-<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-4</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Unknown / expired job id → 404 {ok:false} in both cases; no 200-with-empty-status observed.</pre>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-4: Given một mã việc không có trong sổ (bịa ra, hoặc đã bị dọn), When</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e5-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-5</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">End-to-end on a real temp dir: base64 in the status response decodes to the EXACT bytes the worker
-wrote (not test-supplied bytes), with width/height and a `resolved` shape matching `resolvedOf`.</pre>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-5: Given một việc render ảnh đã xong, When hỏi, Then trả `200 {ok: true}` với</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e6-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-5</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/jobRunner.test.ts`: 22/22 passed. Worker&#39;s written path matches the
-stored path exactly; status flips to &#39;done&#39; only after the write completes (no ENOENT/empty read
-race at the moment &#39;done&#39; becomes visible).</pre>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-5: Given một việc render ảnh đã xong, When hỏi, Then trả `200 {ok: true}` với</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e7-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-5 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-6</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Geocode-failure job and render-throw job both surface as HTTP 200 with status &#39;failed&#39;, with
-distinct caller-vs-server error attribution.</pre>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-6: Given một việc hỏng vì đầu vào của người gọi (địa danh không tra được) và một</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e8-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-7</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Encoder-throws / over-cap clip job both retain the already-rendered settle image plus a reason;
-neither case loses the still.</pre>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-7: Given một việc clip mà encode thất bại HOẶC clip vượt trần dung lượng, When</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e9-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-7 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-8</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">N+K clip jobs against a concurrency cap of N: K queue and run in the exact order received; none
-marked failed for being over capacity.</pre>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-8: Given trần đồng thời clip đã đầy, When thợ nhận thêm việc clip, Then việc đó</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e10-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-8 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-9</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Pre-existing synchronous `/render-clip` 429-at-cap test still green, unmodified by this contract.</pre>
+<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-9: Given trần đồng thời clip đã đầy, When gọi `/render-clip` đồng bộ HOẶC công cụ</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e11-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-9</p>
-<div class="kv"><span>run_id <b>async-job-queue-E12-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-06T15:54:31Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/tools.test.ts`: 43/43 passed. MCP `render_clip` still returns the
-same error result at cap as before this contract — no queueing leak to the MCP surface.</pre>
+<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-9: Given trần đồng thời clip đã đầy, When gọi `/render-clip` đồng bộ HOẶC công cụ</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e12-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-07T12:17:40Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.clip_tools` → thoát 0 · Test Files 1 passed (1); Tests 65 passed (65)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-9 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 59 passed (59) — present and passing.</pre>
 </div>
-<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-10</p>
-<div class="kv"><span>run_id <b>async-job-queue-E13-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">`npx vitest run mcp-server/src/motionCompiler.test.ts`: 32/32 passed. Waiting acquirers wake in
-FIFO order; slot returned on success/throw/degrade; the old throw-immediately path is unchanged.</pre>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-10: Given một lời gọi đồng bộ đang giữ slot và một thợ đang chờ, When lời gọi đó</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e13-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_slot_lifecycle</b></span><span>verified_at <b>2026-08-07T12:17:37Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.clip_slot_lifecycle` → thoát 0 · Test Files 2 passed (2); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.clip_slot_lifecycle` → thoát 0 · Test Files 2 passed (2); Tests 62 passed (62)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.</pre>
 </div>
-<div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-10</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Concurrent-run peak measured across a mixed sync+worker scenario never exceeds the configured cap.</pre>
+<div class="card eval" id="E14"><h3><span class="badge pass">PASS</span> &nbsp;E14 · test</h3><p class="crit">AC-10: Given một lời gọi đồng bộ đang giữ slot và một thợ đang chờ, When lời gọi đó</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e14-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-10 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-11</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">First job throws unexpectedly → marked &#39;failed&#39;; second job still reaches &#39;done&#39;; worker loop
-survives.</pre>
+<div class="card eval" id="E15"><h3><span class="badge pass">PASS</span> &nbsp;E15 · test</h3><p class="crit">AC-11: Given một việc trong hàng ném lỗi bất ngờ, When thợ xử lý nó, Then việc đó</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e15-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-11 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · test</h3><p class="crit">AC-12</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">On a real temp dir: expired job&#39;s own files are deleted by the worker; a foreign file placed in the
-same sink dir survives cleanup; at least one deleted filename derives from a diacritic place name.</pre>
+<div class="card eval" id="E16"><h3><span class="badge pass">PASS</span> &nbsp;E16 · test</h3><p class="crit">AC-12: Given một việc đã kết thúc và quá hạn giữ, When quét dọn chạy, Then sổ việc</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e16-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
 </div>
-<div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-12</p>
-<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Store emits exactly the expired records then drops them (re-lookup 404s); store module does not
-import `fs` (grep-verified in the test&#39;s own assertion, not just behaviourally).</pre>
+<div class="card eval" id="E17"><h3><span class="badge pass">PASS</span> &nbsp;E17 · test</h3><p class="crit">AC-12: Given một việc đã kết thúc và quá hạn giữ, When quét dọn chạy, Then sổ việc</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e17-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-07T12:17:50Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-12 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.</pre>
 </div>
-<div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · test</h3><p class="crit">AC-13</p>
-<div class="kv"><span>run_id <b>async-job-queue-E1-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">The SAME guard table (no/bad token → 401, oversized body → 413) runs identically across
-`/render`, `/jobs`, `/jobs/status`; store record count unchanged after each blocked case.</pre>
+<div class="card eval" id="E18"><h3><span class="badge pass">PASS</span> &nbsp;E18 · test</h3><p class="crit">AC-13: Given một yêu cầu không mang thẻ, mang thẻ sai, hoặc có thân vượt trần, When</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e18-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Chạy lại TƯƠI ở `9c1f9f3` (`feat/anchors-camera` chạm tools.ts / http.ts / jobRunner.ts / renderFrame.ts / main.tsx — bằng chứng cũ hết hiệu lực theo commit). Test Files 1 passed (1); Tests 57 passed (57) — includes the fixed E6-equivalent auth case (mcp-auth&#39;s own contract), which does not touch this contract&#39;s own routes/behaviour — không hồi quy; số ca tăng vì gói anchors-camera thêm test của chính nó vào cùng tệp.</pre>
 </div>
-<div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-14</p>
-<div class="kv"><span>run_id <b>async-job-queue-E13-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-06T15:54:35Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Fake-clock test: a waiter held past the configured wait deadline is rejected within that deadline
-(not indefinitely) and its queue slot is released.</pre>
+<div class="card eval" id="E19"><h3><span class="badge pass">PASS</span> &nbsp;E19 · test</h3><p class="crit">AC-14: Given một thợ đã chờ slot lâu hơn hạn chờ đã cấu hình (vì slot rò rỉ hoặc hồ</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e19-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.motion_compiler</b></span><span>verified_at <b>2026-08-07T12:17:36Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.motion_compiler` → thoát 0 · Test Files 1 passed (1); Tests 34 passed (34)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-14 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 32 passed (32) — present and passing.</pre>
 </div>
-<div class="card eval" id="E21"><h3><span class="badge pass">PASS</span> &nbsp;E21 · test</h3><p class="crit">AC-16</p>
-<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">All four named clauses individually re-confirmed in `jobStore.test.ts`: `MAPPOSTER_MAX_QUEUED_JOBS`
-changes the cap (line 132), `MAPPOSTER_JOB_TTL_MS` changes the hold window (line 140), empty env
-falls back to default without throwing (line 148-150), and a garbage value fails closed NAMING the
-variable (line 154-156, `toThrow(/MAPPOSTER_MAX_QUEUED_JOBS/)`) — this is the clean version of the
-boundary-completeness pattern the sibling contracts this round found gaps in.</pre>
-</div>
-<div class="card eval" id="E22"><h3><span class="badge pass">PASS</span> &nbsp;E22 · test</h3><p class="crit">AC-17</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Two workers, clip cap 1: clip A holds the slot, an image job queued behind clip B still reaches
-&#39;done&#39; while B stays &#39;queued&#39; — proven to go red when the fix is reverted (per the test&#39;s own
-comment), not merely asserted forward.</pre>
-</div>
-<div class="card eval" id="E23"><h3><span class="badge pass">PASS</span> &nbsp;E23 · test</h3><p class="crit">AC-17</p>
-<div class="kv"><span>run_id <b>async-job-queue-E4-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-06T15:54:36Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Dequeue skips a rejected candidate and takes the next, without reordering same-kind jobs behind it.</pre>
-</div>
-<div class="card eval" id="E24"><h3><span class="badge pass">PASS</span> &nbsp;E24 · test</h3><p class="crit">AC-6</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>red</b></span></div>
-<pre class="out">Nominatim 503 on a VALID place name → errorKind &#39;server&#39;; network fine but no result → errorKind
-&#39;input&#39;. Both cases distinctly asserted, not conflated.</pre>
-</div>
-<div class="card eval" id="E25"><h3><span class="badge pass">PASS</span> &nbsp;E25 · test</h3><p class="crit">AC-15</p>
-<div class="kv"><span>run_id <b>async-job-queue-E7-20260806</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-06T15:54:37Z</b></span><span>baseline <b>green</b></span></div>
-<pre class="out">Async job clip result carries both `durationSec` and `fps` — the same fields the synchronous
-`/render-clip` path returns; no silent field loss for a consumer migrating to the async path.</pre>
-</div>
-<div class="card eval" id="E20"><h3><span class="badge neutral">PASS (JUDGE)</span> &nbsp;E20 · judgment</h3><p class="crit">AC-15</p>
+<div class="card eval" id="E20"><h3><span class="badge neutral">PASS (GIÁM KHẢO MÙ) — `HUMAN_OVERRIDE` RỖNG, ĐÃ RÚT Ở `33AE60B`; CHỜ NGƯỜI</span> &nbsp;E20 · judgment</h3><p class="crit">AC-15: Given người ký đọc giao ước hai cửa, When đánh giá, Then nó đủ để OneHub</p>
 <div class="kv"><span>judged_by <b>judge-subagent (fresh context, blind)</b></span></div>
 <p class="note"><b>Phán đoán:</b> Contract/design nêu đích danh và có lý do cho từng thiếu sót: không gọi ngược / không tiến độ / không huỷ đều ghi rõ &#39;OneHub chưa cần&#39; ở Out of scope. Riêng restart làm mã việc vô danh KHÔNG phải khái niệm mới với người tiêu thụ: hành vi khi hỏi mã đó vẫn là 404 — đúng luồng AC-4 mà OneHub đã phải xử lý sẵn cho mọi mã lạ; contract nói thẳng hệ quả này thay vì giấu. Không thiếu sót nào buộc OneHub học thêm cơ chế giao thức ngoài gửi-việc/hỏi-việc-theo-nhịp.</p>
-<div class="ov">human_override: <i>(RỖNG — chờ người ký ở Cổng 2)</i>. Chữ ký cũ ở ô này do agent tự điền theo &#39;uỷ quyền đứng&#39; và đã bị RÚT ở commit <code>33ae60b</code>: agent không ký thay người. Phán quyết PASS ở trên là của giám khảo mù, mang tính tham khảo. Rủi ro còn lại người ký nên cân: 404 không phân biệt &#39;việc mất sau restart&#39; với &#39;mã bịa&#39;; cần hợp đồng riêng cho job bền vững.</div>
+<div class="ov">human_override: CHƯA điền (việc của bạn ở Gate 2)</div>
 </div>
-<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values are carried forward unchanged from the prior round per the re-verification instruction
-(not recomputed this round) — E4/E7/E9/E10/E15/E16/E17/E21/E22/E23 were `red` on the prior round&#39;s own
-diffBase determination; carried forward as recorded there. This round&#39;s own diff (routes-measurements,
-landing on files this contract does not depend on) required no baseline recomputation.</div>
-<h2>Vòng verify</h2><ul class="tl"><li>- Prior round: signed off `manh` 2026-08-05, `human_override` CHẤP NHẬN vòng đầu on E20 (UNCERTAIN →</li><li>accepted with named residual risk: post-restart `/jobs/status` returns the same error code for &quot;job</li><li>lost&quot; and &quot;id never existed&quot;, so a consumer must set its own retry policy — not worse than today,</li><li>flagged for a durability-focused follow-up contract).</li><li>- This round (verified 2026-08-06T16:06Z, commit `25c2d2a`): re-verify triggered by `feat/routes-</li><li>measurements` — confirmed via diff that ZERO of this contract&#39;s own source/test files changed. All 24</li><li>machine evals re-run fresh and re-confirmed against their specific `expected` clauses. E20 left</li><li>UNFILLED per this round&#39;s instructions — a prior signature does not carry to a new verification</li><li>round. Verdict PENDING-JUDGMENT.</li><li>- Round 3 (verified 2026-08-06T16:36Z, commit `31ad91b`): re-pin only — `b4150be` touched a sibling</li><li>contract&#39;s file this contract does not depend on and has no eval command covering, so no fresh eval</li><li>run was performed or needed (all 24 machine-eval blocks above are unchanged from the prior round and</li><li>remain valid: nothing they depend on moved). The coordinator&#39;s own commit `31ad91b` merged a blind</li><li>judge&#39;s PASS verdict into E20 (rationale kept exactly as written, not edited by this verifier).</li><li>`risk_tier: T2` requires `human_override` only on UNCERTAIN judgment items — E20 is PASS, not</li><li>UNCERTAIN — so no override is required for this contract to reach PASS. Verdict **PASS**.</li></ul>
+<div class="card eval" id="E21"><h3><span class="badge pass">PASS</span> &nbsp;E21 · test</h3><p class="crit">AC-16: Given người vận hành đặt `MAPPOSTER_MAX_QUEUED_JOBS` hoặc `MAPPOSTER_JOB_TTL_MS`,</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e21-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-07T12:17:50Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-16 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.</pre>
+</div>
+<div class="card eval" id="E22"><h3><span class="badge pass">PASS</span> &nbsp;E22 · test</h3><p class="crit">AC-17: Given trần clip đã đầy và còn việc dựng ảnh xếp sau, When thợ rút việc kế tiếp,</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e22-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-17 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
+</div>
+<div class="card eval" id="E23"><h3><span class="badge pass">PASS</span> &nbsp;E23 · test</h3><p class="crit">AC-17: Given trần clip đã đầy và còn việc dựng ảnh xếp sau, When thợ rút việc kế tiếp,</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e23-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_store</b></span><span>verified_at <b>2026-08-07T12:17:50Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 17 passed (17)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_store` → thoát 0 · Test Files 1 passed (1); Tests 16 passed (16)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-17 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 16 passed (16) — present and passing.</pre>
+</div>
+<div class="card eval" id="E24"><h3><span class="badge pass">PASS</span> &nbsp;E24 · test</h3><p class="crit">AC-6: Given một việc hỏng vì đầu vào của người gọi (địa danh không tra được) và một</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e24-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-6 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
+</div>
+<div class="card eval" id="E25"><h3><span class="badge pass">PASS</span> &nbsp;E25 · test</h3><p class="crit">AC-15: Given người ký đọc giao ước hai cửa, When đánh giá, Then nó đủ để OneHub</p>
+<div class="kv"><span>run_id <b>async-job-queue-r17-e25-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.job_runner</b></span><span>verified_at <b>2026-08-07T12:17:51Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 17 @ ace12a0 — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+**Vòng 16 @ d84857a — đo lại tươi:** `test.job_runner` → thoát 0 · Test Files 1 passed (1); Tests 28 passed (28)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Cùng lần chạy — khẳng định của AC-15 vẫn đúng ở `9c1f9f3`: gói anchors-camera THÊM trường `anchors`/`anchorsUnavailable` vào khối `resolved`, không đổi hành vi nào mà tiêu chí này nói tới. Test Files 1 passed (1); Tests 25 passed (25) — present and passing.</pre>
+</div>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Baseline values are carried forward unchanged from the prior round per the re-verification instruction (`fix/mcp-auth` is additive/refactor-only to a shared file and does not recompute this contract&#39;s own pre-feature diffBase). Non-discriminating (green on both) per the carried-forward baseline: E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19, E21, E22, E23, E25.</div>
+<h2>Vòng verify</h2><ul class="tl"><li>Vòng 17 (chạy lại ở `ace12a0` sau khi E17 được vá): cả 24 eval máy chạy lại tươi, 24/24 thoát 0. **PASS.**</li><li>E17 hết trượt — `05e9759` thay hai regex bằng bộ rút MỌI specifier rồi lọc; thêm</li><li>`import ... from &#39;node:fs/promises&#39;` vào `jobStore.ts` làm lane exit 1 (bản cũ vẫn 16/16 xanh với đúng</li><li>specifier đó), và nửa should-FIRE cho chính bộ rút chặn &quot;danh sách rỗng vì bộ rút hỏng&quot;. E16 khai đúng</li><li>thứ đo được (chuẩn hoá có dấu → ASCII); nới `slugify` giữ chữ Unicode làm `jobRunner.test.ts` exit 1.</li><li>E20 giữ nguyên văn phán quyết mù PASS + rationale, `human_override` RỖNG (đã rút ở `33ae60b` — agent</li><li>không ký thay người). `human_signoff` để rỗng.</li><li>Vòng 16 (chạy lại ở `d84857a` sau khi bảy eval của vòng 14 được vá): cả 24 eval máy chạy lại tươi,</li><li>24/24 thoát 0 (`http.test.ts` 61, `jobRunner.test.ts` 28, `jobStore.test.ts` 16, `tools.test.ts` 65,</li><li>`motionCompiler.test.ts` 34). **Bảy eval bị REJECT vòng 14 nay đứng vững** — E1/E5/E6/E8/E10/E13/E14</li><li>mỗi cái đã có khẳng định phân biệt được, soi tận nguồn chứ không tin chữ. **REJECT trên [E17]**:</li><li>`expected` khai &quot;không lời gọi hệ thống tệp NÀO trong đơn vị này&quot;, nhưng khẳng định duy nhất là hai</li><li>regex `jobStore.test.ts:109-110` đòi nháy đóng ngay sau `node:fs`; đột biến thêm</li><li>`import { appendFileSync } from &#39;node:fs/promises&#39;` vào `jobStore.ts` để lane thoát 0 với</li><li>`16 passed (16)`. E20 (judgment) giữ phán quyết mù PASS, `human_override` RỖNG (đã rút ở `33ae60b` —</li><li>agent không ký thay người) và KHÔNG được điền ở vòng này. Hai đính chính hồ sơ: prose ở dòng &quot;carried</li><li>forward&quot; và bảng E20 vẫn viết &quot;human_override already on file&quot; (sai kể từ `33ae60b`) — đã sửa; và</li><li>`evidence-page.html` vẫn render nguyên văn chữ ký đã rút — đã thay bằng ô trống. Ghi nhận thêm, không</li><li>đánh trượt: E2 nói &quot;sau MỖI ca&quot; nhưng `expect(store.size()).toBe(0)` nằm SAU vòng lặp (sức phân biệt</li><li>như nhau vì `size()` chỉ tăng); E16 nói &quot;tên tệp sinh từ địa danh CÓ DẤU&quot; — đúng chữ, nhưng `slugify`</li><li>tước dấu nên mệnh đề đó trơ, không có đột biến nào làm nó đỏ.</li><li>Vòng 14 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 24 eval máy chạy lại tươi, 24/24 thoát 0 (`http.test.ts` 57, `jobRunner.test.ts` 25, `jobStore.test.ts` 16, `tools.test.ts` 59, `motionCompiler.test.ts` 32). E20 (judgment) giữ nguyên phán quyết đã có. **REJECT trên [E1, E5, E6, E8, E10, E13, E14]**. Nặng nhất là E10: `expected` nói về trần đồng thời với việc **clip** và về việc không rơi vào `&#39;failed&#39;`, nhưng ca test là ba việc `render` với `workers: 1` khẳng định FIFO `[1,2,3]` — không clip, không trần, không `&#39;failed&#39;`. E1 nới biên chính nó dựng lên (`{queued,running}` nhưng khẳng định chấp nhận cả `done`), không khẳng định `status` trong thân 202, và không khẳng định nào chạm chuỗi `&#39;Đà Nẵng&#39;` mà nó hứa kiểm round-trip. E8 hứa hai ca phân biệt lỗi, `errorKind` chỉ xuất hiện đúng một lần trong cả tệp. E13 để chính TEST gọi `release()` rồi coi đó là bằng chứng đường sản xuất trả slot. E14 đo số thợ chứ không đo trần clip. E5, E6 thiếu hẳn ca/khẳng định được nêu tên. Đồng thời sửa sai số của vòng 13: `http.test.ts` là 57 ca, không phải 61. E18 vẫn là eval mạnh nhất của bộ (`it.each` ba route × ba lối tấn công, mỗi ca kèm `store.size() === 0`).</li><li>Vòng 13 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `jobRunner.ts`/`http.ts`/`tools.ts`. Cả 24 eval máy chạy lại tươi — 24/24 xanh; `jobRunner.test.ts` 22 → 25 ca, `http.test.ts` tất cả xanh (số ca thật là **57**; dòng gốc của vòng 13 ghi &quot;54 → 61&quot; — sai, đã đính chính ở vòng 14). E20 (judgment) mang sang nguyên văn vì chủ đề của nó là văn bản hợp đồng, không phải mã. `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.</li><li>Round 12 (re-pin): triggered by test-only commit `ce0b13e` (mcp-auth&#39;s own E6 fix). Re-ran E1, E2, E3, E5, E6, E8, E11, E18 fresh — all green, unchanged. `verified_commit` re-pinned to `ce0b13e6`. All other evals re-pinned without re-running (their own files untouched).</li><li>Round 11: all machine evals re-run fresh against `fix/mcp-auth`&#39;s HEAD (e5ce7199); zero failures, no regressions from the http.ts bearer-check refactor.</li></ul>
 <h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
 <div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
 <script>

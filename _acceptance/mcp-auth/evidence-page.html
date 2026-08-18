@@ -1,0 +1,170 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · mcp-auth</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>Gác /mcp bằng bearer + fail-closed khi bind ngoài loopback</h1><div class="sub">Trang bằng chứng · <span class="mono">mcp-auth</span> · tier T2</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 8 ghim lại ở baf27d3: 10/10 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e1-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e2-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e3-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e4-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e5-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e6-20260807</td><td class="mono">2026-08-07T12:17:38Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e7-20260807</td><td class="mono">2026-08-07T12:18:07Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-8</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e8-20260807</td><td class="mono">2026-08-07T12:18:07Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e9-20260807</td><td class="mono">2026-08-07T12:16:34Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">mcp-auth-r7-e10-20260807</td><td class="mono">2026-08-07T12:21:00Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `MAPPOSTER_TOKEN` đã đặt, When gọi `/mcp` **không** kèm bearer, Then trả **401**.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e1-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. mcp-server/src/http.test.ts describe(&#39;auth: cửa /mcp và luật fail-closed
+(P0)&#39;) — &#39;gác /mcp bằng CÙNG bearer với /render&#39; — MAPPOSTER_TOKEN set, POST /mcp with no
+Authorization header → expect(noAuth.status).toBe(401) — confirmed passing. Test Files 1
+passed (1); Tests 57 passed (57). Unaffected by this round&#39;s test-only diff (that diff only
+touches the separate E6 case).</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given `MAPPOSTER_TOKEN` đã đặt, When gọi `/mcp` kèm bearer **sai**, Then trả **401**.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e2-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. Same test as E1, second half — POST /mcp with `authorization: Bearer nope`
+→ expect(wrong.status).toBe(401) — confirmed passing. Test Files 1 passed (1); Tests 57 passed
+(54).</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given `MAPPOSTER_TOKEN` đã đặt, When gọi `/mcp` kèm bearer **đúng**, Then đi tiếp bình thường — siết auth không được chặn người gọi hợp lệ.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e3-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. &#39;vẫn cho qua khi bearer đúng&#39; — MAPPOSTER_TOKEN set, POST /mcp with
+`authorization: Bearer secret` → expect(ok.status).toBe(200) — confirmed passing. Non-
+discriminating vs baseline: old /mcp had no auth check at all, so a correct bearer also
+returned 200 before this fix.</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given **không** đặt `MAPPOSTER_TOKEN` và bind loopback, When gọi `/mcp`, Then **không** đòi bearer — dev cục bộ vẫn chạy mà không phải cấu hình.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e4-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. &#39;KHÔNG đòi bearer khi không đặt token&#39; — no MAPPOSTER_TOKEN, default host
+(loopback), POST /mcp with no Authorization header → expect(res.status).toBe(200) — confirmed
+passing; local dev on loopback with no token configured still works.</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `MAPPOSTER_HTTP_HOST` bind **ngoài** loopback và **không** có `MAPPOSTER_TOKEN`, When khởi động server, Then **từ chối khởi động** kèm thông điệp nêu tên env và cách khắc phục.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e5-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. &#39;TỪ CHỐI KHỞI ĐỘNG khi bind ngoài loopback mà không có token&#39; —
+startHttpServer(0, fakeDeps(), &#39;0.0.0.0&#39;, {allowedHosts:[&#39;example.com&#39;],...}) with no token →
+await expect(...).rejects.toThrow(/MAPPOSTER_TOKEN/) — confirmed passing.</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given bind ngoài loopback **và có** token, When khởi động, Then server lên bình thường.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e6-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_http</b></span><span>verified_at <b>2026-08-07T12:17:38Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 62 passed (62)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.clip_http` → thoát 0 · Test Files 1 passed (1); Tests 61 passed (61)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+FIXED this round (commit ce0b13e). &#39;cho phép bind ngoài loopback KHI đã có token&#39; —
+MAPPOSTER_TOKEN set, startHttpServer(0, fakeDeps(), &#39;0.0.0.0&#39;, {allowedHosts:[&#39;127.0.0.1&#39;],...})
+→ expect(srv.url).toContain(&#39;/mcp&#39;) — confirmed passing, and now genuinely exercises the
+outside-loopback-with-token path (&#39;0.0.0.0&#39; is not in LOOPBACK_HOSTS). Independently verified
+with a hand-edited negative control in a disposable worktree: tightening the boot guard to
+`if (!LOOPBACK_HOSTS.includes(host))` (dropping the token check) makes this exact test fail
+with &quot;Refusing to start: MAPPOSTER_HTTP_HOST=0.0.0.0 ... MAPPOSTER_TOKEN is unset&quot; — the test
+now discriminates against an over-restrictive guard. Still green-on-baseline (see Analyst) for
+an unrelated reason: old http.ts never blocked this configuration either, since it had no
+fail-closed check of any kind.</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · script</h3><p class="crit">AC-7: Given toàn bộ `http.ts`, When soi bất biến, Then tồn tại **đúng MỘT** nơi so sánh bearer, **mọi** cửa vào (ba route REST + fall-through `/mcp`) đều gọi guard đó, và chốt fail-closed có **phép so sánh thật** chứ không chỉ chuỗi lỗi.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e7-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.auth_invariants</b></span><span>verified_at <b>2026-08-07T12:18:07Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `script.auth_invariants` → thoát 0 · auth-invariants: mọi bất biến còn giữ
+**Vòng 6 @ d84857a — đo lại tươi:** `script.auth_invariants` → thoát 0 · auth-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e (script inspects mcp-server/src/http.ts, which is unchanged this round —
+only http.test.ts changed). I1 t3_path untouched vs ab66f49d. I2 exactly 1 bearer-comparison
+site + rejectedByBearer defined. I3 4 call sites gate the guard (3 REST + /mcp fall-through)
+and the guard sits immediately before createServer() on the /mcp branch. I4 the startup
+fail-closed check compares host against LOOPBACK_HOSTS and MAPPOSTER_TOKEN, and the thrown
+message names both the env var and the fix. auth-invariants: mọi bất biến còn giữ.</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · script</h3><p class="crit">AC-8: Given README, When đọc phần REST, Then nó mô tả đúng thực tế: bearer áp cho **cả** `/mcp`, và luật fail-closed được ghi ra.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e8-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.auth_invariants</b></span><span>verified_at <b>2026-08-07T12:18:07Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `script.auth_invariants` → thoát 0 · auth-invariants: mọi bất biến còn giữ
+**Vòng 6 @ d84857a — đo lại tươi:** `script.auth_invariants` → thoát 0 · auth-invariants: mọi bất biến còn giữ
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Same run as E7 — I2/I3 (exactly one comparison, all 4 doors gated) are precisely the invariants
+that keep README&#39;s &quot;bearer áp cho cả /mcp&quot; claim true.</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-7: Given toàn bộ `http.ts`, When soi bất biến, Then tồn tại **đúng MỘT** nơi so sánh bearer, **mọi** cửa vào (ba route REST + fall-through `/mcp`) đều gọi guard đó, và chốt fail-closed có **phép so sánh thật** chứ không chỉ chuỗi lỗi.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e9-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.api</b></span><span>verified_at <b>2026-08-07T12:16:34Z</b></span><span>baseline <b>red</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 547 passed | 10 skipped (557)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.api` → thoát 0 · Test Files 33 passed | 2 skipped (35); Tests 542 passed | 10 skipped (552)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Đo lại ở a46aec7 trong vòng 4 — Test Files 33 passed | 2 skipped (35);
+Tests 527 passed | 9 skipped (536). (Bản ghi vòng 3 ở đúng chỗ này chép nhầm số của một
+vòng KHÁC — &quot;31 passed | 3 skipped (34); 498 passed | 7 skipped (505)&quot; kèm câu &quot;Re-run at
+ce0b13e&quot; — trong khi run_id/verified_at của nó trỏ tới lần gọi npm test lúc 04:48:51Z ở
+9c1f9f3, lần mà khối E15 của road-routing ghi đúng là 527/9/536. Đã sửa.)
+Xác nhận: gộp ba bản chép về một helper không đổi hành vi quan sát được ở cả ba route
+REST (/render, /render-clip, /jobs) — không ca nào đỏ.</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-3: Given `MAPPOSTER_TOKEN` đã đặt, When gọi `/mcp` kèm bearer **đúng**, Then đi tiếp bình thường — siết auth không được chặn người gọi hợp lệ.</p>
+<div class="kv"><span>run_id <b>mcp-auth-r7-e10-20260807</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp</b></span><span>verified_at <b>2026-08-07T12:21:00Z</b></span><span>baseline <b>green</b></span></div>
+<pre class="out">**Vòng 7 @ ace12a0 — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 15 passed (15)
+**Vòng 6 @ d84857a — đo lại tươi:** `test.mcp` → thoát 0 · Test Files 3 passed (3); Tests 13 passed (13)
+Phần dưới đây là tường thuật của vòng TRƯỚC, giữ nguyên làm lịch sử (số ca của nó có thể đã cũ).
+Re-run at ce0b13e. MCP_INTEGRATION=1 vitest run (renderFrame.test.ts, renderClip.test.ts,
+stdioChannel.test.ts) — real vite build, real PNG and clip through headless Chromium. Test
+Files 3 passed (3); Tests 12 passed (12). Re-confirmed this round (see &quot;Re-scrutinized&quot; above)
+that none of these three files reference bearer/Authorization/startHttpServer — this is a
+stdio-transport regression corroboration, not a direct AC-3 test.</pre>
+</div>
+<h2>Eval không phân biệt (Analyst)</h2><div class="flag fred">Non-discriminating (green on both baseline and HEAD) because the underlying behaviour predates this
+fix: E3, E4, E6, E10. E3/E4 prove the fix didn&#39;t regress the happy path rather than that the fix
+exists. E6 is green-on-baseline for a distinct reason from Round 1&#39;s finding: old code never had a
+fail-closed check at all, so it never blocked the &quot;non-loopback + token&quot; configuration either —
+E6&#39;s discriminating power (after the Round-2 fix) is against a *regression toward over-restriction*
+(proven via the independent negative control above), not against the historical baseline. The
+actual security fix vs. the historical baseline is proven by E1, E2, E5, E7, E8, E9, which are all
+red on baseline.</div>
+<h2>Vòng verify</h2><ul class="tl"><li>Vòng 7 (ghim lại vì tệp dùng chung, chạy lại tươi ở `ace12a0`): cả 10 eval 10/10 thoát 0 (`http.test.ts` 62,</li><li>`npm test` 547/10/0, `test:mcp` 15, `auth-invariants` còn giữ). **PASS.** Vòng 6 không sửa gì trong bán</li><li>kính hợp đồng này; số ca tăng thuần cộng thêm từ hợp đồng anh em. Ghi nhận cũ giữ nguyên: E10 gắn `AC-3`</li><li>mà không chứng minh AC-3 (khiếm khuyết ánh xạ, không phải nói quá). `human_signoff` để rỗng.</li><li>Vòng 6 (chạy lại ở `d84857a` sau khi E8 được vá): cả 10 eval chạy lại tươi, 10/10 thoát 0</li><li>(`http.test.ts` 61, `npm test` 542/10/0, `test:mcp` 13, script bất biến còn giữ). **PASS.** E8 hết</li><li>trượt: `d59c2bd` thêm I5 vào `auth-invariants.ts` — nó ĐỌC `README.md` thật (`:62`), cắt mục</li><li>`### REST endpoints`, và đối chiếu hai vế README↔`http.ts` (`:71-77`, `:79-86`); cả hai nhánh đột</li><li>biến mà `expected` nêu (sửa README về câu cũ; gỡ guard ở nhánh fall-through `http.ts:542`) đều làm</li><li>script đỏ, và không vế nào là no-op. Chín eval còn lại soi lại tận nguồn và trung thực; E6 nay bind</li><li>`&#39;0.0.0.0&#39;` thật. Ghi nhận thêm, KHÔNG đánh trượt: E10 gắn `criterion: AC-3` mà không chứng minh gì</li><li>về AC-3 (khiếm khuyết ánh xạ tiêu chí, không phải nói quá) — như vòng 4 đã ghi. `human_signoff` để</li><li>rỗng: Cổng 2 chờ người ký.</li><li>Vòng 4 (chạy lại vì stale + soi lại từng mệnh đề): ghim ở `a46aec7`. Cả 10 eval chạy lại tươi, 10/10 thoát 0 (`http.test.ts` 57, `npm test` 527/9/536, `test:mcp` 12/12, script 4 bất biến). **REJECT trên [E8]**: `expected` của E8 gắn giá trị của script vào việc nó giữ câu README đúng, nhưng `auth-invariants.ts` chỉ đọc `mcp-server/src/http.ts` — không dòng nào đọc `README.md`, nên AC-8 có 0 khẳng định chống lưng. Đồng thời sửa hai sai số trong bản ghi vòng 3: khối E9 chép số của một vòng khác (498/505 thay vì 527/9/536) và dòng tường thuật ghi `http.test.ts` 61 ca thay vì 57. E7 KHÔNG bị đánh trượt: `expected` của nó nói &quot;&gt;= 4 cửa gọi guard&quot;, đúng bằng `guards &gt;= 4` của script và đúng bằng thước CE ghi trong `contract.md` — AC-7 rộng hơn eval, nhưng eval không nói quá. E10 cũng KHÔNG bị đánh trượt: &quot;MCP integration có gác&quot; nói về việc BỘ TEST bị gác sau `MCP_INTEGRATION=1`, không phải nói nó kiểm bearer (đọc theo ghi chú đầu `_acceptance/anchors-camera/evals.yaml`); tuy vậy nó gắn `criterion: AC-3` mà không chứng minh gì về AC-3 — nên ghi là hàng rào hồi quy, không phải bằng chứng của AC-3.</li><li>Vòng 3 (chạy lại vì stale): kích hoạt bởi `feat/anchors-camera` @ `9c1f9f3` chạm `http.ts`/`tools.ts`/`jobRunner.ts`/`renderFrame.ts`. Cả 10 eval chạy lại tươi — 10/10 xanh, không hồi quy. `http.test.ts` xanh toàn bộ (số ca thật là **57**; dòng gốc của vòng 3 ghi &quot;54 → 61&quot; — sai, đã đính chính ở vòng 4). `verified_commit` ghim về `9c1f9f36`, `human_signoff` xoá để Cổng 2 ký lại.</li><li>Round 2: E6/AC-6 re-checked per the same per-clause standard after commit `ce0b13e` rebound the</li><li>test to a genuine non-loopback host (`&#39;0.0.0.0&#39;`); clause now proven, confirmed independently via a</li><li>hand-edited negative control in a disposable worktree (over-restrictive guard makes the test fail).</li><li>Re-scrutinized E1-E5, E7-E10 with the same standard — no new gap found; E10&#39;s &quot;MCP integration có</li><li>gác&quot; phrasing remains ambiguous (flagged for Gate 2, not treated as a failure). All 10 evals</li><li>re-run fresh; `verified_commit` re-pinned to `ce0b13e6de6504aa53d3bc0fe5545f209ec00381`.</li><li>Round 1: all 10 evals pass on first run against `fix/mcp-auth` HEAD (e5ce7199). No REJECT round</li><li>preceded this one. E6 flagged as a coverage gap (test didn&#39;t exercise the clause its title</li><li>claimed) without failing the eval outright, since its own literal `expected` text was still met.</li></ul>
+<h2>Checklist Cổng 2 (bạn)</h2><div class="card"><ul class="ck"><li><input type="checkbox" id="ck0"><label for="ck0">Read the table + spot-check 1-2 evidence blocks</label></li><li><input type="checkbox" id="ck1"><label for="ck1">Personally verify every judgment item marked UNCERTAIN, then fill its</label></li><li><input type="checkbox" id="ck2"><label for="ck2">T3 only: personally verify ALL judgment items and fill `human_override`</label></li><li><input type="checkbox" id="ck3"><label for="ck3">If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when</label></li><li><input type="checkbox" id="ck4"><label for="ck4">Fill `human_signoff` in frontmatter + `time_human_minutes.gate2` in contract</label></li></ul><div class="note">Tick để theo dõi — chỉ lưu trong trình duyệt; quyết định THẬT vào human_signoff / human_override của report.</div></div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

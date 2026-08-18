@@ -353,6 +353,10 @@
     {
       "id": "d-20260818T031406Z-ooc13",
       "p": "Ghi nhận một lỗ của bộ dựng thẻ: hồ sơ gốc có 13 lỗi ngoài hợp đồng nhưng thẻ chỉ dựng ra 3 mà không báo gì — đổi lại, vòng này người duyệt phải đọc thẳng hồ sơ gốc, còn bộ thẻ cần thêm cờ khi số mục dựng được ít hơn số mục đếm được."
+    },
+    {
+      "id": "d-20260818T050707Z-nopin",
+      "p": "Ghi nhận một lỗ toàn kho của bộ dựng thẻ: thẻ không in ra mốc mã nguồn mà bằng chứng đang ghim, còn trang bằng chứng chỉ hiện các mốc cũ trong phần kể lại — đổi lại, người duyệt phải tự mở hồ sơ gốc mới biết mình đang ký lên bản mã nào."
     }
   ]
 }

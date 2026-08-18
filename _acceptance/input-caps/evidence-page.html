@@ -1,0 +1,87 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · input-caps</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>Chặn độ dài mảng đầu vào + sửa tra cứu format lọt prototype (issue #1, #2, #3)</h1><div class="sub">Trang bằng chứng · <span class="mono">input-caps</span> · tier T2</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 1 ghim lại ở baf27d3: 9/9 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-resolve_config-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-resolve_config-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-resolve_config-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-clip_tools-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-clip_tools-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-clip_tools-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-clip_tools-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-resolve_config-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-9</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">input-caps-r1-input_caps_negctrl-20260813</td><td class="mono">2026-08-13T09:45:11Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `highlight.regions` dài hơn `MAX_HIGHLIGHTS`, When `resolveConfig` chạy, Then nó **ném trước khi gọi geocoder một lần nào** — `resolveLocation` **và** `resolveBoundary` đều có 0 lần gọi. Đặt guard sau lượt tra cứu base vẫn tốn một request; đặt trong vòng lặp thì tốn `MAX_HIGHLIGHTS` request.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-resolve_config-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  71 passed (71) · Start at  16:43:56 · Duration  418ms (transform 54ms, setup 0ms, import 65ms, tests 82ms, environment 201ms)</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given `highlight.points` dài hơn `MAX_HIGHLIGHTS`, When `resolveConfig` chạy, Then y hệt AC-1 — 0 lần gọi mạng.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-resolve_config-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  71 passed (71) · Start at  16:43:56 · Duration  418ms (transform 54ms, setup 0ms, import 65ms, tests 82ms, environment 201ms)</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given mảng dài **đúng bằng** `MAX_HIGHLIGHTS`, When `resolveConfig` chạy, Then nó resolve bình thường và trả đủ `MAX_HIGHLIGHTS` phần tử — trần là **inclusive**. (Nửa suppression: một bản vá chặn cả ca hợp lệ thì không phải bản vá.)</p>
+<div class="kv"><span>run_id <b>input-caps-r1-resolve_config-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  71 passed (71) · Start at  16:43:56 · Duration  418ms (transform 54ms, setup 0ms, import 65ms, tests 82ms, environment 201ms)</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `renderMapSchema` — thứ mà **cả bốn** bề mặt parse (`render_map` trên MCP, và REST `POST /render`, `/render-clip`, `/jobs`), When parse một mảng highlight quá trần, Then `success: false`; và đúng bằng trần thì `success: true`.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-clip_tools-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  69 passed (69) · Start at  16:43:57 · Duration  489ms (transform 87ms, setup 0ms, import 120ms, tests 99ms, environment 202ms)</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `variants` dài hơn `MAX_VARIANTS`, When `render_variants` chạy, Then nó trả `isError` **trước lượt render đầu tiên** — dependency `render` có 0 lần gọi.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-clip_tools-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  69 passed (69) · Start at  16:43:57 · Duration  489ms (transform 87ms, setup 0ms, import 120ms, tests 99ms, environment 202ms)</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given `variants` dài **đúng bằng** `MAX_VARIANTS`, When `render_variants` chạy, Then đủ `MAX_VARIANTS` ảnh ra và `render` được gọi đúng `MAX_VARIANTS` lần.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-clip_tools-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  69 passed (69) · Start at  16:43:57 · Duration  489ms (transform 87ms, setup 0ms, import 120ms, tests 99ms, environment 202ms)</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-7: Given `MAX_VARIANTS`, When đối chiếu với `THEMES`, Then `MAX_VARIANTS &gt;= THEMES.length` — quét mỗi theme một variant là fan-out rộng nhất có thật, trần mà chặn nó là trần đặt sai.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-clip_tools-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.clip_tools</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  69 passed (69) · Start at  16:43:57 · Duration  489ms (transform 87ms, setup 0ms, import 120ms, tests 99ms, environment 202ms)</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-8: Given một khoá kế thừa từ `Object.prototype` (`constructor`, `toString`, `valueOf`, `hasOwnProperty`, `__proto__`, `isPrototypeOf`), When `formatSize` chạy, Then nó **ném** `Unknown format: &lt;khoá&gt;` — và **không** trả về bất cứ thứ gì. Khẳng định phải bắt được cả ca &quot;trả về giá trị truthy không phải size&quot;, không chỉ ca &quot;không ném&quot;.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-resolve_config-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">Tests  71 passed (71) · Start at  16:43:56 · Duration  418ms (transform 54ms, setup 0ms, import 65ms, tests 82ms, environment 201ms)</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · script</h3><p class="crit">AC-9: Given mã nguồn, When soi bất biến, Then **mỗi** trần tồn tại ở **cả hai** tầng: `.max()` ở schema Zod (`tools.ts`) **và** một guard runtime (`assertHighlightCount` trong `resolveConfig.ts`, phép so sánh `MAX_VARIANTS` trong `render_variants`). Gỡ một trong hai tầng phải làm ít nhất một eval đỏ.</p>
+<div class="kv"><span>run_id <b>input-caps-r1-input_caps_negctrl-20260813</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.input_caps_negctrl</b></span><span>verified_at <b>2026-08-13T09:45:11Z</b></span></div>
+<pre class="out">── ca 4: gỡ .max() ở schema Zod (issue #2, tầng biên) ⇒ E4 phải đỏ · negctrl ok [E4 / AC-4]: đỏ đúng như kỳ vọng · negctrl: 4/4 ca đỏ đúng chỗ — bất biến hai tầng đứng</pre>
+</div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

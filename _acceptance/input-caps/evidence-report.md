@@ -31,7 +31,21 @@ Toàn bộ 194 eval của 12 gói chạy trong MỘT vòng: 34 lệnh duy nhất
 
 `verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
-## Bằng chứng từng eval — vòng 1
+## Evidence
+
+Vòng 1 — 9/9 eval máy, chạy tươi, 0 đỏ.
+
+| Eval | Criterion | Executor | Verdict |
+|---|---|---|---|
+| E1 | AC-1 | test | PASS |
+| E2 | AC-2 | test | PASS |
+| E3 | AC-3 | test | PASS |
+| E4 | AC-4 | test | PASS |
+| E5 | AC-5 | test | PASS |
+| E6 | AC-6 | test | PASS |
+| E7 | AC-7 | test | PASS |
+| E8 | AC-8 | test | PASS |
+| E9 | AC-9 | script | PASS |
 
 - eval: E1
   criterion: AC-1

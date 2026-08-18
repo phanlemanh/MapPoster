@@ -1,0 +1,88 @@
+{
+  "feature_plain": "Người gọi dịch vụ bị chặn ngay khi gửi danh sách điểm hoặc vùng quá dài, thay vì để hệ thống dội hàng loạt yêu cầu sang dịch vụ tra cứu địa chỉ công cộng của bên khác dưới tên chúng ta.",
+  "will_do": [
+    {
+      "id": "AC-1",
+      "p": "Sẽ từ chối ngay khi danh sách vùng cần tô vượt trần, chưa gửi một lượt tra cứu địa chỉ nào ra ngoài."
+    },
+    {
+      "id": "AC-2",
+      "p": "Sẽ từ chối y như vậy khi danh sách điểm ghim vượt trần, cũng không tốn lượt tra cứu nào."
+    },
+    {
+      "id": "AC-4",
+      "p": "Sẽ báo lỗi giống nhau ở cả bốn lối gọi vào, vì cả bốn cùng đi qua một bộ kiểm đầu vào duy nhất."
+    },
+    {
+      "id": "AC-5",
+      "p": "Sẽ từ chối trước khi vẽ tấm ảnh đầu tiên, khi người gọi xin quá nhiều biến thể một lượt."
+    },
+    {
+      "id": "AC-6",
+      "p": "Sẽ vẫn trả đủ ảnh khi số biến thể đúng bằng trần."
+    },
+    {
+      "id": "AC-7",
+      "p": "Sẽ giữ trần biến thể đủ rộng cho nhu cầu rộng nhất đang có thật: quét mỗi bộ màu một tấm."
+    },
+    {
+      "id": "AC-9",
+      "p": "Sẽ đặt mỗi trần ở hai lớp chắn độc lập, để gỡ mất một lớp là có phép đo đỏ ngay."
+    }
+  ],
+  "wont_do": [
+    {
+      "id": "AC-3",
+      "p": "Sẽ KHÔNG chặn danh sách dài đúng bằng trần — ca hợp lệ phải đi qua trọn vẹn."
+    },
+    {
+      "id": "AC-8",
+      "p": "Chặn một nhóm tên đặc biệt có sẵn của ngôn ngữ lọt vào chỗ tên khổ giấy: hệ thống báo lỗi ngay tại chỗ thay vì hỏng mù ở tận khâu vẽ."
+    }
+  ],
+  "scope_plain": "Trần chốt cứng trong mã chứ không mở thành nút chỉnh theo môi trường; thông điệp lỗi và mã trả về của các đường cũ giữ nguyên; chưa đặt trần cho tuyến đường và cặp đo khoảng cách.",
+  "coverage_plain": [
+    {
+      "i": 0,
+      "p": "Cả năm lối gọi vào được phủ bằng một bộ kiểm dùng chung, nên không lối nào lọt vì bị quên liệt kê (AC-4 — kiểm ngay tại bộ kiểm chung)."
+    },
+    {
+      "i": 1,
+      "p": "Chặn ở hai lớp: lớp soát hình dạng đầu vào, và lớp chắn bên trong dành cho lối gọi tắt bỏ qua lớp ngoài (AC-9 — bắt buộc đủ hai lớp)."
+    },
+    {
+      "i": 2,
+      "p": "Đủ hai chiều: từ chối đúng cái quá trần, và cho qua đúng cái sát trần (AC-3, AC-6 — ca sát ngưỡng)."
+    },
+    {
+      "i": 3,
+      "p": "Chặn phải nổ TRƯỚC khi tốn tiền — thước đo là số lượt gọi ra ngoài phải bằng 0 (AC-1, AC-2, AC-5)."
+    },
+    {
+      "i": 4,
+      "p": "Lỗi phải ném ra, không được trả về một giá trị trông như hợp lệ (AC-8 — nhóm tên đặc biệt của ngôn ngữ)."
+    }
+  ],
+  "gap_probe_plain": [
+    {
+      "i": 0,
+      "p": "Bộ tiêu chí không ghim con số của hai trần, cũng không đặt mức trần tối đa — một lần nâng trần lên rất cao về sau vẫn đi qua được cả chín phép đo. Đối chiếu mã: hôm nay là 32 và 24, hợp lý."
+    },
+    {
+      "i": 1,
+      "p": "Chín phép đo thực chất chỉ chạy ba lệnh, mà lệnh chỉ báo đạt hay trượt cho cả bộ — xoá mất ca kiểm sát ngưỡng thì bảng điểm vẫn xanh. Đối chiếu mã: các ca đó đang có thật."
+    },
+    {
+      "i": 2,
+      "p": "Hợp đồng khẳng định cả bốn lối gọi vào cùng đi qua một bộ kiểm, và lấy chính câu đó làm bằng chứng đủ, nhưng không phép đo nào canh quan hệ ấy. Đối chiếu mã: hôm nay đúng, nhưng một lần tách ra về sau sẽ đi qua lặng lẽ."
+    },
+    {
+      "i": 3,
+      "p": "Phép thử phá-để-xem-có-đỏ còn thiếu một ô: gỡ lớp soát hình dạng của danh sách biến thể thì không phép đo nào đỏ. Đối chiếu mã: lớp đó đang tồn tại."
+    },
+    {
+      "i": 4,
+      "p": "Chú thích đầu bộ phép đo nói chỉ dùng hai bộ lệnh trong khi thực tế có ba — đã kiểm, bộ thứ ba khai đủ trong cấu hình nên không có rủi ro thật, chỉ là một câu ghi thiếu."
+    }
+  ]
+}

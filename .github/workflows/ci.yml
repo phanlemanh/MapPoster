@@ -43,3 +43,9 @@ jobs:
           fetch-depth: 0
       - name: Acceptance gate
         run: bash scripts/pre-merge-check.sh --base "origin/${{ github.base_ref || 'main' }}"
+      # Lint đấu dây bộ phép đo — hỏi thứ cổng không hỏi: lệnh của một phép đo
+      # có thật sự chạm tiêu chí nó khai không. Chặn ở L0/L1/L2 (tiêu chí không
+      # có phép đo, lệnh trỏ tệp không tồn tại, bộ đọc của chính lint hỏng);
+      # L3 chỉ cảnh báo vì nó đoán bằng từ vựng. Xem đầu file script.
+      - name: Lint đấu dây phép đo
+        run: node _acceptance/eval-wiring-lint.mjs

@@ -7,11 +7,16 @@ reason: "Vòng 15 ghim lại ở baf27d3: 15/15 eval máy chạy tươi, 0 đỏ
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: cae52de592f604d5f39e8d761d14d3d36a8d5858
+verified_commit: c35ac43f50c7c3f6d12d07bdd71da1696d9584dc
 human_signoff: manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)
 ---
 
 # Evidence Report: map-motion-clip
+
+### Re-pin lần 2 — 2026-08-19, do thêm ba ca AC-8 vào mcp-server/src/resolveConfig.test.ts — mcp-server/ không thuộc danh sách miễn trừ
+run_id: repin-20260819-c35ac43
+sha: c35ac43f50c7c3f6d12d07bdd71da1696d9584dc · suites: 3 lệnh exit 0 (npm test 617 đạt · test:e2e 18 đạt · test:mcp 22 đạt)
+Chữ ký người GIỮ NGUYÊN — thay đổi làm hết hạn là ba ca test mới, không chạm hành vi sản phẩm.
 
 ### Re-pin lần 1 — 2026-08-19, do thêm src/components/MapView.test.tsx (tệp test đầu tiên của thành phần bản đồ web) — src/ không thuộc danh sách miễn trừ nên mọi hồ sơ ghim trước đó hết hiệu lực
 run_id: repin-20260819-cae52de

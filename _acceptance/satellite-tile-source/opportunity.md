@@ -3,10 +3,10 @@ schema_version: 1
 slug: satellite-tile-source
 feature: Nguồn tile ảnh vệ tinh dùng được ở production (PR #8b)
 owner: phanlemanh@gmail.com
-stage: discovery
-decision:
-decided_by:
-decided_at:
+stage: decided
+decision: park
+decided_by: Phan Le Manh
+decided_at: 2026-08-19T10:35:16Z
 prototype:
   base_commit:
   disposition:
@@ -85,8 +85,30 @@ hỏi của hồ sơ này thuần là **tiền và vận hành**, không phải 
 
 ## Cổng 0
 
-Chưa họp. Hồ sơ này ở `stage: discovery` nên nó hiện ở mục **Cổng Đáng** trên thẻ
-vào phiên: quyết có làm việc này không.
+**Quyết định 2026-08-19: HOÃN (park).** Người quyết: Phan Le Manh.
+
+Lý do — giả định gánh cả quyết định là *"có nhu cầu thật đủ lớn để trả một chi
+phí vận hành ĐỊNH KỲ"*, và nó **chưa có một phép đo nào**. Trả tiền hàng tháng
+cho một nhu cầu chưa đo là đúng thứ cổng này sinh ra để chặn.
+
+Hoãn không để lại vết thương: mã đã ký nằm im không tốn gì, và cả hai đường vào
+đều xử lý đúng khi thiếu nguồn — đường máy gọi TỪ CHỐI kèm tên biến, đường web
+rơi về nền vector. Cả hai nay đều có phép đo canh (AC-8 và AC-9, phép đo cho
+AC-8 viết ngày 2026-08-19 sau khi lint đấu dây phát hiện nó chưa từng được đo).
+
+**Điều kiện mở lại — đây là phần quan trọng nhất của một quyết định hoãn:**
+
+1. **Có số về nhu cầu.** Đếm số lần người gọi thật xin `basemap: satellite` và
+   bị từ chối. Hệ thống đã từ chối kèm tên biến sẵn rồi, chỉ cần đếm.
+2. **Hoặc** một cam kết cụ thể từ phía bán hàng buộc phải có ảnh vệ tinh.
+
+Có một trong hai thì mở lại và làm bước tiếp: đặt báo giá 2–3 nhà cung cấp có
+điều khoản dịch vụ rõ, cạnh ước tính lưu trữ + băng thông của đường tự host.
+
+**Việc KHÔNG đi kèm quyết định này:** lỗi mặc định của công thức `area-overview`
+— nó mặc định `satellite` nên bị từ chối, trong khi ví dụ mẫu trong danh mục tự
+khai `vector` và lách qua đúng cái mặc định nó quảng cáo. Lỗi này đúng-sai độc
+lập với câu hỏi tiền bạc ở trên và phải xử riêng, dù hoãn hay dựng.
 
 ## Thước đo thành công → ứng viên criterion
 

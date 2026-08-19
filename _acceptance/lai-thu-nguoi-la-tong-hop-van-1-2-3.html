@@ -1,0 +1,746 @@
+<title>Ba Ván Lái-thử Người-lạ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,800;1,400&family=Be+Vietnam+Pro:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#EFF3F4; --surface:#FBFCFC; --surface-2:#E6EDEE;
+  --ink:#111A1F; --ink-2:#3C4C55; --ink-3:#6B7C85;
+  --rule:#D2DBDE; --rule-soft:#E2E9EA;
+  --accent:#0F6B62; --accent-ink:#0A4F48; --accent-wash:#DDEBE8;
+  --chan:#A8342C; --chan-wash:#F5E2DF;
+  --lac:#8E5F16; --lac-wash:#F5EADA;
+  --kho:#3B5F82; --kho-wash:#E0E8F1;
+  --vat:#5F706E; --vat-wash:#E5EAE9;
+  --shadow:0 1px 2px rgba(17,26,31,.05), 0 8px 24px -12px rgba(17,26,31,.14);
+  --f-display:"Spectral",Georgia,"Times New Roman",serif;
+  --f-body:"Be Vietnam Pro","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0C1317; --surface:#121D21; --surface-2:#18262B;
+    --ink:#E7EEF0; --ink-2:#AEC0C7; --ink-3:#7C8E96;
+    --rule:#23343A; --rule-soft:#1B2A2F;
+    --accent:#4FC3AE; --accent-ink:#8AD9CA; --accent-wash:#10302C;
+    --chan:#EC8175; --chan-wash:#331916;
+    --lac:#D5A459; --lac-wash:#2E2415;
+    --kho:#86ADD6; --kho-wash:#182533;
+    --vat:#9AACA9; --vat-wash:#1B2524;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0C1317; --surface:#121D21; --surface-2:#18262B;
+  --ink:#E7EEF0; --ink-2:#AEC0C7; --ink-3:#7C8E96;
+  --rule:#23343A; --rule-soft:#1B2A2F;
+  --accent:#4FC3AE; --accent-ink:#8AD9CA; --accent-wash:#10302C;
+  --chan:#EC8175; --chan-wash:#331916;
+  --lac:#D5A459; --lac-wash:#2E2415;
+  --kho:#86ADD6; --kho-wash:#182533;
+  --vat:#9AACA9; --vat-wash:#1B2524;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-weight:400; font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px 96px}
+@media(max-width:640px){ .wrap{padding:0 16px 64px} }
+
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0}
+a{color:var(--accent-ink); text-decoration-thickness:1px; text-underline-offset:2px}
+a:focus-visible,.q:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px}
+code,.mono{font-family:var(--f-mono); font-size:.86em; font-variant-numeric:tabular-nums}
+code{background:var(--surface-2); padding:.1em .35em; border-radius:3px; word-break:break-all}
+
+/* ---------- eyebrow / labels ---------- */
+.eyebrow{
+  font-family:var(--f-mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 10px
+}
+
+/* ---------- masthead ---------- */
+header.mast{border-bottom:1px solid var(--rule); padding:56px 0 30px; margin-bottom:44px}
+header.mast h1{font-size:clamp(2.1rem,1.2rem+3.6vw,3.6rem); font-weight:800; line-height:1.04; letter-spacing:-.015em}
+header.mast .sub{
+  font-family:var(--f-display); font-style:italic; font-size:clamp(1.02rem,.95rem+.4vw,1.24rem);
+  color:var(--ink-2); max-width:60ch; margin:16px 0 0
+}
+.meta-line{
+  display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:22px;
+  font-family:var(--f-mono); font-size:11.5px; letter-spacing:.06em; color:var(--ink-3);
+  text-transform:uppercase
+}
+
+/* ---------- ledger ---------- */
+.ledger{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:1px; background:var(--rule); border:1px solid var(--rule);
+  border-radius:4px; overflow:hidden; margin:34px 0 0
+}
+.ledger div{background:var(--surface); padding:16px 18px}
+.ledger b{
+  display:block; font-family:var(--f-display); font-weight:800;
+  font-size:clamp(1.6rem,1.2rem+1.4vw,2.15rem); line-height:1; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums
+}
+.ledger span{
+  display:block; margin-top:7px; font-family:var(--f-mono); font-size:10.5px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)
+}
+.ledger .hot b{color:var(--chan)}
+
+section{margin-top:64px}
+h2{font-size:clamp(1.35rem,1.15rem+.8vw,1.85rem); font-weight:600; letter-spacing:-.01em}
+h2 + .lede{color:var(--ink-2); max-width:66ch; margin:12px 0 0; font-size:.985rem}
+h3{font-size:1.06rem; font-weight:600; margin:0}
+
+/* ---------- spine: three runs ---------- */
+.spine{margin-top:30px; display:flex; flex-direction:column; gap:0}
+.run{
+  display:grid; grid-template-columns:auto 1fr; gap:0 22px; position:relative;
+}
+.run .rail{
+  position:relative; width:38px; display:flex; flex-direction:column; align-items:center;
+}
+.run .num{
+  font-family:var(--f-mono); font-size:12px; font-weight:500; letter-spacing:.02em;
+  width:38px; height:38px; border-radius:50%; display:grid; place-items:center;
+  background:var(--surface); border:1px solid var(--rule); color:var(--ink-2); z-index:1;
+  flex:0 0 auto
+}
+.run.last .num{background:var(--accent-wash); border-color:var(--accent); color:var(--accent-ink)}
+.run .thread{flex:1 1 auto; width:1px; background:var(--rule); margin:6px 0}
+.run.last .thread{background:transparent}
+.run .body{padding-bottom:34px; min-width:0}
+.run h3{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px}
+.run h3 .when{font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; color:var(--ink-3); text-transform:uppercase; font-weight:400}
+.run p{margin:8px 0 0; color:var(--ink-2); font-size:.95rem; max-width:62ch}
+.run dl{
+  margin:14px 0 0; display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:12px 18px; font-size:.86rem
+}
+.run dt{font-family:var(--f-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.run dd{margin:3px 0 0; color:var(--ink)}
+.gap-note{
+  margin-top:12px; padding:10px 14px; border-left:2px solid var(--lac);
+  background:var(--lac-wash); font-size:.875rem; color:var(--ink-2); border-radius:0 3px 3px 0
+}
+
+/* ---------- root cause grid ---------- */
+.roots{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:14px; margin-top:28px}
+.root{
+  background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+  padding:16px 18px 17px; box-shadow:var(--shadow)
+}
+.root .id{
+  font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.08em;
+  color:var(--accent-ink); background:var(--accent-wash); padding:2px 7px; border-radius:3px
+}
+.root h3{font-size:.97rem; font-weight:600; margin:11px 0 0; font-family:var(--f-body); line-height:1.4}
+.root p{margin:8px 0 0; font-size:.86rem; color:var(--ink-2); line-height:1.55}
+.root .seen{
+  margin-top:13px; padding-top:11px; border-top:1px solid var(--rule-soft);
+  font-family:var(--f-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3)
+}
+
+/* ---------- findings ---------- */
+.tier{margin-top:34px}
+.tier-head{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding-bottom:9px; border-bottom:2px solid var(--tc)
+}
+.tier-head .tname{
+  font-family:var(--f-mono); font-size:12.5px; font-weight:500; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--tc)
+}
+.tier-head .tcount{font-family:var(--f-mono); font-size:12.5px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.tier-head .tdesc{font-size:.86rem; color:var(--ink-3); margin-left:auto}
+.tier.t-chan{--tc:var(--chan); --tw:var(--chan-wash)}
+.tier.t-lac{--tc:var(--lac); --tw:var(--lac-wash)}
+.tier.t-kho{--tc:var(--kho); --tw:var(--kho-wash)}
+.tier.t-vat{--tc:var(--vat); --tw:var(--vat-wash)}
+
+.find{
+  display:grid; grid-template-columns:52px 1fr; gap:0 16px;
+  padding:15px 0; border-bottom:1px solid var(--rule-soft)
+}
+.find:last-child{border-bottom:0}
+.find .fid{
+  font-family:var(--f-mono); font-size:11.5px; font-weight:500; color:var(--tc);
+  padding-top:2px; letter-spacing:.03em
+}
+.find .fbody{min-width:0}
+.find .ftitle{font-weight:500; font-size:.97rem; line-height:1.45}
+.find .fdetail{margin:5px 0 0; font-size:.885rem; color:var(--ink-2); line-height:1.6}
+.find .ftags{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; align-items:center}
+.tag{
+  font-family:var(--f-mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+  padding:2.5px 7px; border-radius:3px; border:1px solid var(--rule); color:var(--ink-3);
+  background:var(--surface); white-space:nowrap
+}
+.tag.root{color:var(--accent-ink); border-color:transparent; background:var(--accent-wash)}
+.tag.new{color:var(--tc); border-color:transparent; background:var(--tw); font-weight:500}
+.tag.again{color:var(--ink-3)}
+.tag.open{color:var(--chan); border-color:var(--chan); background:transparent}
+.evi{
+  margin:9px 0 0; padding:9px 12px; background:var(--surface-2); border-radius:3px;
+  font-size:.83rem; color:var(--ink-2); line-height:1.6
+}
+.evi b{font-weight:500; color:var(--ink); font-family:var(--f-mono); font-size:.95em}
+
+/* ---------- escalation ---------- */
+.esc{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:0; margin-top:26px}
+.esc > div{
+  background:var(--surface); border:1px solid var(--rule); padding:18px;
+  border-right-width:0
+}
+.esc > div:last-child{border-right-width:1px; background:var(--accent-wash); border-color:var(--accent)}
+@media(max-width:700px){
+  .esc > div{border-right-width:1px; border-bottom-width:0}
+  .esc > div:last-child{border-bottom-width:1px}
+}
+.esc .step{font-family:var(--f-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.esc h3{font-size:.95rem; font-weight:600; margin:9px 0 0; font-family:var(--f-body)}
+.esc p{margin:7px 0 0; font-size:.85rem; color:var(--ink-2); line-height:1.55}
+.esc .strength{margin-top:12px; font-family:var(--f-mono); font-size:10.5px; letter-spacing:.06em; color:var(--accent-ink)}
+
+/* ---------- blind spots ---------- */
+.blind{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:26px}
+.blind article{border-top:2px solid var(--accent); padding-top:14px}
+.blind h3{font-size:.95rem; font-weight:600; font-family:var(--f-body)}
+.blind p{margin:7px 0 0; font-size:.875rem; color:var(--ink-2); line-height:1.6}
+
+/* ---------- docket ---------- */
+.docket{margin-top:26px; border:1px solid var(--rule); border-radius:4px; overflow:hidden; background:var(--surface)}
+.dgroup + .dgroup{border-top:1px solid var(--rule)}
+.dgroup > .dh{
+  padding:11px 18px; background:var(--surface-2);
+  font-family:var(--f-mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-2)
+}
+.q{display:grid; grid-template-columns:34px 1fr; gap:0 12px; padding:13px 18px; border-top:1px solid var(--rule-soft)}
+.q .qn{font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); padding-top:3px; font-variant-numeric:tabular-nums}
+.q p{margin:0; font-size:.92rem; line-height:1.6}
+.q .trade{display:block; margin-top:5px; font-size:.85rem; color:var(--ink-3); font-style:italic}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto; margin-top:24px; border:1px solid var(--rule); border-radius:4px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:560px; font-size:.875rem}
+th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+th{
+  font-family:var(--f-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:400; background:var(--surface-2); white-space:nowrap
+}
+tr:last-child td{border-bottom:0}
+td.dash{color:var(--ink-3)}
+td.miss{color:var(--chan); font-weight:500}
+
+/* ---------- footer ---------- */
+footer{margin-top:72px; padding-top:26px; border-top:1px solid var(--rule); font-size:.85rem; color:var(--ink-3)}
+footer p{margin:0 0 8px; max-width:70ch}
+.stamp{
+  font-family:var(--f-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); margin-top:18px
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Hồ sơ hợp nhất · Nghi thức Lái-thử Người-lạ</p>
+  <h1>Ba ván lái-thử người-lạ</h1>
+  <p class="sub">Năm lượt người-lạ ngữ-cảnh-trắng lái mapposter trong một ngày. Cộng ngang ba hồ sơ ra 46 dòng vấp; khử trùng theo nguyên nhân gốc còn 36 vấp phân biệt, và không vấp nào trong đó đã được vá.</p>
+  <div class="meta-line">
+    <span>mapposter</span><span>2026-08-19</span><span>Bậc B1–B3, không B4</span><span>Commit 0046a4c</span>
+  </div>
+
+  <div class="ledger">
+    <div><b>36</b><span>vấp còn sống</span></div>
+    <div><b>9</b><span>nguyên nhân gốc</span></div>
+    <div class="hot"><b>7</b><span>mức CHẶN</span></div>
+    <div><b>5</b><span>lượt người-lạ</span></div>
+    <div><b>15</b><span>câu chờ người quyết</span></div>
+    <div class="hot"><b>0</b><span>vấp đã vá</span></div>
+  </div>
+</header>
+
+<section>
+  <h2>Ba ván bổ sung nhau theo chiều, không lặp nhau</h2>
+  <p class="lede">Thứ tự ở đây mang thông tin: mỗi ván chọn một chiều mà ván trước bỏ trống, và ván sau làm cứng bằng chứng của ván trước thay vì chép lại.</p>
+
+  <div class="spine">
+
+    <article class="run">
+      <div class="rail"><div class="num">#1</div><div class="thread"></div></div>
+      <div class="body">
+        <h3>Mở đường ở tầng giao thức <span class="when">commit c4ddfcc</span></h3>
+        <p>Ba lượt agent qua bộ công cụ MCP công khai. Bắt trọn ba lỗi nặng nhất của cả ba ván — trong đó có vấp duy nhất mà một họ mô hình độc lập sau này xác nhận được bằng thị giác.</p>
+        <dl>
+          <div><dt>Lượt</dt><dd>3 · biến thể agent</dd></div>
+          <div><dt>Bề mặt</dt><dd>MCP</dd></div>
+          <div><dt>Khử tương quan</dt><dd>không có</dd></div>
+          <div><dt>Phát hiện mới</dt><dd>9</dd></div>
+        </dl>
+        <p class="gap-note"><strong>Hai nợ hồ sơ:</strong> ván này dùng thang P0/P1 thay vì CHẶN/LẠC/KHÓ-CHỊU/VẶT, và không có frontmatter máy-đọc — nên <code>uat-session</code> không đọc được <code>chan</code>/<code>slug</code>/<code>ran_at</code> của nó. Báo cáo này quy đổi lại thang; phần frontmatter vẫn chưa vá.</p>
+      </div>
+    </article>
+
+    <article class="run">
+      <div class="rail"><div class="num">#2</div><div class="thread"></div></div>
+      <div class="body">
+        <h3>Mở bề rộng — thêm bề mặt, thêm kỷ luật đo <span class="when">commit b754cac · 7ea0f25</span></h3>
+        <p>Thêm một lượt UI pixel-only với luật cấm-DOM cắm thành deny rule thật, thêm bậc khử tương quan, và buộc mọi khẳng định “giống hệt” phải trình md5 in ra từ lệnh cùng một đối chứng dương.</p>
+        <dl>
+          <div><dt>Lượt</dt><dd>3 · agent + <strong>ui</strong></dd></div>
+          <div><dt>Bề mặt</dt><dd>MCP + <strong>web app</strong></dd></div>
+          <div><dt>Khử tương quan</dt><dd>gemini 3.5 &amp; 3.7 flash, ảnh tĩnh</dd></div>
+          <div><dt>Phát hiện mới</dt><dd>19</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="run last">
+      <div class="rail"><div class="num">#3</div><div class="thread"></div></div>
+      <div class="body">
+        <h3>Mở chiều sâu — chấm chính chuyển động <span class="when">commit d3f0fa5 · f891eda</span></h3>
+        <p>Bỏ bề rộng persona để đi hết một làn: gửi thẳng mp4 cho mô hình khác họ, và đặt cạnh mỗi khẳng định thị giác một phép đo máy trên byte của tệp. Đường video chỉ được tin sau một phép thăm dò có sức phân biệt — clip động trả YES, clip đứng yên trả NO, và bản chỉ-chữ không mặc định YES.</p>
+        <dl>
+          <div><dt>Lượt</dt><dd>1 · biến thể agent</dd></div>
+          <div><dt>Bề mặt</dt><dd>MCP · làn video</dd></div>
+          <div><dt>Khử tương quan</dt><dd>gemini 3.7 flash, <strong>mp4 gửi thẳng</strong></dd></div>
+          <div><dt>Phát hiện mới</dt><dd>8</dd></div>
+        </dl>
+        <p class="gap-note"><strong>Đánh đổi đã khai:</strong> chỉ một lượt, nên ván này không sinh dữ liệu mới nào về bề mặt web app.</p>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section>
+  <h2>Chín nguyên nhân gốc đứng sau 36 triệu chứng</h2>
+  <p class="lede">Đây là phần chỉ hiện ra khi gộp ba ván: nhiều dòng vấp rời rạc, ghi ở những ván khác nhau và những mức khác nhau, hoá ra chia chung một gốc. Sửa một gốc tắt nhiều dòng cùng lúc.</p>
+
+  <div class="roots">
+    <article class="root">
+      <span class="id">G1</span>
+      <h3>Một URL router dùng cho mọi phương tiện</h3>
+      <p><code>DEFAULT_OSRM_URL</code> trỏ <code>routed-car</code> — instance chỉ chạy hồ sơ ô tô — nên chữ <code>foot</code> trong đường dẫn bị bỏ qua, và <code>provider:"osrm/foot"</code> trở thành một khẳng định sai.</p>
+      <p class="seen">Ván 1 · 2 · 3</p>
+    </article>
+    <article class="root">
+      <span class="id">G2</span>
+      <h3>Giao hàng mặc định là base64, không mô tả</h3>
+      <p><code>delivery</code> mặc định <code>inline</code> và không một chữ giải thích. Sinh ra bốn dòng vấp ở hai ván: ví dụ danh mục vỡ transport, 99,94% phản hồi là base64, không có đường dẫn tệp để giao, đường dẫn trả về cụt gốc.</p>
+      <p class="seen">Ván 1 · 2</p>
+    </article>
+    <article class="root">
+      <span class="id">G3</span>
+      <h3>Tên tệp đầu ra không có chỗ cho người dùng</h3>
+      <p>Tên chỉ theo cặp (vùng, kích thước), và không có tham số nào đặt đường ra. Vừa gây ghi đè im lặng, vừa khiến người dùng thấy nó xảy ra mà không có nút nào để tránh.</p>
+      <p class="seen">Ván 2 · 3</p>
+    </article>
+    <article class="root">
+      <span class="id">G4</span>
+      <h3>SDK lọc khoá lạ trước khi tới chốt kiểm</h3>
+      <p>Gõ sai <em>tên</em> tham số bị nuốt hoàn toàn im lặng và trả về ảnh “thành công” sai nội dung; gõ sai <em>giá trị</em> thì bị báo lỗi rất rõ. Người dùng không đoán trước được mình rơi vào kiểu nào.</p>
+      <p class="seen">Ván 1 · 2</p>
+    </article>
+    <article class="root">
+      <span class="id">G5</span>
+      <h3>Cổng dựng hình cố định, lỗi chưa bắt</h3>
+      <p>Cổng <code>127.0.0.1:4180</code> cố định và <code>EADDRINUSE</code> không được bắt: khi cổng bận, lời gọi treo câm không phản hồi JSON-RPC nào và tiến trình server chết.</p>
+      <p class="seen">Ván 3</p>
+    </article>
+    <article class="root">
+      <span class="id">G6</span>
+      <h3>Tham số recipe khai là <code>z.unknown()</code></h3>
+      <p>Qua MCP chúng hiện ra là <code>{}</code>: không kiểu, không ràng buộc. Máy không có cách nào biết một tham số là mảng, nên 5 trên 8 recipe không gọi tới được từ phía agent.</p>
+      <p class="seen">Ván 1 — chưa ván nào tái kiểm</p>
+    </article>
+    <article class="root">
+      <span class="id">G7</span>
+      <h3>Mô tả và lược đồ nói hai chuyện</h3>
+      <p><code>render_clip</code> mô tả 3 preset chuyển động, lược đồ có 6. Ba cái bị bỏ gồm đúng cái mà recipe <code>route-journey</code> khoá cứng. Và không có tool nào liệt kê preset.</p>
+      <p class="seen">Ván 3</p>
+    </article>
+    <article class="root">
+      <span class="id">G8</span>
+      <h3>Tên không khớp cách người mới đoán</h3>
+      <p><code>area-overview</code> hút đúng người cần <code>region-spotlight</code>; <code>compile_motion</code> nghe như <em>tạo</em> motion nhưng <em>đòi</em> motion; <code>render_animation</code> chỉ làm hiệu ứng radar; <code>list_recipes</code> — cửa đúng nhất — nghe như đồ nội bộ.</p>
+      <p class="seen">Ván 1 · 2 · 3</p>
+    </article>
+    <article class="root">
+      <span class="id">G9</span>
+      <h3>Bề mặt web không phát tín hiệu trạng thái</h3>
+      <p>Bấm Download không có phản hồi nào; bản đồ trắng ba giây không có chỉ báo đang tải. Người dùng không phân biệt được “đang làm”, “xong rồi” và “hỏng”.</p>
+      <p class="seen">Ván 2</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <h2>Nhật ký vấp hợp nhất</h2>
+  <p class="lede">Mức mô tả hậu quả với người dùng, không mô tả độ khó sửa. Nhãn <em>tái xuất</em> nghĩa là ván sau gặp lại và làm cứng thêm bằng chứng, không phải một phát hiện mới.</p>
+
+  <div class="tier t-chan">
+    <div class="tier-head"><span class="tname">Chặn</span><span class="tcount">7</span><span class="tdesc">việc của người dùng không đi tiếp được, hoặc dữ liệu mất</span></div>
+
+    <div class="find"><div class="fid">C1</div><div class="fbody">
+      <div class="ftitle">Chế độ đi bộ trả tuyến ô tô</div>
+      <p class="fdetail">Sản phẩm trả <code>provider:"osrm/foot"</code> trong khi router thật sự tính là hồ sơ ô tô.</p>
+      <div class="ftags"><span class="tag root">G1</span><span class="tag new">phát hiện ở ván 1</span><span class="tag again">tái xuất ván 2 · 3</span><span class="tag open">chưa vá</span></div>
+      <p class="evi">Chuỗi ba tầng: ván 1 đo hai máy chủ ngoài sản phẩm — <b>45,0</b> so với <b>4,5 km/h</b>. Ván 2 đo số liệu sản phẩm trả về — ba mode cho cùng <b>1.2118 km</b> / <b>2.5233 phút</b> ≈ 28,8 km/h. Ván 3 đo byte — ba tệp mp4 trùng <b>md5 7748da8e87a88185d190965d30e52f2a</b>, và mô hình khác họ nhìn video trả <b>NO</b> cho “tuyến bám lối đi bộ”.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C2</div><div class="fbody">
+      <div class="ftitle">Render biến thể thứ hai xoá đè bản thứ nhất</div>
+      <p class="fdetail">Cùng vùng và cùng khổ cho cùng một đường dẫn. Sản phẩm báo thành công mọi lần, không một lời cảnh báo, chỉ số tệp không tăng.</p>
+      <div class="ftags"><span class="tag root">G3</span><span class="tag new">phát hiện ở ván 2</span><span class="tag again">tái xuất ván 3</span><span class="tag open">chưa vá</span></div>
+      <p class="evi">md5 cùng một tệp đổi <b>6241dd3a…</b> → <b>f6bf793f…</b>, trong khi bản sao giữ riêng vẫn giữ md5 cũ — đối chứng dương cho việc đây là ghi đè thật, không phải md5 dao động. Mô hình khác họ trả <b>YES</b> rồi <b>NO</b> cho cùng một câu hỏi về màu nền trên hai khung. Ván 3 gặp lại trong hoàn cảnh thật: mất bản dựng của 20 phút trước.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C3</div><div class="fbody">
+      <div class="ftitle">Cổng dựng hình bận thì lời gọi treo câm</div>
+      <p class="fdetail">Không phản hồi JSON-RPC, không lỗi ở tầng giao thức. Người-lạ dính ba lần, mất khoảng 20 phút chờ suông, và chỉ thoát ra được bằng cách tự đi giết tiến trình.</p>
+      <div class="ftags"><span class="tag root">G5</span><span class="tag new">phát hiện ở ván 3</span><span class="tag open">chưa vá</span></div>
+      <p class="evi">Tái hiện bằng một listener vô can giữ cổng: lời gọi 64×64 chạy <b>121 giây</b>, <code>stdout</code> rỗng hoàn toàn, <code>stderr</code> là <code>Unhandled 'error' event</code> kèm <code>EADDRINUSE</code>. Cùng lời gọi khi cổng rảnh: <b>4,4 giây</b>.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C4</div><div class="fbody">
+      <div class="ftitle">Gõ sai tên tham số bị nuốt hoàn toàn im lặng</div>
+      <p class="fdetail">Trả về ảnh “thành công” với nội dung không phải thứ người dùng yêu cầu. Gõ <code>themes</code> thay <code>theme</code> là mất lựa chọn mà vẫn đinh ninh đã chọn.</p>
+      <div class="ftags"><span class="tag root">G4</span><span class="tag new">phát hiện ở ván 1</span><span class="tag again">tái xuất ván 2</span><span class="tag open">chưa vá</span></div>
+      <p class="evi"><b>5e347436…</b> (sai tên) <b>==</b> <b>5e347436…</b> (bỏ hẳn khoá) <b>≠</b> <b>9ce052ec…</b> (viết đúng). Cặp đầu chứng minh bị nuốt; cặp sau là đối chứng dương chứng minh viết đúng thì kết quả có đổi.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C5</div><div class="fbody">
+      <div class="ftitle">Ví dụ mẫu của danh mục không dùng được nguyên văn</div>
+      <p class="fdetail"><code>list_recipes</code> tự mô tả ví dụ là “a working example call”. Ván 1 gọi cả bốn ví dụ: bốn ca hỏng theo bốn kiểu khác nhau.</p>
+      <div class="ftags"><span class="tag root">G2</span><span class="tag new">phát hiện ở ván 1</span><span class="tag again">tái xuất ván 2</span><span class="tag open">chưa vá</span></div>
+      <p class="evi">Ván 2 gọi lại <code>region-spotlight</code> nguyên văn: phản hồi <b>2.934.545 byte</b>, trong đó <b>2.932.740 ký tự</b> là base64 — <b>99,94%</b> — dù <code>clip.path</code> và <code>settle.path</code> đã có sẵn trong cùng phản hồi.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C6</div><div class="fbody">
+      <div class="ftitle">Tham số mảng không gọi tới được qua MCP</div>
+      <p class="fdetail">Năm trên tám recipe dựa vào tham số mảng, và qua MCP không có cách nào biết chúng là mảng. Thông điệp lỗi còn tự mâu thuẫn.</p>
+      <div class="ftags"><span class="tag root">G6</span><span class="tag new">phát hiện ở ván 1</span><span class="tag open">chưa tái kiểm</span></div>
+      <p class="evi">Nguyên văn lỗi: <code>expected array, received string; Too big: expected string to have &lt;=6 characters</code>. Đây là vấp CHẶN duy nhất chỉ có <b>một</b> nguồn — không ván nào sau ván 1 gọi lại.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">C7</div><div class="fbody">
+      <div class="ftitle">Bấm Download không phát tín hiệu nào</div>
+      <p class="fdetail">Không thông báo, không tên tệp, không đường dẫn. Người môi giới kết thúc buổi làm việc mà không dám nói với khách là đã có tệp.</p>
+      <div class="ftags"><span class="tag root">G9</span><span class="tag new">phát hiện ở ván 2</span><span class="tag open">chưa vá</span></div>
+      <p class="evi">Tệp PDF thật ra <b>có</b> rơi xuống đĩa — <b>1.175.113 byte</b>, md5 <b>a145053d…</b> — mà người dùng không hề biết. Ở đây kỷ luật đo chặn một kết luận sai: khẳng định “PNG không xuất được” bị chính đối chứng dương của kho bác bỏ, vì eval <code>mapposter.spec.ts:222</code> xanh. Nên vấp được ghi đúng mức — sản phẩm im lặng, không phải sản phẩm hỏng.</p>
+    </div></div>
+  </div>
+
+  <div class="tier t-lac">
+    <div class="tier-head"><span class="tname">Lạc</span><span class="tcount">7</span><span class="tdesc">người dùng đi sai đường, hoặc không tìm ra đường đúng</span></div>
+
+    <div class="find"><div class="fid">L1</div><div class="fbody">
+      <div class="ftitle">Tên tool và recipe dẫn người mới đi sai đường</div>
+      <p class="fdetail"><code>render_animation</code> nhận trọn tham số tuyến, chạy sáu giây, rồi mới báo là vào nhầm cửa.</p>
+      <div class="ftags"><span class="tag root">G8</span><span class="tag new">phát hiện ở ván 1</span><span class="tag again">tái xuất ván 2 · 3</span></div>
+      <p class="evi">Ván 2 mất <b>4 lượt</b> chết ở <code>render_animation</code>, <code>render_clip</code>, <code>compile_motion</code> mới lết tới <code>list_recipes</code> — cửa được tài liệu hoá tử tế nhất cả bộ.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">L2</div><div class="fbody">
+      <div class="ftitle">Thứ duy nhất phải tự chọn lại là thứ duy nhất không có danh mục</div>
+      <p class="fdetail">Có <code>list_themes</code>, <code>list_formats</code>, <code>list_fonts</code>, <code>list_recipes</code> — không có tool nào liệt kê preset chuyển động.</p>
+      <div class="ftags"><span class="tag root">G7</span><span class="tag new">phát hiện ở ván 3</span></div>
+      <p class="evi">Mô tả nói <code>preset: approach|pushIn|drift</code>; lược đồ có <code>[approach, pushIn, drift, follow, tour, converge]</code>. Agent nào đọc mô tả thay vì lược đồ thô sẽ không bao giờ biết ba cái kia tồn tại.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">L3</div><div class="fbody">
+      <div class="ftitle">Lối vào đúng bài lại khoá mất thứ người dùng cần</div>
+      <p class="fdetail"><code>route-journey</code> mô tả chính xác việc cần làm nhưng không có chỗ chọn camera. Muốn chọn thì phải bỏ recipe và dựng lại toàn bộ lời gọi bằng <code>render_clip</code>.</p>
+      <div class="ftags"><span class="tag root">G7</span><span class="tag new">phát hiện ở ván 3</span></div>
+    </div></div>
+
+    <div class="find"><div class="fid">L4</div><div class="fbody">
+      <div class="ftitle">Geocode trả đúng một ứng viên đã đổi cấp hành chính</div>
+      <p class="fdetail">“Hoàn Kiếm, Hà Nội” ra <em>Phường</em> Hoàn Kiếm. Không phán đây là sai — Việt Nam đã bỏ cấp quận — nhưng người gọi không có chỗ nào để nhận ra phạm vi đã đổi.</p>
+      <div class="ftags"><span class="tag new">phát hiện ở ván 2</span></div>
+      <p class="evi"><code>candidates</code> có đúng <b>1</b> phần tử, và <code>placeRank: 12</code> chỉ lộ ra trong <code>resolved</code> của lệnh render, không có trong phản hồi geocode. Chính ví dụ mẫu của danh mục cũng dính.</p>
+    </div></div>
+
+    <div class="find"><div class="fid">L5</div><div class="fbody">
+      <div class="ftitle">Danh mục không nói recipe chạy bằng công cụ nào</div>
+      <p class="fdetail">Đưa khối <code>example</code> nhưng không câu nào bảo phải đưa nó cho <code>render_recipe</code>.</p>
+      <div class="ftags"><span class="tag root">G8</span><span class="tag new">phát hiện ở ván 2</span></div>
+    </div></div>
+
+    <div class="find"><div class="fid">L6</div><div class="fbody">
+      <div class="ftitle">Nhóm khổ giấy mơ hồ và trùng lặp</div>
+      <p class="fdetail">“Khổ dọc để in” trỏ vào cả <code>portrait</code> ở nhóm Social lẫn <code>a3</code>/<code>a4</code>/<code>letter</code> ở nhóm Print. Và <code>square</code> trùng <code>ig-square</code>, <code>story</code> trùng <code>ig-story</code>, <code>landscape</code> trùng <code>fhd</code>.</p>
+      <div class="ftags"><span class="tag new">phát hiện ở ván 2</span></div>
+    </div></div>
+
+    <div class="find"><div class="fid">L7</div><div class="fbody">
+      <div class="ftitle">Web app không làm được video</div>
+      <p class="fdetail">Người môi giới rê chuột đọc cả tám biểu tượng, mở Settings, mở Layout, mở Download mới dám kết luận — 13 thao tác rồi ghi «BỎ CUỘC TẠI ĐÂY».</p>
+      <div class="ftags"><span class="tag new">phát hiện ở ván 2</span></div>
+    </div></div>
+  </div>
+
+  <div class="tier t-kho">
+    <div class="tier-head"><span class="tname">Khó chịu</span><span class="tcount">16</span><span class="tdesc">việc vẫn xong, nhưng tốn công hoặc gây nghi ngờ</span></div>
+
+    <div class="find"><div class="fid">K1</div><div class="fbody">
+      <div class="ftitle">Base64 chui vào cả nơi không xin — 99,94% phản hồi</div>
+      <p class="fdetail">Chỉ cần video, engine vẫn kèm base64 ảnh settle.</p>
+      <div class="ftags"><span class="tag root">G2</span><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K2</div><div class="fbody">
+      <div class="ftitle"><code>delivery</code> quyết định mọi thứ nhưng không một chữ mô tả</div>
+      <p class="fdetail">Chỉ có enum trần <code>both|url|inline</code>, không nói cái nào mặc định.</p>
+      <div class="ftags"><span class="tag root">G2</span><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K3</div><div class="fbody">
+      <div class="ftitle">Đường dẫn trả về cụt gốc</div>
+      <p class="fdetail"><code>_render-out/…</code> tương đối với đâu? Người lái ván 1 kết thúc buổi làm việc mà không biết thư mục đó nằm ở máy nào.</p>
+      <div class="ftags"><span class="tag root">G2</span><span class="tag new">ván 1</span><span class="tag again">tái xuất ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K4</div><div class="fbody">
+      <div class="ftitle">Tham số tên là <code>output</code> nhưng không điều khiển đầu ra</div>
+      <p class="fdetail">Chỉ có <code>quality</code>, và <code>additionalProperties:false</code> chặn mọi cách lách. Đây là mặt “thiếu tính năng” của C2: thấy nó xảy ra mà không có nút nào để tránh.</p>
+      <div class="ftags"><span class="tag root">G3</span><span class="tag new">ván 3</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K5</div><div class="fbody">
+      <div class="ftitle">Chỉ báo một lỗi mỗi lần</div>
+      <p class="fdetail">Sai hai khoá thì phải gọi hai lượt mới biết hết — mỗi lỗi tốn một lượt render.</p>
+      <div class="ftags"><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K6</div><div class="fbody">
+      <div class="ftitle">Hai giọng lỗi cạnh nhau cư xử ngược nhau</div>
+      <p class="fdetail"><code>Unknown theme: tối</code> kèm đủ 13 tên hợp lệ; <code>Unknown format: A3 dọc</code> không kèm gì, dù sản phẩm có 21 khổ và liệt kê rất tốt ở ca theme.</p>
+      <div class="ftags"><span class="tag new">ván 1</span><span class="tag again">tái xuất ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K7</div><div class="fbody">
+      <div class="ftitle">Danh mục quá lớn để đọc một lần</div>
+      <p class="fdetail"><code>tools/list</code> trả <b>107.345 byte</b> cho 11 tool; <code>render_map</code> hơn 12.000 ký tự vì <code>anyOf</code> lồng ba tầng, và thứ cần nhất nằm chót. Bốn tool <code>list_*</code> thì chỉ 85 ký tự mỗi cái.</p>
+      <div class="ftags"><span class="tag new">ván 2</span><span class="tag again">tái xuất ván 3</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K8</div><div class="fbody">
+      <div class="ftitle">Không có cách thăm dò rẻ</div>
+      <p class="fdetail">Bản 64×64 vẫn mất 11 giây, video 55–70 giây, ba lượt recipe vượt 120 giây. Với ngân sách 12 lệnh, sai một nước là mất nhiều.</p>
+      <div class="ftags"><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K9</div><div class="fbody">
+      <div class="ftitle">Mặc định không khai ở đâu cả</div>
+      <p class="fdetail"><code>theme</code>, <code>chrome</code>, <code>fps</code> phải render một lần rồi đọc ngược từ <code>resolved</code>. Tên theme cũng không cho biết sáng hay tối — cờ <code>dark</code> chôn trong JSON.</p>
+      <div class="ftags"><span class="tag new">ván 1</span><span class="tag again">tái xuất ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K10</div><div class="fbody">
+      <div class="ftitle">Preset <code>follow</code> giật có chu kỳ khoảng 4 Hz</div>
+      <p class="fdetail">Đây là vấp mà mô hình thị giác <em>không</em> thấy nhưng phép đo byte thấy — nên báo cáo ghi cả hai kết quả nghịch nhau thay vì chọn bên cho tiện.</p>
+      <div class="ftags"><span class="tag new">ván 3</span></div>
+      <p class="evi">Sai khác giữa hai khung liên tiếp nhấp nhô đều đặn chu kỳ 4–5 khung; tự tương quan vọt lên <b>r = 0,787</b> ở lag 4, trong khi <code>pushIn</code> giảm đơn điệu 0,947 → 0,191. Nhịp còn nguyên ở <b>cả hai góc khung</b> nơi tuyến không đi qua (r = 0,719 và 0,725), nên nó đến từ chuyển động camera chứ không từ nét vẽ tuyến.</p>
+    </div></div>
+    <div class="find"><div class="fid">K11</div><div class="fbody">
+      <div class="ftitle"><code>restAtSec</code> lệch 1,75 giây so với thứ nhìn thấy được</div>
+      <p class="fdetail">Khai <b>4,2545</b> cho clip <code>pushIn</code> nhưng chuyển động tắt từ giây <b>2,50</b> — tức 3,5 trên 6 giây là ảnh đứng yên. Clip <code>follow</code> thì khớp.</p>
+      <div class="ftags"><span class="tag new">ván 3</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K12</div><div class="fbody">
+      <div class="ftitle">Số kích thước báo về không khớp tệp vừa ghi</div>
+      <p class="fdetail">Gọi với <code>height:1921</code>: sản phẩm trả 1921 và đặt tên tệp theo 1921, nhưng <code>ffprobe</code> trên chính mp4 đó cho <b>1920</b> — còn <code>settle.png</code> đi kèm thì đúng 1921. Video và ảnh dừng của cùng một lời gọi lệch nhau một pixel.</p>
+      <div class="ftags"><span class="tag new">ván 3</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K13</div><div class="fbody">
+      <div class="ftitle"><code>centroid</code> là tâm bbox, không phải trọng tâm</div>
+      <p class="fdetail">Người-lạ tự tính ra và bắt được.</p>
+      <div class="ftags"><span class="tag new">ván 1</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K14</div><div class="fbody">
+      <div class="ftitle">Bản đồ trắng trơn khoảng ba giây, không dấu hiệu đang tải</div>
+      <p class="fdetail">Nguyên văn người môi giới: “tôi tưởng hỏng”.</p>
+      <div class="ftags"><span class="tag root">G9</span><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K15</div><div class="fbody">
+      <div class="ftitle">Cột công cụ toàn biểu tượng, không một chữ</div>
+      <p class="fdetail">Phải rê chuột từng cái mới biết tên — tám lần, chỉ để kết luận không có cái nào là video.</p>
+      <div class="ftags"><span class="tag new">ván 2</span></div>
+    </div></div>
+    <div class="find"><div class="fid">K16</div><div class="fbody">
+      <div class="ftitle">Ngăn cài đặt trượt ra đè lên tấm tranh</div>
+      <p class="fdetail">Che mất đúng lúc cần so màu.</p>
+      <div class="ftags"><span class="tag new">ván 2</span></div>
+    </div></div>
+  </div>
+
+  <div class="tier t-vat">
+    <div class="tier-head"><span class="tname">Vặt</span><span class="tcount">6</span><span class="tdesc">nhỏ, nhưng người-lạ vẫn nhận ra</span></div>
+    <div class="find"><div class="fid">V1</div><div class="fbody">
+      <div class="ftitle">Dòng ghi công nằm trong pixel của video</div>
+      <p class="fdetail">Nó trôi theo camera, và tầng DOM — nơi hợp đồng giao quyền sở hữu chữ — không có cách nào đặt lại hay chỉnh cỡ nó. Ghi là VẶT chứ không phải vi phạm hợp đồng: bất biến “clip không chữ nội dung” đã được kiểm riêng và vẫn đứng vững.</p>
+      <div class="ftags"><span class="tag new">ván 3</span></div>
+    </div></div>
+    <div class="find"><div class="fid">V2</div><div class="fbody"><div class="ftitle">Dòng bản quyền chữ cực nhỏ nằm ngay trên tranh định gửi khách</div><div class="ftags"><span class="tag new">ván 2</span></div></div></div>
+    <div class="find"><div class="fid">V3</div><div class="fbody"><div class="ftitle">Gợi ý địa điểm chỉ một dòng, địa chỉ bị cắt cụt</div><div class="ftags"><span class="tag new">ván 2</span></div></div></div>
+    <div class="find"><div class="fid">V4</div><div class="fbody"><div class="ftitle">Đổi cỡ cửa sổ sang desktop mà màn hình không to lên</div><div class="ftags"><span class="tag new">ván 2</span></div></div></div>
+    <div class="find"><div class="fid">V5</div><div class="fbody"><div class="ftitle"><code>a3</code> cố định khổ dọc, không có nút xoay ngang</div><div class="ftags"><span class="tag new">ván 2</span></div></div></div>
+    <div class="find"><div class="fid">V6</div><div class="fbody"><div class="ftitle"><code>render_animation</code> bắt khai <code>location</code> dù đã có <code>from</code> và <code>to</code></div><div class="ftags"><span class="tag new">ván 2</span></div></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Vì sao chạy ba ván đáng hơn chạy một ván ba lần</h2>
+  <p class="lede">Ván sau không chép lại ván trước; nó neo cùng một kết luận vào một loại bằng chứng cứng hơn. Lấy C1 làm ví dụ — cùng một vấp, ba lần đo.</p>
+  <div class="esc">
+    <div>
+      <p class="step">Ván 1 · bên ngoài</p>
+      <h3>Gọi hai máy chủ OSRM trực tiếp</h3>
+      <p>So hai con số tốc độ trên cùng một cặp toạ độ: 45,0 so với 4,5 km/h.</p>
+      <p class="strength">Gián tiếp — đo ngoài sản phẩm</p>
+    </div>
+    <div>
+      <p class="step">Ván 2 · số liệu</p>
+      <h3>Đọc số sản phẩm tự trả về</h3>
+      <p>Ba mode khác nhau cho cùng khoảng cách, cùng thời gian, cùng bbox tới từng chữ số thập phân.</p>
+      <p class="strength">Trực tiếp — trên lời khai của sản phẩm</p>
+    </div>
+    <div>
+      <p class="step">Ván 3 · byte và thị giác</p>
+      <h3>Trùng md5 từng byte, cộng một họ mô hình độc lập</h3>
+      <p>Ba tệp mp4 giống nhau hoàn toàn, và mô hình khác họ nhìn video trả NO cho “hai clip có cho tuyến khác nhau”.</p>
+      <p class="strength">Không còn chỗ để giải thích khác</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Ba lớp mù của bộ cổng nghiệm thu</h2>
+  <p class="lede">Không lỗi nào trong 36 vấp bị 15 hợp đồng, hàng trăm phép đo máy, hay bốn vòng phản biện ngữ-cảnh-sạch bắt được. Lý do chung: mọi phép đo đều đứng bên trong biên sản phẩm. Ba ván lộ ra ba lớp mù riêng biệt.</p>
+  <div class="blind">
+    <article>
+      <h3>Lớp mù giao thức</h3>
+      <p>Không eval nào <em>gọi</em> ví dụ mẫu của danh mục qua đúng đường mà agent đi — chúng so khoá. Eval rẻ nhất bổ sung được là gọi chính ví dụ đó và đỏ nếu nó không chạy; ba trong bốn ca nặng của ván 1 sẽ đỏ ngay lượt đầu.</p>
+    </article>
+    <article>
+      <h3>Lớp mù bề mặt</h3>
+      <p>Chín vấp của lượt UI <strong>không có slug nào để trú</strong> — kho không có hồ sơ nghiệm thu nào phủ web app. Chúng chỉ sống trong hồ sơ ván, ngoài tầm mọi cổng.</p>
+    </article>
+    <article>
+      <h3>Lớp mù thời gian</h3>
+      <p>Mọi hợp đồng chấm ảnh tĩnh; không cái nào chấm chuyển động. Nhịp giật 4 Hz, <code>restAtSec</code> lệch 1,75 giây, và video lệch ảnh dừng một pixel đều nằm ngoài tầm mọi eval hiện có.</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <h2>Sổ án chờ người quyết</h2>
+  <p class="lede">Máy dọn bàn, người quyết. Mười lăm câu dưới đây là mọi câu “đáng không?” mà ba ván sinh ra, và không câu nào kèm câu trả lời gợi ý — theo đúng ranh giới của nghi thức: máy tường thuật, verdict là chữ của người.</p>
+
+  <div class="docket">
+    <div class="dgroup">
+      <p class="dh">Đường ra và tệp đầu ra</p>
+      <div class="q" tabindex="0"><span class="qn">01</span><p>Có đáng để mỗi lần render ghi ra một tệp mới thay vì đè lên bản trước?<span class="trade">Đổi lại thư mục kết xuất phình theo thời gian và cần chính sách dọn.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">02</span><p>Có đáng cho <code>render_clip</code> một cách đặt tên hoặc thư mục đầu ra?<span class="trade">Đổi lại thêm một tham số nữa vào lược đồ vốn đã bị chê dài. Cùng chủ đề với câu 01 — một câu về tự-đánh-số, một câu về người-tự-đặt.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">03</span><p>Có đáng đầu tư <code>delivery:"url"</code> thành một URL mở được thật, thay vì đường dẫn tương đối không rõ gốc?</p></div>
+      <div class="q" tabindex="0"><span class="qn">04</span><p>Có đáng đổi mặc định <code>delivery</code> từ <code>inline</code> sang <code>url</code>?<span class="trade">Đổi lại phá vỡ mọi client đang dựa vào base64.</span></p></div>
+    </div>
+    <div class="dgroup">
+      <p class="dh">Đặt tên và khám phá</p>
+      <div class="q" tabindex="0"><span class="qn">05</span><p>Có đáng đổi tên <code>list_recipes</code>, <code>compile_motion</code>, <code>render_animation</code> cho khớp cách người mới đoán?<span class="trade">Đổi lại đổi tên tool là breaking change với agent đã tích hợp.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">06</span><p>Có đáng dựng một <code>list_motions</code> và sửa mô tả <code>render_clip</code> cho đủ sáu preset, hay chấp nhận preset chuyển động chỉ khám phá được bằng cách đọc lược đồ thô?</p></div>
+      <div class="q" tabindex="0"><span class="qn">07</span><p>Có đáng để recipe <code>route-journey</code> nhận thêm lựa chọn camera?<span class="trade">Đổi lại điều làm recipe có giá trị chính là nó quyết hộ người dùng.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">08</span><p>Có đáng đổi tên <code>area-overview</code> không?</p></div>
+    </div>
+    <div class="dgroup">
+      <p class="dh">Nghiêm khắc với đầu vào</p>
+      <div class="q" tabindex="0"><span class="qn">09</span><p>Có đáng chặn cứng khoá lạ ở tầng ngoài cùng thay vì để SDK lọc im lặng?<span class="trade">Đổi lại làm hỏng những lời gọi cũ hiện đang “chạy được”.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">10</span><p>Có đáng bắt <code>geocode_place</code> trả nhiều ứng viên kèm cấp hành chính?<span class="trade">Đổi lại mỗi lượt gọi tốn thêm một bước chọn.</span></p></div>
+    </div>
+    <div class="dgroup">
+      <p class="dh">Hành vi khi hỏng</p>
+      <div class="q" tabindex="0"><span class="qn">11</span><p>Có đáng để một lời gọi render từ chối ngay khi cổng dựng hình đang bận, kèm câu nói rõ đang vướng gì, thay vì treo cho tới khi client bỏ cuộc?<span class="trade">Đổi lại từ chối sớm sẽ làm hỏng những lời gọi hiện đang “chờ lâu rồi cũng xong”.</span></p></div>
+      <div class="q" tabindex="0"><span class="qn">12</span><p>Có đáng làm nút Download báo trạng thái — đang xuất, xong, tên tệp — hay chấp nhận để người dùng tự mở thư mục tải về?</p></div>
+    </div>
+    <div class="dgroup">
+      <p class="dh">Chuyển động</p>
+      <div class="q" tabindex="0"><span class="qn">13</span><p>Nhịp giật chu kỳ khoảng 4 Hz của preset <code>follow</code> — đo được trên byte nhưng mô hình thị giác không thấy — có đáng sửa không, hay ở tốc độ phát thật thì không ai nhận ra?</p></div>
+      <div class="q" tabindex="0"><span class="qn">14</span><p><code>restAtSec</code> nên là thời điểm toán học camera về nghỉ, hay thời điểm nhìn thấy được là đã đứng yên?<span class="trade">Hai mốc lệch nhau 1,75 giây ở <code>pushIn</code>, và mọi thứ dựng theo <code>restAtSec</code> đang tin mốc thứ nhất.</span></p></div>
+    </div>
+    <div class="dgroup">
+      <p class="dh">Phạm vi sản phẩm</p>
+      <div class="q" tabindex="0"><span class="qn">15</span><p>Có đáng để web app và MCP server hội tụ về cùng một bộ năng lực, hay chấp nhận web chỉ làm poster còn video chỉ có ở MCP?</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Vùng phủ theo slug</h2>
+  <p class="lede">Sáu slug đã có stub máy-đọc trỏ về hồ sơ ván. Hai dòng cuối là nợ vùng phủ, không phải thiếu sót của ván.</p>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Slug</th><th>Ván 1</th><th>Ván 2</th><th>Ván 3</th><th>Stub</th></tr></thead>
+      <tbody>
+        <tr><td><code>road-routing</code></td><td>C1</td><td>C1</td><td>C1 + bằng chứng video</td><td>có</td></tr>
+        <tr><td><code>routes-measurements</code></td><td class="dash">—</td><td>C1</td><td>C1 + md5 trùng byte</td><td>có</td></tr>
+        <tr><td><code>mcp-map-render</code></td><td>K3</td><td>C2 · K1 · K2 · K6 · K7 · L6</td><td>C3 · C2 · K4 · K7</td><td>có</td></tr>
+        <tr><td><code>recipe-region-spotlight</code></td><td>C5</td><td>K1 · L5</td><td class="dash">—</td><td>có</td></tr>
+        <tr><td><code>tier0-agent-params</code></td><td>C4</td><td>C4</td><td class="dash">—</td><td>có</td></tr>
+        <tr><td><code>map-motion-clip</code></td><td class="dash">—</td><td class="dash">—</td><td>K10 · K11 · K12 · V1 · L2 · L3</td><td>có</td></tr>
+        <tr><td><strong>bề mặt web app</strong></td><td class="dash">—</td><td class="miss">9 vấp</td><td class="dash">—</td><td class="miss">không có slug nào</td></tr>
+        <tr><td><strong>tham số mảng recipe</strong></td><td class="miss">C6</td><td class="dash">—</td><td class="dash">—</td><td class="miss">chưa có stub</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Ba thứ trông như lỗi sản phẩm mà không phải</h2>
+  <p class="lede">Tách bạch và không tính vào 36 vấp. Cả ba đều là một tầng trung gian dễ tính hơn hoặc khắt khe hơn tầng thật — cùng họ với hai chuyện khác trong ván 2: <code>ollama pull</code> thoát mã 0 khi tải hỏng, và một deny rule viết cho <code>Read</code> chặn luôn <code>Write</code>.</p>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Hiện tượng</th><th>Đo ra là gì</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Người-lạ gặp <code>jq: parse error</code> và hiểu là sản phẩm trả JSON hỏng</td>
+          <td>Cầu nối cắt stdout. Ghi thẳng ra tệp cho <span class="mono">107.345</span> byte JSON hợp lệ; qua đường ống bị cắt đúng <span class="mono">65.536</span> byte. Thủ phạm là <code>process.exit(0)</code> của cầu nối. Sản phẩm vô can.</td>
+        </tr>
+        <tr>
+          <td>Bẫy cổng dính ba lần trong một ván</td>
+          <td>Cuối ván đếm được <span class="mono">73</span> tiến trình server mồ côi — cầu nối spawn một server mỗi lời gọi rồi thoát mà không giết con. <em>Tần suất</em> là của giàn chạy; <em>hành vi khi cổng bận</em> vẫn là của sản phẩm và đã tái hiện độc lập bằng listener vô can.</td>
+        </tr>
+        <tr>
+          <td>Lượt UI báo “cuộn danh sách bị treo”</td>
+          <td>Phiên điều phối gặp đúng lỗi <code>Browser pane is not displayed</code> khi thao tác lại — giới hạn của giàn chạy không-tương-tác.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Việc mở còn treo</h2>
+  <p class="lede">Chiều kỳ vọng dưới đây được ghi <em>trước</em> khi có bản vá, nên không thể vẽ lại sau khi thấy kết quả.</p>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Phép đo</th><th>Hiện tại</th><th>Kỳ vọng sau khi vá</th></tr></thead>
+      <tbody>
+        <tr><td>Gọi cùng một cặp toạ độ với <code>walk</code> rồi <code>car</code></td><td>cả ba lần <span class="mono">7748da8e…</span></td><td>hai tệp phải <strong>khác</strong> md5</td></tr>
+        <tr><td>Câu thị giác: hai clip có cho tuyến khác nhau?</td><td><span class="mono">NO</span></td><td><span class="mono">YES</span></td></tr>
+        <tr><td>Câu thị giác: tuyến dán nhãn đi bộ có bám lối đi bộ?</td><td><span class="mono">NO</span></td><td><span class="mono">YES</span></td></tr>
+        <tr><td>C6 — tham số mảng qua MCP</td><td class="miss">chưa ván nào tái kiểm</td><td>cần một lượt gọi lại</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>Nghi thức Lái-thử Người-lạ: một phiên ngữ-cảnh-trắng đóng vai người dùng không-ngữ-cảnh, tự lái sản phẩm thật, và giao lại nhật-ký-vấp cùng bằng chứng. Máy tường thuật, không phán đáng-giá. Không ván nào chạy bậc B4 — Cổng Giá trị và verdict là việc của người.</p>
+  <p>Mọi con số trong trang này là output của lệnh, không gõ tay. Mọi khẳng định “giống hệt” đều kèm md5 in ra từ lệnh, và mọi khẳng định âm tính đều phải trình một đối chứng dương — một lần chính đối chứng đó đã bác bỏ kết luận của ván.</p>
+  <p class="stamp">Hồ sơ gốc: <code>_acceptance/lai-thu-nguoi-la-tong-hop-van-1-2-3.md</code> · commit <code>0046a4c</code> · mapposter · 2026-08-19</p>
+</footer>
+
+</div>

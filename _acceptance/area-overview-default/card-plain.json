@@ -1,0 +1,26 @@
+{
+  "feature_plain": "Công thức dựng cảnh toàn khu vực chạy được ngay cả khi người gọi không nêu nền bản đồ — thay vì bị từ chối vì đòi một nguồn ảnh vệ tinh mà hệ thống chưa có.",
+  "will_do": [
+    { "id": "AC-1", "p": "Sẽ trả cảnh dùng nền bản đồ vẽ khi người gọi bỏ trống nền — công thức chạy trọn thay vì dừng ở lời từ chối." },
+    { "id": "AC-3", "p": "Sẽ nói đúng trong danh mục: không còn khai mặc định là ảnh vệ tinh, nhưng vẫn chỉ rõ ảnh vệ tinh là lựa chọn và cần cấu hình gì." },
+    { "id": "AC-4", "p": "Sẽ không đụng bảy công thức còn lại — hành vi nền của chúng giữ nguyên." }
+  ],
+  "wont_do": [
+    { "id": "AC-2", "p": "Sẽ KHÔNG làm mềm lời từ chối khi người gọi tự tay xin ảnh vệ tinh mà hệ thống chưa có nguồn: vẫn từ chối, vẫn nêu đích danh thứ còn thiếu. Người gọi là máy — nó không nhìn thấy ảnh nên một nền im lặng sai còn tệ hơn một lời từ chối to." }
+  ],
+  "scope_plain": "Không đụng tầng giải cấu hình hay hành vi từ chối, không đổi mặc định của công thức nào khác, không dựng nguồn ảnh vệ tinh, và không thêm cơ chế tự dò môi trường để chọn mặc định.",
+  "coverage_plain": [
+    { "i": 0, "p": "Hai chiều gọi đều có tiêu chí: bỏ trống nền, và tự tay xin ảnh vệ tinh — hai ca phải nằm cùng một tệp test vì lỗi dễ nhất là sửa mặc định rồi bỏ luôn nhánh từ chối." },
+    { "i": 1, "p": "Danh mục mà máy đọc phải khớp hành vi mới — nó là bề mặt sản phẩm, không phải chú thích nội bộ." },
+    { "i": 2, "p": "Bảy công thức còn lại được liệt kê đích danh để không cái nào lặng lẽ đổi theo." }
+  ],
+  "decisions_plain": [
+    { "id": "seed", "p": "Đã chọn đổi mặc định tạm thời thay vì giữ ý đồ gốc — đổi lại, phải nhớ trả lại nền ảnh vệ tinh khi nguồn ảnh có; điều kiện trả lại đã ghi trong hợp đồng." }
+  ],
+  "gap_probe_plain": [
+    { "i": 0, "p": "Hai phép đo hứa hành vi ở tầng dưới nhưng không gì buộc ca test đi qua tầng đó — đã sửa: lời khai nay bắt gọi thật hàm giải cấu hình." },
+    { "i": 1, "p": "Phép đo chiều từ chối thiếu đối chứng dương, nên một bản vá từ chối ảnh vệ tinh vô điều kiện vẫn xanh — đã sửa thành cặp hai chiều." },
+    { "i": 2, "p": "Phép đo danh mục đo nhầm chỗ và có thể xanh khi tra không ra gì — đã sửa: đo trên payload thật, chốt tồn tại trước, và đòi quan hệ chứ không đòi chuỗi có mặt." },
+    { "i": 3, "p": "Ma trận bảy công thức khai bằng số lượng nên co lại theo dữ liệu — đã sửa: liệt kê đủ bảy tên và chốt tổng số công thức bằng tám." }
+  ]
+}

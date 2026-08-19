@@ -1,0 +1,63 @@
+schema_version: 1
+feature_slug: area-overview-default
+
+# Bốn `expected` dưới đây đã siết theo phản biện ngữ cảnh sạch (gap-probe.md).
+# Điểm chung của cả bốn lỗ: lời khai nói về hành vi ở tầng khác, hoặc đếm phần
+# tử thay vì liệt kê chúng — hai đường quen thuộc dẫn tới xanh-rỗng.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.recipe_tools
+    paths: [mcp-server/src/recipes.ts, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; ca test phải GỌI THẬT `resolveConfig(compiled)` sau khi xoá
+      MAPPOSTER_SATELLITE_TILES khỏi môi trường — không chỉ soi đối tượng compile.
+      Hai khẳng định: (1) compile của area-overview khi người gọi bỏ trống basemap
+      cho nền 'vector'; (2) resolveConfig trên chính đối tượng đó KHÔNG ném.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.recipe_tools
+    paths: [mcp-server/src/recipes.ts, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; CẶP HAI CHIỀU trên cùng một fixture, cùng gọi thật `resolveConfig`.
+      Chiều âm: xoá MAPPOSTER_SATELLITE_TILES, gọi tường minh basemap:'satellite'
+      => ném, và khẳng định GHIM CHUỖI 'MAPPOSTER_SATELLITE_TILES' trong thông
+      điệp, không chỉ 'có ném'. Chiều dương: đặt biến đó một giá trị giả, gọi
+      tường minh basemap:'satellite' => KHÔNG ném và nền ra đúng 'satellite'.
+      Thiếu chiều dương thì một bản vá từ chối satellite vô điều kiện vẫn xanh.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.recipe_tools
+    paths: [mcp-server/src/recipes.ts, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; đo trên payload THẬT của `listRecipes()` (bề mặt agent đọc), không
+      đo hằng số nội bộ. Thứ tự khẳng định có răng: (1) mục 'area-overview' TỒN
+      TẠI trong payload và description khác rỗng — chốt chống xanh-rỗng khi khoá
+      đổi tên; (2) chiều âm: description KHÔNG chứa cụm khai mặc định là ảnh vệ
+      tinh ('Mặc định nền ảnh vệ tinh'), và params.basemap KHÔNG khai satellite
+      là mặc định; (3) chiều dương: params.basemap chứa ĐỒNG THỜI 'satellite' và
+      'MAPPOSTER_SATELLITE_TILES' trong CÙNG một trường — quan hệ "còn dùng được,
+      và cần biến này", chứ không phải chỉ có mặt chuỗi.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: test
+    cmd: config:executors.test.recipe_tools
+    paths: [mcp-server/src/recipes.ts, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; ma trận toàn phần VIẾT TRƯỚC, liệt kê nguyên văn bảy tên chứ không
+      lọc động: region-spotlight, property-intro, amenities, compare-locations,
+      route-journey, location-tour, connectivity. Khẳng định số công thức trong
+      danh mục BẰNG 8 trước khi lặp — nếu một cái rơi khỏi danh mục thì đỏ, thay
+      vì vòng lặp ngắn đi và vẫn xanh. Mỗi tên một khẳng định: compile khi người
+      gọi bỏ trống basemap thì KHÔNG đặt nền.
+    evidence_required: [run_id, exit_code, verifier, verified_at]

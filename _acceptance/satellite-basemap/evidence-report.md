@@ -8,7 +8,7 @@ verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, kh�
 enforcement_mode: strict
 bypass_used: false
 verified_commit: c35ac43f50c7c3f6d12d07bdd71da1696d9584dc
-human_signoff:
+human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
 # Evidence Report: satellite-basemap

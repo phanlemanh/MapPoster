@@ -1,0 +1,110 @@
+{
+  "feature_plain": "Người dùng chọn được nền ảnh vệ tinh thay cho nền vẽ vector, và dòng ghi nguồn dưới bản đồ tự đổi theo đúng nguồn ảnh đang dùng — nghĩa vụ giấy phép với cả hai bên cung cấp dữ liệu.",
+  "will_do": [
+    {
+      "id": "AC-1",
+      "p": "Sẽ tắt đúng sáu lớp nền đất khi bật ảnh vệ tinh, và giữ nguyên mọi lớp khác — đường và ranh giới phải còn nổi trên ảnh."
+    },
+    {
+      "id": "AC-2",
+      "p": "Sẽ đặt lớp ảnh ngay trên nền màu và dưới mọi thứ còn lại, để ảnh không che mất đường."
+    },
+    {
+      "id": "AC-5",
+      "p": "Sẽ giữ TRỌN dòng ghi nguồn cũ và thêm phần của nhà cung cấp ảnh — mất phần cũ là lỗi giấy phép, không phải lỗi hiển thị."
+    },
+    {
+      "id": "AC-9",
+      "p": "Trên web, thiếu nguồn ảnh thì rơi về nền vector — người dùng nhìn thấy ngay nên tự hiểu."
+    },
+    {
+      "id": "AC-13",
+      "p": "Sẽ giữ dòng ghi nguồn là chuỗi DUY NHẤT được vẽ trên clip, ở CẢ hai nền — bất biến này là lý do gói thuộc hạng nặng, nay lần đầu có tiêu chí canh."
+    }
+  ],
+  "wont_do": [
+    {
+      "id": "AC-3",
+      "p": "Sẽ KHÔNG tắt nền đất khi chưa có ảnh thay thế — mất mặt đất mà không có ảnh thì tệ hơn cả hai lựa chọn."
+    },
+    {
+      "id": "AC-4",
+      "p": "Sẽ KHÔNG đánh thuế lên đường cũ: chọn nền vector thì không có lớp ảnh nào được dựng."
+    },
+    {
+      "id": "AC-6",
+      "p": "Chặn việc bỏ chữ báo dữ liệu đã qua xử lý — chính sách của nhà cung cấp đòi nói rõ, bỏ là vi phạm điều kiện."
+    },
+    {
+      "id": "AC-7",
+      "p": "Sẽ KHÔNG để tên nhà cung cấp ảnh lẫn vào dòng ghi nguồn của nền vector."
+    },
+    {
+      "id": "AC-8",
+      "p": "Chặn đường máy gọi: xin ảnh vệ tinh mà thiếu nguồn thì TỪ CHỐI kèm tên biến, không lặng lẽ trả về nền khác — máy không nhìn thấy ảnh nên không tự phát hiện được."
+    },
+    {
+      "id": "AC-10",
+      "p": "Sẽ KHÔNG để địa chỉ nguồn ảnh đi bằng đường nung-lúc-build — đường đó không bao giờ với tới lúc chạy, và lỗi này đã xảy ra thật khi soạn gói."
+    }
+  ],
+  "scope_plain": "Không chọn hay dựng nguồn ảnh (việc riêng, chưa chốt); không phán bằng mắt trên ảnh THẬT — hai mục đó đã rút sang hợp đồng nguồn ảnh; không thêm giao diện chọn nền cho web; không đụng nguồn ảnh phủ Mỹ.",
+  "coverage_plain": [
+    {
+      "i": 0,
+      "p": "Ba nhánh đều có tiêu chí: nền vector, nền ảnh có nguồn, và nền ảnh THIẾU nguồn."
+    },
+    {
+      "i": 1,
+      "p": "Hai bề mặt cố ý hai chính sách khác nhau cho cùng một thiếu sót: máy gọi thì bị từ chối, người dùng web thì rơi về nền vector."
+    },
+    {
+      "i": 2,
+      "p": "Đủ hai chiều: tắt đúng thứ cần tắt và KHÔNG tắt lây thứ khác."
+    },
+    {
+      "i": 3,
+      "p": "Đường đi của địa chỉ nguồn ảnh được chốt bằng cấu trúc, vì lỗi ở đây không hiện thành lỗi mà hiện thành nền sai lặng lẽ."
+    },
+    {
+      "i": 4,
+      "p": "Nghĩa vụ giấy phép tách thành trục riêng: hỏng ở đây không hiện ra thành lỗi kỹ thuật."
+    },
+    {
+      "i": 5,
+      "p": "Có phép thử phá-để-xem-có-đỏ cho ba chỗ: điều kiện lọc lớp, lớp đường chính, và dòng ghi nguồn."
+    }
+  ],
+  "gap_probe_plain": [
+    {
+      "i": 0,
+      "p": "ĐÃ SỬA — tiêu chí đường web rơi về nền vector trước đó không có phép đo nào, và thành phần bản đồ web không có tệp test nào. Nay đã viết tệp test đầu tiên cho nó, hai ca, và đo cặp hai chiều lúc sinh: bắt đường web ném thì ca một đỏ, bỏ giá trị từ máy chủ thì ca hai đỏ."
+    },
+    {
+      "i": 1,
+      "p": "ĐÃ SỬA theo hướng khác: thay vì siết luật cho hai mục bị chặn, chúng được RÚT sang hợp đồng nguồn ảnh nơi có ảnh thật để nhìn. Gói này không còn mục người-phán nào, nên khe hở biến mất cùng lúc."
+    },
+    {
+      "i": 2,
+      "p": "ĐÃ SỬA — bất biến clip-không-chữ nay có tiêu chí riêng canh nó, và phép đo đang treo nhờ tiêu chí khác đã trỏ sang đúng chỗ."
+    },
+    {
+      "i": 3,
+      "p": "Phép đo đường-đi-địa-chỉ bị nghi quét quá rộng và có thể đánh trượt oan — đã kiểm: nó chỉ nhắm đúng một tệp, tự suy gốc kho, bóc chú thích trước khi quét và có chốt chống xanh-rỗng. Chỉ còn thiếu việc khai phạm vi đó ra hồ sơ."
+    },
+    {
+      "i": 4,
+      "p": "Bảy phép đo dồn chung một lệnh nên không gì buộc từng ca phải tồn tại; riêng phép đo danh sách lớp sống sót tuyên quét cả một tập hợp mà không liệt kê đủ."
+    }
+  ],
+  "decisions_plain": [
+    {
+      "id": "descope",
+      "p": "KHÔNG phán bằng mắt trên ảnh thật ở gói này — hai mục đó đổi chỗ sang hợp đồng nguồn ảnh; đổi lại, hợp đồng kia BẮT BUỘC phải mang chúng, nếu không câu hỏi rơi vào khoảng trống giữa hai gói."
+    },
+    {
+      "id": "fix",
+      "p": "Bịt hai lỗ trước khi duyệt: đường web lần đầu có phép đo, bất biến clip-không-chữ lần đầu có tiêu chí; đổi lại, tệp test mới làm hết hạn bằng chứng của mọi hợp đồng đang ghim chung mốc."
+    }
+  ]
+}

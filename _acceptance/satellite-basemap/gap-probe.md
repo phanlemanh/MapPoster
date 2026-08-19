@@ -1,0 +1,22 @@
+---
+slug: satellite-basemap
+at: 2026-08-19T01:57:08Z
+verdict: findings
+p0: 2
+p1: 3
+---
+
+# Phản biện ngữ cảnh sạch — satellite-basemap
+
+Một agent ngữ cảnh sạch đọc ba hồ sơ (hợp đồng, bộ phép đo, bài học feature
+trước), không đọc mã. Cột **Xử lý** ghi phần đối chiếu mã do vòng chính làm sau.
+
+## Findings
+
+| Sev | Artifact | Thiếu gì | Kịch bản fail | Thước đo | Xử lý |
+|---|---|---|---|---|---|
+| P0 | evals | AC-9 — đường web rơi về nền vector khi thiếu nguồn tile — KHÔNG có phép đo nào. Trục Bề mặt trong Coverage vì thế chỉ được đo một nửa: đường agent có phép đo, đường web không có gì | Người code để trang web ném lỗi hoặc dựng bản đồ rỗng khi thiếu nguồn tile thay vì rơi về vector; 10/10 phép đo vẫn xanh vì không lệnh nào chạm nhánh web; Cổng 1 duyệt bộ đo tưởng trục Bề mặt đã phủ | Thêm phép đo trỏ tệp test của thành phần bản đồ web, ma trận hai ca viết trước: thiếu nguồn thì không dựng lớp ảnh và KHÔNG ném; có nguồn thì có lớp ảnh | fixed — người duyệt chọn sửa trước khi duyệt. Viết tệp test đầu tiên cho thành phần bản đồ web, hai ca, và khai phép đo E13 trỏ vào nó. Cặp hai chiều đã đo lúc sinh phép đo: bắt đường web ném thì ca 1 đỏ đúng thông điệp; bỏ giá trị từ store thì ca 2 đỏ đúng chỗ. Chi phí kèm theo: tệp mới nằm trong src/ nên làm hết hạn bằng chứng của TOÀN BỘ hợp đồng đang ghim chung mốc |
+| P0 | contract + evals | Sự chặn của hai mục người-phán chỉ sống ở văn xuôi: chúng vẫn khai đúng bộ trường mà một phiên chấm điền được chỉ bằng cách ĐỌC hợp đồng, không cần mở ảnh nào; không luật nào buộc verdict tổng phải là chặn khi còn mục bị chặn | Vòng nghiệm thu chạy: 10 phép đo máy xanh, hội đồng chấm đọc hợp đồng rồi ghi đạt kèm lý lẽ cho cả hai mục mà không có cảnh render nào; báo cáo ra PASS đầy đủ, người ký ký, nghĩa vụ giấy phép chưa ai nhìn [recipe-region-spotlight#F3] | Khai trạng thái chặn cho hai mục đó và luật verdict trong hợp đồng: còn mục bị chặn thì verdict tổng tối đa là chặn, cấm PASS; bắt trường đường-dẫn-ảnh-thật trong bộ chứng cứ của mục người-phán | fixed theo hướng khác critic đề xuất: thay vì siết luật cho hai mục bị chặn, người duyệt RÚT hẳn chúng sang hợp đồng nguồn tile (#8b) nơi có ảnh thật để nhìn. Không còn mục người-phán nào trong gói này nên khe hở biến mất cùng lúc; ràng buộc kèm theo ghi trong mục Chặn: hợp đồng #8b PHẢI mang hai tiêu chí đó |
+| P1 | contract | Bất biến clip-không-chữ, chính là lý do gói này hạng T3, chỉ nằm ở phần ngoài phạm vi và không có tiêu chí nào canh; phép đo E8 đo đúng bất biến đó nhưng bị treo nhầm vào AC-6 | E8 đỏ nhưng báo cáo quy lỗi cho AC-6 (đã có phép đo khác xanh) nên người duyệt đọc thành mâu thuẫn một tiêu chí chứ không phải vỡ bất biến giấy phép; ngược lại bỏ E8 đi thì không tiêu chí nào rụng — mất canh im lặng | Thêm tiêu chí không-hồi-quy riêng cho bất biến đó, trỏ E8 sang nó, khai ma trận bốn ô viết trước | fixed — thêm tiêu chí không-hồi-quy AC-13 cho bất biến clip-không-chữ, trỏ phép đo E8 sang nó. Giờ bỏ phép đo đó đi là có một tiêu chí rụng |
+| P1 | evals | Phép đo bất biến đường-đi-URL là khẳng định âm tính không khai phạm vi quét, trong khi hồ sơ xác nhận đường web đọc biến môi trường build là HỢP LỆ | Script quét cả cây nguồn thì bắt trúng chỗ dùng hợp lệ và đánh trượt gói vì thứ hợp đồng cho phép; hoặc quét hẹp mà không khai thì sai đường dẫn là 0 khớp và xanh rỗng | Ghim phạm vi quét vào lời khai, thêm đối chứng dương bắt buộc và ghim thông điệp nêu tên tệp vi phạm | rejected — ĐỐI CHIẾU MÃ: script an toàn hơn critic đoán. Nó suy gốc kho từ vị trí chính nó chứ không ghim cứng, bóc comment trước khi quét, và vế âm tính chỉ nhắm ĐÚNG MỘT tệp trang render chứ không quét cả cây. Nó cũng có bốn khẳng định dương và một chốt đếm chống xanh rỗng. Còn đúng một phần: lời khai không nói phạm vi, nên người đọc hồ sơ không biết điều đó |
+| P1 | evals | Bảy phép đo tụ vào một lệnh, chấm bằng mã thoát nên không gì buộc từng ca tồn tại; riêng phép đo lớp-sống-sót tuyên quét một TẬP HỢP mà không có ma trận toàn phần viết trước | Tệp test chỉ có ca sáu lớp nền biến mất và một ca đếm tổng giảm đúng sáu; ca thứ tự lớp ảnh và ca danh sách sống sót chưa hề viết mà lệnh vẫn thoát 0; sau này bỏ một lớp ranh giới và thêm lớp khác thì tổng không đổi, phép đo vẫn xanh trong khi ranh giới đã mất | Ghim tên ca test vào từng phép đo, và viết lời khai của phép đo lớp-sống-sót thành ma trận: liệt kê đủ danh sách lớp phải sống, số khẳng định bằng số lớp | deferred — cùng lớp lỗi với hai gói trước, và ở gói này lệnh CÓ trỏ đúng tệp test của chính nó. Sửa cùng lượt với hai mục P0 nếu người duyệt chọn mở rộng |

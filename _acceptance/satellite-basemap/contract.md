@@ -5,9 +5,9 @@ slug: satellite-basemap
 owner: phanlemanh@gmail.com
 risk_tier: T3
 surfaces: [api, web]
-status: draft
-approved_by:
-approved_at:
+status: approved
+approved_by: Phan Le Manh
+approved_at: 2026-08-19T07:22:17Z
 human_signoff:
 time_human_minutes: {}
 ---
@@ -47,8 +47,7 @@ Hai quyết định thiết kế cần được phán chứ không chỉ đượ
 - AC-8: Given đường **agent** (`resolveConfig`) xin `satellite` mà thiếu `MAPPOSTER_SATELLITE_TILES`, When resolve, Then **TỪ CHỐI** nêu tên biến — không rơi về vector. Caller là agent KHÔNG nhìn thấy ảnh, nên một nền im lặng sai trả về clip "thành công" với nội dung sai.
 - AC-9: Given đường **web** (`MapView`) thiếu nguồn tile, When dựng, Then rơi về vector. Khác AC-8 có chủ đích: người dùng web nhìn thấy ngay và tự hiểu.
 - AC-10: Given URL tile, When kiểm đường đi của nó, Then nó tới trang render **qua `RenderConfig`**, không qua `import.meta.env`. Trang render là bundle đã build; một `VITE_*` bị nung lúc `vite build` nên biến môi trường lúc CHẠY của mcp-server không bao giờ với tới nó. Đây là lỗi thật đã xảy ra trong lúc soạn và được tự phát hiện.
-- AC-11 *(judgment, T3)*: Given một cảnh render trên ảnh vệ tinh THẬT, When người ký xem, Then việc tắt sáu layer nhóm ground là đánh đổi ĐÚNG — bản đồ đọc được, đường và ranh giới còn nổi trên ảnh, và không mất thông tin nào người xem cần. **Chưa evidence được — xem `## Chặn`.**
-- AC-12 *(judgment, T3)*: Given khung có attribution nền vệ tinh, When người ký đọc, Then chuỗi đủ nghĩa vụ với **cả hai** nguồn và vẫn đọc được ở kích thước nó được vẽ.
+- AC-13 *(no-regression, cross-layer)*: Given `chrome: 'clean'`, When dựng khung ở **cả hai** nền (vector và satellite), Then attribution là chuỗi **DUY NHẤT** được vẽ — nhánh nền mới không mở đường cho chuỗi thứ hai. Bất biến clip-không-chữ là lý do gói này thuộc T3; trước lượt này nó không có tiêu chí nào canh, phép đo của nó treo nhờ vào AC-6 nên bỏ phép đo đi cũng không tiêu chí nào rụng.
 
 ## Coverage
 
@@ -56,24 +55,30 @@ Hai quyết định thiết kế cần được phán chứ không chỉ đượ
 - **Trục Bề mặt**: agent từ chối (AC-8) vs web rơi về vector (AC-9) — hai chính sách khác nhau cho cùng một thiếu sót, và sự khác nhau đó là *thiết kế*
 - **Trục Chiều kiểm**: tắt đúng thứ cần tắt **và** không tắt thứ khác (AC-1 hai chiều) | cộng dồn **chứ không** thay thế (AC-5)
 - **Trục Đường dẫn dữ liệu**: AC-10 — chốt rằng URL đi qua config chứ không qua env lúc build. Không có nó, `satellite` qua được cửa kiểm ở server rồi im lặng rơi về vector ở trang.
-- **Trục Nghĩa vụ giấy phép**: AC-5, AC-6, AC-12 — trục riêng vì hỏng ở đây không hiện ra thành lỗi, nó hiện ra thành vi phạm.
+- **Trục Nghĩa vụ giấy phép**: AC-5, AC-6 — trục riêng vì hỏng ở đây không hiện ra thành lỗi, nó hiện ra thành vi phạm. Phần phán bằng mắt trên ảnh THẬT chuyển sang hợp đồng nguồn tile (#8b).
+- **Trục Bất biến phải giữ**: AC-13 — clip không chữ, canh ở cả hai nền.
 - [thước CE: negative control — trả lại điều kiện lọc cũ ⇒ AC-3 đỏ; tắt luôn `road-major` ⇒ AC-1 đỏ; attribution thay-vì-cộng ⇒ AC-5 đỏ. 3/3 đã đạt ở bước soạn.]
 
-Chưa quét: chất lượng thị giác trên ảnh THẬT (AC-11), độ đọc của attribution trên nền sáng (ảnh vệ tinh sáng hơn theme tối — chữ có thể chìm).
+Chưa quét ở gói này: chất lượng thị giác trên ảnh THẬT và độ đọc của attribution trên nền sáng. Cả hai cần một cảnh render trên ảnh thật nên chúng thuộc hợp đồng nguồn tile (#8b) — xem Out of scope.
 
-## Chặn
+## Chặn — ĐÃ GỠ bằng cách rút phạm vi (2026-08-19)
 
-**AC-11 và AC-12 chưa evidence được, và không phải vì thiếu công.** Chúng đòi một cảnh render
-trên ảnh vệ tinh thật, tức cần một nguồn tile — mà nguồn đó là **PR #8b**, một quyết định hạ
-tầng chưa chốt (xem spec §5). Ghi ra đây thay vì để chúng trôi thành "sẽ làm sau": gói này
-**không thể đạt verdict PASS đầy đủ** cho tới khi #8b có kết luận.
+Hai mục người-phán cũ (chất lượng thị giác trên ảnh thật, độ đọc của
+attribution trên nền sáng) đòi một cảnh render trên ảnh vệ tinh THẬT, tức đòi
+nguồn tile — thuộc **#8b**, quyết định hạ tầng chưa chốt. Giữ chúng ở đây làm
+gói này **không thể đóng bằng công sức**: nó chờ vô thời hạn một quyết định
+nằm ngoài phạm vi của chính nó.
 
-Phần máy (AC-1..AC-10) thì độc lập với #8b và chạy được ngay — đó chính là lý do #8a được
-tách khỏi #8b.
+Quyết định ở Cổng 1 ngày 2026-08-19: **rút hai mục đó sang hợp đồng của #8b**,
+nơi ảnh thật sẽ tồn tại để nhìn. Gói này đóng bằng đúng thứ nó chứng minh
+được. Ràng buộc kèm theo, không được quên: hợp đồng #8b **phải mang** hai tiêu
+chí đó, nếu không việc "có ai từng nhìn nền vệ tinh thật chưa" sẽ rơi vào
+khoảng trống giữa hai gói.
 
 ## Out of scope
 
 - **Không** chọn hay dựng nguồn tile. Đó là #8b.
+- **Không** phán bằng mắt trên ảnh vệ tinh THẬT — chất lượng thị giác sau khi tắt sáu lớp nền đất, và độ đọc của attribution trên nền ảnh sáng. Hai mục này đã RÚT sang hợp đồng #8b (xem Chặn); chúng không biến mất, chúng đổi chỗ.
 - **Không** đổi bất biến "clip không chữ". Attribution vốn đã là ngoại lệ được ghi nhận; gói này chỉ làm nội dung của nó phụ thuộc nguồn.
 - **Không** thêm UI chọn nền cho ứng dụng web. Store có trường và action, nhưng chưa panel nào gọi — đường web hiện chỉ đọc `VITE_SATELLITE_TILES`.
 - **Không** đụng NAIP hay bất kỳ nguồn phủ Mỹ nào (quyết định 2026-08-07 §8 để riêng).

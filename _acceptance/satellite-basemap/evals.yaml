@@ -61,7 +61,7 @@ evals:
   # Bất biến "clip không chữ" nằm ở lane RIÊNG của nó: gói này chạm export.ts,
   # nên phải chứng minh nó KHÔNG làm hỏng thứ file đó tồn tại để giữ.
   - id: E8
-    criterion: AC-6
+    criterion: AC-13
     executor: test
     cmd: config:executors.test.text_free
     expected: "exit 0; với chrome:'clean', attribution vẫn là chuỗi DUY NHẤT được vẽ — nhánh basemap không mở đường cho chữ nào khác"
@@ -83,14 +83,14 @@ evals:
     expected: "exit 0; URL tile đi qua RenderConfig; KHÔNG có import.meta.env.VITE_SATELLITE_TILES nào là đường DUY NHẤT tới trang render"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
-  - id: E11
-    criterion: AC-11
-    executor: judgment
-    evidence_required: [judged_by, verdict, rationale]
-    blocked_by: "PR #8b — chưa có nguồn tile để render một cảnh trên ảnh vệ tinh THẬT"
-
-  - id: E12
-    criterion: AC-12
-    executor: judgment
-    evidence_required: [judged_by, verdict, rationale]
-    blocked_by: "PR #8b — cùng lý do E11"
+  # AC-9 — chính sách đường web. Trước 2026-08-19 tiêu chí này KHÔNG có phép đo
+  # nào và thành phần bản đồ web cũng không có tệp test nào, nên hành vi
+  # rơi-về-vector chưa từng được kiểm bằng bất kỳ hình thức nào. Cặp hai chiều
+  # đã đo lúc sinh: đường web ném => ca 1 đỏ; bỏ giá trị từ store => ca 2 đỏ.
+  - id: E13
+    criterion: AC-9
+    executor: test
+    cmd: config:executors.test.web_basemap
+    paths: [src/components/MapView.tsx, src/components/MapView.test.tsx]
+    expected: "exit 0; đường web thiếu nguồn tile thì KHÔNG ném và truyền xuống giá trị thiếu (rơi về vector); đối chứng dương: có nguồn thì đúng URL đó đi xuống, không bị nuốt"
+    evidence_required: [run_id, exit_code, verifier, verified_at]

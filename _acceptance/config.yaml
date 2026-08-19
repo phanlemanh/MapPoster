@@ -40,6 +40,7 @@ executors:
     render_frame: npx vitest run mcp-server/src/renderFrame.test.ts
     recipe_tools: npx vitest run mcp-server/src/recipes.test.ts
     web_basemap: npx vitest run src/components/MapView.test.tsx
+    test_env: npx vitest run src/test-env/webstorage.test.ts
   script:
     compiler_domain_sweep: "npx tsx _acceptance/map-motion-clip/scripts/compiler-domain-sweep.ts"
     tier0_invariants: "npx tsx _acceptance/tier0-agent-params/scripts/tier0-invariants.ts"
@@ -52,6 +53,7 @@ executors:
     input_caps_negctrl: "bash _acceptance/input-caps/negctrl/run-negctrl.sh"
     basemap_invariants: "npx tsx _acceptance/satellite-basemap/scripts/basemap-invariants.ts"
     recipe_t3_untouched: "npx tsx _acceptance/recipe-region-spotlight/scripts/t3-untouched.ts"
+    suite_coverage: npx tsx _acceptance/test-env-webstorage/scripts/suite-coverage.ts
   design:
     # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
     # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2

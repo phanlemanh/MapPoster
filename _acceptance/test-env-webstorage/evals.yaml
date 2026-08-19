@@ -1,0 +1,81 @@
+schema_version: 1
+feature_slug: test-env-webstorage
+
+# Bộ này đã siết theo phản biện ngữ cảnh sạch (gap-probe.md). Hai lỗ nặng nhất
+# đổi cả thiết kế: bản vá phải để lại MỐC QUAN SÁT ĐƯỢC về nhánh nó chọn, và
+# phép đo không hồi quy phải đọc SỐ CA TỪNG TỆP thay vì tin mã thoát cả bộ.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: test
+    cmd: config:executors.test.test_env
+    paths: [vitest.setup.ts, src/test-env/webstorage.test.ts]
+    expected: >-
+      exit 0; gọi hàm cài-vá với đích GIẢ không có kho lưu, rồi đo NGỮ NGHĨA
+      Web Storage trên chính kho vừa cài, năm khẳng định: setItem(k,1) rồi
+      getItem(k) trả CHUỖI '1' (ép kiểu, không trả số 1); getItem khoá chưa đặt
+      trả null chứ không undefined; length tăng đúng; key(0) trả khoá đã đặt;
+      sau removeItem thì length về 0 và getItem trả null.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E2
+    criterion: AC-2
+    executor: test
+    cmd: config:executors.test.test_env
+    paths: [vitest.setup.ts, src/test-env/webstorage.test.ts]
+    expected: >-
+      exit 0; đối chứng dương trên CÙNG hàm: đích đã có sẵn một kho lưu nhận
+      dạng được => hàm KHÔNG thay. Khẳng định bằng ĐỒNG NHẤT THAM CHIẾU (đúng
+      object cũ), và mốc trả về báo patched=false kèm lý do.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E5
+    criterion: AC-1b
+    executor: test
+    cmd: config:executors.test.test_env
+    paths: [vitest.setup.ts, src/test-env/webstorage.test.ts]
+    expected: >-
+      exit 0; đo CHÍNH nhánh mà tệp setup đã chọn trong lượt chạy này, không đo
+      hệ quả: mốc toàn cục do setup ghi phải tồn tại, mang cờ đã-vá-hay-chưa và
+      một lý do khác rỗng. Thêm khẳng định quan hệ: nếu mốc báo CHƯA vá thì kho
+      lưu hiện hành phải KHÁC object mà hàm vá tạo ra.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E3
+    criterion: AC-3
+    executor: test
+    cmd: config:executors.test.test_env
+    paths: [vitest.setup.ts, src/test-env/webstorage.test.ts]
+    expected: >-
+      exit 0; quét src/ và mcp-server/ (bỏ tệp test và thư mục test-env) tìm mọi
+      dạng nhập tệp vá — import tĩnh, import động, require, và import type. Hai
+      chốt bắt buộc: số tệp quét được > 0 trước khi kết luận; và ĐỐI CHỨNG DƯƠNG
+      — chạy cùng bộ quét trên một chuỗi fixture CÓ nhập bản vá thì phải báo
+      đúng 1 khớp. Chỉ khi đối chứng dương bắt được mới cho phép kết luận sạch.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E6
+    criterion: AC-5
+    executor: test
+    cmd: config:executors.test.test_env
+    paths: [vitest.setup.ts, src/test-env/webstorage.test.ts, src/test-env/webstorage-isolation.test.ts]
+    expected: >-
+      exit 0; hai tệp test riêng biệt cùng lane: một tệp ghi khoá sentinel vào
+      kho lưu, tệp kia khẳng định length === 0 và getItem(sentinel) === null.
+      Vì thứ tự chạy không đảm bảo, CẢ HAI tệp cùng ghi và cùng kiểm — tệp nào
+      chạy sau cũng phải thấy kho rỗng.
+    evidence_required: [run_id, exit_code, verifier, verified_at]
+
+  - id: E4
+    criterion: AC-4
+    executor: script
+    cmd: config:executors.script.suite_coverage
+    paths: [vitest.config.ts, vitest.setup.ts]
+    expected: >-
+      exit 0; script chạy bộ test đơn vị với báo cáo máy-đọc-được rồi khẳng định
+      bằng SỐ, không bằng mã thoát: tổng ca đạt >= 617, 0 ca đỏ, và TỪNG tệp
+      trong bốn tệp có tên (usePosterStore, MapView, applyRenderConfig, export)
+      có số ca đạt > 0. Thiếu một tệp trong báo cáo là ĐỎ, vì đó đúng là ca
+      xanh-rỗng mà phép đo này sinh ra để chặn.
+    evidence_required: [run_id, exit_code, verifier, verified_at]

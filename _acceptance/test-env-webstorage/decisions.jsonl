@@ -1,0 +1,2 @@
+{"id":"d-20260819T115003Z-11506","type":"approach","stage":"S1","at":"2026-08-19T11:50:03Z","decision":"Vá bằng tệp setup CÓ ĐIỀU KIỆN thay vì thêm cờ --no-experimental-webstorage vào lệnh test","impact":"tiết kiệm: độc lập phiên bản Node — CI đang chạy Node 22 mà cờ đó là của bản mới, truyền cờ lạ thì Node không khởi động nổi · rủi ro: kho lưu giả không phải bản của trình duyệt, nên phải ghim ngữ nghĩa (ép chuỗi, trả null) kẻo nó che chính lớp lỗi nó bảo vệ"}
+{"id":"d-20260819T115003Z-27894","type":"seal","gate":1,"at":"2026-08-19T11:50:03Z"}

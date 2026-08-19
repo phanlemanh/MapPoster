@@ -1,17 +1,21 @@
 # Bậc B3 — khử tương quan bằng VLM KHÁC HỌ
 
-**Mô hình dùng:** `gemini-3.5-flash` (Google) qua MCP `gemini-flash`.
+**Mô hình dùng:** `gemini-3.5-flash` (Google) qua MCP `gemini-flash`, và
+`google/gemini-3.7-flash` (Google) qua OpenRouter — hai bản, cùng kết quả.
 Người chấm chính của ván là họ Anthropic ⇒ đây là họ thứ hai, đúng mục đích B3.
 
-**Ghi chú về yêu cầu OpenRouter / gemini-3.7-flash:** owner yêu cầu chạy B3 trên
-`google/gemini-3.7-flash` qua OpenRouter. Bộ chuyển tiếp đã cài sẵn tại
-`../tools/vlm-assert.mjs`, ghim đúng slug đó (slug lấy từ chính
-`https://openrouter.ai/api/v1/models`, không gõ tay). Chưa chạy được vì
-`OPENROUTER_API_KEY` chưa có trên máy — kiểm bằng lệnh, kết quả `CHƯA CÓ`.
-Ba đường "không chạy được" của bộ chuyển tiếp đã kiểm và đều thoát mã 2
-(không xanh giả). Khi có khoá, chạy lại được toàn bộ 5 câu dưới đây bằng:
+**Đã chạy lại trên `google/gemini-3.7-flash` qua OpenRouter** (2026-08-19T14:50:56Z),
+theo đúng yêu cầu của owner. Kết quả đầy đủ ở [`ket-qua-vlm-3.7-flash.md`](ket-qua-vlm-3.7-flash.md);
+lệnh một-phát để chạy lại: `bash ../tools/chay-b3.sh`.
 
-    OPENROUTER_API_KEY=… node ../tools/vlm-assert.mjs <ảnh> "<câu hỏi>"
+**Hai phiên bản model trả lời GIỐNG HỆT nhau ở cả năm câu** (`YES · YES · YES ·
+NO · YES`). Đây là một tầng khử tương quan nữa: kết luận của bậc B3 không phụ
+thuộc vào việc chọn bản flash nào.
+
+Khoá đọc từ `~/.config/acceptance-gate/openrouter.env` — nằm ngoài mọi kho git,
+quyền 600, và không script nào in giá trị ra. Đã kiểm tệp kết quả không lẫn khoá.
+Ba đường "không chạy được" của bộ chuyển tiếp cũng đã kiểm và đều thoát mã 2
+(không xanh giả).
 
 **Đường cục bộ đã thử và BỎ:** `ollama pull qwen2.5vl:7b` gặp
 `TLS handshake timeout` nhưng **vẫn thoát mã 0**; `ollama list` cho thấy không

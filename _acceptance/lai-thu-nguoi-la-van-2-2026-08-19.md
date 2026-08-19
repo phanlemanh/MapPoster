@@ -148,7 +148,8 @@ tín hiệu nào sau khi bấm**, nên người dùng không phân biệt đư�
 
 ## Bậc B3 — khử tương quan
 
-VLM khác họ: `gemini-3.5-flash` (Google) qua MCP `gemini-flash`. Năm câu ĐÓNG
+VLM khác họ, chạy **hai lần trên hai bản model**: `gemini-3.5-flash` qua MCP
+`gemini-flash`, và `google/gemini-3.7-flash` qua OpenRouter. Năm câu ĐÓNG
 trên khung hình do **chính ván này** sinh ra; nguyên văn câu hỏi, nguyên văn trả
 lời và md5 từng ảnh ở [`vlm/ket-qua-vlm.md`](lai-thu-nguoi-la-van-2-2026-08-19/vlm/ket-qua-vlm.md).
 
@@ -166,12 +167,13 @@ trên bề mặt mà lượt C thật sự phàn nàn** (bản dựng của web 
 không hiển thị được trong phiên không-tương-tác nên không lưu được khung web ra
 đĩa — ghi là giới hạn, không lấp bằng suy đoán.
 
-**Yêu cầu OpenRouter / `google/gemini-3.7-flash` chưa thực hiện được:**
-`OPENROUTER_API_KEY` chưa có trên máy. Bộ chuyển tiếp đã cài sẵn ở
-[`tools/vlm-assert.mjs`](lai-thu-nguoi-la-van-2-2026-08-19/tools/vlm-assert.mjs),
-ghim đúng slug lấy từ chính danh mục OpenRouter, và đã kiểm ba đường
-"không-chạy-được" đều thoát mã 2 chứ không xanh giả. Có khoá là chạy lại được cả
-năm câu.
+**Hai bản model trả lời giống hệt nhau ở cả năm câu**, nên kết luận của bậc B3
+không phụ thuộc vào việc chọn bản flash nào — một tầng khử tương quan nữa ngoài
+việc đổi họ. Kết quả bản 3.7 ở
+[`vlm/ket-qua-vlm-3.7-flash.md`](lai-thu-nguoi-la-van-2-2026-08-19/vlm/ket-qua-vlm-3.7-flash.md);
+chạy lại bằng một lệnh: `bash _acceptance/lai-thu-nguoi-la-van-2-2026-08-19/tools/chay-b3.sh`.
+Khoá đọc từ `~/.config/acceptance-gate/openrouter.env` (ngoài mọi kho git, quyền
+600, không script nào in giá trị ra).
 
 ---
 

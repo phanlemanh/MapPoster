@@ -773,3 +773,56 @@ describe('measure', () => {
     expect(m.routes[0].lengthKm).toBeGreaterThan(4);
   });
 });
+
+/**
+ * AC-8 của gói satellite-basemap — đường AGENT phải TỪ CHỐI nền vệ tinh khi
+ * thiếu nguồn tile, và thông điệp phải NÊU TÊN BIẾN.
+ *
+ * Vì sao thêm muộn (2026-08-19): eval E9 của gói đó vẫn khai chính tệp này làm
+ * nơi đo AC-8, nhưng trước lượt này cả tệp không có một chữ "satellite" nào —
+ * màu xanh của E9 đến trọn vẹn từ 71 ca không liên quan. Lint đấu dây
+ * (_acceptance/eval-wiring-lint.mjs) bắt được đúng chỗ đó bằng cách hỏi: tệp
+ * mà lệnh chạy có chứa định danh nào của tiêu chí không.
+ *
+ * Chiều "nêu tên biến" phải được khẳng định trên CHÍNH thông điệp: một phép đo
+ * chỉ hỏi "có ném không" vẫn xanh khi thông điệp đổi thành 'invalid basemap',
+ * mà caller là agent — nó không nhìn thấy ảnh, chỉ đọc được thông điệp.
+ */
+describe('basemap satellite trên đường agent (AC-8)', () => {
+  const KEY = 'MAPPOSTER_SATELLITE_TILES';
+  const TILES = 'https://tiles.example/{z}/{x}/{y}.jpg';
+
+  it('thiếu nguồn tile: TỪ CHỐI, và thông điệp nêu đích danh tên biến', async () => {
+    const saved = process.env[KEY];
+    delete process.env[KEY];
+    try {
+      await expect(resolveConfig({ location: 'Hà Nội', basemap: 'satellite' })).rejects.toThrow(KEY);
+    } finally {
+      if (saved !== undefined) process.env[KEY] = saved;
+    }
+  });
+
+  it('đối chứng dương: có nguồn tile thì resolve bình thường và URL đó đi xuống config', async () => {
+    const saved = process.env[KEY];
+    process.env[KEY] = TILES;
+    try {
+      const cfg = await resolveConfig({ location: 'Hà Nội', basemap: 'satellite' });
+      expect(cfg.basemap).toBe('satellite');
+      expect(cfg.satelliteTiles).toBe(TILES);
+    } finally {
+      if (saved === undefined) delete process.env[KEY]; else process.env[KEY] = saved;
+    }
+  });
+
+  it('nền vector không bị đánh thuế: không đòi biến, không mang URL tile', async () => {
+    const saved = process.env[KEY];
+    delete process.env[KEY];
+    try {
+      const cfg = await resolveConfig({ location: 'Hà Nội', basemap: 'vector' });
+      expect(cfg.basemap).toBe('vector');
+      expect(cfg.satelliteTiles).toBeUndefined();
+    } finally {
+      if (saved !== undefined) process.env[KEY] = saved;
+    }
+  });
+});

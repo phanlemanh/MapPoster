@@ -5,7 +5,7 @@ slug: test-env-webstorage
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: approved
+status: verified
 approved_by: Phan Le Manh
 approved_at: 2026-08-19T11:50:03Z
 human_signoff:

@@ -37,11 +37,14 @@ tám công thức đang bán, mỗi cái với một người gọi KHÔNG nêu 
 | 7 công thức còn lại | không đặt | chạy bình thường |
 | `area-overview` | **satellite** | **BỊ TỪ CHỐI** — `basemap "satellite" requires MAPPOSTER_SATELLITE_TILES` |
 
-Nghĩa là một trong tám công thức đã bán **không dùng được ở cấu hình mặc định
-của chính nó**. Nó chưa lộ ra vì ví dụ mẫu trong danh mục tự khai `basemap:
-'vector'`, tức ví dụ đang lách qua đúng cái mặc định mà nó quảng cáo. Đây là một
-lỗi riêng, rẻ, KHÔNG phụ thuộc quyết định hạ tầng: hoặc đổi mặc định về vector,
-hoặc nói thật trong danh mục rằng công thức này cần nguồn ảnh.
+Nghĩa là một trong tám công thức đã bán không chạy được nếu người gọi bỏ trống
+nền bản đồ. **Đính chính 2026-08-19 (bản ghi đầu nói quá):** danh mục KHÔNG hề
+giấu điều này — cả `description` lẫn tài liệu tham số `basemap` đều nói rõ mặc
+định là ảnh vệ tinh, cần biến môi trường, và nếu chưa có thì truyền
+`basemap: "vector"`; ví dụ mẫu trong danh mục làm đúng theo lời khuyên đó. Một
+agent đọc danh mục rồi gọi theo sẽ chạy được. Cái còn lại chỉ là bất tiện cho
+agent bỏ qua tài liệu: nó tốn một lượt gọi hỏng, và lượt hỏng đó có thông điệp
+nêu đích danh biến còn thiếu.
 
 Nền của quyết định (spec `2026-08-06-mapeffect-clone-recipes-design.md` §1.2 và
 §5, cộng vòng rà giấy phép `docs/research/2026-08-07-satellite-imagery-licensing.md`):
@@ -105,10 +108,12 @@ AC-8 viết ngày 2026-08-19 sau khi lint đấu dây phát hiện nó chưa t�
 Có một trong hai thì mở lại và làm bước tiếp: đặt báo giá 2–3 nhà cung cấp có
 điều khoản dịch vụ rõ, cạnh ước tính lưu trữ + băng thông của đường tự host.
 
-**Việc KHÔNG đi kèm quyết định này:** lỗi mặc định của công thức `area-overview`
-— nó mặc định `satellite` nên bị từ chối, trong khi ví dụ mẫu trong danh mục tự
-khai `vector` và lách qua đúng cái mặc định nó quảng cáo. Lỗi này đúng-sai độc
-lập với câu hỏi tiền bạc ở trên và phải xử riêng, dù hoãn hay dựng.
+**Một bất tiện đi kèm, KHÔNG phải lỗi:** công thức `area-overview` mặc định
+`satellite`, nên trong triển khai chưa có nguồn ảnh, người gọi bỏ trống nền sẽ
+bị từ chối. Danh mục đã cảnh báo ở cả hai chỗ và thông điệp từ chối nêu đích
+danh biến, nên đây là ma sát chứ không phải sai. Nếu quyết định hoãn kéo dài,
+cân nhắc tạm đổi mặc định về `vector` và trả lại `satellite` khi nguồn ảnh có —
+việc đó chạm mã chịu cổng nên phải đi qua một vòng T2, đừng sửa lén.
 
 ## Thước đo thành công → ứng viên criterion
 

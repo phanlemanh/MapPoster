@@ -61,10 +61,13 @@ evals:
     cmd: config:executors.test.test_env
     paths: [vitest.setup.ts, src/test-env/webstorage.test.ts, src/test-env/webstorage-isolation.test.ts]
     expected: >-
-      exit 0; hai tệp test riêng biệt cùng lane: một tệp ghi khoá sentinel vào
-      kho lưu, tệp kia khẳng định length === 0 và getItem(sentinel) === null.
-      Vì thứ tự chạy không đảm bảo, CẢ HAI tệp cùng ghi và cùng kiểm — tệp nào
-      chạy sau cũng phải thấy kho rỗng.
+      exit 0; SỬA SAU KHI ĐÓNG DẤU CỔNG (xem sổ quyết định): bản đầu chỉ đo
+      sentinel giữa hai tệp và là HẰNG ĐÚNG — phá thử bằng cách biến kho lưu
+      thành singleton dùng chung ở mức module thì nó vẫn xanh, vì cách ly do bộ
+      chạy test cô lập module theo tệp chứ không do bản vá. Nay đo thêm đúng thứ
+      CÓ THỂ MẤT: công tắc cô lập của bộ chạy test phải không bị tắt. Hai khẳng
+      định: công tắc đó khác false; và kho lưu của tệp bắt đầu rỗng, không thấy
+      khoá của tệp kia.
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E4

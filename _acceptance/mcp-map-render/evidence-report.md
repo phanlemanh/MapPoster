@@ -7,11 +7,16 @@ reason: "Vòng 30 ghim lại ở baf27d3: 11/11 eval máy chạy tươi, 0 đỏ
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: f557763d0abed97665ef09b902ccb2e320cbfbb2
+verified_commit: cae52de592f604d5f39e8d761d14d3d36a8d5858
 human_signoff: manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)
 ---
 
 # Evidence Report: mcp-map-render
+
+### Re-pin lần 1 — 2026-08-19, do thêm src/components/MapView.test.tsx (tệp test đầu tiên của thành phần bản đồ web) — src/ không thuộc danh sách miễn trừ nên mọi hồ sơ ghim trước đó hết hiệu lực
+run_id: repin-20260819-cae52de
+sha: cae52de592f604d5f39e8d761d14d3d36a8d5858 · suites: 3 lệnh exit 0 (npm test 614 đạt · test:e2e 18 đạt · test:mcp 22 đạt)
+Chữ ký người GIỮ NGUYÊN — làn máy chạy tươi và xanh ở mốc mới, và thay đổi làm hết hạn là một tệp test, không chạm mã sản phẩm.
 
 ## Vòng ghim lại ở `f557763` — thêm `scripts/check-deploy-drift.sh`
 

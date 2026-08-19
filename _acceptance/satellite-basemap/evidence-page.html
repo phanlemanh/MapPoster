@@ -1,0 +1,152 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · satellite-basemap</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>basemap vector|satellite — nền ảnh vệ tinh và attribution theo nguồn (PR #8a)</h1><div class="sub">Trang bằng chứng · <span class="mono">satellite-basemap</span> · tier T3</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 3 ở c35ac43: bịt lỗ bằng chứng của AC-8 (phép đo cũ chạy tệp không chạm nhánh satellite), 11/11 eval máy chạy tươi, 0 đỏ.</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-text_free-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-resolve_config-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-10</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap_invariants-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-web_basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-13</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-text_free-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-resolve_config-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-10</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-basemap_invariants-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">satellite-basemap-r3-web_basemap-20260819</td><td class="mono">2026-08-19T09:46:30Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `basemap: &#39;satellite&#39;` **và** có URL tile, When dựng style, Then đúng sáu layer nhóm ground bị loại, và **mọi layer khác đều sống sót** — hai chiều, vì chiều &quot;tắt đúng&quot; một mình vẫn xanh nếu ai đó tắt luôn cả đường và ranh giới.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given `basemap: &#39;satellite&#39;` và có URL, When dựng style, Then layer raster nằm ở **đúng vị trí thứ hai**, ngay trên `background` và dưới mọi thứ còn lại. Thứ tự là ngữ nghĩa: đặt sau `background` thì vùng tile chưa tải lộ ra màu theme; đặt trên đường thì ảnh che mất đường.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given `basemap: &#39;satellite&#39;` **thiếu** URL tile, When dựng style, Then **không** dựng source raster **và không** tắt nhóm ground. Một bản đồ vừa mất mặt đất vừa không có ảnh thay thế tệ hơn cả hai lựa chọn — đây là lỗi thật đã xảy ra trong lúc soạn gói và bị test bắt trước khi ship.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `basemap` vắng mặt hoặc `&#39;vector&#39;`, When dựng style, Then không có source lẫn layer raster nào — nhánh mới không được đánh thuế lên đường cũ.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `basemap: &#39;satellite&#39;`, When lấy attribution, Then nó **chứa trọn** chuỗi OSM cũ **và** thêm phần Copernicus. Một khẳng định chỉ kiểm &quot;có chữ Sentinel&quot; vẫn xanh khi phần OSM bị thay mất — và đó là lỗi giấy phép.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given attribution nền vệ tinh, When đọc, Then chữ **&quot;modified&quot;** có mặt. Chính sách Copernicus đòi nói rõ dữ liệu đã qua xử lý; ảnh mosaic là dữ liệu đã xử lý. Bỏ chữ đó là vi phạm điều kiện, không phải rút gọn.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-7: Given `basemap: &#39;vector&#39;`, When lấy attribution, Then chuỗi **giống hệt** bản cũ và không lẫn Sentinel.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-13: (no-regression, cross-layer)*: Given `chrome: &#39;clean&#39;`, When dựng khung ở **cả hai** nền (vector và satellite), Then attribution là chuỗi **DUY NHẤT** được vẽ — nhánh nền mới không mở đường cho chuỗi thứ hai. Bất biến clip-không-chữ là lý do gói này thuộc T3; trước lượt này nó không có tiêu chí nào canh, phép đo của nó treo nhờ vào AC-6 nên bỏ phép đo đi cũng không tiêu chí nào rụng.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-text_free-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.text_free</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 20 passed (20)</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-8: Given đường **agent** (`resolveConfig`) xin `satellite` mà thiếu `MAPPOSTER_SATELLITE_TILES`, When resolve, Then **TỪ CHỐI** nêu tên biến — không rơi về vector. Caller là agent KHÔNG nhìn thấy ảnh, nên một nền im lặng sai trả về clip &quot;thành công&quot; với nội dung sai.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-resolve_config-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 74 passed (74) — gồm 3 ca AC-8 mới</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · script</h3><p class="crit">AC-10: Given URL tile, When kiểm đường đi của nó, Then nó tới trang render **qua `RenderConfig`**, không qua `import.meta.env`. Trang render là bundle đã build; một `VITE_*` bị nung lúc `vite build` nên biến môi trường lúc CHẠY của mcp-server không bao giờ với tới nó. Đây là lỗi thật đã xảy ra trong lúc soạn và được tự phát hiện.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap_invariants-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.basemap_invariants</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">basemap-invariants: mọi bất biến đứng</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-9: Given đường **web** (`MapView`) thiếu nguồn tile, When dựng, Then rơi về vector. Khác AC-8 có chủ đích: người dùng web nhìn thấy ngay và tự hiểu.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-web_basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.web_basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 2 passed (2)</pre>
+</div>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `basemap: &#39;satellite&#39;` **và** có URL tile, When dựng style, Then đúng sáu layer nhóm ground bị loại, và **mọi layer khác đều sống sót** — hai chiều, vì chiều &quot;tắt đúng&quot; một mình vẫn xanh nếu ai đó tắt luôn cả đường và ranh giới.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given `basemap: &#39;satellite&#39;` và có URL, When dựng style, Then layer raster nằm ở **đúng vị trí thứ hai**, ngay trên `background` và dưới mọi thứ còn lại. Thứ tự là ngữ nghĩa: đặt sau `background` thì vùng tile chưa tải lộ ra màu theme; đặt trên đường thì ảnh che mất đường.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given `basemap: &#39;satellite&#39;` **thiếu** URL tile, When dựng style, Then **không** dựng source raster **và không** tắt nhóm ground. Một bản đồ vừa mất mặt đất vừa không có ảnh thay thế tệ hơn cả hai lựa chọn — đây là lỗi thật đã xảy ra trong lúc soạn gói và bị test bắt trước khi ship.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `basemap` vắng mặt hoặc `&#39;vector&#39;`, When dựng style, Then không có source lẫn layer raster nào — nhánh mới không được đánh thuế lên đường cũ.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given `basemap: &#39;satellite&#39;`, When lấy attribution, Then nó **chứa trọn** chuỗi OSM cũ **và** thêm phần Copernicus. Một khẳng định chỉ kiểm &quot;có chữ Sentinel&quot; vẫn xanh khi phần OSM bị thay mất — và đó là lỗi giấy phép.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given attribution nền vệ tinh, When đọc, Then chữ **&quot;modified&quot;** có mặt. Chính sách Copernicus đòi nói rõ dữ liệu đã qua xử lý; ảnh mosaic là dữ liệu đã xử lý. Bỏ chữ đó là vi phạm điều kiện, không phải rút gọn.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-7: Given `basemap: &#39;vector&#39;`, When lấy attribution, Then chuỗi **giống hệt** bản cũ và không lẫn Sentinel.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 7 passed (7)</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-13: (no-regression, cross-layer)*: Given `chrome: &#39;clean&#39;`, When dựng khung ở **cả hai** nền (vector và satellite), Then attribution là chuỗi **DUY NHẤT** được vẽ — nhánh nền mới không mở đường cho chuỗi thứ hai. Bất biến clip-không-chữ là lý do gói này thuộc T3; trước lượt này nó không có tiêu chí nào canh, phép đo của nó treo nhờ vào AC-6 nên bỏ phép đo đi cũng không tiêu chí nào rụng.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-text_free-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.text_free</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 20 passed (20)</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-8: Given đường **agent** (`resolveConfig`) xin `satellite` mà thiếu `MAPPOSTER_SATELLITE_TILES`, When resolve, Then **TỪ CHỐI** nêu tên biến — không rơi về vector. Caller là agent KHÔNG nhìn thấy ảnh, nên một nền im lặng sai trả về clip &quot;thành công&quot; với nội dung sai.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-resolve_config-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.resolve_config</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 74 passed (74) — gồm 3 ca AC-8 mới</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · script</h3><p class="crit">AC-10: Given URL tile, When kiểm đường đi của nó, Then nó tới trang render **qua `RenderConfig`**, không qua `import.meta.env`. Trang render là bundle đã build; một `VITE_*` bị nung lúc `vite build` nên biến môi trường lúc CHẠY của mcp-server không bao giờ với tới nó. Đây là lỗi thật đã xảy ra trong lúc soạn và được tự phát hiện.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-basemap_invariants-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.basemap_invariants</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">basemap-invariants: mọi bất biến đứng</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · test</h3><p class="crit">AC-9: Given đường **web** (`MapView`) thiếu nguồn tile, When dựng, Then rơi về vector. Khác AC-8 có chủ đích: người dùng web nhìn thấy ngay và tự hiểu.</p>
+<div class="kv"><span>run_id <b>satellite-basemap-r3-web_basemap-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.web_basemap</b></span><span>verified_at <b>2026-08-19T09:46:30Z</b></span></div>
+<pre class="out">Tests 2 passed (2)</pre>
+</div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

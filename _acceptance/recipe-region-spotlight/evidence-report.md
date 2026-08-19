@@ -8,7 +8,7 @@ verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, kh�
 enforcement_mode: strict
 bypass_used: false
 verified_commit: cfe51aae4af658f60d37396a3020b329b4fe905e
-human_signoff:
+human_signoff: manh — 2026-08-19
 ---
 
 # Evidence Report: recipe-region-spotlight

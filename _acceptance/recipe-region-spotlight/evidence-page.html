@@ -1,0 +1,107 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bằng chứng · recipe-region-spotlight</title>
+<style>
+:root{--bg:#faf9f6;--card:#fff;--bd:#e6e4de;--ink:#1f1f1d;--mut:#6c6a64;--hint:#9a988f}
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);margin:0;line-height:1.5;font-size:15px}
+.wrap{max-width:920px;margin:0 auto;padding:24px 20px 64px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:30px 0 10px;letter-spacing:.02em}
+.sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;vertical-align:middle}
+.pass{background:#E1F5EE;color:#085041}.pend{background:#FAEEDA;color:#633806}.rej{background:#FAECE7;color:#712B13}.neutral{background:#f1efe8;color:#444441}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mut);margin-top:6px}
+.meta b{color:var(--ink);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:600;font-size:12px}
+td a{color:#185FA5;text-decoration:none}.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.eval{scroll-margin-top:14px}.eval h3{font-size:14px;margin:0 0 4px}.eval .crit{font-size:13px;color:var(--mut);margin:0 0 8px}
+pre.out{background:#1f1f1d;color:#e8e6df;border-radius:8px;padding:11px 13px;overflow:auto;max-height:280px;font-size:12px;margin:8px 0}
+.kv{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0}.kv b{color:var(--ink)}
+.shot img{display:block;max-width:100%;border:1px solid var(--bd);border-radius:8px}
+.slide{position:relative}.slide .frame{position:absolute;inset:0;opacity:0;transition:opacity .35s}.slide .frame:first-child{position:relative}.slide .frame.on{opacity:1}
+.slidebar{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin-top:6px}
+.btn{font-size:12px;padding:4px 11px;border:1px solid var(--bd);border-radius:7px;background:#fff;cursor:pointer}
+.ov{background:#FAEEDA;color:#633806;border-radius:7px;padding:6px 10px;font-size:12px;display:inline-block}
+.ovok{background:#E1F5EE;color:#085041}
+.note{font-size:13px;color:var(--mut)}.flag{font-size:13px;border-radius:8px;padding:8px 11px;margin:6px 0}
+.fred{background:#FAECE7;color:#712B13}.fok{background:#E1F5EE;color:#085041}
+.foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--bd);font-size:12px;color:var(--hint)}
+ul.ck{list-style:none;padding:0;margin:0}ul.ck li{padding:5px 0;font-size:14px}ul.ck input{margin-right:8px}
+.tl{border-left:2px solid var(--bd);padding-left:14px;margin:0}.tl li{font-size:13px;margin:0 0 6px;list-style:none}
+</style></head><body><div class="wrap">
+<h1>Tầng recipe + recipe đầu tiên (region-spotlight) — một call ra một cảnh hoàn chỉnh</h1><div class="sub">Trang bằng chứng · <span class="mono">recipe-region-spotlight</span> · tier T2</div>
+<div class="card" style="margin-top:12px"><span class="badge pass">PASS</span>
+<div class="meta"><span>Verified by: <b>Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới</b></span><span>Human signoff: <b>CHƯA ký</b></span><span>enforcement: <b>strict</b></span><span>reason: <b>Vòng 2 ở cfe51aa: bộ đo đã trỏ đúng tệp test tầng recipe, 13/13 eval máy chạy tươi, 0 đỏ. Làn suite xanh sau khi cài trình duyệt còn thiếu.</b></span></div></div>
+<h2>Các eval</h2><div class="card" style="padding:4px 8px"><table><thead><tr><th>Eval</th><th>Tiêu chí</th><th>Loại</th><th>Verdict</th><th>run_id</th><th>verified_at</th></tr></thead><tbody>
+<tr><td><a href="#E1">E1</a></td><td>AC-1</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E2">E2</a></td><td>AC-2</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E3">E3</a></td><td>AC-3</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E4">E4</a></td><td>AC-4</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E5">E5</a></td><td>AC-5</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E6">E6</a></td><td>AC-6</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E7">E7</a></td><td>AC-6b</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-mcp_protocol-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E8">E8</a></td><td>AC-7</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E9">E9</a></td><td>AC-8</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E10">E10</a></td><td>AC-9</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E11">E11</a></td><td>AC-10</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E12">E12</a></td><td>AC-11</td><td>test</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-recipe_tools-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+<tr><td><a href="#E13">E13</a></td><td>AC-12</td><td>script</td><td><span class="badge pass">PASS</span></td><td class="mono">recipe-region-spotlight-r2-t3_untouched-20260819</td><td class="mono">2026-08-19T00:21:43Z</td></tr>
+</tbody></table></div>
+<h2>Chi tiết từng eval</h2>
+<div class="card eval" id="E1"><h3><span class="badge pass">PASS</span> &nbsp;E1 · test</h3><p class="crit">AC-1: Given `render_recipe({recipe:&#39;region-spotlight&#39;, region})`, When chạy, Then trả về **một clip MP4 thật** kèm `settle`, `motion.script` đã compile, và `resolved` — cùng hình dạng `render_clip` trả, không thiếu trường nào.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E2"><h3><span class="badge pass">PASS</span> &nbsp;E2 · test</h3><p class="crit">AC-2: Given kết quả bất kỳ của `render_recipe`, When đọc, Then nó mang `recipe: &#39;&lt;tên&gt;&#39;` — **trên cả nhánh thành công lẫn nhánh lỗi/degrade**. Caller fan-out nhiều recipe cần biết kết quả nào của recipe nào, và nhánh lỗi là chỗ nó cần biết nhất.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E3"><h3><span class="badge pass">PASS</span> &nbsp;E3 · test</h3><p class="crit">AC-3: Given `region-spotlight` compile, When kiểm bộ tham số sinh ra, Then `location` **bằng đúng** `region` được truyền. Hai thứ này tách nhau là mở lại đúng lỗ &quot;vùng cùng tên ở nước khác kéo cả khung đi&quot; mà README §Vietnamese addresses mô tả — country anchor rút ra từ `location`.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E4"><h3><span class="badge pass">PASS</span> &nbsp;E4 · test</h3><p class="crit">AC-4: Given `region-spotlight` compile, When kiểm, Then `highlight.dim === true`; và `dim` **không** phải tham số caller đặt được — truyền `dim` vào bị schema từ chối. Một recipe tắt được đặc trưng của chính nó thì không có ranh giới, và bỏ dim đi thì đây chỉ còn là preset `approach` trần.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E5"><h3><span class="badge pass">PASS</span> &nbsp;E5 · test</h3><p class="crit">AC-5: Given một tên recipe không tồn tại, When gọi, Then **từ chối** kèm danh sách tên hợp lệ, và **không** chạm renderer. Cùng chính sách `theme`/`icon`/`format`: không rơi về mặc định.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E6"><h3><span class="badge pass">PASS</span> &nbsp;E6 · test</h3><p class="crit">AC-6: Given một khoá tham số gõ sai **có mặt trong hình dạng tool khai với MCP** (ví dụ `pois` gửi cho `region-spotlight`), When gọi, Then **từ chối** chứ không lặng lẽ bỏ qua, và **không** chạm renderer. Caller là agent KHÔNG nhìn thấy ảnh: một tham số bị lờ đi trả về clip &quot;thành công&quot; nhưng sai nội dung, và không tầng nào phía sau bắt được.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E7"><h3><span class="badge pass">PASS</span> &nbsp;E7 · test</h3><p class="crit">AC-6b</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-mcp_protocol-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.mcp_protocol</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  7 passed (7) · Duration 824ms</pre>
+</div>
+<div class="card eval" id="E8"><h3><span class="badge pass">PASS</span> &nbsp;E8 · test</h3><p class="crit">AC-7: Given `list_recipes()`, When đọc, Then mỗi mục có `name`, `description`, `params`, `durationSec`, `example`.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E9"><h3><span class="badge pass">PASS</span> &nbsp;E9 · test</h3><p class="crit">AC-8: Given **mọi** `example` trong catalog, When kiểm, Then nó **parse được bằng chính schema của recipe đó** và **compile được**. Một ví dụ không chạy là tài liệu nói dối — và với agent, tài liệu là toàn bộ những gì nó có.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E10"><h3><span class="badge pass">PASS</span> &nbsp;E10 · test</h3><p class="crit">AC-9: Given **mọi** recipe, When đối chiếu, Then tập khoá của `params` (phần mô tả) **trùng khít** tập khoá của `schema` (phần thực thi). Thêm một trường mà quên mô tả — hoặc ngược lại — phải làm eval đỏ.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E11"><h3><span class="badge pass">PASS</span> &nbsp;E11 · test</h3><p class="crit">AC-10: Given bộ tham số mà `region-spotlight` compile ra, When đưa qua **đúng** `prepareClipRender` mà `render_clip` dùng, Then `cfg.chrome === &#39;clean&#39;` (AC-9 của `map-motion-clip` đi xuyên tầng recipe) và `cfg.highlight.dim === true`. Không dừng ở &quot;compile không ném&quot;.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E12"><h3><span class="badge pass">PASS</span> &nbsp;E12 · test</h3><p class="crit">AC-11: Given mã nguồn, When quét, Then tầng recipe **không** gọi `deps.renderClip`/`deps.render` trực tiếp — nó chỉ đi qua `render_clip`. Đây là bất biến giữ cho &quot;kế thừa bảo đảm&quot; đúng theo thời gian, không chỉ đúng hôm nay.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-recipe_tools-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.test.recipe_tools</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">Test Files  1 passed (1) · Tests  35 passed (35) · Duration 691ms</pre>
+</div>
+<div class="card eval" id="E13"><h3><span class="badge pass">PASS</span> &nbsp;E13 · script</h3><p class="crit">AC-12: Given `t3_paths` (`src/lib/export.ts`, `src/lib/mapStyle.ts`), When so diff, Then **0 dòng** thay đổi.</p>
+<div class="kv"><span>run_id <b>recipe-region-spotlight-r2-t3_untouched-20260819</b></span><span>exit_code <b>0</b></span><span>verifier <b class="mono">config:executors.script.recipe_t3_untouched</b></span><span>verified_at <b>2026-08-19T00:21:43Z</b></span></div>
+<pre class="out">t3-untouched: 7 commit của tầng recipe, KHÔNG cái nào chạm src/lib/export.ts / src/lib/mapStyle.ts</pre>
+</div>
+<div class="foot">Trang trình bày · KHÔNG quyết — <span class="mono">evidence-report.md</span> + hook là nguồn-sự-thật. Sinh từ run đã verify; ảnh/output gắn run_id.</div>
+<script>
+document.querySelectorAll('.slide').forEach(function(s){var fr=s.querySelectorAll('.frame');if(fr.length<2)return;var i=0;fr[0].classList.add('on');var adv=function(){fr[i].classList.remove('on');i=(i+1)%fr.length;fr[i].classList.add('on');};s._t=setInterval(adv,1600);var bar=s.nextElementSibling,b=bar?bar.querySelector('[data-toggle]'):null;if(b)b.addEventListener('click',function(){if(s._t){clearInterval(s._t);s._t=null;b.textContent='▶ Chạy';}else{s._t=setInterval(adv,1600);b.textContent='⏸ Tạm dừng';}});});
+</script>
+</div></body></html>

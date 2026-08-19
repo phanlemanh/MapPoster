@@ -1,0 +1,34 @@
+# md5 của mọi vật ván #3 giữ lại
+
+Sinh 2026-08-19T16:00:13Z bằng `md5` trên chính các tệp trong thư mục này.
+Hậu tố `--mt<epoch>` là mtime của tệp gốc trong `_render-out/` lúc chép.
+
+```
+MD5 (mapposter-chua-mot-cot-1080x1920-0--mt1787153427.mp4) = 6958c047b9ce8f31af628422960c055d
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0--mt1787151961.mp4) = 7748da8e87a88185d190965d30e52f2a
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0--mt1787153348.mp4) = 7748da8e87a88185d190965d30e52f2a
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0--mt1787153564.mp4) = 7748da8e87a88185d190965d30e52f2a
+MD5 (mapposter-ho-hoan-kiem-1080x1921-0--mt1787153522.mp4) = 7a89a3d4ecf0602849aa597968c72f63
+MD5 (mapposter-chua-mot-cot-1080x1920-0-settle--mt1787153427.png) = 19dcb71b92c2924a1a4f9f00f9277ee8
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0-settle--mt1787151961.png) = b79ac82f33c995e122b0a8c6fadfe453
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0-settle--mt1787153348.png) = b79ac82f33c995e122b0a8c6fadfe453
+MD5 (mapposter-ho-hoan-kiem-1080x1920-0-settle--mt1787153564.png) = b79ac82f33c995e122b0a8c6fadfe453
+MD5 (mapposter-ho-hoan-kiem-1080x1921-0-settle--mt1787153522.png) = 1bff0bb7dc770a34a72ab6ecd04d1875
+MD5 (mapposter-ho-tay-1748x2480-0--mt1787153442.png) = dd8d2a048a62cba715a480bf2ba3a8aa
+```
+
+## Ba lần ghi vào CÙNG một đường dẫn `mapposter-ho-hoan-kiem-1080x1920-0.mp4`
+
+| mtime | lời gọi | md5 mp4 | md5 settle |
+|---|---|---|---|
+| 1787151961 (22:06) | `mode:"walk"` | `7748da8e87a88185d190965d30e52f2a` | `b79ac82f33c995e122b0a8c6fadfe453` |
+| 1787153348 (22:29) | `mode:"car"` | `7748da8e87a88185d190965d30e52f2a` | `b79ac82f33c995e122b0a8c6fadfe453` |
+| 1787153564 (22:32) | `mode:"walk"` (người-lạ khôi phục) | `7748da8e87a88185d190965d30e52f2a` | `b79ac82f33c995e122b0a8c6fadfe453` |
+
+Ba lời gọi, hai `mode` khác nhau, **một nội dung duy nhất**.
+
+## Vì sao các tệp media không nằm trong git
+
+Bản thân video sống ở `_render-out/` (thư mục đó đã `.gitignore`) và ở thư mục
+này dưới dạng bản sao chống ghi đè. Chúng nặng ~33 MB nên không commit; thứ
+commit là md5 ở trên. Muốn kiểm lại: chạy `md5` trên tệp và so với bảng này.

@@ -36,3 +36,29 @@ Tức triệu chứng nhìn thấy được, không chỉ suy từ con số.
 ## Chuyển phiên người
 
 Không có câu nào riêng cho slug này — xem mục «Chuyển phiên người» của hồ sơ tổng.
+
+---
+
+## Ván #3 (2026-08-19T15:02:43Z) — bằng chứng VIDEO cho cùng vấp
+
+Số vấp của slug này **không đổi**: ván #3 chạy trên đúng bản chưa vá
+(`md5 route.ts` = `4bb7655ec132e9e4718dad492f26b1a4`, trùng khít con số ván #2
+ghi), nên đây là **tái xuất**, không phải phát hiện mới. Thứ ván #3 thêm vào là
+bằng chứng ở tầng mà ván #2 chưa với tới:
+
+1. **Phép đo thị giác trên chính mp4 chuyển động.** Câu hỏi ĐÓNG hỏi trên cả clip
+   (không phải một khung tĩnh), gửi thẳng video cho `google/gemini-3.7-flash`:
+   *"tuyến dán nhãn đi bộ có bám lối đi bộ suốt chiều dài clip, hay chạy lòng
+   đường ô tô?"* → **`NO`** (không bám lối đi bộ).
+2. **Chiều kỳ vọng ghi TRƯỚC khi hỏi.** Mã chưa vá ⇒ kỳ vọng câu "hai clip walk
+   và car có cho tuyến khác nhau?" là **`NO`**. Nhận về **`NO`**. Bản ghi trước:
+   [`cmds/chieu-ky-vong-ghi-truoc.md`](../lai-thu-nguoi-la-van-3-2026-08-19/cmds/chieu-ky-vong-ghi-truoc.md).
+3. **Bằng chứng máy mạnh hơn cả lời VLM.** Ba lời gọi — `walk`, `car`, `walk` —
+   ghi ra ba tệp **trùng md5 từng byte** `7748da8e87a88185d190965d30e52f2a`, ảnh
+   settle cả ba `b79ac82f33c995e122b0a8c6fadfe453`. Ván #2 đo được *cùng quãng
+   đường, cùng thời gian*; ván #3 đo được *cùng từng byte pixel*:
+   [`video/MD5.txt`](../lai-thu-nguoi-la-van-3-2026-08-19/video/MD5.txt).
+
+**Phép đo để chạy lại khi bản vá P0-1 merge:** cùng bộ lệnh, kỳ vọng khi đó đảo
+thành `YES` cho câu (f) và md5 hai clip phải khác nhau —
+`bash _acceptance/lai-thu-nguoi-la-van-3-2026-08-19/tools/chay-lan-video.sh`.

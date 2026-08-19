@@ -1,0 +1,5 @@
+# Khung đầy đủ tái tạo được bằng tools/tach-khung.sh — chỉ giữ ba khung hồ sơ trích dẫn.
+*.png
+!clip-walk-dau.png
+!clip-walk-cuoi.png
+!clip-walk-giua.png

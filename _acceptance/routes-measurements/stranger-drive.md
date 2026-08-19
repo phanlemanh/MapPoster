@@ -41,3 +41,26 @@ Kết luận vì thế đặt trên **bảng số liệu**, không đặt trên 
 ## Chuyển phiên người
 
 Không có câu nào riêng cho slug này — xem hồ sơ tổng.
+
+---
+
+## Ván #3 (2026-08-19T15:02:43Z) — cùng vấp, bằng chứng chặt hơn
+
+Số vấp **không đổi** (tái xuất trên bản chưa vá). Ván #2 chứng minh hai `mode`
+cho cùng `distanceKm 1.2118` và `durationMin 2.5233333333333334`. Ván #3 đóng nốt
+kẽ hở còn lại của lập luận đó: nếu chỉ số đo trùng nhau thì vẫn còn khả năng
+tuyến vẽ ra khác nhau. Không còn khả năng ấy nữa —
+
+```
+mtime 1787151961  mode:"walk"  md5 7748da8e87a88185d190965d30e52f2a
+mtime 1787153348  mode:"car"   md5 7748da8e87a88185d190965d30e52f2a
+mtime 1787153564  mode:"walk"  md5 7748da8e87a88185d190965d30e52f2a
+```
+
+Ba lời gọi, hai `mode`, **một nội dung duy nhất đến từng byte**. Thứ duy nhất đổi
+theo `mode` là chuỗi nhãn `provider` (`osrm/foot` vs `osrm/driving`) — tức
+`durationMin` 2,52 phút cho 1,2 km là con số của ô tô, được trả về y nguyên cho
+chuyến dán nhãn đi bộ (≈ 28,8 km/h).
+
+Nguồn: [`video/MD5.txt`](../lai-thu-nguoi-la-van-3-2026-08-19/video/MD5.txt) ·
+[hồ sơ ván #3](../lai-thu-nguoi-la-van-3-2026-08-19.md).

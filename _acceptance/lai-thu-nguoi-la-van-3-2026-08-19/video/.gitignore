@@ -1,0 +1,3 @@
+# Media nặng ~33 MB: giữ trên đĩa, không vào git. Bằng chứng là MD5.txt.
+*.mp4
+*.png

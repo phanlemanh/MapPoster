@@ -1,0 +1,4 @@
+# nhãn|clip|settle|preset-camera-đã-yêu-cầu|mô tả
+Clip walk|mapposter-ho-hoan-kiem-1080x1920-0--mt1787151961.mp4|mapposter-ho-hoan-kiem-1080x1920-0-settle--mt1787151961.png|follow|Chuyến ĐI BỘ Hồ Hoàn Kiếm → Nhà hát Lớn. Lời gọi có `route.mode:"walk"`, `motion.preset:"follow"`, `format:"tiktok"`. Sản phẩm báo `provider:"osrm/foot"`.
+Clip car|mapposter-ho-hoan-kiem-1080x1921-0--mt1787153522.mp4|mapposter-ho-hoan-kiem-1080x1921-0-settle--mt1787153522.png|follow|Chuyến Ô TÔ cùng đúng hai điểm đó. Lời gọi có `route.mode:"car"`, `motion.preset:"follow"`, `format:{width:1080,height:1921}` (người-lạ lách 1 pixel để không bị ghi đè). Sản phẩm báo `provider:"osrm/driving"`.
+Clip noir|mapposter-chua-mot-cot-1080x1920-0--mt1787153427.mp4|mapposter-chua-mot-cot-1080x1920-0-settle--mt1787153427.png|pushIn|Chùa Một Cột, theme `noir` (`dark:true`, nền `#0a0a0a`), có `highlight.points` một điểm icon sao trắng.

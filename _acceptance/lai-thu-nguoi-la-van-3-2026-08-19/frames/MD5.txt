@@ -1,0 +1,23 @@
+# md5 mọi khung đã tách — ván #3
+
+Sinh 2026-08-19T16:00:30Z bằng `md5` trên chính các tệp trong thư mục này.
+
+```
+MD5 (clip-car-cuoi.png) = 1a09d3286a24cf5af801e26dc565fe3d
+MD5 (clip-car-dau.png) = cab015ee80a527aa3abde02b64cc03b1
+MD5 (clip-car-giua.png) = 6fd4006460c27de480c9e98e326d4e9d
+MD5 (clip-noir-cuoi.png) = 92c426fc590bd5a71ee5334f84806089
+MD5 (clip-noir-dau.png) = 0e8cf0b4638962f65fd2457ba5531497
+MD5 (clip-noir-giua.png) = fa0ab1f8c0367989bb1c2938bc026733
+MD5 (clip-walk-cuoi.png) = b34d687c048eed61e1ade2d28d325980
+MD5 (clip-walk-dau.png) = 2a62b537a7139c5dcb316590558b6b04
+MD5 (clip-walk-giua.png) = 2b3e20eca6428211f07f20277cf02b4a
+MD5 (doi-chung-cuoi.png) = b34d687c048eed61e1ade2d28d325980
+MD5 (doi-chung-dau.png) = 2a62b537a7139c5dcb316590558b6b04
+MD5 (doi-chung-giua.png) = 2b3e20eca6428211f07f20277cf02b4a
+```
+
+Chỉ ba khung được commit (xem `.gitignore` cạnh bên): `clip-walk-dau.png` và
+`clip-walk-cuoi.png` — cặp đối chứng dương của làn video — cùng `clip-walk-giua.png`,
+khung dùng để đọc dòng chữ ở câu (e2). Các khung còn lại tái tạo được bằng
+`bash tools/tach-khung.sh <clip> <settle> frames <tiền-tố>` từ video trong `video/`.

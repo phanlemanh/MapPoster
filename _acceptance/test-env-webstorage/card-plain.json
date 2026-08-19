@@ -1,28 +1,8 @@
 {
-  "feature_plain": "Bộ kiểm thử của kho chạy được cả khi máy dev tự nâng runtime — thay vì 24 phép kiểm chết vì một thứ không ai đụng vào trong kho.",
-  "will_do": [
-    { "id": "AC-1", "p": "Sẽ tự cấp một kho lưu tạm khi môi trường chạy kiểm thử không có — và kho tạm đó phải cư xử đúng như kho thật ở những chỗ sản phẩm dựa vào." },
-    { "id": "AC-1b", "p": "Sẽ để lại dấu vết xem nó đã vá hay không và vì sao — không có dấu đó thì không ai phân biệt được 'máy lành' với 'bản vá đã đè lên kho thật'." },
-    { "id": "AC-4", "p": "Sẽ chứng minh bằng số rằng bốn tệp từng chết đã chạy lại thật, chứ không chỉ dựa vào việc cả bộ báo xanh." },
-    { "id": "AC-5", "p": "Sẽ giữ kho lưu sạch ở mỗi tệp kiểm thử — không để tệp trước làm bẩn tệp sau." }
-  ],
-  "wont_do": [
-    { "id": "AC-2", "p": "Sẽ KHÔNG đè lên kho lưu thật khi môi trường đã có: đè lên là tự tay đổi thứ đang đo, và mọi phép kiểm sẽ xanh trên một kho không phải kho sản phẩm dùng." },
-    { "id": "AC-3", "p": "Chặn bản vá lọt sang mã sản phẩm — nó phải chết ở biên làn kiểm thử, nếu không thì đây thành thay đổi hành vi sản phẩm dưới danh nghĩa sửa test." }
-  ],
-  "scope_plain": "Không sửa Node, không ghim phiên bản Node, không thêm cờ chạy vào lệnh kiểm thử (máy CI chạy bản khác, một cờ nó không hiểu sẽ làm mọi thứ chết khó hiểu hơn), và không đụng kho trạng thái của sản phẩm.",
-  "coverage_plain": [
-    { "i": 0, "p": "Hai chiều: thiếu kho lưu thì vá, có rồi thì để yên." },
-    { "i": 1, "p": "Bản vá không được rò sang mã sản phẩm." },
-    { "i": 2, "p": "Bốn tệp từng chết phải xanh lại, và phải chứng minh được là đã chạy." },
-    { "i": 3, "p": "Kho lưu không rò trạng thái giữa các tệp kiểm thử." },
-    { "i": 4, "p": "Đo chính nhánh quyết định, không đo hệ quả — vì một bản vá cài vô điều kiện cũng làm mọi phép đo kết quả xanh." }
-  ],
-  "gap_probe_plain": [
-    { "i": 0, "p": "Không phép đo nào nhìn được nhánh mà bản vá thật sự chọn — đã sửa: bản vá nay để lại dấu, và có một phép đo đọc chính cái dấu đó." },
-    { "i": 1, "p": "Phép đo không-hồi-quy chỉ tin mã thoát của cả bộ — đã sửa: nay đọc số ca của từng tệp từ báo cáo máy đọc được, thiếu tệp nào là đỏ." },
-    { "i": 2, "p": "Không ai canh việc kho lưu tạm rò trạng thái giữa các tệp — đã sửa: thêm tiêu chí và phép đo hai tệp không phụ thuộc thứ tự chạy." },
-    { "i": 3, "p": "Phép đo chống rò sang sản phẩm thiếu đối chứng dương — đã sửa: bắt buộc bắt được một trường hợp cố tình vi phạm trước khi cho kết luận sạch." },
-    { "i": 4, "p": "Kho lưu tạm có thể dễ tính hơn kho thật và che lỗi sản phẩm — đã sửa: ghim ngữ nghĩa ép kiểu chuỗi và trả rỗng đúng cách vào tiêu chí." }
+  "feature_plain": "Bộ kiểm thử của kho chạy được trên runtime mới của máy — 24 phép kiểm chết vì một thứ không ai đụng vào trong kho nay đã sống lại.",
+  "scope_plain": "Không sửa Node, không ghim phiên bản Node, không thêm cờ chạy vào lệnh kiểm thử, và không đụng kho trạng thái của sản phẩm.",
+  "decisions_plain": [
+    { "id": "approach", "p": "Đã chọn vá bằng tệp khởi động của bộ kiểm thử thay vì thêm cờ chạy — đổi lại phải tự ghim ngữ nghĩa của kho lưu giả, vì máy CI chạy bản Node khác và một cờ nó không hiểu sẽ làm mọi thứ chết khó hiểu hơn." },
+    { "id": "fix", "p": "Sửa một phép đo SAU khi anh đã đóng dấu cổng: phép đo cách ly hoá ra là hằng đúng — phá đúng cách nó khai để bắt thì nó vẫn xanh. Nay nó đo thêm công tắc cô lập của bộ chạy kiểm thử, và tắt công tắc đó là đỏ ngay." }
   ]
 }

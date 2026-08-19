@@ -16,42 +16,42 @@ evals:
   - id: E1
     criterion: AC-1
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; render_recipe trả clip + settle + motion.script + resolved, đủ hình dạng render_clip trả"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E2
     criterion: AC-2
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; trường `recipe` có mặt trên CẢ nhánh thành công lẫn nhánh degrade encode-lỗi"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E3
     criterion: AC-3
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; location BẰNG ĐÚNG region được truyền — không tách hai, vì country anchor rút từ location"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E4
     criterion: AC-4
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; highlight.dim === true, và truyền `dim` vào bị schema từ chối"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E5
     criterion: AC-5
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; tên recipe lạ bị từ chối kèm danh sách tên hợp lệ, và renderer có 0 lần gọi"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E6
     criterion: AC-6
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; khoá gõ sai THUỘC hình dạng khai bị từ chối, renderer có 0 lần gọi"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
@@ -69,28 +69,28 @@ evals:
   - id: E8
     criterion: AC-7
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; list_recipes trả đủ name/description/params/durationSec/example cho mọi mục"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E9
     criterion: AC-8
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; MỌI example trong catalog parse được bằng chính schema của recipe đó VÀ compile được"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E10
     criterion: AC-9
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; tập khoá `params` (mô tả) TRÙNG KHÍT tập khoá `schema` (thực thi), cho mọi recipe"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
   - id: E11
     criterion: AC-10
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; bộ tham số compile ra đi qua ĐÚNG prepareClipRender và cho chrome==='clean' + highlight.dim===true"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 
@@ -99,7 +99,7 @@ evals:
   - id: E12
     criterion: AC-11
     executor: test
-    cmd: config:executors.test.clip_tools
+    cmd: config:executors.test.recipe_tools
     expected: "exit 0; quét recipes.ts (đã bóc comment) không thấy deps.render*/renderFrame/renderClipFrames — recipe chỉ đi qua render_clip"
     evidence_required: [run_id, exit_code, verifier, verified_at]
 

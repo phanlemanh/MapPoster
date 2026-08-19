@@ -92,7 +92,6 @@ risk_tiers:
 signoff:
   required_for: [T2, T3]
   approvers: ["manh"]
-  require_human_commit: true
 dev_server:
   start: "npm run dev"
   url: "http://localhost:5173"

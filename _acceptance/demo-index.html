@@ -12,12 +12,12 @@ video{width:100%;border-radius:8px;display:block;border:1px solid #1c3e60;backgr
 figcaption{margin-top:6px;color:#8fa8c0;font-size:12px;font-variant-numeric:tabular-nums}
 </style>
 <h1>MapPoster — video chứng minh tính năng</h1>
-<p class="sub">Render cục bộ trong tiến trình sạch, bằng <code>_acceptance/scripts/demo-features.ts</code> và
+<p class="sub">Render cục bộ trong tiến trình sạch, bằng <code>_acceptance/demo-features.ts</code> và
 <code>_acceptance/tier0-agent-params/scripts/demo-clips.ts</code>. Mọi clip text-free theo AC-9 — thứ chữ duy nhất
 trong pixel là dòng attribution giấy phép OSM.</p>
 <div class="warn" style="border-left-color:#4fc3ff">Các file <code>demo/</code> KHÔNG được commit (chúng nặng và sinh lại được), nên trên một
 bản clone sạch trang này sẽ vỡ link video cho tới khi bạn chạy:
-<br><code>MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/scripts/demo-features.ts</code>
+<br><code>MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/demo-features.ts</code>
 <br>và <code>… npx tsx _acceptance/tier0-agent-params/scripts/demo-clips.ts</code> cho nhóm Tier 0.</div>
 <div class="warn"><b>Đây là minh hoạ, KHÔNG phải bằng chứng đã verify.</b> Video dựng sau khi các hợp đồng đã ký và
 không tham gia vào verdict nào. Bằng chứng thật nằm ở <code>evidence-report.md</code> của từng hợp đồng, do một

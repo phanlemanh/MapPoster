@@ -1,4 +1,4 @@
-# Ảnh/clip demo sinh lại được bằng _acceptance/scripts/demo-features.ts.
+# Ảnh/clip demo sinh lại được bằng _acceptance/demo-features.ts.
 # Đặt quy tắc TẠI ĐÂY chứ không ở .gitignore gốc: `_acceptance/**` nằm trong
 # risk_tiers.t1_skip_globs nên sửa file này không làm hết hiệu lực bằng chứng.
 demo/

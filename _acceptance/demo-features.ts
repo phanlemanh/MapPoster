@@ -13,14 +13,14 @@
  * được verify" và demo đứng riêng ở `demo/`.
  *
  * Chạy:
- *   MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/scripts/demo-features.ts
+ *   MAPPOSTER_APP_PORT=0 MAPPOSTER_POOL=1 npx tsx _acceptance/demo-features.ts
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { makeRenderDeps } from '../../mcp-server/src/deps';
-import { resolveConfig, summarizeRoutes, summarizeMeasures, type RenderMapParams } from '../../mcp-server/src/resolveConfig';
-import { compileMotion } from '../../mcp-server/src/motionCompiler';
-import { encodeArgs } from '../../mcp-server/src/encodeAnimation';
+import { makeRenderDeps } from '../mcp-server/src/deps';
+import { resolveConfig, summarizeRoutes, summarizeMeasures, type RenderMapParams } from '../mcp-server/src/resolveConfig';
+import { compileMotion } from '../mcp-server/src/motionCompiler';
+import { encodeArgs } from '../mcp-server/src/encodeAnimation';
 
 const ROOT = process.cwd();
 const SIZE = { width: 540, height: 720 };

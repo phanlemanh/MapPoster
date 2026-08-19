@@ -29,6 +29,20 @@ người gọi qua máy bị **từ chối kèm tên biến** (AC-8), người d
 nền vector** (AC-9). Nghĩa là hôm nay không có gì hỏng — chỉ có một năng lực đã
 trả tiền code mà chưa ai dùng được.
 
+**Đo được ngày 2026-08-19 — không làm thì đang chặn đúng cái gì.** Chạy thử cả
+tám công thức đang bán, mỗi cái với một người gọi KHÔNG nêu nền bản đồ:
+
+| Công thức | Nền mặc định | Kết quả hôm nay |
+|---|---|---|
+| 7 công thức còn lại | không đặt | chạy bình thường |
+| `area-overview` | **satellite** | **BỊ TỪ CHỐI** — `basemap "satellite" requires MAPPOSTER_SATELLITE_TILES` |
+
+Nghĩa là một trong tám công thức đã bán **không dùng được ở cấu hình mặc định
+của chính nó**. Nó chưa lộ ra vì ví dụ mẫu trong danh mục tự khai `basemap:
+'vector'`, tức ví dụ đang lách qua đúng cái mặc định mà nó quảng cáo. Đây là một
+lỗi riêng, rẻ, KHÔNG phụ thuộc quyết định hạ tầng: hoặc đổi mặc định về vector,
+hoặc nói thật trong danh mục rằng công thức này cần nguồn ảnh.
+
 Nền của quyết định (spec `2026-08-06-mapeffect-clone-recipes-design.md` §1.2 và
 §5, cộng vòng rà giấy phép `docs/research/2026-08-07-satellite-imagery-licensing.md`):
 

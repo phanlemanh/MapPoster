@@ -61,7 +61,7 @@ dev server UI phục vụ đúng mã của kho chính.
 195:provider: `osrm/${profile}`
 ```
 
-mtime `route.ts` = 2026-08-18, md5 `4bb7655ec132e9e4718dad492f26b1a4`.
+mtime `route.ts` = 2026-08-07 19:26 (chỉ MỘT commit từng chạm tệp: 338674d, 2026-08-07), md5 `4bb7655ec132e9e4718dad492f26b1a4`.
 ⇒ Vấp "đi bộ chạy theo ô tô" tái xuất trong ván này **KHÔNG tính là phát hiện mới**.
 
 ## Điều kiện vào khác

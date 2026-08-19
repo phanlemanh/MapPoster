@@ -15,7 +15,7 @@ chuyen_phien_nguoi: 0
 Stub của slug này. Hồ sơ tổng toàn ván: [`lai-thu-nguoi-la-van-2-2026-08-19.md`](../lai-thu-nguoi-la-van-2-2026-08-19.md).
 
 **Ván chạy trên bản CHƯA vá P0-1** (`route.ts` md5 `4bb7655ec132e9e4718dad492f26b1a4`,
-mtime 2026-08-18, `DEFAULT_OSRM_URL` vẫn là `routed-car` cho mọi profile).
+mtime 2026-08-07, `DEFAULT_OSRM_URL` vẫn là `routed-car` cho mọi profile).
 ⇒ Vấp dưới đây là **TÁI XUẤT, không tính phát hiện mới**.
 
 ## Nhật ký vấp

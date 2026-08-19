@@ -35,7 +35,7 @@ trùng khớp trước–sau ở cả hai cây); server khởi động sau lần
 tiết + lệnh ở [`cmds/lenh-cau-noi-va-moc-gio.md`](lai-thu-nguoi-la-van-2-2026-08-19/cmds/lenh-cau-noi-va-moc-gio.md).
 
 **Bản vá P0-1 CHƯA merge khi chạy ván.** `route.ts` vẫn `routed-car` cho mọi
-profile (md5 `4bb7655ec132e9e4718dad492f26b1a4`, mtime 18/08). Mọi vấp tuyến
+profile (md5 `4bb7655ec132e9e4718dad492f26b1a4`, mtime 07/08 — sửa lại từ "18/08" ghi sai ở bản đầu). Mọi vấp tuyến
 đường tái xuất dưới đây **không tính là phát hiện mới**.
 
 ---

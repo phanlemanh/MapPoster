@@ -9,5 +9,6 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'mcp-server/**/*.test.ts'],
     exclude: ['e2e/**', 'node_modules/**'],
     restoreMocks: true,
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

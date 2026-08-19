@@ -7,11 +7,16 @@ reason: "Vòng 3 ở c35ac43: bịt lỗ bằng chứng của AC-8 (phép đo c�
 verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 4a8f9387608a537a037c1b7c769237f7f910124b
+verified_commit: fcb64d7e71aaaa320926cd08e92e32ee70da1478
 human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
 # Evidence Report: satellite-basemap
+
+### Re-pin lần 2 — 2026-08-19, do vá thiếu Web Storage cho làn test (vitest.config.ts + vitest.setup.ts + src/test-env) sau khi Node máy dev tự nâng lên 26.7
+run_id: repin-20260819-fcb64d7
+sha: fcb64d7e71aaaa320926cd08e92e32ee70da1478 · suites: 3 lệnh exit 0 (bộ đơn vị 629 đạt · test:e2e 18 đạt · test:mcp 22 đạt) — lần đầu đo trên Node 26.7
+Chữ ký người GIỮ NGUYÊN — thay đổi làm hết hạn nằm trọn trong làn test, không chạm hành vi sản phẩm.
 
 ### Re-pin lần 1 — 2026-08-19, do nâng @playwright/test 1.61.1 → 1.62.1 — package.json và package-lock.json không thuộc danh sách miễn trừ
 run_id: repin-20260819-4a8f938

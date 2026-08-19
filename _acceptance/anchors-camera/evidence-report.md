@@ -7,11 +7,16 @@ reason: "Vòng 6 ghim lại ở baf27d3: 20/20 eval máy chạy tươi, 0 đỏ.
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 4a8f9387608a537a037c1b7c769237f7f910124b
+verified_commit: fcb64d7e71aaaa320926cd08e92e32ee70da1478
 human_signoff: manh — 2026-08-14 (commit tay của người duyệt, chỉ chạm dòng human_signoff)
 ---
 
 # Evidence Report: anchors-camera
+
+### Re-pin lần 4 — 2026-08-19, do vá thiếu Web Storage cho làn test (vitest.config.ts + vitest.setup.ts + src/test-env) sau khi Node máy dev tự nâng lên 26.7
+run_id: repin-20260819-fcb64d7
+sha: fcb64d7e71aaaa320926cd08e92e32ee70da1478 · suites: 3 lệnh exit 0 (bộ đơn vị 629 đạt · test:e2e 18 đạt · test:mcp 22 đạt) — lần đầu đo trên Node 26.7
+Chữ ký người GIỮ NGUYÊN — thay đổi làm hết hạn nằm trọn trong làn test, không chạm hành vi sản phẩm.
 
 ### Re-pin lần 3 — 2026-08-19, do nâng @playwright/test 1.61.1 → 1.62.1 — package.json và package-lock.json không thuộc danh sách miễn trừ
 run_id: repin-20260819-4a8f938

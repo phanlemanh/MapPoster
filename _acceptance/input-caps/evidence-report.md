@@ -7,11 +7,17 @@ reason: "Vòng 1 ghim lại ở baf27d3: 9/9 eval máy chạy tươi, 0 đỏ."
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: c35ac43f50c7c3f6d12d07bdd71da1696d9584dc
+verified_commit: 4a8f9387608a537a037c1b7c769237f7f910124b
 human_signoff: manh — 2026-08-18
 ---
 
 # Evidence Report: input-caps
+
+### Re-pin lần 3 — 2026-08-19, do nâng @playwright/test 1.61.1 → 1.62.1 — package.json và package-lock.json không thuộc danh sách miễn trừ
+run_id: repin-20260819-4a8f938
+sha: 4a8f9387608a537a037c1b7c769237f7f910124b · suites: 3 lệnh exit 0 (npm test 617 đạt · test:e2e 18 đạt · test:mcp 22 đạt)
+Lượt này rộng hơn một lần ghim lại thường: vì đổi là ĐỔI TRÌNH DUYỆT, đã chạy thêm TOÀN BỘ 11 phép đo dạng script (gồm cả bộ đối chứng âm 4/4 ca của input-caps và đường dựng ảnh thật của routes-measurements: 5 render, 14 phép kiểm đạt) — tất cả exit 0.
+Chữ ký người GIỮ NGUYÊN.
 
 ### Re-pin lần 2 — 2026-08-19, do thêm ba ca AC-8 vào mcp-server/src/resolveConfig.test.ts — mcp-server/ không thuộc danh sách miễn trừ
 run_id: repin-20260819-c35ac43

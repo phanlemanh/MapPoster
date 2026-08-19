@@ -8,7 +8,7 @@ verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, kh�
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 4a00cbc991e75a0ac4925a95d1796362e33498a2
-human_signoff:
+human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
 # Evidence Report: area-overview-default

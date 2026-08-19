@@ -96,4 +96,31 @@ dùng ĐÚNG một cặp điểm nên nhiều khả năng trỏ vào cùng một
 $ grep -rIn "sk-or-" _acceptance/lai-thu-nguoi-la-van-3-2026-08-19/ | grep -v "OPENROUTER_API_KEY"
 ```
 
-Kết quả chạy thật ghi ở cuối hồ sơ tổng.
+Kết quả chạy thật ghi ở [`soat-khoa.md`](soat-khoa.md).
+
+## Vân tay cây mã SAU ván — mã không đổi giữa ván
+
+```
+$ find mcp-server/src src -type f \( -name '*.ts' -o -name '*.tsx' \) | sort | xargs md5 -q | md5 -q
+f2b6cbc6fd19b3489a588a02a2555a27
+```
+
+**Trùng khít** vân tay trước ván. Ván không sửa một dòng mã nào của sản phẩm, nên
+mọi phép đo trong ván nói về cùng một bản mã.
+
+## Dọn dẹp sau ván
+
+1. **Listener giữ chỗ của thí nghiệm tái hiện CHẶN-1 đã được tắt.** Nó là một
+   tiến trình `node -e` do phiên điều phối tạo ra để chiếm cổng 4180; lệnh dọn
+   ban đầu bắt nhầm pid của subshell nên nó sống sót tới gần cuối ván. Đã tắt,
+   kiểm lại bằng `lsof` trên cổng 4180 → **0 tiến trình giữ**. Nếu để nguyên thì
+   phiên sau sẽ dính đúng cái bẫy mà ván này vừa ghi.
+2. **73 tiến trình `stdio.ts` mồ côi vẫn còn sống, CỐ Ý không tắt.** Chúng do cầu
+   nối để lại (spawn một server cho mỗi lời gọi rồi thoát mà không giết tiến
+   trình con); nhiều cái có tuổi hơn 1 giờ, tức có từ trước ván. Phiên điều phối
+   không tự tắt vì **không phân biệt được** cái nào là rác của ván này với cái
+   nào thuộc một phiên khác đang chạy. Việc này để người vận hành quyết:
+
+   ```
+   pkill -f 'mcp-server/src/stdio.ts'
+   ```

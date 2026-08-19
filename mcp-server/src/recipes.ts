@@ -538,11 +538,11 @@ export const RECIPES: Record<string, RecipeSpec> = {
 
   'area-overview': {
     description:
-      'Toàn cảnh một khu vực với từng phân khu tô màu riêng và mọi thứ ngoài chúng bị làm mờ, camera trôi chậm. Mặc định nền ảnh vệ tinh — cần MAPPOSTER_SATELLITE_TILES cấu hình sẵn, nếu chưa có thì truyền basemap:"vector".',
+      'Toàn cảnh một khu vực với từng phân khu tô màu riêng và mọi thứ ngoài chúng bị làm mờ, camera trôi chậm. Mặc định nền bản đồ vẽ. Muốn nền ảnh vệ tinh thì truyền basemap:"satellite" — nền đó cần MAPPOSTER_SATELLITE_TILES cấu hình sẵn, thiếu thì lời gọi bị TỪ CHỐI chứ không lặng lẽ đổi nền.',
     params: {
       location: 'Khu vực tổng — nơi camera khung tới, và là anchor quốc gia. Tên hoặc {lng,lat}.',
       zones: 'Các phân khu, mỗi mục là {geojson, color?}. GeoJSON là lối duy nhất cho ranh giới chưa có trong OpenStreetMap — đúng ca của một dự án đang phân lô. Từ 1 tới 12.',
-      basemap: 'Nền bản đồ: "satellite" (mặc định) hoặc "vector". Nền vệ tinh cần MAPPOSTER_SATELLITE_TILES; thiếu nó thì lời gọi bị TỪ CHỐI chứ không lặng lẽ đổi nền.',
+      basemap: 'Nền bản đồ: "vector" (mặc định) hoặc "satellite". Nền vệ tinh cần MAPPOSTER_SATELLITE_TILES; thiếu nó thì lời gọi bị TỪ CHỐI chứ không lặng lẽ đổi nền.',
       theme: 'Một id trong list_themes. Trên nền vệ tinh, theme chỉ còn chi phối đường, ranh giới và chữ — sáu layer vẽ lại mặt đất bị tắt.',
       format: 'Một tên trong list_formats. Mặc định "tiktok".',
       fps: 'Ghi đè fps của preset drift (12..30).',
@@ -606,7 +606,13 @@ export const RECIPES: Record<string, RecipeSpec> = {
         // thật là một phần của ý đồ — "hiện trạng khu đất" chỉ đọc được từ ảnh.
         // Nhưng nó là THAM SỐ chứ không phải hằng, vì nguồn tile có thể chưa
         // được cấu hình và một recipe không dùng được thì không phải một recipe.
-        basemap: p.basemap ?? 'satellite',
+        // Mặc định TẠM là nền vẽ, không phải ảnh vệ tinh: ý đồ gốc của công
+        // thức này là ảnh vệ tinh (spec §4, recipe #5), nhưng Cổng Đáng
+        // 2026-08-19 hoãn việc dựng nguồn tile, nên mặc định cũ khiến người
+        // gọi bỏ trống nền bị TỪ CHỐI. Trả lại 'satellite' khi nguồn ảnh có —
+        // điều kiện ghi ở _acceptance/area-overview-default/. Chiều TƯỜNG MINH
+        // không đổi: xin satellite mà thiếu biến vẫn bị từ chối (AC-2).
+        basemap: p.basemap ?? 'vector',
         highlight: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           regions: p.zones.map((z) => compact({ geojson: z.geojson, color: z.color }) as any),

@@ -32,6 +32,7 @@ vi.mock('./geocode', () => ({
 }));
 
 import { RECIPES, listRecipes, getRecipe } from './recipes';
+import { resolveConfig } from './resolveConfig';
 import { makeTools, RECIPE_TOOL_SHAPE, type ToolResult } from './tools';
 import { prepareClipRender } from './motionCompiler';
 import type { RenderConfig } from '../../src/render/renderConfig';
@@ -297,5 +298,92 @@ describe('render_recipe', () => {
     expect(j.recipe).toBe('region-spotlight');
     expect(j.settle).toBeDefined();
     expect(j.clipError).toMatch(/encode failed/);
+  });
+});
+
+/**
+ * area-overview: mặc định nền TẠM đổi về vector (gói area-overview-default,
+ * Cổng 1 duyệt 2026-08-19).
+ *
+ * Ý đồ gốc của công thức là ảnh vệ tinh; Cổng Đáng hoãn việc dựng nguồn tile
+ * nên mặc định cũ khiến người gọi bỏ trống nền bị TỪ CHỐI. Bốn khối dưới đây
+ * là bốn eval của hợp đồng đó — E1..E4 theo thứ tự.
+ *
+ * Điều nguy hiểm phải giữ (AC-2): đổi mặc định KHÔNG được làm mềm chiều TƯỜNG
+ * MINH. Caller là agent, nó không nhìn thấy ảnh, nên một nền im lặng sai còn
+ * tệ hơn một lời từ chối to.
+ */
+describe('area-overview — mặc định nền bản đồ', () => {
+  const KEY = 'MAPPOSTER_SATELLITE_TILES';
+  const TILES = 'https://tiles.example/{z}/{x}/{y}.jpg';
+  const NGOAI_AREA_OVERVIEW = [
+    'region-spotlight', 'property-intro', 'amenities', 'compare-locations',
+    'route-journey', 'location-tour', 'connectivity',
+  ] as const;
+
+  const compileNoBasemap = (name: string) => {
+    const r = getRecipe(name);
+    const ex = { ...(r.example as Record<string, unknown>) };
+    delete ex.basemap;                     // người gọi KHÔNG nêu nền
+    return (r.compile as (p: unknown) => { basemap?: string })(ex);
+  };
+
+  let saved: string | undefined;
+  beforeEach(() => { saved = process.env[KEY]; });
+  afterEach(() => { if (saved === undefined) delete process.env[KEY]; else process.env[KEY] = saved; });
+
+  // E1 (AC-1) — bỏ trống nền thì chạy trọn, không dừng ở lời từ chối.
+  it('bỏ trống nền: compile ra vector VÀ đi trọn qua resolveConfig khi thiếu biến môi trường', async () => {
+    delete process.env[KEY];
+    const compiled = compileNoBasemap('area-overview');
+    expect(compiled.basemap).toBe('vector');
+    // Gọi THẬT tầng giải cấu hình, không chỉ soi đối tượng compile: lời hứa của
+    // AC-1 là "đi trọn", mà nơi duy nhất từ chối là ở tầng đó.
+    await expect(resolveConfig(compiled as never)).resolves.toBeTruthy();
+  });
+
+  // E2 (AC-2) — cặp hai chiều cho chiều TƯỜNG MINH.
+  it('tự tay xin satellite mà thiếu biến: VẪN từ chối, thông điệp nêu đích danh biến', async () => {
+    delete process.env[KEY];
+    const r = getRecipe('area-overview');
+    const compiled = (r.compile as (p: unknown) => unknown)({ ...(r.example as object), basemap: 'satellite' });
+    await expect(resolveConfig(compiled as never)).rejects.toThrow(KEY);
+  });
+
+  it('đối chứng dương: có biến môi trường thì chiều tường minh ĐƯỢC cho qua', async () => {
+    process.env[KEY] = TILES;
+    const r = getRecipe('area-overview');
+    const compiled = (r.compile as (p: unknown) => { basemap?: string })({ ...(r.example as object), basemap: 'satellite' });
+    expect(compiled.basemap).toBe('satellite');
+    const cfg = await resolveConfig(compiled as never);
+    expect(cfg.basemap).toBe('satellite');
+    expect(cfg.satelliteTiles).toBe(TILES);
+  });
+
+  // E3 (AC-3) — danh mục agent đọc phải khớp hành vi mới, hai chiều.
+  it('danh mục nói đúng mặc định mới, và vẫn chỉ đường tới nền vệ tinh', () => {
+    const entry = listRecipes().recipes.find((x) => x.name === 'area-overview');
+    // Chốt chống xanh-rỗng: tra không ra thì mọi khẳng định chuỗi bên dưới sẽ
+    // "đạt" trên một chuỗi rỗng.
+    expect(entry, 'area-overview phải có mặt trong list_recipes').toBeDefined();
+    expect(entry!.description.length).toBeGreaterThan(20);
+    const basemapDoc = entry!.params.basemap ?? '';
+    expect(basemapDoc.length).toBeGreaterThan(20);
+
+    // chiều âm: không còn khai mặc định là ảnh vệ tinh
+    expect(entry!.description).not.toContain('Mặc định nền ảnh vệ tinh');
+    expect(basemapDoc).not.toMatch(/"satellite"\s*\(mặc định\)/);
+    // chiều dương: vẫn còn đường tới nền vệ tinh, và nêu ĐÚNG thứ nó cần —
+    // quan hệ, không phải sự có mặt của một chuỗi
+    expect(basemapDoc).toContain('satellite');
+    expect(basemapDoc).toContain(KEY);
+  });
+
+  // E4 (AC-4) — ma trận toàn phần, tên viết trước, có chốt tổng số.
+  it('bảy công thức còn lại không tự đặt nền', () => {
+    expect(Object.keys(RECIPES)).toHaveLength(8);
+    for (const name of NGOAI_AREA_OVERVIEW) {
+      expect(compileNoBasemap(name).basemap, `${name} không được tự đặt nền`).toBeUndefined();
+    }
   });
 });

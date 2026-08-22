@@ -63,6 +63,10 @@ executors:
     ui_check: "$(ls $HOME/.claude/plugins/cache/*/acceptance-gate/*/scripts/design-scan.js | sort -V | tail -1)"
 risk_tiers:
   t1_skip_globs:
+    # Khai plugin cấp repo (acceptance-gate 2.3.0, GUIDE §5.1): cấu hình harness,
+    # không phải product code. Không miễn trừ thì chính commit CÀI kit bị cổng của
+    # kit chặn. Dòng này đã có sẵn ở oneflow + artifact-platform.
+    - ".claude/**"
     - "**/*.md"
     - "*.md"
     - "_acceptance/**"

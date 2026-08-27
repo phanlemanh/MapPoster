@@ -13,9 +13,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import type { BuildStyleArgs } from '../lib/mapStyle';
 
-const buildMapStyle = vi.fn(() => ({ version: 8, sources: {}, layers: [] }));
-vi.mock('../lib/mapStyle', () => ({ buildMapStyle: (...a: unknown[]) => buildMapStyle(...(a as [])) }));
+// Mock khai ĐÚNG chữ ký thật (`BuildStyleArgs`) chứ không phải hàm không tham
+// số: `vi.fn(() => ...)` cho `mock.calls` kiểu `[][]`, và khi đó đọc `calls[0][0]`
+// là đọc ngoài biên — thứ duy nhất cứu được nó là một phép ép kiểu, tức là biến
+// phép đo thành phép đo giả. Khai đúng tham số thì đối số ghi lại được TypeScript
+// chấm thẳng theo giao diện thật, và assertion bên dưới không cần ép kiểu nào.
+const buildMapStyle = vi.fn((_args: BuildStyleArgs) => ({ version: 8, sources: {}, layers: [] }));
+vi.mock('../lib/mapStyle', () => ({ buildMapStyle: (args: BuildStyleArgs) => buildMapStyle(args) }));
 
 // Lớp bản đồ giả phải sống BÊN TRONG nhà máy mock: `vi.mock` được nâng lên
 // đầu tệp, nên mọi thứ khai ở thân module đều chưa tồn tại lúc nhà máy chạy.
@@ -65,7 +71,7 @@ describe('MapView — chính sách nền vệ tinh của đường web (AC-9)', 
     usePosterStore.setState({ basemap: 'satellite', satelliteTiles: undefined });
     await expect(render()).resolves.not.toThrow();
     expect(buildMapStyle).toHaveBeenCalled();
-    const arg = buildMapStyle.mock.calls[0][0] as { basemap?: string; satelliteTiles?: string };
+    const arg = buildMapStyle.mock.calls[0][0];
     expect(arg.basemap).toBe('satellite');
     // Chính sách: KHÔNG có cửa chặn nào ở đường web — giá trị thiếu đi xuống
     // nguyên vẹn. Đường agent làm ngược lại và có AC-8 canh.
@@ -75,7 +81,7 @@ describe('MapView — chính sách nền vệ tinh của đường web (AC-9)', 
   it('đối chứng dương: có nguồn tile thì đúng URL đó đi xuống, không bị nuốt', async () => {
     usePosterStore.setState({ basemap: 'satellite', satelliteTiles: 'https://tiles.example/{z}/{x}/{y}.jpg' });
     await render();
-    const arg = buildMapStyle.mock.calls[0][0] as { satelliteTiles?: string };
+    const arg = buildMapStyle.mock.calls[0][0];
     expect(arg.satelliteTiles).toBe('https://tiles.example/{z}/{x}/{y}.jpg');
   });
 });

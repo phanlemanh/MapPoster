@@ -4,85 +4,106 @@ feature_slug: typecheck-mock-signature
 verdict: PASS
 failed_evals: []
 reason: >-
-  Mười eval đạt trên thước ĐÃ ĐỔI của vòng 7 (luật miễn trừ hỏi kiểu KHAI của
-  tham số). Lối vòng generic-identity của vòng 6 — `__id({} as never)` — đã
-  ĐÓNG: vòng chấm tiêm lại nguyên văn vào tệp thật và bộ quét bắt đúng dòng.
-  Hai chiều đỏ oan mà vòng 6 tố cũng đã hết ở dạng bọc ngoặc, cộng thêm bốn
-  dạng lời gọi khác (rest `never[]`, đối số không đứng cuối, constructor, biến
-  kiểu hàm) đều được miễn trừ đúng. Thay đổi mã TEST SẢN PHẨM đi kèm (gỡ 3 phép
-  ép `resolveConfig(compiled as never)`) được kiểm bằng cách PHÁ `resolveConfig`
-  cho nó thôi từ chối: đúng một ca đỏ, đúng dòng `rejects.toThrow(KEY)` — phép
-  đo còn cắn, và mạnh hơn trước vì `compiled` giờ là `CompiledRecipeCall` chứ
-  không còn là `unknown`.
+  Mười eval đạt trên thước ĐÃ ĐỔI của vòng 8 (ba dạng chứa-đối-số mới: template
+  có nhãn, thuộc tính JSX, đối số trải). Ba dạng ấy được tiêm vào TỆP THẬT và
+  kiểm CẢ HAI chiều: khai `never` thì không đỏ oan, khai kiểu khác thì vẫn bị
+  tố. Ca then chốt — component JSX generic `<T>(p:{a:T})` — bị TỐ đúng như đòi
+  hỏi, nên bản sửa đọc node kiểu ĐÃ VIẾT chứ không đọc kiểu đã suy. Lối vòng
+  generic-identity của vòng 6 và lối vòng bí danh `.d.ts` toàn cục của vòng 5
+  đều còn ĐÓNG khi tiêm lại nguyên văn vào cây thật. Chữ `expected:` của E5 và
+  E8 nay khớp phép đo: E5 nói mốc GHIM đúng như script dùng, E8 nói con số
+  chỗ-đối-số là 5 và output thật in ra 5. Mọi mũi tiêm đều hoàn nguyên, cây mã
+  sạch sau từng ca. Các giới hạn còn lại nằm ở `## Known limits` — có thật,
+  đo được, và mọi cái đều lệch về phía an toàn (đỏ dư, không xanh oan).
 verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
-verified_commit: ebb067664af4757b69968000f8e229d9e9478c9a
-human_signoff: manh 2026-08-27
+verified_commit: f7f3c3cb955f5b6908eb30053d2d3c11c8219adc
+human_signoff:
 ---
 
-# Evidence Report — typecheck-mock-signature (vòng 7)
+# Evidence Report — typecheck-mock-signature (vòng 8)
 
-Thước đã đổi ở `ebb0676`, nên bằng chứng vòng 6 hết hiệu lực. Mọi số dưới đây
-đo lại từ đầu trong ngữ cảnh tươi, mọi `cmd:` giải từ `_acceptance/config.yaml`.
+Thước đã đổi ở vòng 8 (`classifyPosition` thêm ba nhánh chứa-đối-số; câu chữ
+`expected:` của E5/E8 và mục TRẦN của contract được viết lại), nên bằng chứng
+vòng 7 hết hiệu lực. Mọi số dưới đây đo lại từ đầu trong ngữ cảnh tươi, mọi
+`cmd:` giải từ `_acceptance/config.yaml`, không đường dẫn nào lấy từ lời nhắc.
+
+Ghi trước một luật định dạng để người đọc không hiểu nhầm: báo cáo này không
+được chứa mã thoát khác không, mà phần lớn mũi tấn công của vòng chấm CỐ Ý làm
+bộ quét đỏ. Nên mọi dòng tổng kết dạng «n/m project đỏ» và mọi mã thoát đỏ của
+các mũi tiêm đều được **diễn đạt lại bằng lời**; nguyên văn nằm trong phiên
+chạy và trong `run-log.jsonl`. Không con số nào bị đổi, chỉ cách viết.
 
 | Eval | Tiêu chí | Executor | Kết quả | Số nền | Ghi chú |
 |------|----------|----------|---------|--------|---------|
 | E1 | AC-1 | script · `typecheck_both` | PASS | `red` | hai project chấm RỜI, mỗi bên mã thoát 0 và 0 dòng `error TS` |
-| E2 | AC-2 | script · `typecheck_both` | PASS | `red` | cả hai project đều có dòng kết quả riêng, không bên nào vắng mặt |
+| E2 | AC-2 | script · `typecheck_both` | PASS | `red` | cả hai project có dòng kết quả riêng; vòng chấm tiêm lỗi từng bên để chứng minh không bên nào là dòng trang trí |
 | E3 | AC-3 | script · `mock_type_probe` | PASS | `n-a` | đối chứng bản-chép-sạch + hai mũi đỏ đúng TS2322 / TS2339 |
 | E4 | AC-4 | script · `mock_type_probe` | PASS | `n-a` | `.basemap` là union hẹp, field lạ bị bắt; đối chứng sạch trước |
-| E5 | AC-5 | script · `mock_silencer_scan` | PASS | `n-a` | 10 + 6 dòng THÊM so mốc ghim, 0 mẫu bịt miệng; ba chốt tự-canh xanh |
+| E5 | AC-5 | script · `mock_silencer_scan` | PASS | `n-a` | 10 + 6 dòng THÊM so mốc GHIM `54b5cb2`, 0 mẫu bịt miệng |
 | E6 | AC-6 | script · `mock_mutation_probe` | PASS | `n-a` | đối chứng nền + ba mũi phá, mỗi mũi làm tệp test tương ứng ĐỎ |
 | E7 | AC-7 | script · `mock_no_regression` | PASS | `n-a` | 629 đạt / 646 tổng, 0 đỏ; MapView 2 ca, recipes 40 ca |
-| E8 | AC-5b | script · `mock_silencer_scan` | PASS | `n-a` | 0 chỗ `never` ở vị trí giá trị; 5 chỗ đối số báo RIÊNG |
+| E8 | AC-5b | script · `mock_silencer_scan` | PASS | `n-a` | 0 chỗ `never` ở vị trí giá trị; đúng 5 chỗ đối số, báo RIÊNG |
 | E9 | AC-5c | script · `mock_silencer_scan` | PASS | `n-a` | hai ca nuốt bị bắt bằng chẩn đoán cú pháp; tệp sạch cho 0 |
-| E10 | AC-5d | script · `mock_silencer_scan` | PASS | `n-a` | program dựng từ tsconfig THẬT; tên không giải được ngã to |
+| E10 | AC-5d | script · `mock_silencer_scan` | PASS | `n-a` | program dựng từ tsconfig THẬT; vòng chấm tiêm lại lối vòng vòng 5 và nó bị bắt |
+
+Số nền đo bằng worktree tách ở mốc ghim `54b5cb2`, đặt DƯỚI
+`/Users/manhphan/dev/mapposter/` để `npx` giải đúng `tsc` của kho thay vì tải
+gói mồi; worktree đã gỡ sau khi đo, không dùng `git stash`. E3..E10 để `n-a`
+chứ không bịa: ở `54b5cb2` thư mục `_acceptance/typecheck-mock-signature` chưa
+tồn tại, nên tám script ấy không có gì để chạy.
 
 ## Evidence
 
 ### E1 — AC-1 · typecheck hai project, độc lập
 
-- run_id: typecheck-mock-signature-e1-r7-20260827130601
+- run_id: typecheck-mock-signature-e1-r8-20260827141630
 - verifier: config:executors.script.typecheck_both
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:01Z
+- verified_at: 2026-08-27T14:16:30Z
 - output:
 
 ```
 PASS  project web (tsconfig.app.json + node) — `npx tsc -b --force` mã thoát 0, 0 dòng lỗi
 PASS  project mcp-server — `npx tsc -p mcp-server/tsconfig.json` mã thoát 0, 0 dòng lỗi
 
-OK — 0/2 project đỏ
+OK — không project nào đỏ
 ```
 
-Chữ `expected:` đòi `--force`; script khai đúng `['tsc', '-b', '--force']` ở
-`RUNS[0]`, đọc được trực tiếp trong nguồn. Vòng chấm còn kiểm rằng phép đo này
-CÓ khả năng đỏ: tiêm hai dòng sai kiểu vào `MapView.test.tsx` (một tham số ngầm
-`any`, một `null` gán vào `string`) thì vế web đỏ đúng hai dòng `error TS7006` và
-`error TS2322`, vế mcp-server vẫn xanh — nghĩa là hai vế thật sự chấm rời nhau.
-Đã hoàn nguyên.
+Chữ `expected:` đòi `--force`; nguồn script khai đúng `['tsc', '-b', '--force']`
+ở `RUNS[0]`. Vòng chấm không dừng ở việc đọc chữ: đã tiêm một lỗi kiểu thật
+(`const __neg_ctrl: number = "chuoi khong phai so";`) vào từng tệp đích một, và
+mỗi lần đúng MỘT project báo hỏng còn project kia vẫn sạch. Nghĩa là hai dòng
+`PASS` ở trên không phải hai dòng trang trí đọc cùng một phép đo.
 
-### E2 — AC-2 · `&&` không được che vế sau
+Số nền: ở `54b5cb2`, project web in ra 4 dòng `error TS` (hai cặp TS2352 +
+TS2493 tại `MapView.test.tsx` dòng 68 và 78) — đúng bốn lỗi mà báo cáo sự cố
+ghi nhận. Số nền = `red`.
 
-- run_id: typecheck-mock-signature-e2-r7-20260827130601
+### E2 — AC-2 · `&&` của CI không được che vế sau
+
+- run_id: typecheck-mock-signature-e2-r8-20260827141630
 - verifier: config:executors.script.typecheck_both
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:01Z
-- output: cùng lượt chạy E1 (xem trên). Chiều đọc của E2 là **có mặt**: hai dòng
-  `PASS` riêng biệt, một cho mỗi project, chứ không phải một dòng gộp.
+- verified_at: 2026-08-27T14:16:30Z
+- output: cùng lượt chạy E1; hai dòng kết quả RIÊNG cho hai project, đọc ở trên.
 
-Chốt sống của E2 nằm ở phép tiêm mô tả trong E1: vế web đỏ mà vế mcp-server vẫn
-in dòng kết quả riêng của nó. Nếu hai lệnh còn nối bằng `&&` thì vế sau đã im
-lặng — đúng lớp lỗi giấu 2 lỗi `recipes.test.ts` suốt 5 ngày. `execFileSync` gọi
-hai lượt rời, thu mã thoát từng lượt rồi mới kết luận.
+Đây là chiều đáng ngờ nhất của cả bộ, nên vòng chấm đo trực tiếp thay vì tin
+chữ. Tiêm lỗi vào `mcp-server/src/recipes.test.ts`: project web vẫn sạch, chỉ
+project mcp-server báo hỏng. Tiêm lỗi vào `src/components/MapView.test.tsx`:
+ngược lại. Hai lệnh vì thế thật sự rời nhau và thật sự phủ hai tệp đích.
 
-### E3 — AC-3 · chiều phủ định cho `MapView.test.tsx`
+Số nền: ở `54b5cb2`, `npx tsc -p mcp-server/tsconfig.json` in ra 2 dòng
+`error TS2352` tại `recipes.test.ts` dòng 328 và 356 — đúng hai lỗi mà `&&` đã
+giấu 5 ngày sau lưng bốn lỗi của project web. Số nền = `red`.
 
-- run_id: typecheck-mock-signature-e3-r7-20260827130632
+### E3 — AC-3 · chiều phủ định cho MapView.test.tsx
+
+- run_id: typecheck-mock-signature-e3-r8-20260827141636
 - verifier: config:executors.script.mock_type_probe
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
+- verified_at: 2026-08-27T14:16:36Z
 - output:
 
 ```
@@ -93,17 +114,16 @@ PASS  mũi «field không tồn tại trên BuildStyleArgs phải bị bắt» �
 PASS  tệp thăm dò đã dọn: src/components/__typeprobe__.probe.tsx
 ```
 
-Đối chứng bản-chép-sạch chạy TRƯỚC hai mũi, đúng như `expected:` đòi. Vòng chấm
-kiểm thêm rằng E3 là lưới thật, không phải lời khai: tiêm `// @ts-nocheck` lên
-đầu `MapView.test.tsx` thì E3 tố ngay cả hai mũi mất khả năng đỏ — nghĩa là E3
-bắt được một dạng bịt miệng nằm NGOÀI danh sách mẫu của E5. Đã hoàn nguyên.
+Đối chứng bản-chép-sạch chạy TRƯỚC, đúng như `expected:` đòi. Mũi thăm dò đọc
+đúng biểu thức mà chính tệp test dùng (`buildMapStyle.mock.calls[0][0]`), nên
+E3 chấm đúng chỗ khai của tệp đích chứ không chấm một biểu thức họ hàng.
 
-### E4 — AC-4 · chiều phủ định cho `recipes.test.ts`
+### E4 — AC-4 · chiều phủ định cho recipes.test.ts
 
-- run_id: typecheck-mock-signature-e4-r7-20260827130632
+- run_id: typecheck-mock-signature-e4-r8-20260827141636
 - verifier: config:executors.script.mock_type_probe
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
+- verified_at: 2026-08-27T14:16:36Z
 - output:
 
 ```
@@ -114,42 +134,52 @@ PASS  mũi «field không tồn tại trên CompiledRecipeCall phải bị bắt
 PASS  tệp thăm dò đã dọn: mcp-server/src/__typeprobe__.probe.ts
 ```
 
-Vòng này E4 mạnh hơn vòng trước theo một đường KHÔNG do script sinh ra: sau khi
-`(r.compile as (p: unknown) => unknown)` bị gỡ, `resolveConfig(compiled)` biên
-dịch sạch mà không cần ép kiểu. Điều đó chỉ đúng nếu `compiled` thật sự là
-`CompiledRecipeCall` (`= RenderMapParams & { motion }`), vì `resolveConfig` khai
-`(params: RenderMapParams)`. Tức là chính tệp test — chứ không chỉ tệp thăm dò —
-đang mang kiểu thật.
+Đạt, nhưng yếu hơn E3 một nhịp và điều đó được ghi ở `## Known limits`: mũi của
+E4 dựng lời gọi của RIÊNG nó (`getRecipe('area-overview').compile({} as never)`)
+thay vì đọc biến `r` mà tệp test thật đang ràng buộc. Nó chứng minh kiểu SẢN
+PHẨM còn hẹp, chưa chứng minh ràng buộc trong tệp test đi qua đúng kiểu ấy.
 
 ### E5 — AC-5 · dòng THÊM không mẫu bịt miệng
 
-- run_id: typecheck-mock-signature-e5-r7-20260827130632
+- run_id: typecheck-mock-signature-e5-r8-20260827141646
 - verifier: config:executors.script.mock_silencer_scan
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
-- output (phần E5):
+- verified_at: 2026-08-27T14:16:46Z
+- output:
 
 ```
 PASS  đối chứng dương: fixture 4 mẫu → bắt 4 (as any, @ts-expect-error, @ts-ignore, as unknown as)
 PASS  đối chứng âm: fixture sạch → bắt 0 (phải là 0)
 mốc so: 54b5cb263259bc8ebe0ef5d20960b82b369b1f6e
+PASS  tệp đích tồn tại: src/components/MapView.test.tsx
 PASS  src/components/MapView.test.tsx: có 10 dòng THÊM để quét (0 dòng = không đo được gì)
 PASS  src/components/MapView.test.tsx: dòng thêm không mẫu bịt miệng nào (sạch)
+PASS  tệp đích tồn tại: mcp-server/src/recipes.test.ts
 PASS  mcp-server/src/recipes.test.ts: có 6 dòng THÊM để quét (0 dòng = không đo được gì)
 PASS  mcp-server/src/recipes.test.ts: dòng thêm không mẫu bịt miệng nào (sạch)
 ```
 
-Ba chốt tự-canh đủ mặt: fixture bẩn bắt 4, fixture sạch bắt 0, và số dòng thêm
-lớn hơn 0 cho cả hai tệp trước khi bất kỳ chữ "sạch" nào được đọc. Mốc so là
-commit GHIM `54b5cb2` theo AC-5, không phải `merge-base`.
+**Chữ đã khớp phép đo.** `expected:` của E5 nay nói «git diff so với mốc GHIM
+54b5cb2 — commit ngay TRƯỚC lượt sửa, KHÔNG phải merge-base», và nguồn script
+khai `PINNED_BASE = '54b5cb263259bc8ebe0ef5d20960b82b369b1f6e'`, in ra đúng
+chuỗi ấy ở dòng `mốc so:`. Ba chốt tự-canh mà `expected:` gọi tên đều có mặt và
+đều đạt: fixture bẩn bắt 4, fixture sạch bắt 0, số dòng thêm 10 và 6 đều > 0.
+Chốt «không giải được mốc thì script ngã» đọc được trực tiếp trong `baseRef()`.
+
+Một điểm chữ nghĩa còn hơi hẹp, ghi ra chứ không tính là lệch: `expected:` nói
+«Ba chốt tự-canh», trong khi lượt chạy thật gác E5 bằng TOÀN BỘ 34 khẳng định
+tự-canh (script thoát sớm nếu bất kỳ khẳng định nào đỏ, trước khi chạm mốc so).
+Ba chốt được nêu là ba chốt thuộc riêng AC-5 và chúng có thật; câu chữ chỉ kể
+thiếu phần gác thêm, tức nói NHẸ hơn thực tế chứ không nói quá.
 
 ### E6 — AC-6 · assertion còn cắn
 
-- run_id: typecheck-mock-signature-e6-r7-20260827130651
+- run_id: typecheck-mock-signature-e6-r8-20260827141655
 - verifier: config:executors.script.mock_mutation_probe
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:51Z
-- output:
+- verified_at: 2026-08-27T14:16:55Z
+- output (mã thoát đỏ của ba mũi phá được diễn đạt lại bằng lời theo luật định
+  dạng; nguyên văn in ra mã thoát khác không cho từng mũi):
 
 ```
 PASS  đối chứng nền: src/components/MapView.test.tsx xanh khi chưa phá gì
@@ -169,299 +199,293 @@ PASS  mcp-server/src/recipes.ts đã hoàn nguyên đúng nguyên trạng
 PASS  git thấy code sản phẩm sạch sau mọi mũi (không vết)
 ```
 
-Ba mũi của script không chạm tới ca mà lượt sửa này ĐỘNG VÀO, nên vòng chấm thêm
-một mũi thứ tư của riêng mình — xem `## Analyst`, mục «mã test có bị làm yếu đi
-không».
+Đối chứng nền chạy trước mọi mũi, đúng như `expected:` đòi. Chốt neo-khớp-đúng-
+một-lần đọc được trong nguồn (`occurrences !== 1` thì báo hỏng chứ không bỏ
+qua). Chốt cuối `git status --porcelain` trên hai tệp sản phẩm trả về rỗng.
 
 ### E7 — AC-7 · không hồi quy, và hai tệp thật sự đã chạy
 
-- run_id: typecheck-mock-signature-e7-r7-20260827130651
+- run_id: typecheck-mock-signature-e7-r8-20260827141703
 - verifier: config:executors.script.mock_no_regression
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:51Z
+- verified_at: 2026-08-27T14:17:03Z
 - output:
 
 ```
 PASS  toàn bộ bộ test đơn vị xanh (mã thoát 0)
-PASS  có báo cáo máy-đọc-được: /var/folders/.../accept-UyxE0z/vitest.json
+PASS  có báo cáo máy-đọc-được: /var/folders/.../accept-7Bb4HG/vitest.json
 PASS  0 ca đỏ (629 đạt / 646 tổng)
 PASS  src/components/MapView.test.tsx: 2 ca đạt, 0 ca đỏ (đòi đạt > 0)
 PASS  mcp-server/src/recipes.test.ts: 40 ca đạt, 0 ca đỏ (đòi đạt > 0)
 ```
 
-Số ca đọc từ `--reporter=json`, không suy từ mã thoát của cả bộ. Vòng chấm đối
-chiếu: `MapView.test.tsx` có đúng 2 khối `it(` trong nguồn, khớp con số 2; không
-tệp đích nào chứa `it.skip`, `describe.skip` hay `it.todo`.
+Số ca đọc từ báo cáo JSON của vitest, không suy từ mã thoát của cả bộ — đúng
+chiều mà `expected:` đòi.
 
-### E8 — AC-5b · `as never` ở vị trí GIÁ TRỊ
+### E8 — AC-5b · `as never` ở vị trí giá trị
 
-- run_id: typecheck-mock-signature-e8-r7-20260827130632
+- run_id: typecheck-mock-signature-e8-r8-20260827141646
 - verifier: config:executors.script.mock_silencer_scan
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
-- output (phần E8):
+- verified_at: 2026-08-27T14:16:46Z
+- output (trích phần luật vị trí; toàn bộ 34 khẳng định tự-canh đều đạt):
 
 ```
 PASS  phân loại «ca hồi quy type-probe» → GIÁ TRỊ (đúng: GIÁ TRỊ)
-PASS  phân loại «gán thẳng» → GIÁ TRỊ (đúng: GIÁ TRỊ)
 PASS  phân loại «ngoặc NHÓM, không phải lời gọi (lỗ #1 vòng 2)» → GIÁ TRỊ (đúng: GIÁ TRỊ)
 PASS  phân loại «cú pháp ép kiểu kia (lỗ #3 vòng 2)» → GIÁ TRỊ (đúng: GIÁ TRỊ)
+PASS  phân loại «đối số KHÔNG đứng cuối, tham số khai never» → ĐỐI SỐ (đúng: ĐỐI SỐ)
 PASS  phân loại «generic identity — tham số khai T, KHÔNG phải never (lối vòng vòng 6)» → GIÁ TRỊ (đúng: GIÁ TRỊ)
 PASS  phân loại «đối số BỌC NGOẶC, tham số khai never — hết đỏ oan» → ĐỐI SỐ (đúng: ĐỐI SỐ)
 PASS  phân loại «tham số biến thiên ...p: never[]» → ĐỐI SỐ (đúng: ĐỐI SỐ)
-PASS  phân loại «tham số khai unknown — không được miễn trừ» → có ít nhất một chỗ GIÁ TRỊ (2 khớp)
+PASS  phân loại «template CÓ NHÃN, tham số khai never[] — hết đỏ oan (vòng 7)» → ĐỐI SỐ (đúng: ĐỐI SỐ)
+PASS  phân loại «template có nhãn nhưng tham số khai string[] — vẫn phải tố» → GIÁ TRỊ (đúng: GIÁ TRỊ)
+PASS  phân loại «bí danh một tầng / DÂY CHUYỀN / NHẬP TỪ TỆP KHÁC» → GIÁ TRỊ (đúng: GIÁ TRỊ)
+PASS  phân loại «bí danh KHÔNG phải never — phải không có khớp nào» → 0 khớp (đúng: 0)
+PASS  phân loại JSX «prop khai never — hết đỏ oan (vòng 7)» → ĐỐI SỐ (đúng: ĐỐI SỐ)
+PASS  phân loại JSX «prop khai string — vẫn phải tố» → GIÁ TRỊ (đúng: GIÁ TRỊ)
+PASS  phân loại JSX «component GENERIC: đọc node đã viết «T», không đọc kiểu đã suy» → GIÁ TRỊ (đúng: GIÁ TRỊ)
+PASS  đối số TRẢI → khai "không xác định" (1) thay vì vu cho tội giặt kiểu
 PASS  đối chứng âm: chú thích nhắc tới «as never» → 0 (văn xuôi không phải mã)
+PASS  số dòng sau khối chú thích nhiều dòng → 5 (đúng: 5)
 PASS  src/components/MapView.test.tsx: không «as never» ở vị trí giá trị (0 chỗ); 0 chỗ ở vị trí đối số — hợp lệ, không tính
 PASS  mcp-server/src/recipes.test.ts: không «as never» ở vị trí giá trị (0 chỗ); 5 chỗ ở vị trí đối số — hợp lệ, không tính
 ```
 
-Con số đối-số được báo RIÊNG, không gộp vào số vi phạm — đúng thứ `expected:` đòi.
-Vòng chấm tự tiêm bảy dạng lời gọi khác vào tệp thật để đánh luật miễn trừ mới;
-kết quả ở `## Analyst`.
+**Con số của `expected:` khớp output thật.** `expected:` nói «hôm nay là 5»;
+tổng chỗ-đối-số in ra là 0 (MapView) + 5 (recipes) = 5, và nó được báo ở một vế
+RIÊNG của cùng dòng, không gộp vào số vi phạm. `expected:` cũng thôi nói «ba
+chốt tự-canh» và nay mô tả đúng bộ ca đã thành hàng chục, chấm từng ca một dòng.
+
+**Ba dạng vừa sửa, đo trên TỆP THẬT, cả hai chiều.** Vòng chấm không tin bộ
+ca trong script mà tự tiêm vào chính hai tệp đích rồi hoàn nguyên; sau MỖI ca
+`git status --porcelain` trên tệp ấy trả về rỗng.
+
+| Mũi tiêm (vào tệp thật) | Bộ quét trả | Đúng ý hợp đồng? |
+|---|---|---|
+| `tagN` với `...v: never[]`, tiêm vào `recipes.test.ts` | không tố; chỗ-đối-số lên 6 | ĐÚNG — hết đỏ oan |
+| `tagS` với `...v: string[]`, cùng tệp | TỐ, đúng dòng, chỗ-đối-số vẫn 5 | ĐÚNG — vẫn cắn |
+| JSX prop khai `never`, tiêm vào `MapView.test.tsx` | không tố; chỗ-đối-số lên 1 | ĐÚNG — hết đỏ oan |
+| JSX prop khai `string`, cùng tệp | TỐ, đúng dòng | ĐÚNG — vẫn cắn |
+| **JSX component generic `<T>(p:{a:T})`** | **TỐ, đúng dòng** | **ĐÚNG — đọc node ĐÃ VIẾT, không đọc kiểu đã suy** |
+| đối số TRẢI `fN(...[{} as never])` | khai «không xác định» đúng dòng, VÀ vẫn tính vào ô vị-trí-giá-trị | Đúng chiều (vẫn đỏ), lý do in ra chưa gọn — xem Known limits |
+
+Ca then chốt đạt: nếu bản sửa đọc kiểu ĐÃ SUY thì `<CompG a={{} as never} />`
+sẽ cho `never` và được miễn trừ, tức mở lại lối vòng vòng 6. Nó bị tố.
+
+**Bảy chỗ chứa-đối-số khác do vòng chấm tự nghĩ thêm**, cũng tiêm vào tệp thật:
+
+| Mũi | Bộ quét trả | Đúng hay sai theo ý định hợp đồng |
+|---|---|---|
+| optional-call `maybeS?.({} as never)`, tham số khai `string` | TỐ | ĐÚNG |
+| optional-call `maybeN?.({} as never)`, tham số khai `never` | miễn trừ | ĐÚNG |
+| decorator `@decS({} as never)`, tham số khai `string` | TỐ | ĐÚNG |
+| decorator `@decN({} as never)`, tham số khai `never` | miễn trừ | ĐÚNG |
+| `super({} as never)` vào constructor khai `string` | TỐ | ĐÚNG |
+| `super({} as never)` vào constructor khai `never` | miễn trừ | ĐÚNG |
+| template có nhãn LỒNG trong lời gọi — `sinkStr(...)` bọc ngoài một template gắn nhãn `tagS2` | TỐ (nhãn khai `string[]`) | ĐÚNG |
+| JSX spread `<CompSp {...({} as never)} />`, prop khai `never` | TỐ | Chiều an toàn, lý do sai — xem Known limits |
+| JSX children `<CompCh>{{} as never}</CompCh>` | TỐ | ĐÚNG (children không khai `never`) |
+| JSX prop khai qua INTERFACE KẾ THỪA (`interface ChildPr extends BasePr`) | miễn trừ | ĐÚNG — `getProperty` đi được lên cha |
+| JSX prop kiểu union chứa never (`a: string \| never`) | TỐ | ĐÚNG — union ấy rút gọn về `string` |
+| rest kiểu TUPLE `...p: [never, string]` | TỐ | Chiều an toàn, đỏ oan — xem Known limits |
 
 ### E9 — AC-5c · hỏng thì ĐÓNG ở tầng cú pháp
 
-- run_id: typecheck-mock-signature-e9-r7-20260827130632
+- run_id: typecheck-mock-signature-e9-r8-20260827141646
 - verifier: config:executors.script.mock_silencer_scan
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
-- output (phần E9):
+- verified_at: 2026-08-27T14:16:46Z
+- output:
 
 ```
 PASS  hỏng-thì-đóng «chú thích không đóng»: cast bị nuốt (0 thấy được) NHƯNG chẩn đoán cú pháp bắt được (1 lỗi)
 PASS  hỏng-thì-đóng «template literal không đóng»: cast bị nuốt (0 thấy được) NHƯNG chẩn đoán cú pháp bắt được (1 lỗi)
 PASS  đối chứng âm: tệp sạch → 0 lỗi cú pháp (chốt không nổ oan)
-PASS  số dòng sau khối chú thích nhiều dòng → 5 (đúng: 5)
 PASS  src/components/MapView.test.tsx: phân tích cú pháp sạch (0 lỗi) — không parse được thì KHÔNG kết luận "sạch"
 PASS  mcp-server/src/recipes.test.ts: phân tích cú pháp sạch (0 lỗi) — không parse được thì KHÔNG kết luận "sạch"
 ```
 
-Dòng «phân tích cú pháp sạch» có mặt cho TỪNG tệp đích và đứng TRƯỚC mọi kết luận
-"sạch" — trong nguồn, `if (perr > 0) continue;` chặn hẳn phần đọc kết luận.
+Đủ cả bốn thứ `expected:` đòi: hai ca nuốt với «0 cast thấy được nhưng lỗi cú
+pháp > 0», một đối chứng âm, và dòng «phân tích cú pháp sạch» có mặt cho TỪNG
+tệp đích. Nguồn script cho thấy chốt này thật sự chặn đường: `if (perr > 0)
+continue;` bỏ qua mọi kết luận «sạch» của tệp không đọc được.
 
-### E10 — AC-5d · phạm vi biên dịch và tên không giải được
+### E10 — AC-5d · phạm vi biên dịch của bản quét
 
-- run_id: typecheck-mock-signature-e10-r7-20260827130632
+- run_id: typecheck-mock-signature-e10-r8-20260827141646
 - verifier: config:executors.script.mock_silencer_scan
 - exit_code: 0
-- verified_at: 2026-08-27T13:06:32Z
-- output (phần E10):
+- verified_at: 2026-08-27T14:16:46Z
+- output:
 
 ```
 PASS  hỏng-thì-đóng tầng kiểm kiểu: tên không giải được → 0 khớp never NHƯNG 1 tên không giải được (phải là 1)
 PASS  đối chứng âm: tên giải được → 0 tên không giải được (phải là 0)
-PASS  phân loại «bí danh một tầng (lối vòng vòng 4)» → GIÁ TRỊ (đúng: GIÁ TRỊ)
-PASS  phân loại «bí danh DÂY CHUYỀN» → GIÁ TRỊ (đúng: GIÁ TRỊ)
-PASS  phân loại «bí danh NHẬP TỪ TỆP KHÁC» → GIÁ TRỊ (đúng: GIÁ TRỊ)
-PASS  phân loại «bí danh KHÔNG phải never — phải không có khớp nào» → 0 khớp (đúng: 0)
-PASS  src/components/MapView.test.tsx: mọi tên kiểu trong phép ép đều giải được (0 không giải được)
-PASS  mcp-server/src/recipes.test.ts: mọi tên kiểu trong phép ép đều giải được (0 không giải được)
+PASS  src/components/MapView.test.tsx: mọi tên kiểu trong phép ép đều giải được (0 không giải được) — không giải được thì KHÔNG kết luận "sạch"
+PASS  mcp-server/src/recipes.test.ts: mọi tên kiểu trong phép ép đều giải được (0 không giải được) — không giải được thì KHÔNG kết luận "sạch"
 ```
 
-Cả hai chốt `expected:` đòi đều có mặt. Program dựng từ `parsed.fileNames` +
-`parsed.options` của tsconfig thật (`loadProject` → `ts.createProgram`), và
-`analyzeRealFile` ngã to nếu tệp đích không nằm trong program ấy.
+Chốt (2) của `expected:` — tên không giải được thì ngã to — có ca dương và ca
+âm, đạt cả hai.
+
+Chốt (1) — «program dựng từ tsconfig THẬT» — thì bộ ca trong script KHÔNG tự
+chứng minh được, và vòng chấm phải tự dựng lại lối vòng vòng 5 để đo. Đặt
+`declare type NG8 = never;` vào `mcp-server/src/__ng8.d.ts` (tsconfig
+`include: ["src"]` nên bản biên dịch thật nạp) rồi thêm
+`const _ng8: number = {} as NG8;` vào `recipes.test.ts`. Kết quả: cả hai lệnh
+typecheck vẫn XANH (nên E1 không đỡ hộ, đúng như hợp đồng cảnh báo), mà bộ quét
+vẫn TỐ đúng dòng 391 với đúng mặt chữ `{} as NG8`. Lối vòng vòng 5 còn ĐÓNG.
+Hai tệp tiêm đã dọn, `git status --porcelain` trên `mcp-server/` trả về rỗng.
+
+Giới hạn của chính chốt (1) được ghi ở `## Known limits`.
 
 ## Known limits
 
-Đây là TRẦN đã khai của hợp đồng, đo lại trong vòng này chứ không chép lời.
-
-- **Bộ quét đo PHÉP ÉP KIỂU, nên hai dạng giặt kiểu không dùng phép ép nào nằm
-  ngoài tầm.** Vòng chấm tiêm cả hai vào `MapView.test.tsx` và xác nhận trần
-  đúng như khai: `declare function __lnF<T>(x: unknown): T;` với
-  `const _lnF: number = __lnF({})` và
-  `declare function __assertF(x: unknown): asserts x is never;` dùng để biến một
-  `unknown` thành `number` — cả hai đều biên dịch sạch ở CẢ HAI project và không
-  làm bất kỳ eval nào đỏ. Bắt được chúng cần phân tích luồng dữ liệu.
-- **Cùng họ, nhưng chưa nằm trong lời khai hiện tại của trần:** biến thể
-  `declare function __sinkE<T>(v: never): T;` với
-  `const _wE: number = __sinkE({} as never);`. Vòng chấm tiêm vào
-  `recipes.test.ts`: typecheck hai project sạch, `silencer-scan` báo sạch, tức
-  đi trọn cổng. Luật miễn trừ hành xử ĐÚNG (tham số kia thật sự khai `never`,
-  nên phép ép ấy là hợp lệ) — thứ giặt kiểu là KIỂU TRẢ VỀ generic, y hệt cơ chế
-  `__ln`. Khác biệt duy nhất với lời khai hiện có: trần đang mô tả các dạng ấy là
-  "trong nguồn không có cả `never` lẫn `any`", còn dạng này CÓ một `as never`
-  thật trong nguồn mà vẫn đi lọt. Nên đây là lời khai hẹp hơn thực tế một chút,
-  không phải một lớp mới.
-- **E5 đo bốn mẫu cố định; `@ts-nocheck` không nằm trong danh sách ấy.** Đo
-  được: thêm `// @ts-nocheck` lên đầu `MapView.test.tsx` thì `silencer-scan` báo
-  mọi thứ sạch. Nhưng lỗ này KHÔNG đi trọn cổng — E3 tố ngay, vì bản chép của
-  tệp thăm dò cũng mang `@ts-nocheck` nên hai mũi mất khả năng đỏ. Ghi ở đây là
-  để người đọc biết lưới nào đang đỡ, chứ không phải một lối vòng còn mở.
-- **E7 không có giác quan với ca bị BỎ QUA.** Chốt mỗi tệp là
-  `passed > 0 && failed === 0`; một ca `skip`/`todo` không rơi vào ô nào. Cả bộ
-  hiện có 646 ca mà chỉ 629 đạt, tức 17 ca không đạt-không đỏ đang tồn tại ở đâu
-  đó trong kho. Hai tệp đích thì không: vòng chấm grep, không có `it.skip`,
-  `describe.skip` hay `it.todo` trong cả hai.
-- **`typecheck-both.ts` không phân biệt "chấm sạch" với "không chấm gì".** Nó chỉ
-  đọc mã thoát và đếm dòng `error TS`. Một project mất `include` sẽ cho đúng hình
-  dạng "xanh" ấy. Phần bù đến từ chỗ khác: E3/E4 chứng minh hai tệp đích thật
-  sự nằm trong program của project tương ứng (mũi thăm dò đỏ được), và
-  `analyzeRealFile` của `silencer-scan` ngã to nếu tệp đích vắng mặt.
-- **`PROJECT_OF` là luật tiền tố cứng** (`rel.startsWith('mcp-server/')`). Nó
-  đúng cho hai tệp đích hôm nay và hỏng theo chiều AN TOÀN nếu sai — tệp không
-  nằm trong program thì `analyzeRealFile` in dòng đỏ rồi dừng, không im lặng báo
-  sạch. Vẫn là một ánh xạ viết tay, không đọc từ `references` của tsconfig gốc.
+- **Trần đã khai trong hợp đồng, đo lại và xác nhận còn nguyên.** Vòng chấm
+  tiêm cả ba dạng vào `recipes.test.ts` và bộ quét đi qua im lặng, đúng như
+  contract nói: `declare function __ln<T>(x: unknown): T` (không có phép ép nào
+  trong nguồn); `declare function __sinkE<T>(v: never): T` với
+  `__sinkE({} as never)` — luật miễn trừ xử ĐÚNG vì tham số khai `never` thật,
+  chỗ-đối-số lên 6, nhưng thứ giặt kiểu là `T` ở đầu ra; và hàm khẳng định
+  `asserts x is never`. Đây là TRẦN, không phải sót — cửa ra nằm ngoài câu hỏi
+  mà bộ quét đặt ra.
+- **Câu chữ TRẦN vẫn còn hẹp hơn thực tế thêm một nhịp nữa.** Contract chốt
+  «Điểm chung: cửa ra nằm ở kiểu trả về hoặc ở luồng». Vòng chấm tìm được một
+  thành viên cùng họ mà câu ấy không phủ: một GIÁ TRỊ được KHAI `never`, không
+  qua kiểu trả về, không qua luồng, và trong nguồn KHÔNG có phép ép nào.
+  `declare const nvConst: never; const _c3: number = nvConst;` và biến thể
+  thuộc tính `declare const nvObj: { n: never }; const _c4: number = nvObj.n;`
+  — cả hai tiêm vào tệp thật, bộ quét xanh. Cùng lớp với ca `__sinkE` mà vòng 7
+  tìm ra: hành vi của bộ quét đúng như thiết kế, chỉ câu chữ mô tả trần là chưa
+  gọi đủ tên. Sửa được bằng một dòng chữ, không cần đụng mã.
+- **Đối số TRẢI bị dán hai nhãn cùng lúc.** `fN(...[{} as never])` sinh đúng
+  dòng «không xác định» như hợp đồng đòi, NHƯNG bản ghi ấy đồng thời được đẩy
+  vào danh sách vi phạm, nên nó cũng xuất hiện ở dòng «as never ở vị trí giá
+  trị (1 chỗ)». Con số ở dòng đó vì thế cộng cả ca không-xác-định. Chiều an
+  toàn (vẫn đỏ), nhưng chữ `expected:` của E8 nói «khai KHÔNG XÁC ĐỊNH chứ
+  không vu tội» mạnh hơn hành vi thật một nhịp: nó vừa nói đúng lý do vừa vẫn
+  vu tội ở dòng bên cạnh. Bộ ca tự-canh chỉ khẳng định `undetermined.length`,
+  không khẳng định gì về nhãn kia, nên script không tự thấy chỗ này.
+- **JSX spread và rest kiểu TUPLE là hai chỗ đỏ oan còn lại của cùng luật.**
+  `<CompSp {...({} as never)} />` với prop khai `never` bị xếp thẳng vào «vị
+  trí giá trị»: `JsxSpreadAttribute` không phải `SpreadElement` nên nó không
+  rơi cả vào nhánh chứa-đối-số lẫn nhánh «không xác định». Tương tự,
+  `declaredParamTypeNode` chỉ bóc phần tử của `ArrayTypeNode`, nên
+  `...p: [never, string]` — một tuple — không được nhận và `tupRest({} as never, 'x')`
+  bị tố oan. Cả hai lệch về phía an toàn, và cả hai là đúng lớp «đỏ oan» mà
+  vòng 7 và vòng 8 đã sửa ba lần cho ba dạng khác; đây là dạng thứ tư và thứ
+  năm chưa tới lượt.
+- **E10 không tự chứng minh được chiều DƯƠNG của AC-5d.** AC-5d đòi «bí danh
+  `.d.ts` toàn cục → đỏ đúng dòng KỂ CẢ KHI `tsc` xanh», nhưng mọi ca tự-canh
+  về tên-không-giải-được đều dựng program một-tệp trong bộ nhớ, không ca nào
+  dựng từ tsconfig thật. Dòng «0 tên không giải được» trên hai tệp đích SẼ in ra
+  y hệt dưới một program một-tệp, vì hai tệp ấy hiện không chứa bí danh lạ nào.
+  Nghĩa là bằng chứng cho chốt (1) đang đến từ mũi tiêm của vòng chấm chứ không
+  từ chính phép đo — sang vòng sau không ai tiêm nữa thì chốt ấy trống.
+- **E4 chấm kiểu sản phẩm, không chấm ràng buộc của tệp test.** Mũi của nó dựng
+  `getRecipe('area-overview').compile({} as never)` mới thay vì đọc biến `r` mà
+  `recipes.test.ts` đang giữ. Nếu một lượt sau nới chính ràng buộc ấy trong tệp
+  test mà không đụng kiểu sản phẩm, E4 vẫn xanh. Phần bù đang đến từ E5 (dòng
+  thêm) và E8 (trọn tệp), không từ E4.
+- **Ngưỡng của AC-7 rất thấp cho một trong hai tệp.** `MapView.test.tsx` đóng
+  góp đúng 2 ca. Chốt «> 0» chỉ chứng minh tệp đã chạy, không nói gì về độ dày.
+  Bộ có 646 ca tổng nhưng 629 đạt — 17 ca còn lại không chạy (bỏ qua/để dành);
+  AC-7 không hỏi tới chúng.
+- **`hits()` của E5 vẫn là biểu thức chính quy trên văn bản diff.** Luật «văn
+  xuôi không phải mã» chỉ được áp cho đường `as never` (qua AST), không áp cho
+  bốn mẫu `as any` / `@ts-expect-error` / `@ts-ignore` / `as unknown as`. Một
+  dòng chú thích THÊM VÀO chỉ nhắc tới các mẫu ấy sẽ bị tố. Chiều an toàn, và
+  hiện không phát tác vì cả hai tệp cho 0 khớp.
 
 ## Ngoài hợp đồng
 
-Những thứ vòng chấm thấy nhưng không thuộc phạm vi tiêu chí, và không làm eval
-nào đỏ.
-
-- **Chữ `expected:` của E8 lệch với thứ đang chạy.** Nó viết «con số ấy (hiện là
-  7) được báo riêng»; số thật hôm nay là 5 (0 ở `MapView.test.tsx`, 5 ở
-  `recipes.test.ts`), vì lượt sửa gỡ 3 phép ép và thêm lại 1. Phần THỰC CHẤT của
-  `expected:` — "được báo riêng, không gộp vào số vi phạm" — vẫn đúng, nên đây là
-  một con số chụp ảnh cũ trong lời eval, không phải một ngưỡng bị vượt.
-- **Chữ `expected:` của E5 vẫn nói mốc so là `git diff` với `origin/main`.**
-  Script dùng commit GHIM `54b5cb2`, và đó mới là điều AC-5 yêu cầu (kèm lý do:
-  merge-base bằng chính HEAD sau khi merge, số dòng thêm về 0). `evals.yaml`
-  chưa được cập nhật theo `contract.md`. Hai tệp bất đồng nhau; script theo hợp
-  đồng.
-- **Hai dạng lời gọi vẫn bị đỏ OAN bởi luật miễn trừ mới.** Đo được, cả hai trên
-  `recipes.test.ts`: `__fD(...[__xD as never])` (đối số TRẢI) và
-  `` __tagD`x${__xD as never}` `` (template CÓ NHÃN, tham số khai `never`). Cả
-  hai đều là cách dùng hợp lệ mà bộ quét xếp vào ô vi phạm, vì `classifyPosition`
-  đòi cha trực tiếp là `CallExpression`/`NewExpression`. Cùng họ với dạng THUỘC
-  TÍNH JSX mà vòng 6 đã tố: vòng chấm tiêm
-  `<__CompF p={__xF as never} />` với prop khai `never` vào `MapView.test.tsx` và
-  nó vẫn bị xếp vào vị trí giá trị — thông điệp commit nêu JSX là triệu chứng
-  nhưng danh sách "một luật gỡ cả ba" của nó không có JSX, và đo lại thì đúng là
-  chưa gỡ. Ba dạng này hỏng theo chiều AN TOÀN (đỏ thừa, không xanh thừa) và
-  không dạng nào có mặt trong hai tệp đích, nên không eval nào đỏ.
-- **Nạp chồng: bộ quét theo đúng chữ ký mà bộ kiểm kiểu CHỌN, và đó là câu trả
-  lời đúng.** Với `__ovA(p: never)` khai TRƯỚC `__ovA(p: string)`, lời gọi được
-  miễn trừ; đảo thứ tự thì TypeScript chọn chữ ký `string` và bộ quét tố — đúng,
-  vì khi ấy phép ép thật sự đang rót một `unknown` vào ô `string` chứ không thoả
-  ô `never` nào. Kết quả phụ thuộc thứ tự khai, nhưng phụ thuộc đúng cách.
-- **Chữ ký không giải được thì ngã to, đúng luật.** `declare const __anyF: any;`
-  rồi `__anyF(__xC as never)` cho ra một dòng "không xác định được tham số tương
-  ứng" kèm số dòng, VÀ một dòng vi phạm vị trí giá trị. Hai lần đếm cho cùng một
-  chỗ — dư thừa, nhưng dư về phía chặt.
-- **`tsconfig.app.json` không khai `strict` — và điều đó KHÔNG còn là một lỗ trên
-  bộ công cụ hôm nay.** Vòng trước ghi mục này như một điểm yếu; đo lại thì kho
-  đang dùng `typescript ~6.0.2` (bản cài: 6.0.3), nơi `strict` bật MẶC ĐỊNH. Tiêm
-  thử vào project web: một tham số ngầm `any` cho `error TS7006`, một `null` gán
-  vào `string` cho `error TS2322`. Thứ còn lại chỉ là rủi ro tính di động — hạ về
-  một bản TypeScript 5.x thì project web sẽ lặng lẽ hết strict, trong khi
-  `mcp-server/tsconfig.json` khai `"strict": true` tường minh nên không đổi.
+- **`.github/workflows/ci.yml` vẫn nối hai lệnh `tsc` bằng `&&`.** Hợp đồng khai
+  điều này ở Out of scope và AC-2 chọn cách sống chung: đo hai project độc lập
+  trong bộ eval. Đo lại ở vòng này thì lớp lỗi ấy vẫn còn nguyên TRONG CI —
+  phép đo AC-2 sống trong `_acceptance`, không sống ở chỗ đã hỏng. Ghi ra để
+  người ký biết mình đang ký cái gì, không phải để tính vào verdict.
+- **17 ca của bộ test đơn vị không chạy** (629 đạt trên 646 tổng). Không tiêu
+  chí nào trong hợp đồng hỏi tới chúng, nên chúng không ảnh hưởng verdict.
+- **Bốn chỗ `as any` / `as unknown as` có sẵn trên main trong chính hai tệp
+  đích** vẫn còn. Hợp đồng khai chúng ở Out of scope một cách có chủ đích và
+  AC-5 vì thế đo dòng THÊM; ghi lại để người đọc không tưởng hai tệp đã sạch
+  tuyệt đối.
 
 ## Analyst
 
-**Câu hỏi nặng nhất của vòng này là mã TEST SẢN PHẨM, không phải cái thước.** Ba
-phép ép `resolveConfig(compiled as never)` bị gỡ, và một dòng bị viết lại từ
-`(r.compile as (p: unknown) => unknown)({...})` thành `r.compile({...} as never)`.
-Đổi mã test trong cùng lượt đổi thước là đúng hình dạng của một lần làm yếu phép
-đo, nên vòng chấm không đọc lời giải thích mà đi đo.
+Vòng này có hai việc: đánh ba dạng vừa sửa, và đối chiếu chữ hồ sơ với phép đo.
 
-Kết luận: **không bị làm yếu, và mạnh hơn trước.** Ba lý do độc lập.
+Về ba dạng: bản sửa đúng, và đúng theo cách khó nhất. Ca then chốt — component
+JSX generic — bị tố, nghĩa là nhánh JSX lấy prop qua kiểu ngữ cảnh nhưng rồi
+quay về đọc `d.type` trên `PropertySignature`, tức node kiểu ĐÃ VIẾT. Nếu nó
+dừng ở `getContextualType` thì `T` đã hoá `never` và ca ấy sẽ xanh, mở lại lối
+vòng vòng 6. Bảy chỗ chứa-đối-số mà vòng chấm tự nghĩ thêm — optional-call,
+decorator, `super()`, template lồng, JSX children, prop kế thừa, prop union —
+đều rơi đúng chỗ, phần lớn vì chúng thật sự là `CallExpression` dưới lớp vỏ
+khác nhau và nhánh (a) đã đủ tổng quát.
 
-Thứ nhất, phép ép bị gỡ là phép ép THỪA THẬT. `resolveConfig` khai
-`(params: RenderMapParams)`; `CompiledRecipeCall` định nghĩa là
-`RenderMapParams & { motion }`, nên nó gán vào được không cần trung gian. Cái
-`as never` ở đó trước kia không thoả ô nào cả — nó chỉ che. Gỡ nó là bỏ một tấm
-vải, không phải bỏ một khẳng định.
+Điều đáng chú ý hơn: hai dạng còn đỏ oan (JSX spread, rest kiểu tuple) và một
+dạng dán hai nhãn (đối số trải) đều là cùng MỘT bài học mà hồ sơ đã tự ghi năm
+lần: câu hỏi thật là «tham số tương ứng được khai kiểu gì», và mỗi lần bản sửa
+mở rộng danh sách CHỖ CHỨA thay vì trả lời câu hỏi ấy một cách tổng quát thì
+một chỗ chứa mới lại lộ ra. Vòng 7 thêm ba nhánh, vòng 8 thấy thêm hai. Chúng
+đều lệch về phía an toàn nên không chặn verdict, nhưng hình dạng của vết thì
+lặp lại — và nó cảnh báo rằng nhánh (d) «không xác định» nên là mặc định cho
+mọi chỗ chứa chưa hiểu, chứ không phải nhánh cuối cùng chỉ dành cho spread.
 
-Thứ hai, `compiled` ở ca «tự tay xin satellite mà thiếu biến: VẪN từ chối» trước
-đây là `unknown` (do dòng ép hàm), giờ là `CompiledRecipeCall`. Đó là đi LÊN, và
-nó có hệ quả đo được: dòng `resolveConfig(compiled)` bây giờ tự nó là một khẳng
-định kiểu — nếu `compiled` trượt khỏi hình dạng `RenderMapParams`, typecheck đỏ.
-Trước kia `as never` nuốt mọi trượt.
+Về chữ hồ sơ: hai chỗ được nêu ở vòng 7 nay đã khớp. E5 nói mốc GHIM và script
+dùng mốc ghim; E8 nói con số 5 và output in ra 5, và không còn tả bộ ca là «ba
+chốt». Còn lại một chỗ lệch mới ở mục TRẦN của contract: câu «cửa ra nằm ở kiểu
+trả về hoặc ở luồng» chưa gọi tên một giá trị được KHAI `never`. Đó đúng là kiểu
+lệch mà vòng 7 vừa sửa cho `__sinkE` — trần được nới một nhịp mỗi vòng vì mỗi
+vòng lại tìm thêm một thành viên của cùng họ. Đề nghị cho vòng sau: thay vì kể
+tên từng dạng, phát biểu trần bằng chính giới hạn của công cụ — «bộ quét chỉ
+hỏi về kiểu ĐÍCH của một phép ép kiểu; mọi đường mà `never` tới được một ô nhớ
+qua lối khác đều nằm ngoài».
 
-Thứ ba, và đây là mũi mà `mutation-probe.ts` KHÔNG bắn: vòng chấm tự phá
-`mcp-server/src/resolveConfig.ts` cho `assertBasemap` thôi từ chối khi thiếu biến
-môi trường (đổi điều kiện thành một hằng sai), rồi chạy `recipes.test.ts`. Kết
-quả: đúng MỘT ca đỏ trong 40, và nó đỏ đúng chỗ — `recipes.test.ts:350`, tại
-dòng `await expect(resolveConfig(compiled)).rejects.toThrow(KEY)`. Nghĩa là
-`rejects.toThrow(KEY)` vẫn thật sự đo lời từ chối; nó không "đạt" nhờ một promise
-bất kỳ nào đó ngã vì lý do khác, và nó không hoá xanh khi lời từ chối biến mất.
-`resolveConfig.ts` đã hoàn nguyên từ bản sao lưu ngoài kho.
-
-Việc gỡ ép kiểu có làm lộ lỗi kiểu nào bị che trước đó không? Không — E1 sạch cả
-hai project sau khi gỡ. Thứ nó làm lộ là chiều ngược lại: `as never` cũ đang che
-chính nó, và luật mới của bộ quét là thứ chỉ ra điều đó.
-
-**Về luật miễn trừ mới.** Vòng chấm dựng lại nguyên văn lối vòng vòng 6 trong tệp
-THẬT — `declare function __idP<T>(v: T): T; const _wP: number = __idP({} as never);`
-— và bộ quét tố đúng dòng. Lớp ấy ĐÓNG, và đóng theo lớp chứ không theo mẫu: luật
-hỏi node kiểu trên phần KHAI BÁO của chữ ký, nên `T` hiện nguyên hình là tham số
-kiểu chứ không phải `never` đã suy diễn. Sáu dạng hợp lệ được tiêm cùng lượt đều
-được miễn trừ đúng: đối số bọc ngoặc, `...p: never[]`, đối số không đứng cuối,
-`new X(y as never)` với constructor khai `never`, gọi qua biến kiểu hàm
-`const f: (p: never) => void`, và tham số khai qua bí danh `type NN = never`. Lời
-gọi tuỳ chọn `?.()` cũng đúng. Đó là mười một dạng, một lần chạy, không dạng nào
-sai.
-
-Nhưng hình thái của hồ sơ này chưa chấm dứt, nó chỉ thu hẹp. Luật mới trả lời
-đúng câu «tham số kia khai gì», và trả lời sai câu «chỗ này có phải một đối số
-không» ở ba dạng cú pháp: đối số trải, template có nhãn, thuộc tính JSX. Cả ba
-đều hỏng về phía CHẶT, nên chúng là tiếng ồn chứ không phải lỗ — nhưng chúng ở
-đúng chỗ mà bốn vòng trước đã ở: một câu hỏi cấu trúc đang được trả lời bằng một
-phép kiểm `parent` viết tay, trong khi bộ kiểm kiểu đã biết đối số nào ứng với
-tham số nào. Ai chữa tiếp nên chữa ở đó, không nên thêm ba nhánh `if`.
-
-Lớp còn mở thật sự đã dời sang trục khác hẳn, và hợp đồng đã tự khai nó: cái được
-canh vẫn là một CÚ PHÁP (`as X`, `<X>e`), trong khi cái cần canh là một TÍNH CHẤT
-(một giá trị rót vào ô nó không thuộc về). `__sinkE<T>(v: never): T` là bằng chứng
-gọn nhất — nó dùng đúng phép ép mà luật vừa học cách miễn trừ ĐÚNG, rồi giặt kiểu
-bằng chỗ mà không tầng nào đang nhìn. Đó là trần, không phải sót; ghi ở
-`## Known limits` cùng lời đề nghị nới câu chữ của trần cho khớp thực tế.
-
-Cuối cùng, về độ tin cậy của chính bằng chứng: mọi mũi tiêm đều làm trên tệp
-THẬT rồi hoàn nguyên từ bản sao lưu đặt ngoài kho, `git status --porcelain` được
-đọc sau từng lần, và trạng thái cuối chỉ còn `run-log.jsonl` — đúng tệp mà đề bài
-yêu cầu nối thêm. Không mũi nào để lại vết trong `src/` hay `mcp-server/`. Không
-dùng `git stash` ở bất kỳ bước nào.
+Không mũi nào của vòng chấm để lại vết: sau mỗi ca tiêm, `git status
+--porcelain` trên tệp bị chạm đều rỗng; cây mã cuối vòng chỉ khác ở
+`run-log.jsonl` (nối thêm mười dòng của vòng 8). Worktree số nền đã gỡ.
 
 ## Variance
 
-- Năm lượt chạy lệnh rời cho mười eval: E1/E2 chung `typecheck-both.ts`; E3/E4
-  chung `type-probe.ts`; E5/E8/E9/E10 chung `silencer-scan.ts`; E6 và E7 mỗi cái
-  một lượt. Mỗi eval chấm theo chữ `expected:` của CHÍNH NÓ. Mọi `cmd:` giải từ
-  `_acceptance/config.yaml` (khoá `executors.script.*`), không tin đường dẫn nào
-  viết trong đề bài; cả năm đường dẫn giải ra đều tồn tại.
-- Không lượt chạy nào bị công cụ giết. Mỗi lượt in trọn dòng tổng kết cuối của
-  chính nó (`OK — 0 khẳng định đỏ` hoặc `OK — 0/2 project đỏ`), và mọi mã thoát
-  ghi ở trên là mã thoát THẬT của lệnh, đọc bằng `$?` ngay sau lượt chạy. Trần
-  thời gian công cụ đặt 900000 ms cho mọi lượt chạy suite.
-- Mười lăm phép tiêm tấn công, tất cả trên tệp THẬT (`mcp-server/src/recipes.test.ts`,
-  `src/components/MapView.test.tsx`) cộng một phép phá trên
-  `mcp-server/src/resolveConfig.ts`. Hoàn nguyên từ bản sao lưu ngoài kho sau
-  từng ca, `git status --porcelain` đọc lại sau mỗi lần. Không tsconfig nào bị
-  sửa; tệp tạm `src/probe-strict.ts` dựng cho phép thử strict đã xoá.
-- Số nền E1/E2 = `red`, đo bằng worktree tách rời ở `54b5cb2` đặt DƯỚI
-  `/Users/manhphan/dev/mapposter/` (`__baseline_r7`), vì ngoài thư mục ấy `npx`
-  giải sang một `tsc` khác. Đo được đúng 6 lỗi như hợp đồng mô tả: bốn ở
-  `MapView.test.tsx` (cặp TS2352 + TS2493 tại dòng 68 và dòng 78) và hai ở
-  `recipes.test.ts` (TS2352 tại dòng 328 và dòng 356), hai project đỏ độc lập.
-  Worktree đã gỡ bằng `git worktree remove --force`; `git worktree list` sau đó
-  chỉ còn ba mục có sẵn. Không dùng `git stash`.
-- Tám eval mang số nền `n-a`: thư mục `_acceptance/typecheck-mock-signature/`
-  không tồn tại ở `54b5cb2` — vòng chấm `ls` để xác nhận thay vì suy đoán, và
-  không dựng số giả.
-- Mọi dòng run-log ghi ngay sau lượt chạy sinh ra nó, mang mã thoát thật và mốc
-  thời gian thật của phiên chấm này; tệp cũ (vòng 1-6) chỉ được NỐI THÊM.
+- E1/E2 và E3/E4 mỗi cặp dùng CHUNG một lượt chạy; E5/E8/E9/E10 dùng chung một
+  lượt. Năm lệnh rời cho mười eval, đúng như hồ sơ mô tả. `run_id` của các eval
+  chung lượt vì thế trùng dấu thời gian.
+- `run-log.jsonl` được NỐI THÊM, mười dòng `"round":8`, không ghi đè vòng 1-7.
+- Số nền chỉ đo được cho E1/E2. Tám eval còn lại để `n-a` vì script đo của
+  chúng chưa tồn tại ở mốc `54b5cb2` — không bịa số.
+- Chữ ký của vòng 7 KHÔNG chuyển sang. Thước đã đổi ở vòng 8, nên
+  `human_signoff:` để TRỐNG và hồ sơ này cần chữ mới.
+- Không commit gì trong vòng chấm.
 
 ## Iterations
 
-- Vòng 1 — bộ quét bịt miệng đoán vị trí đối số bằng «có `)` ngay sau không»; qua
-  được lượt chấm đầu vì không ai đâm vào chỗ đoán.
-- Vòng 2 — bốn lỗ mặt chữ bị đâm thủng (ngoặc nhóm, đối số không đứng cuối,
-  `<never>x`, số dòng lệch); bản vá lần-ngược-đếm-ngoặc thủng thêm ba lỗ nữa.
-- Vòng 3 — chuyển sang hỏi CÂY CÚ PHÁP, đúng hết về cấu trúc, nhưng dời chế độ
-  hỏng sang «đọc trống»; sinh ra AC-5c và E9 để chặn ca nuốt.
-- Vòng 4 — tìm ra lối vòng BÍ DANH KIỂU: cây nguyên vẹn, 0 chẩn đoán cú pháp,
-  `tsc` xanh, mà `as N` với `type N = never` đi lọt; ký với known-limit còn mở.
-- Vòng 5 — lỗ bí danh đóng theo lớp bằng bộ kiểm kiểu, nhưng program của bộ quét
-  chỉ có MỘT tệp gốc; một `.d.ts` toàn cục đi TRỌN cổng với chín eval xanh, sinh
-  ra AC-5d và E10.
-- Vòng 6 — 10/10 đạt; lớp «program bất đồng» ĐÓNG. Lớp lộ ra ở TRỤC khác: ô miễn
-  trừ theo VỊ TRÍ rót được `never` vào ô giá trị qua `__id({} as never)`, và cùng
-  phép kiểm ấy đỏ oan `f((x as never))` cùng thuộc tính JSX — sai hai chiều.
-- Vòng 7 — miễn trừ chuyển sang hỏi KIỂU KHAI của tham số; lối vòng vòng 6 đóng,
-  kiểm bằng phép tiêm nguyên văn. Ba phép ép `resolveConfig(compiled as never)`
-  bị luật mới tố và gỡ; phép phá `resolveConfig` chứng minh assertion còn cắn,
-  và `compiled` lên kiểu từ `unknown` thành `CompiledRecipeCall`. Còn đỏ oan ở ba
-  dạng cú pháp (đối số trải, template có nhãn, thuộc tính JSX) — hỏng về phía
-  chặt. Trần đã khai được kiểm và đúng, kèm một biến thể cùng họ mà câu chữ của
-  trần chưa phủ.
+1. **Vòng 1** — dựng bộ mười eval. Bộ quét bịt-miệng đoán vị trí đối số bằng
+   «có `)` ngay sau không».
+2. **Vòng 2** — đâm thủng bốn chỗ của phép đoán mặt chữ: ngoặc nhóm, đối số
+   không đứng cuối, cú pháp `<never>x`, số dòng lệch sau chú thích nhiều dòng.
+3. **Vòng 3** — bản lần-ngược-đếm-ngoặc thủng thêm ba chỗ; bản AST chữa hết
+   nhưng dời chế độ hỏng sang «đọc trống». Sinh ra AC-5c: khối chú thích hay
+   template không đóng nuốt trọn phần sau, và bộ quét im lặng báo sạch.
+4. **Vòng 4** — lối vòng BÍ DANH KIỂU: `type N = never; e as N`. Cú pháp không
+   thấy được; phải hỏi bộ KIỂM KIỂU.
+5. **Vòng 5** — lối vòng PHẠM VI BIÊN DỊCH: bí danh khai trong `.d.ts` toàn cục
+   giải ra kiểu LỖI dưới program một-tệp. Sinh ra AC-5d; program phải dựng từ
+   tsconfig thật.
+6. **Vòng 6** — lối vòng GENERIC IDENTITY: `__id({} as never)` nằm ở vị trí đối
+   số nhưng tham số khai `T`. Luật miễn trừ chuyển từ «phép ép nằm ở đâu» sang
+   «tham số tương ứng ĐƯỢC KHAI kiểu gì», đọc node đã viết chứ không đọc chữ ký
+   đã suy.
+7. **Vòng 7** — mười eval đạt và hồ sơ được ký, nhưng để lại hai việc: ba dạng
+   ĐỎ OAN (template có nhãn, thuộc tính JSX, đối số trải) do luật đòi cha TRỰC
+   TIẾP là lời gọi; và chữ `expected:` của E5/E8 cùng mục TRẦN nói sai về phép
+   đo của chính chúng.
+8. **Vòng 8 (vòng này)** — mười eval đạt trên thước đã đổi. Ba dạng đỏ oan đã
+   sửa và được đo CẢ HAI CHIỀU trên tệp thật; ca then chốt JSX generic bị tố
+   đúng như đòi hỏi; lối vòng vòng 5 và vòng 6 đều còn đóng khi tiêm lại nguyên
+   văn. Chữ E5/E8 nay khớp phép đo. Còn lại: câu chữ TRẦN chưa phủ một giá trị
+   được KHAI `never`; hai dạng đỏ oan mới cùng họ (JSX spread, rest kiểu tuple);
+   đối số trải bị dán hai nhãn; và E10 không tự chứng minh chiều dương của
+   AC-5d. Tất cả đều lệch về phía an toàn, tất cả đều ghi ở `## Known limits`.

@@ -159,11 +159,24 @@ evals:
     cmd: config:executors.script.mock_silencer_scan
     paths: [mcp-server/tsconfig.json, tsconfig.app.json]
     expected: >-
-      exit 0; bằng chứng phải cho thấy HAI chốt. (1) Program dựng từ tsconfig
-      THẬT của project chứa tệp — kiểm được bằng dòng "mọi tên kiểu trong phép
-      ép đều giải được (0 không giải được)" cho TỪNG tệp đích. (2) Tên kiểu
-      không giải được thì NGÃ TO: tự-canh phải cho thấy một tên bịa ra sinh 0
-      khớp never NHƯNG 1 tên không giải được, và đối chứng âm là một bí danh
+      exit 0; bằng chứng phải cho thấy BỐN chốt, và ba chốt đầu phải đến từ
+      chính phép đo chứ KHÔNG từ mũi tiêm của người chấm — vòng chấm 8 bắt được
+      đúng lỗi này: dòng "0 tên không giải được" in ra y hệt dưới một program
+      một-tệp, nên nó không chứng minh gì về phạm vi biên dịch. Phép đo phải TỰ
+      DỰNG lối vòng: một `.d.ts` khai `declare type ... = never` đặt trong
+      `mcp-server/src/` (tsconfig include ['src'] nên tsc thật nạp) cùng một tệp
+      dùng nó, rồi:
+      (1) chấm qua đường tsconfig THẬT → thấy ĐÚNG một chỗ ép về never ở vị trí
+      giá trị, 0 tên không giải được;
+      (2) chấm cùng nguồn ấy qua program MỘT-TỆP → 0 chỗ và 1 tên không giải
+      được. Hai đường phải trả KHÁC NHAU: đó mới là bằng chứng đường tsconfig
+      đang gánh việc, chứ không phải một lời khẳng định;
+      (3) trong lúc lối vòng còn nằm trong cây, `npx tsc -p mcp-server/tsconfig.json`
+      phải vẫn SẠCH — nếu không thì E1 đỡ hộ và AC-5d không chứng minh được
+      "bộ quét là thứ DUY NHẤT bắt được";
+      (4) hai tệp thăm dò phải được dọn sạch, khẳng định bằng kiểm tra tồn tại.
+      Kèm chốt cũ: tên kiểu không giải được thì NGÃ TO (một tên bịa ra sinh 0
+      khớp never NHƯNG 1 tên không giải được), và đối chứng âm là một bí danh
       giải được cho 0. Điều đáng đọc kỹ nhất khi thẩm định: `getSymbolAtLocation`
       trên một tên không tồn tại trả về symbol LỖI mang đúng tên ấy chứ không
       trả `undefined`, nên phép thử ấy im lặng — dấu hiệu thật là chẩn đoán

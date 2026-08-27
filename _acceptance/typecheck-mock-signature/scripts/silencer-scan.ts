@@ -428,6 +428,59 @@ for (const c of SWALLOWED) {
 }
 say(parseErrorCount('const _q: number = x as never;') === 0, 'đối chứng âm: tệp sạch → 0 lỗi cú pháp (chốt không nổ oan)');
 
+// ── AC-5d: tự dựng lối vòng .d.ts TOÀN CỤC rồi chấm qua đường tsconfig ──────
+//
+// Vì sao ca này phải tồn tại: vòng chấm 8 chỉ ra E10 YẾU hơn lời `expected:`
+// của nó. AC-5d đòi chứng minh «bí danh `.d.ts` toàn cục → đỏ KỂ CẢ KHI tsc
+// xanh», nhưng mọi ca tự-canh trước đều dựng program MỘT-TỆP trong bộ nhớ, mà
+// dòng "0 tên không giải được" in ra y hệt dưới program một-tệp. Nghĩa là bằng
+// chứng cho chốt ấy đến từ mũi tiêm của NGƯỜI CHẤM, không từ phép đo — vòng sau
+// không ai tiêm thì chốt trống. Đúng lớp lỗi cả hồ sơ này tồn tại để chặn, lần
+// này nằm trong chính hồ sơ.
+//
+// Ca này dựng thật: một `.d.ts` trong `mcp-server/src/` (tsconfig include
+// ['src'] nên tsc thật nạp) + một tệp dùng nó, rồi chấm HAI đường và đòi chúng
+// TRẢ KHÁC NHAU — đó mới là bằng chứng đường tsconfig đang gánh việc:
+//   · đường tsconfig  → thấy ĐÚNG một chỗ ép về never ở vị trí giá trị;
+//   · đường một-tệp   → 0 chỗ, và cái tên không giải được.
+// Hai tệp tạm luôn bị dọn, kể cả khi script ngã giữa chừng.
+{
+  const dts = path.join(ROOT, 'mcp-server', 'src', '__ac5d_probe.d.ts');
+  const use = path.join(ROOT, 'mcp-server', 'src', '__ac5d_probe_use.ts');
+  const useRel = 'mcp-server/src/__ac5d_probe_use.ts';
+  const useSrc = 'export const __ac5dProbe: number = {} as __Ac5dNever;\n';
+  const clean = () => { for (const f of [dts, use]) try { fs.unlinkSync(f); } catch { /* đã dọn */ } };
+  process.on('exit', clean);
+  try {
+    fs.writeFileSync(dts, 'declare type __Ac5dNever = never;\n');
+    fs.writeFileSync(use, useSrc);
+
+    const viaProject = analyzeRealFile(useRel);
+    const badP = viaProject.hits.filter((h) => !h.arg);
+    say(badP.length === 1 && viaProject.unresolved.length === 0,
+      `AC-5d qua tsconfig THẬT: bí danh .d.ts toàn cục bị bắt (${badP.length} chỗ vị trí giá trị, ${viaProject.unresolved.length} tên không giải được)`);
+
+    const viaSingle = classifyNever(useSrc, use);
+    say(viaSingle.hits.length === 0 && viaSingle.unresolved.length === 1,
+      `AC-5d đối chứng: program MỘT-TỆP KHÔNG thấy nó (${viaSingle.hits.length} chỗ) mà chỉ báo tên không giải được (${viaSingle.unresolved.length}) — nên đường tsconfig là thứ đang gánh việc`);
+
+    // Nửa còn lại của AC-5d: «đỏ KỂ CẢ KHI tsc xanh». Không có chốt này thì ca
+    // trên mới chứng minh «bộ quét bắt được», chưa chứng minh «bộ quét là thứ
+    // DUY NHẤT bắt được» — mà đó mới là lý do AC-5d tồn tại.
+    let tscCode = 0;
+    try {
+      execFileSync('npx', ['tsc', '-p', 'mcp-server/tsconfig.json'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+    } catch (e) {
+      tscCode = (e as { status?: number }).status ?? 1;
+    }
+    say(tscCode === 0,
+      `AC-5d: trong lúc lối vòng đang nằm trong cây, \`tsc -p mcp-server\` vẫn sạch — nên E1 KHÔNG đỡ hộ, bộ quét là thứ duy nhất bắt được`);
+  } finally {
+    clean();
+    say(!fs.existsSync(dts) && !fs.existsSync(use), 'AC-5d: hai tệp thăm dò đã dọn sạch');
+  }
+}
+
 // Chốt hỏng-thì-ĐÓNG ở tầng KIỂM KIỂU (lối vòng vòng 5). Một tên kiểu KHÔNG
 // giải được cho kiểu LỖI, mà kiểu lỗi mang cờ Any — im lặng, trông vô hại,
 // không phải never. Phải đếm riêng và ngã to, chứ không được đọc thành "sạch".

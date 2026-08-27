@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -117,8 +117,16 @@ nói ra ở đây thay vì giấu đi.
   vì `getTypeFromTypeNode` trả kiểu LỖI mang cờ `Any`, trông y hệt một kiểu vô
   hại. Hai điều kiện: program phải dựng từ `tsconfig` THẬT của project chứa tệp
   (không phải tuỳ chọn viết tay quanh một tệp), và tên không giải được phải đếm
-  riêng. Phép đo phải chứng minh cả hai chiều: bí danh `.d.ts` toàn cục → đỏ
-  đúng dòng **kể cả khi `tsc` xanh** (nên E1 KHÔNG đỡ hộ); tên không giải được →
+  riêng. Phép đo phải **TỰ DỰNG** lối vòng ấy chứ không chờ người chấm tiêm:
+  dựng một `.d.ts` khai `never` trong `mcp-server/src/` cùng một tệp dùng nó,
+  rồi chấm HAI đường và đòi chúng trả **KHÁC NHAU** — đường tsconfig thấy, đường
+  một-tệp không thấy. Đây phải là phép đo VI SAI, vì một dòng "0 tên không giải
+  được" in ra y hệt dưới program một-tệp nên tự nó KHÔNG chứng minh gì về phạm
+  vi biên dịch (vòng chấm 8 bắt được đúng lỗi này: bằng chứng khi ấy đang đến từ
+  mũi tiêm của người chấm, không từ phép đo). Kèm hai chốt: `tsc` phải vẫn XANH
+  trong lúc lối vòng còn nằm trong cây — nếu không thì E1 đỡ hộ và AC-5d không
+  chứng minh được "bộ quét là thứ DUY NHẤT bắt được" — và hai tệp thăm dò phải
+  được dọn sạch, khẳng định bằng kiểm tra tồn tại. Thêm: tên không giải được →
   đỏ; và hai tệp đích thật → 0 tên không giải được, chốt không nổ oan.
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;

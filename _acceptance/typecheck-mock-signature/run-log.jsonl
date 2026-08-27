@@ -49,3 +49,13 @@
 {"ts":"2026-08-27T10:02:14Z","round":6,"evalId":"E10","run_id":"typecheck-mock-signature-e10-r6-20260827100214","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
 {"ts":"2026-08-27T10:02:28Z","round":6,"evalId":"E6","run_id":"typecheck-mock-signature-e6-r6-20260827100228","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/mutation-probe.ts"}
 {"ts":"2026-08-27T10:02:36Z","round":6,"evalId":"E7","run_id":"typecheck-mock-signature-e7-r6-20260827100236","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/no-regression.ts"}
+{"ts":"2026-08-27T13:06:01Z","round":7,"evalId":"E1","run_id":"typecheck-mock-signature-e1-r7-20260827130601","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/typecheck-both.ts"}
+{"ts":"2026-08-27T13:06:01Z","round":7,"evalId":"E2","run_id":"typecheck-mock-signature-e2-r7-20260827130601","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/typecheck-both.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E3","run_id":"typecheck-mock-signature-e3-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/type-probe.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E4","run_id":"typecheck-mock-signature-e4-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/type-probe.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E5","run_id":"typecheck-mock-signature-e5-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E8","run_id":"typecheck-mock-signature-e8-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E9","run_id":"typecheck-mock-signature-e9-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
+{"ts":"2026-08-27T13:06:32Z","round":7,"evalId":"E10","run_id":"typecheck-mock-signature-e10-r7-20260827130632","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
+{"ts":"2026-08-27T13:06:51Z","round":7,"evalId":"E6","run_id":"typecheck-mock-signature-e6-r7-20260827130651","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/mutation-probe.ts"}
+{"ts":"2026-08-27T13:06:51Z","round":7,"evalId":"E7","run_id":"typecheck-mock-signature-e7-r7-20260827130651","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/no-regression.ts"}

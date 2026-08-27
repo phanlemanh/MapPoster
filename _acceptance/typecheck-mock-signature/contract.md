@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -88,8 +88,14 @@ nói ra ở đây thay vì giấu đi.
   cú pháp không thấy được (`as N` là `TypeReference`). Phải bắt được cả bí danh
   một tầng, bí danh dây chuyền (`type M = N`), và bí danh NHẬP TỪ TỆP KHÁC; và
   phải KHÔNG bắt một bí danh không phải never (`type NeverMind = string`).
-  Còn VỊ TRÍ (đối số hay giá trị) thì hỏi cây cú pháp — đó mới là câu hỏi cấu
-  trúc. Không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
+  Còn phần MIỄN TRỪ thì hỏi «tham số tương ứng ĐƯỢC KHAI kiểu gì», không hỏi
+  «phép ép nằm ở đâu». Vị trí đối số KHÔNG bảo đảm tham số kia khai `never`:
+  `declare function __id<T>(v: T): T; const w: number = __id({} as never)` cho
+  `T` suy ra `never` rồi đổ thẳng vào ô `number`. Và phải đọc kiểu KHAI chứ
+  không phải kiểu đã suy — `getResolvedSignature` trả chữ ký ĐÃ suy diễn, nơi
+  `T` đã hoá `never`, tức rơi đúng vào bẫy đang cần bắt. Không xác định được
+  tham số tương ứng thì KHÔNG kết luận "hợp lệ" (cùng luật AC-5c/AC-5d).
+  Không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
   và mọi phép phỏng đoán mặt chữ đều thủng ở ngoặc-nhóm, đối-số-không-đứng-cuối,
   ngoặc trong chuỗi, và số dòng sau chú thích nhiều dòng. Bộ quét phải chứng
   minh: mã nguy hiểm thật → đỏ kèm số dòng ĐÚNG; 7 chỗ đối số → không tính và
@@ -170,6 +176,18 @@ nói ra ở đây thay vì giấu đi.
   học: mặt chữ → cây cú pháp → chẩn đoán cú pháp → KIỂM KIỂU. Mỗi tầng chữa
   đúng lỗi của tầng trước rồi để lộ một lớp mà nó không có giác quan để thấy.
   Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
+- Luật miễn trừ theo KIỂU KHAI của tham số sinh ra từ vòng chấm 6, và là tầng
+  thứ SÁU: mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → phạm vi biên
+  dịch → **kiểu khai của tham số**. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
+  vòng 2 từng ghi: một phép thử sai theo CẢ HAI chiều (bỏ lọt `__id(x as never)`
+  đồng thời đỏ oan `f((x as never))`) là phỏng đoán đặt thấp hơn một tầng so
+  với câu hỏi thật.
+- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế:
+  bộ quét đo PHÉP ÉP KIỂU. Hai dạng giặt kiểu KHÔNG dùng phép ép nào —
+  `declare function __ln<T>(x: unknown): T` (biến bất cứ gì thành bất cứ gì,
+  trong nguồn không có cả `never` lẫn `any`) và hàm khẳng định
+  `asserts x is never` — nằm ngoài tầm của MỌI tầng ở trên. Bắt được chúng cần
+  phân tích luồng dữ liệu, tức một công cụ khác. Đây là trần, không phải sót.
 - AC-5d sinh ra từ vòng chấm 5, và là tầng thứ NĂM của cùng một bài học:
   mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → **phạm vi biên dịch**.
   Luật «không đo được ≠ sạch» của AC-5c viết đúng nhưng chỉ áp cho cú pháp;

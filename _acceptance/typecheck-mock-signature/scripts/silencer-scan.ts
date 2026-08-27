@@ -114,9 +114,53 @@ function loadProject(tsconfigRel: string) {
  * cơ chế của lối vòng vòng 5. Nên luật «không đo được ≠ sạch» của AC-5c phải
  * áp cả ở tầng KIỂM KIỂU, không chỉ ở tầng cú pháp: đếm riêng và ngã to.
  */
+/**
+ * Phép ép về `never` này có thoả một tham số ĐƯỢC KHAI là `never` không?
+ *
+ * Vòng chấm 6 chỉ ra luật cũ — «là con trực tiếp trong `arguments`» — suy luận
+ * KHÔNG VỮNG. Vị trí đối số không hề bảo đảm tham số kia khai `never`:
+ *
+ *     declare function __id<T>(v: T): T;
+ *     const _w: number = __id({} as never);   // cả 10 eval xanh
+ *
+ * `T` suy ra `never` rồi đổ thẳng vào một ô `number`. Và cùng phép thử ấy sai
+ * theo CHIỀU NGƯỢC LẠI nữa: `f((x as never))` bọc ngoặc bị đỏ oan. Sai hai
+ * chiều là dấu hiệu một phỏng đoán đặt thấp hơn một tầng so với câu hỏi thật —
+ * đúng dấu hiệu hồ sơ này đã tự ghi ở vòng 2, lặp lại ở tầng cuối cùng.
+ *
+ * Câu hỏi thật không phải «phép ép nằm ở đâu» mà «tham số tương ứng khai kiểu
+ * gì». Nên hỏi bộ kiểm kiểu, và phải đọc kiểu KHAI chứ không phải kiểu đã suy:
+ * `getResolvedSignature` trả chữ ký ĐÃ suy diễn, nơi `T` đã hoá `never` rồi —
+ * đọc nó là rơi đúng vào bẫy đang cần bắt. Đọc node kiểu trên phần KHAI BÁO
+ * của chữ ký thì `__id` cho «T» (không phải never) còn `compile` cho «never».
+ */
+function classifyPosition(node: ts.Node, checker: ts.TypeChecker): 'never-param' | 'value' | 'undetermined' {
+  // Bọc bao nhiêu lớp ngoặc cũng vẫn là đối số ấy.
+  let argNode: ts.Node = node;
+  while (argNode.parent && ts.isParenthesizedExpression(argNode.parent)) argNode = argNode.parent;
+  const call = argNode.parent;
+  if (!call || !(ts.isCallExpression(call) || ts.isNewExpression(call))) return 'value';
+
+  const idx = call.arguments?.findIndex((a) => a === argNode) ?? -1;
+  if (idx < 0) return 'value';
+
+  const decl = checker.getResolvedSignature(call)?.declaration as ts.SignatureDeclaration | undefined;
+  const params = decl?.parameters;
+  if (!params || params.length === 0) return 'undetermined';
+
+  const p = params[Math.min(idx, params.length - 1)];
+  let tn = p?.type;
+  // `...p: never[]` — tham số biến thiên: kiểu của MỘT đối số là phần tử.
+  if (p?.dotDotDotToken && tn && ts.isArrayTypeNode(tn)) tn = tn.elementType;
+  if (!tn) return 'undetermined';
+
+  return (checker.getTypeFromTypeNode(tn).flags & ts.TypeFlags.Never) !== 0 ? 'never-param' : 'value';
+}
+
 function collectNever(program: ts.Program, sf: ts.SourceFile, rawSrc: string) {
   const checker = program.getTypeChecker();
   const hits: { line: number; text: string; arg: boolean }[] = [];
+  const undetermined: { line: number; text: string }[] = [];
   const typeNodes: { node: ts.TypeNode; start: number; end: number }[] = [];
   const lineOf = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
 
@@ -124,13 +168,14 @@ function collectNever(program: ts.Program, sf: ts.SourceFile, rawSrc: string) {
     if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
       typeNodes.push({ node: node.type, start: node.type.getStart(sf), end: node.type.getEnd() });
       if ((checker.getTypeFromTypeNode(node.type).flags & ts.TypeFlags.Never) !== 0) {
-        const parent = node.parent;
-        const arg =
-          !!parent &&
-          (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
-          (parent.arguments?.some((a) => a === node) ?? false);
+        const verdict = classifyPosition(node, checker);
         const line = lineOf(node);
-        hits.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
+        if (verdict === 'undetermined') {
+          // Không xác định được tham số tương ứng khai kiểu gì → KHÔNG kết luận
+          // "hợp lệ". Cùng luật với AC-5c/AC-5d: không đo được ≠ sạch.
+          undetermined.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim() });
+        }
+        hits.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg: verdict === 'never-param' });
       }
     }
     ts.forEachChild(node, visit);
@@ -153,7 +198,7 @@ function collectNever(program: ts.Program, sf: ts.SourceFile, rawSrc: string) {
     if (!inCast) continue;     // lỗi giải tên ở chỗ khác không phải việc của phép đo này
     unresolved.push({ line: lineOf(inCast.node), name: inCast.node.getText(sf) });
   }
-  return { hits, unresolved };
+  return { hits, unresolved, undetermined };
 }
 
 /** Phân tích một tệp THẬT bằng program dựng từ tsconfig của chính project nó. */
@@ -249,15 +294,20 @@ const CLEAN = [
   'return r.compile(ex as never);',   // ép ở ĐỐI SỐ — không phải mẫu bịt miệng
 ].join('\n');
 
-const NEVER_CASES: { src: string; arg: boolean; why: string; skip?: boolean }[] = [
+const NEVER_CASES: { src: string; arg: boolean; why: string; skip?: boolean; skip2?: boolean }[] = [
   { src: 'const _p1: number = buildMapStyle.mock.calls[0][0].basemap as never; void _p1;', arg: false, why: 'ca hồi quy type-probe' },
   { src: 'const z: Foo = bar as never;', arg: false, why: 'gán thẳng' },
   { src: 'const _z: number = (someIdentifier as never);', arg: false, why: 'ngoặc NHÓM, không phải lời gọi (lỗ #1 vòng 2)' },
   { src: 'const _y: number = <never>someIdentifier;', arg: false, why: 'cú pháp ép kiểu kia (lỗ #3 vòng 2)' },
-  { src: 'return r.compile(ex as never);', arg: true, why: 'đối số cuối' },
-  { src: "const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);", arg: true, why: 'đối số cuối, có ngoặc lồng' },
-  { src: 'await expect(resolveConfig(compiled as never)).rejects.toThrow(KEY);', arg: true, why: 'đối số lồng trong lời gọi khác' },
-  { src: 'resolveConfig(a as never, b);', arg: true, why: 'đối số KHÔNG đứng cuối (lỗ #2 vòng 2)' },
+  { src: 'declare const r: { compile(p: never): unknown }; declare const ex: object; r.compile(ex as never);', arg: true, why: 'đối số cuối, tham số khai never' },
+  { src: "declare const r: { compile(p: never): unknown; example: unknown }; const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never); void compiled;", arg: true, why: 'đối số cuối, có ngoặc lồng' },
+  { src: 'declare function resolveConfig(c: never): void; declare function expect(v: unknown): void; declare const compiled: object; expect(resolveConfig(compiled as never));', arg: true, why: 'đối số lồng trong lời gọi khác' },
+  { src: 'declare function resolveConfig(a: never, b: number): void; resolveConfig({} as never, 1);', arg: true, why: 'đối số KHÔNG đứng cuối, tham số khai never' },
+  // Lối vòng vòng 6: vị trí đối số KHÔNG bảo đảm tham số khai never.
+  { src: 'declare function __id<T>(v: T): T; const _w: number = __id({} as never); void _w;', arg: false, why: 'generic identity — tham số khai T, KHÔNG phải never (lối vòng vòng 6)' },
+  { src: 'declare function takesNever(p: never): void; takesNever(({} as never));', arg: true, why: 'đối số BỌC NGOẶC, tham số khai never — hết đỏ oan (dương-tính-giả vòng 3)' },
+  { src: 'declare function restNever(...p: never[]): void; restNever({} as never);', arg: true, why: 'tham số biến thiên ...p: never[]' },
+  { src: 'declare function takesAny(p: unknown): void; const _v: number = takesAny({} as never) as never; void _v;', arg: false, why: 'tham số khai unknown — không được miễn trừ', skip2: true },
   { src: "const url = 'https://t.example/{z}/{x}/{y}.jpg'; const _l: number = getRecipe as never;", arg: false, why: 'ngoặc trong CHUỖI không được làm lệch phép đếm (lỗ của bản lần-ngược)' },
   { src: "const s = 'don\\'t'; const _m: number = getRecipe as never;", arg: false, why: 'nháy thoát trong chuỗi không được lệch pha' },
   // Lối vòng BÍ DANH KIỂU — vòng chấm 4 tìm ra. Cú pháp không thấy được, chỉ
@@ -273,6 +323,10 @@ for (const c of NEVER_CASES) {
   const got = classifyNever(c.src).hits;
   if (c.skip) {           // `skip` = KHÔNG được có khớp nào (đối chứng âm)
     say(got.length === 0, `phân loại «${c.why}» → ${got.length} khớp (đúng: 0)`);
+    continue;
+  }
+  if (c.skip2) {          // nhiều hơn một phép ép trong cùng dòng
+    say(got.some((h) => !h.arg), `phân loại «${c.why}» → có ít nhất một chỗ GIÁ TRỊ (${got.length} khớp)`);
     continue;
   }
   const ok = got.length === 1 && got[0]!.arg === c.arg;
@@ -380,7 +434,10 @@ for (const t of TARGETS) {
 
   // Program dựng từ tsconfig THẬT của project — nếu không, một bí danh khai
   // trong `.d.ts` toàn cục sẽ giải ra kiểu lỗi và đi lọt (lối vòng vòng 5).
-  const { hits: all, unresolved } = analyzeRealFile(t);
+  const { hits: all, unresolved, undetermined } = analyzeRealFile(t);
+  say(undetermined.length === 0,
+    `${t}: mọi phép ép never đều xác định được tham số tương ứng (${undetermined.length} không xác định) — không xác định được thì KHÔNG kết luận "hợp lệ"`);
+  undetermined.forEach((u) => console.log(`      ${t}:${u.line}: ${u.text}`));
   say(unresolved.length === 0,
     `${t}: mọi tên kiểu trong phép ép đều giải được (${unresolved.length} không giải được) — không giải được thì KHÔNG kết luận "sạch"`);
   unresolved.forEach((u) => console.log(`      ${t}:${u.line}: tên không giải được «${u.name}»`));

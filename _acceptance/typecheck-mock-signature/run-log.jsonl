@@ -1,0 +1,7 @@
+{"ts":"2026-08-27T04:49:42Z","round":1,"evalId":"E1","run_id":"typecheck-mock-signature-e1-20260827044942","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/typecheck-both.ts"}
+{"ts":"2026-08-27T04:49:42Z","round":1,"evalId":"E2","run_id":"typecheck-mock-signature-e2-20260827044942","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/typecheck-both.ts","note":"cung mot luot chay voi E1, doc theo tinh chat khac"}
+{"ts":"2026-08-27T04:49:56Z","round":1,"evalId":"E3","run_id":"typecheck-mock-signature-e3-20260827044956","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/type-probe.ts"}
+{"ts":"2026-08-27T04:49:56Z","round":1,"evalId":"E4","run_id":"typecheck-mock-signature-e4-20260827044956","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/type-probe.ts","note":"cung mot luot chay voi E3, nua thu hai cua script"}
+{"ts":"2026-08-27T04:50:03Z","round":1,"evalId":"E5","run_id":"typecheck-mock-signature-e5-20260827045003","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts"}
+{"ts":"2026-08-27T04:50:13Z","round":1,"evalId":"E6","run_id":"typecheck-mock-signature-e6-20260827045013","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/mutation-probe.ts"}
+{"ts":"2026-08-27T04:50:34Z","round":1,"evalId":"E7","run_id":"typecheck-mock-signature-e7-20260827045034","exit_code":0,"cmd":"npx tsx _acceptance/typecheck-mock-signature/scripts/no-regression.ts"}

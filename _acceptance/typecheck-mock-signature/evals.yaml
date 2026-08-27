@@ -1,0 +1,105 @@
+schema_version: 1
+feature_slug: typecheck-mock-signature
+
+# Hình dạng của bộ này bị chi phối bởi một sự thật: MỌI cách chữa rẻ đều làm
+# phép đo kết quả xanh. `as any` → E1 xanh, E6 xanh. Xoá thẳng hai assertion →
+# E1 xanh, E5 xanh, E6 xanh. Nên trọng lượng dồn vào hai phép đo NGƯỢC chiều:
+# E2/E3 hỏi "đọc sai kiểu thì trình biên dịch có ĐỎ được không", và E4 hỏi "phá
+# code sản phẩm thì test có ĐỎ được không". Thiếu chúng, bộ này chỉ chứng minh
+# được rằng CI hết đỏ — chứ không chứng minh được rằng phép đo còn sống.
+
+evals:
+  - id: E1
+    criterion: AC-1
+    executor: script
+    cmd: config:executors.script.typecheck_both
+    paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; hai lệnh chạy RỜI, mỗi lệnh mã thoát 0 và 0 dòng `error TS`.
+      `tsc -b` phải kèm --force: bản tăng dần đọc tsbuildinfo nên có thể báo
+      sạch mà chưa chấm lại tệp nào, tức một lời "xanh" rỗng nội dung.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E2
+    criterion: AC-2
+    executor: script
+    cmd: config:executors.script.typecheck_both
+    paths: [.github/workflows/ci.yml]
+    expected: >-
+      exit 0; cùng lượt chạy E1 nhưng đọc theo chiều khác — bằng chứng phải cho
+      thấy CẢ HAI project đều có dòng kết quả riêng, không project nào vắng mặt.
+      Đây là chiều mà `&&` của bước CI đã che 5 ngày: lệnh đầu ngã thì lệnh sau
+      không chạy, và một project không chạy trông y hệt một project sạch.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E3
+    criterion: AC-3
+    executor: script
+    cmd: config:executors.script.mock_type_probe
+    paths: [src/components/MapView.test.tsx]
+    expected: >-
+      exit 0; chiều PHỦ ĐỊNH cho MapView.test.tsx. Chép tệp thật sang tệp thăm
+      dò cùng thư mục rồi chấm hai lượt. Đối chứng bắt buộc trước: bản chép y
+      nguyên phải SẠCH — không có nó thì một lỗi sẵn có sẽ bị đọc nhầm thành
+      "mũi đã đỏ". Rồi hai mũi phải đỏ ĐÚNG mã lỗi tại đúng tệp thăm dò:
+      gán `.basemap` vào number → TS2322; đọc field không tồn tại → TS2339.
+      Nếu đối số là any/unknown thì KHÔNG mũi nào đỏ — đó chính là trạng thái
+      "phép đo giả" cần chặn. Tệp thăm dò phải được dọn sạch.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E4
+    criterion: AC-4
+    executor: script
+    cmd: config:executors.script.mock_type_probe
+    paths: [mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; cùng script, nửa thứ hai — chiều phủ định cho recipes.test.ts.
+      `r.compile(x as never)` phải giữ kiểu trả về THẬT CompiledRecipeCall:
+      gán `.basemap` vào number → TS2322 (chứng minh union hẹp
+      'vector'|'satellite', không phải string), field không tồn tại → TS2339.
+      Kèm cùng đối chứng bản-chép-sạch như E3.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E5
+    criterion: AC-5
+    executor: script
+    cmd: config:executors.script.mock_silencer_scan
+    paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; quét các dòng lượt này THÊM VÀO (git diff so với gốc chung
+      origin/main), KHÔNG quét cả tệp — hai tệp mang sẵn 4 chỗ dùng các mẫu ấy
+      từ trước, nằm ngoài phạm vi. Đòi 0 khớp trên dòng thêm. Ba chốt tự-canh:
+      fixture bẩn 4 mẫu phải bắt đủ 4; fixture sạch phải bắt 0; số dòng thêm
+      phải > 0 trước khi được kết luận "sạch". Không giải được mốc so thì
+      script ngã (không-đo-được ≠ sạch).
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # E6 là phép đo NẶNG NHẤT của bộ này: nó là thứ duy nhất phân biệt "assertion
+  # còn cắn" với "assertion đã chết". Xoá thẳng hai assertion trong
+  # MapView.test.tsx sẽ làm E1..E5 và E7 xanh hết — chỉ E6 đỏ.
+  - id: E6
+    criterion: AC-6
+    executor: script
+    cmd: config:executors.script.mock_mutation_probe
+    paths: [src/components/MapView.tsx, mcp-server/src/recipes.ts]
+    expected: >-
+      exit 0; ĐỐI CHỨNG NỀN trước (hai tệp test phải XANH khi chưa phá — nền đỏ
+      sẵn làm mọi mũi vô nghĩa), rồi ba mũi, mỗi mũi sửa ĐÚNG một chỗ và đòi
+      tệp test tương ứng ĐỎ: MapView ép basemap:'vector'; MapView nuốt
+      satelliteTiles; recipes đổi mặc định area-overview về 'satellite'. Mỗi
+      neo phá phải khớp đúng 1 lần (khớp 0 hoặc 2 lần = mũi không đặt được, FAIL
+      chứ không bỏ qua). Sau mỗi mũi phải hoàn nguyên đúng byte, và chốt cuối
+      `git status --porcelain` trên code sản phẩm phải RỖNG.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  - id: E7
+    criterion: AC-7
+    executor: script
+    cmd: config:executors.script.mock_no_regression
+    paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; toàn bộ bộ test đơn vị 0 ca đỏ, VÀ đọc báo cáo JSON của vitest để
+      chứng minh bằng số rằng hai tệp đích thật sự đã chạy — mỗi tệp có số ca
+      đạt > 0. Mã thoát cả bộ một mình không đủ: tệp bị lọc mất, đổi tên hay bỏ
+      qua vẫn cho mã thoát 0, và "xanh" khi đó chỉ nghĩa là không ai chạy nó.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]

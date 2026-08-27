@@ -54,6 +54,14 @@ executors:
     basemap_invariants: "npx tsx _acceptance/satellite-basemap/scripts/basemap-invariants.ts"
     recipe_t3_untouched: "npx tsx _acceptance/recipe-region-spotlight/scripts/t3-untouched.ts"
     suite_coverage: npx tsx _acceptance/test-env-webstorage/scripts/suite-coverage.ts
+    # typecheck-mock-signature: bộ đo của lượt chữa 6 lỗi typecheck ở hai tệp test.
+    # typecheck_both chạy HAI lệnh RỜI thay vì nối `&&` — chính `&&` của bước CI
+    # đã giấu 2 lỗi mcp-server suốt 5 ngày sau lưng 4 lỗi của project web.
+    typecheck_both: npx tsx _acceptance/typecheck-mock-signature/scripts/typecheck-both.ts
+    mock_type_probe: npx tsx _acceptance/typecheck-mock-signature/scripts/type-probe.ts
+    mock_silencer_scan: npx tsx _acceptance/typecheck-mock-signature/scripts/silencer-scan.ts
+    mock_mutation_probe: npx tsx _acceptance/typecheck-mock-signature/scripts/mutation-probe.ts
+    mock_no_regression: npx tsx _acceptance/typecheck-mock-signature/scripts/no-regression.ts
   design:
     # PORTABLE $HOME + glob + `sort -V | tail -1`: hardcode home dir và ghim version
     # thì executor im lặng BLOCKED trên mọi máy khác (đường cũ /Users/manhphan/...1.11.2

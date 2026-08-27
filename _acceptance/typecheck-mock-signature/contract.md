@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: signed-off
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -178,16 +178,31 @@ nói ra ở đây thay vì giấu đi.
   Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
 - Luật miễn trừ theo KIỂU KHAI của tham số sinh ra từ vòng chấm 6, và là tầng
   thứ SÁU: mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → phạm vi biên
-  dịch → **kiểu khai của tham số**. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
+  dịch → **kiểu khai của tham số**. Vòng 7 nới luật ấy ra ba chỗ chứa-đối-số
+  nữa — template có nhãn, thuộc tính JSX, đối số trải — nhưng nguyên tắc không
+  đổi: vẫn đọc node kiểu ĐÃ VIẾT. `getContextualType` một mình KHÔNG dùng được,
+  đo được: nó trả `never` cho `__id({} as never)` vì `T` đã suy thành `never`,
+  tức sập đúng cái bẫy vòng 6. Chỗ nào không lần được tham số tương ứng (đối số
+  trải) thì khai KHÔNG XÁC ĐỊNH — vẫn đỏ, nhưng nói đúng lý do thay vì vu tội. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
   vòng 2 từng ghi: một phép thử sai theo CẢ HAI chiều (bỏ lọt `__id(x as never)`
   đồng thời đỏ oan `f((x as never))`) là phỏng đoán đặt thấp hơn một tầng so
   với câu hỏi thật.
-- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế:
-  bộ quét đo PHÉP ÉP KIỂU. Hai dạng giặt kiểu KHÔNG dùng phép ép nào —
-  `declare function __ln<T>(x: unknown): T` (biến bất cứ gì thành bất cứ gì,
-  trong nguồn không có cả `never` lẫn `any`) và hàm khẳng định
-  `asserts x is never` — nằm ngoài tầm của MỌI tầng ở trên. Bắt được chúng cần
-  phân tích luồng dữ liệu, tức một công cụ khác. Đây là trần, không phải sót.
+- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế.
+  Bộ quét đo PHÉP ÉP KIỂU, và chỉ hỏi về kiểu ĐÍCH của phép ép ấy. Nằm ngoài
+  tầm MỌI tầng ở trên là mọi lối giặt kiểu mà **cửa ra là kiểu TRẢ VỀ hoặc
+  luồng**, bất kể nguồn có phép ép hay không:
+    - `declare function __ln<T>(x: unknown): T` — biến bất cứ gì thành bất cứ
+      gì; trong nguồn không có cả `never` lẫn `any`.
+    - `declare function __sinkE<T>(v: never): T` — CÓ `as never` trong nguồn và
+      luật miễn trừ xử ĐÚNG (tham số khai `never` thật), nhưng thứ giặt kiểu là
+      `T` ở đầu ra, chỗ bộ quét không hỏi tới. Vòng chấm 7 tìm ra ca này; câu
+      chữ trần trước đó hẹp hơn thực tế vì mới chỉ nói tới dạng "không có phép
+      ép nào".
+    - hàm khẳng định `asserts x is never` — giặt qua thu hẹp luồng, không qua
+      phép ép nào.
+  Điểm chung: cửa ra nằm ở kiểu trả về hoặc ở luồng, không nằm ở kiểu đích của
+  một phép ép. Bắt được chúng cần phân tích luồng dữ liệu — một công cụ khác.
+  Đây là TRẦN, không phải sót.
 - AC-5d sinh ra từ vòng chấm 5, và là tầng thứ NĂM của cùng một bài học:
   mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → **phạm vi biên dịch**.
   Luật «không đo được ≠ sạch» của AC-5c viết đúng nhưng chỉ áp cho cú pháp;

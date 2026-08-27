@@ -66,8 +66,9 @@ evals:
     cmd: config:executors.script.mock_silencer_scan
     paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
     expected: >-
-      exit 0; quét các dòng lượt này THÊM VÀO (git diff so với gốc chung
-      origin/main), KHÔNG quét cả tệp — hai tệp mang sẵn 4 chỗ dùng các mẫu ấy
+      exit 0; quét các dòng lượt này THÊM VÀO (git diff so với mốc GHIM
+      54b5cb2 — commit ngay TRƯỚC lượt sửa, KHÔNG phải merge-base: sau khi PR
+      merge thì merge-base chính là HEAD và số dòng thêm về 0), KHÔNG quét cả tệp — hai tệp mang sẵn 4 chỗ dùng các mẫu ấy
       từ trước, nằm ngoài phạm vi. Đòi 0 khớp trên dòng thêm. Ba chốt tự-canh:
       fixture bẩn 4 mẫu phải bắt đủ 4; fixture sạch phải bắt 0; số dòng thêm
       phải > 0 trước khi được kết luận "sạch". Không giải được mốc so thì
@@ -116,12 +117,19 @@ evals:
       exit 0; quét TRỌN hai tệp (không chỉ dòng thêm) tìm `as never` ở VỊ TRÍ
       GIÁ TRỊ — dạng `const x: T = expr as never` giặt sạch mọi lỗi kiểu. Đòi 0
       chỗ. Vị trí ĐỐI SỐ `f(x as never)` KHÔNG tính: đó là cách hợp lệ thoả một
-      tham số khai `never` có chủ đích, và bằng chứng phải cho thấy con số ấy
-      (hiện là 7) được báo riêng, không gộp vào số vi phạm. Ba chốt tự-canh:
-      fixture nguy hiểm 2 dòng phải bắt đủ 2 (một trong đó là ca hồi quy thật
-      — chính dòng đã làm mũi TS2322 của type-probe.ts không đỏ được); fixture
-      7-chỗ-đối-số phải bắt 0; và một chú thích chỉ NHẮC TỚI `as never` phải
-      bắt 0, vì chú thích không được biên dịch.
+      tham số ĐƯỢC KHAI `never` — và miễn trừ phải hỏi kiểu KHAI của tham số
+      tương ứng, KHÔNG suy từ vị trí: `__id({} as never)` với
+      `<T>(v: T)` nằm ở vị trí đối số nhưng vẫn phải bị TỐ. Con số chỗ-đối-số
+      phải được báo RIÊNG, không gộp vào số vi phạm (hôm nay là 5; trước vòng 7
+      là 7, giảm vì lượt ấy gỡ ba phép ép `resolveConfig(compiled as never)`
+      vốn thừa). Bộ ca tự-canh chấm TỪNG ca một, mỗi ca một dòng, phủ: ca hồi
+      quy thật (chính dòng đã làm mũi TS2322 của type-probe.ts không đỏ được) ·
+      bí danh một tầng / dây chuyền / nhập từ tệp khác · generic identity phải
+      bị tố · đối số bọc ngoặc, đối số không đứng cuối, `...p: never[]`,
+      template CÓ NHÃN và thuộc tính JSX phải KHÔNG đỏ oan khi tham số/prop
+      khai `never` và PHẢI bị tố khi khai kiểu khác · component JSX generic đọc
+      node đã viết «T» chứ không đọc kiểu đã suy · đối số TRẢI khai KHÔNG XÁC
+      ĐỊNH chứ không vu tội · và một chú thích chỉ NHẮC TỚI `as never` bắt 0.
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
 
   # E9 dùng chung lượt chạy với E5/E8 — tiêu chí riêng vì nó đo CHẾ ĐỘ HỎNG của

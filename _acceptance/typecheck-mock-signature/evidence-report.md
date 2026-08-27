@@ -21,7 +21,7 @@ verified_by: fresh-context verification subagent
 enforcement_mode: strict
 bypass_used: false
 verified_commit: 01e1340176ec308b20e264919c468d14dd6d1d69
-human_signoff:
+human_signoff: manh 2026-08-27
 ---
 
 # Evidence Report — typecheck-mock-signature (vòng 9)

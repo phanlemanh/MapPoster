@@ -227,14 +227,3 @@ kết cuối của chính lệnh.
 ## Iterations
 
 Round 1: Bảy eval máy, năm lượt chạy, 7/7 PASS. Baseline đo được thật cho E1/E2 (đỏ trên cây `54b5cb2` với đúng 6 lỗi như hợp đồng mô tả — 4 ở MapView.test.tsx, 2 ở recipes.test.ts sau lưng `&&`). E3/E4/E5 ghi `n-a` vì worktree baseline không giải được `node_modules` (dependency sống ở thư mục cha) và vì mốc so của E5 tự triệt tiêu trên chính cây baseline. E6/E7 ghi `green` — lượt sửa chỉ chạm hai tệp test nên hai phép đo ấy vốn đã xanh trên cây cũ; chúng là lan can, không phải thước phân biệt. Bốn known-limit ghi lại, đáng chú ý nhất là `as never` ở đầu vào `compile()` nằm ngoài cả AC-4 lẫn vũ trụ quét của AC-5. Verdict PASS.
-
-## Gate 2 checklist (human)
-
-- [ ] Read the table + spot-check 1-2 evidence blocks
-- [ ] Personally verify every judgment item marked UNCERTAIN, then fill its
-      `human_override: <name> <date>` line
-- [ ] T3 only: personally verify ALL judgment items and fill `human_override`
-      on each (judge verdicts are advisory; the hook blocks PASS without them)
-- [ ] If verdict was PENDING-JUDGMENT: upgrade it to PASS (this write is when
-      the hook re-validates evidence + overrides)
-- [ ] Fill `human_signoff` in frontmatter

@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -86,6 +86,14 @@ nói ra ở đây thay vì giấu đi.
   được báo RIÊNG; `f(a as never, b)` → không đỏ oan; và một chú thích chỉ NHẮC
   TỚI `as never` → KHÔNG đỏ (bộ quét nổ trên văn xuôi là bộ quét người ta sẽ
   tắt đi, và phép đo bị tắt thì không đo gì cả).
+- AC-5c: Given một tệp đích KHÔNG phân tích được (khối chú thích hoặc template
+  literal không đóng), When quét, Then bộ quét phải ĐỎ, KHÔNG được báo "sạch".
+  Hai dạng ấy nuốt trọn phần còn lại của tệp, nên một `as never` nguy hiểm nằm
+  sau đó biến mất khỏi cây cú pháp — và một bộ quét chỉ đếm cast sẽ bình thản
+  báo "0 chỗ" rồi xanh: tệp không đọc được và tệp sạch trông y hệt nhau. Luật
+  là **không đo được ≠ sạch**, cùng nguyên tắc đã áp cho mốc so của AC-5. Phép
+  đo phải chứng minh hai chiều: hai ca nuốt → đỏ kèm số lỗi cú pháp; tệp sạch
+  → 0 lỗi, chốt không nổ oan.
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
   `MapView.tsx` nuốt `satelliteTiles`; `recipes.ts` đổi mặc định area-overview về
@@ -138,6 +146,10 @@ nói ra ở đây thay vì giấu đi.
   là một bộ phân tích từ vựng, trong khi `typescript` nằm sẵn trong
   devDependencies suốt thời gian đó. Giờ hỏi thẳng AST — đúng chú thích, chuỗi,
   template, regex và vị trí, miễn phí.
+- AC-5c sinh ra từ vòng chấm 3, và nó là bài học lặp lại của chính hồ sơ này ở
+  một tầng cao hơn: bộ phân tích thật chữa mọi lỗi phỏng đoán mặt chữ, nhưng
+  chuyển luôn chế độ hỏng từ «đọc nhầm» sang «đọc trống». Một thước im lặng khi
+  không đo được thì nguy hiểm hơn một thước đọc sai, vì không ai nhìn ra.
 
 - Risk tier T2: chỉ chạm 2 tệp test, không tệp nào nằm trong `risk_tiers.t3_paths`
   (`src/lib/export.ts`, `src/lib/mapStyle.ts`).

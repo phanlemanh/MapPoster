@@ -123,3 +123,21 @@ evals:
       7-chỗ-đối-số phải bắt 0; và một chú thích chỉ NHẮC TỚI `as never` phải
       bắt 0, vì chú thích không được biên dịch.
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # E9 dùng chung lượt chạy với E5/E8 — tiêu chí riêng vì nó đo CHẾ ĐỘ HỎNG của
+  # chính bộ quét, không đo mã đích. Một thước im lặng khi không đo được thì
+  # nguy hiểm hơn thước đọc sai: không ai nhìn ra.
+  - id: E9
+    criterion: AC-5c
+    executor: script
+    cmd: config:executors.script.mock_silencer_scan
+    paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; chốt hỏng-thì-ĐÓNG. Bằng chứng phải cho thấy hai ca NUỐT được bắt:
+      khối chú thích không đóng và template literal không đóng — với mỗi ca, số
+      cast nhìn thấy được là 0 (cast đã bị nuốt) NHƯNG số lỗi cú pháp > 0, nên
+      bộ quét đỏ thay vì báo "sạch". Kèm đối chứng âm: tệp sạch cho 0 lỗi cú
+      pháp, chốt không nổ oan. Và với hai tệp đích thật, dòng "phân tích cú pháp
+      sạch (0 lỗi)" phải có mặt cho TỪNG tệp trước khi bất kỳ kết luận "sạch"
+      nào được phép đọc.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]

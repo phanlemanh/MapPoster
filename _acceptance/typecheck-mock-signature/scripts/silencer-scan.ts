@@ -77,6 +77,37 @@ const TARGETS = ['src/components/MapView.test.tsx', 'mcp-server/src/recipes.test
  *     dạng này giặt sạch mọi lỗi kiểu. Nguy hiểm hơn `as any` vì trông vô hại hơn.
  * Cả hai cú pháp ép kiểu đều được xét: `x as never` và `<never>x`.
  */
+/**
+ * Số lỗi CÚ PHÁP của một tệp — chốt hỏng-thì-ĐÓNG cho `classifyNever`.
+ *
+ * Vòng chấm 3 đo được lỗ này: một khối chú thích hay template literal KHÔNG
+ * ĐÓNG nuốt trọn phần còn lại của tệp, nên một dòng `as never` nguy hiểm nằm
+ * sau đó biến mất khỏi cây cú pháp — và bộ quét bình thản báo "0 chỗ" rồi xanh.
+ * Tệp không phân tích được và tệp sạch trông y hệt nhau. Đó là đúng lớp lỗi mà
+ * cả hồ sơ này tồn tại để chặn, lần này nằm trong chính cái thước.
+ *
+ * `transpileModule` + `reportDiagnostics` là API công khai và chỉ chấm CÚ PHÁP
+ * (không giải kiểu, không đọc import), nên nó trả lời đúng câu đang hỏi: tệp
+ * này có đọc được không. Đo lúc dựng: chú thích không đóng → 1 chẩn đoán và 0
+ * cast nhìn thấy; template không đóng → y hệt; ngoặc hỏng → 3 chẩn đoán nhưng
+ * bộ phân tích vẫn phục hồi và thấy cast. Chỉ hai ca ĐẦU mới là ca nuốt, và
+ * chốt này bắt cả ba.
+ *
+ * Luật: không parse được thì KHÔNG kết luận "sạch" — cùng nguyên tắc đã dùng
+ * cho mốc so ở dưới (không giải được mốc = không đo được, không phải sạch).
+ */
+function parseErrorCount(rawSrc: string, fileName = 'probe.ts'): number {
+  const res = ts.transpileModule(rawSrc, {
+    fileName,
+    reportDiagnostics: true,
+    compilerOptions: {
+      target: ts.ScriptTarget.Latest,
+      ...(fileName.endsWith('.tsx') ? { jsx: ts.JsxEmit.Preserve } : {}),
+    },
+  });
+  return res.diagnostics?.length ?? 0;
+}
+
 function classifyNever(rawSrc: string, fileName = 'probe.ts') {
   const sf = ts.createSourceFile(
     fileName,
@@ -152,6 +183,21 @@ for (const c of NEVER_CASES) {
   say(ok, `phân loại «${c.why}» → ${got.length === 1 ? (got[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${got.length} khớp`} (đúng: ${c.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ'})`);
 }
 
+// Chốt hỏng-thì-ĐÓNG: tệp không parse được phải bị BẮT, không được đi qua như
+// tệp sạch. Hai ca dưới là ca NUỐT thật do vòng chấm 3 tìm ra — cast nguy hiểm
+// biến mất khỏi cây, nên nếu chỉ nhìn số cast thì cả hai trông "sạch".
+const SWALLOWED: { src: string; why: string }[] = [
+  { src: 'const a = 1;\n/* mở mà không đóng\nconst _q: number = x as never;', why: 'chú thích không đóng' },
+  { src: 'const a = `chưa đóng;\nconst _q: number = x as never;', why: 'template literal không đóng' },
+];
+for (const c of SWALLOWED) {
+  const casts = classifyNever(c.src).length;
+  const perr = parseErrorCount(c.src);
+  say(casts === 0 && perr > 0,
+    `hỏng-thì-đóng «${c.why}»: cast bị nuốt (${casts} thấy được) NHƯNG chẩn đoán cú pháp bắt được (${perr} lỗi)`);
+}
+say(parseErrorCount('const _q: number = x as never;') === 0, 'đối chứng âm: tệp sạch → 0 lỗi cú pháp (chốt không nổ oan)');
+
 // Chú thích chỉ NHẮC TỚI as never không được tính — ca hồi quy của lỗi trước.
 say(classifyNever('// mũi thử: as never ở vị trí giá trị thì phải đỏ').length === 0,
   'đối chứng âm: chú thích nhắc tới «as never» → 0 (văn xuôi không phải mã)');
@@ -193,7 +239,11 @@ for (const t of TARGETS) {
 
   // `as never` / `<never>` vị trí GIÁ TRỊ — quét TRỌN tệp, không chỉ dòng thêm:
   // hai tệp đích đang sạch dạng này, giữ được mức đó thì giữ.
-  const all = classifyNever(fs.readFileSync(path.join(ROOT, t), 'utf8'), t);
+  const rawBody = fs.readFileSync(path.join(ROOT, t), 'utf8');
+  const perr = parseErrorCount(rawBody, t);
+  say(perr === 0, `${t}: phân tích cú pháp sạch (${perr} lỗi) — không parse được thì KHÔNG kết luận "sạch"`);
+  if (perr > 0) continue;   // không đo được ≠ sạch
+  const all = classifyNever(rawBody, t);
   const bad = all.filter((h) => !h.arg);
   const argPos = all.length - bad.length;
   say(bad.length === 0, `${t}: không «as never» ở vị trí giá trị (${bad.length} chỗ); ${argPos} chỗ ở vị trí đối số — hợp lệ, không tính`);

@@ -48,10 +48,14 @@ nói ra ở đây thay vì giấu đi.
   `npx tsc -p mcp-server/tsconfig.json`, Then cả hai thoát 0 và không in dòng
   lỗi nào. Phải là `--force`: `tsc -b` đọc `tsbuildinfo`, nên một lượt chạy tăng
   dần có thể báo sạch mà chưa hề chấm lại tệp nào.
-- AC-2: Given bước Typecheck của CI nối hai lệnh bằng `&&`, When lệnh đầu ngã,
-  Then lệnh sau KHÔNG chạy — nên phép đo AC-1 phải chấm **cả hai project một
-  cách độc lập**, không được để `&&` che vế sau. Đây chính là lớp lỗi đã giấu 2
-  lỗi ở `mcp-server/src/recipes.test.ts` suốt 5 ngày trong khi báo cáo chỉ thấy 4.
+- AC-2: Given bước Typecheck của CI là một khối `run: |` hai dòng chạy dưới
+  `bash -e`, When lệnh đầu ngã, Then cả bước DỪNG và lệnh sau KHÔNG chạy — nên
+  phép đo AC-1 phải chấm **cả hai project một cách độc lập**, không để vế đầu
+  che vế sau. Đây chính là lớp lỗi đã giấu 2 lỗi ở
+  `mcp-server/src/recipes.test.ts` suốt 5 ngày trong khi báo cáo sự cố chỉ thấy 4.
+  *(Đính chính: các bản trước của tiêu chí này viết CI nối hai lệnh bằng `&&`.
+  Sai so với tệp — `.github/workflows/ci.yml` không có `&&` nào. Hệ quả thì đúng
+  y như mô tả, nhưng cơ chế thì gọi sai tên; vòng chấm 5 bắt được.)*
 - AC-3: Given `src/components/MapView.test.tsx` sau khi chữa, When đọc
   `buildMapStyle.mock.calls[0][0]`, Then đối số ấy được TypeScript chấm theo
   giao diện THẬT `BuildStyleArgs` — chứng minh bằng chiều **phủ định**: gán

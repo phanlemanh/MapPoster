@@ -325,7 +325,7 @@ describe('area-overview — mặc định nền bản đồ', () => {
     const r = getRecipe(name);
     const ex = { ...(r.example as Record<string, unknown>) };
     delete ex.basemap;                     // người gọi KHÔNG nêu nền
-    return (r.compile as (p: unknown) => { basemap?: string })(ex);
+    return r.compile(ex as never);
   };
 
   let saved: string | undefined;
@@ -353,7 +353,7 @@ describe('area-overview — mặc định nền bản đồ', () => {
   it('đối chứng dương: có biến môi trường thì chiều tường minh ĐƯỢC cho qua', async () => {
     process.env[KEY] = TILES;
     const r = getRecipe('area-overview');
-    const compiled = (r.compile as (p: unknown) => { basemap?: string })({ ...(r.example as object), basemap: 'satellite' });
+    const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);
     expect(compiled.basemap).toBe('satellite');
     const cfg = await resolveConfig(compiled as never);
     expect(cfg.basemap).toBe('satellite');

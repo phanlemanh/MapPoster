@@ -103,3 +103,23 @@ evals:
       đạt > 0. Mã thoát cả bộ một mình không đủ: tệp bị lọc mất, đổi tên hay bỏ
       qua vẫn cho mã thoát 0, và "xanh" khi đó chỉ nghĩa là không ai chạy nó.
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # E8 dùng CHUNG lượt chạy với E5 (một script, hai tính chất) — nhưng là tiêu
+  # chí riêng vì nó đo một trục khác: E5 hỏi "có bịt miệng lộ liễu không", E8
+  # hỏi "có bịt miệng KÍN ĐÁO bằng as never không". Cái sau lọt qua cái trước.
+  - id: E8
+    criterion: AC-5b
+    executor: script
+    cmd: config:executors.script.mock_silencer_scan
+    paths: [src/components/MapView.test.tsx, mcp-server/src/recipes.test.ts]
+    expected: >-
+      exit 0; quét TRỌN hai tệp (không chỉ dòng thêm) tìm `as never` ở VỊ TRÍ
+      GIÁ TRỊ — dạng `const x: T = expr as never` giặt sạch mọi lỗi kiểu. Đòi 0
+      chỗ. Vị trí ĐỐI SỐ `f(x as never)` KHÔNG tính: đó là cách hợp lệ thoả một
+      tham số khai `never` có chủ đích, và bằng chứng phải cho thấy con số ấy
+      (hiện là 7) được báo riêng, không gộp vào số vi phạm. Ba chốt tự-canh:
+      fixture nguy hiểm 2 dòng phải bắt đủ 2 (một trong đó là ca hồi quy thật
+      — chính dòng đã làm mũi TS2322 của type-probe.ts không đỏ được); fixture
+      7-chỗ-đối-số phải bắt 0; và một chú thích chỉ NHẮC TỚI `as never` phải
+      bắt 0, vì chú thích không được biên dịch.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]

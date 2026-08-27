@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -71,6 +71,15 @@ nói ra ở đây thay vì giấu đi.
   buộc tội lượt này. Bộ quét phải tự chứng minh cả hai chiều: fixture CÓ đủ bốn
   mẫu phải báo đủ bốn, fixture sạch phải báo không; và số dòng thêm phải > 0
   trước khi được kết luận "sạch". Một bộ quét hỏng báo "sạch" trên mọi đầu vào.
+- AC-5b: Given TRỌN hai tệp đích (không chỉ dòng thêm), When quét `as never`,
+  Then không chỗ nào dùng nó ở **vị trí giá trị** (`const x: T = expr as never`)
+  — dạng ấy gán được vào mọi kiểu nên giặt sạch bất kỳ lỗi kiểu nào, và nguy
+  hiểm hơn `as any` vì trông vô hại hơn. **Vị trí đối số** (`f(x as never)`) thì
+  ĐƯỢC: đó là cách hợp lệ để thoả một tham số khai `never` có chủ đích, và cả 7
+  chỗ dùng hiện có đều thuộc dạng này. Bộ quét phải chứng minh ba chiều: mã
+  nguy hiểm thật → đỏ kèm số dòng; 7 chỗ đối số → không tính; và một chú thích
+  chỉ NHẮC TỚI `as never` → KHÔNG đỏ (một bộ quét nổ trên văn xuôi là bộ quét
+  người ta sẽ tắt đi, và phép đo bị tắt thì không đo gì cả).
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
   `MapView.tsx` nuốt `satelliteTiles`; `recipes.ts` đổi mặc định area-overview về
@@ -84,7 +93,7 @@ nói ra ở đây thay vì giấu đi.
 ## Coverage
 
 - **Trục Chỗ hỏng**: chỗ khai (AC-3, AC-4) | chỗ dùng — [thước CE: chữa ở chỗ dùng bằng ép kiểu vẫn làm AC-1 xanh, nên AC-1 một mình KHÔNG phân biệt được hai chỗ; phải có chiều phủ định]
-- **Trục Cách chữa**: khai đúng kiểu (AC-3, AC-4) | bịt miệng (AC-5) — [thước CE: `as any` làm AC-1 + AC-7 xanh hết, chỉ AC-5 bắt được]
+- **Trục Cách chữa**: khai đúng kiểu (AC-3, AC-4) | bịt miệng lộ liễu (AC-5) | bịt miệng kín đáo bằng `as never` (AC-5b) — [thước CE: `as any` làm AC-1 + AC-7 xanh hết, chỉ AC-5 bắt được; còn `as never` ở vị trí giá trị thì đến AC-5 cũ cũng không thấy — đo được: chính mũi TS2322 đầu tiên của `type-probe.ts` viết dạng ấy và không bao giờ đỏ được]
 - **Trục Sức sống của assertion**: còn cắn (AC-6) | đã chết — [thước CE: xoá thẳng hai assertion cũng làm AC-1 + AC-5 + AC-7 xanh; chỉ mũi phá-code phân biệt được]
 - **Trục Phạm vi typecheck**: project web (AC-1) | project mcp-server (AC-1, AC-2) — [thước CE: `&&` đã thật sự che vế sau 5 ngày, đây không phải rủi ro giả định]
 - **Trục Không hồi quy**: AC-7 — và phải chứng minh tệp đã chạy, không chỉ bộ đã xanh
@@ -113,6 +122,11 @@ nói ra ở đây thay vì giấu đi.
   ghi nhận nó ở AC-2 và đo cả hai project độc lập.
 
 ## Notes
+
+- Giới hạn còn lại của AC-5b, nói ra thay vì giấu: bộ quét là lưới **mặt chữ**,
+  không phải bộ phân tích cú pháp. Một `as never` bọc trong ngoặc ở vế phải phép
+  gán — `const y = (x as never);` — vẫn lọt, vì nó cũng kết thúc bằng `)`. Đóng
+  nốt lỗ này cần đọc AST, và đó là một lượt khác.
 
 - Risk tier T2: chỉ chạm 2 tệp test, không tệp nào nằm trong `risk_tiers.t3_paths`
   (`src/lib/export.ts`, `src/lib/mapStyle.ts`).

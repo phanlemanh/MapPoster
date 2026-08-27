@@ -339,15 +339,15 @@ describe('area-overview — mặc định nền bản đồ', () => {
     expect(compiled.basemap).toBe('vector');
     // Gọi THẬT tầng giải cấu hình, không chỉ soi đối tượng compile: lời hứa của
     // AC-1 là "đi trọn", mà nơi duy nhất từ chối là ở tầng đó.
-    await expect(resolveConfig(compiled as never)).resolves.toBeTruthy();
+    await expect(resolveConfig(compiled)).resolves.toBeTruthy();
   });
 
   // E2 (AC-2) — cặp hai chiều cho chiều TƯỜNG MINH.
   it('tự tay xin satellite mà thiếu biến: VẪN từ chối, thông điệp nêu đích danh biến', async () => {
     delete process.env[KEY];
     const r = getRecipe('area-overview');
-    const compiled = (r.compile as (p: unknown) => unknown)({ ...(r.example as object), basemap: 'satellite' });
-    await expect(resolveConfig(compiled as never)).rejects.toThrow(KEY);
+    const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);
+    await expect(resolveConfig(compiled)).rejects.toThrow(KEY);
   });
 
   it('đối chứng dương: có biến môi trường thì chiều tường minh ĐƯỢC cho qua', async () => {
@@ -355,7 +355,7 @@ describe('area-overview — mặc định nền bản đồ', () => {
     const r = getRecipe('area-overview');
     const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);
     expect(compiled.basemap).toBe('satellite');
-    const cfg = await resolveConfig(compiled as never);
+    const cfg = await resolveConfig(compiled);
     expect(cfg.basemap).toBe('satellite');
     expect(cfg.satelliteTiles).toBe(TILES);
   });

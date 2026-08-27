@@ -63,7 +63,8 @@ nói ra ở đây thay vì giấu đi.
   phải một hình dạng viết tay — chứng minh cùng chiều phủ định: đọc một field
   không tồn tại trên `CompiledRecipeCall` phải làm typecheck ĐỎ, và `.basemap`
   phải mang kiểu hẹp `'vector' | 'satellite'` chứ không phải `string`.
-- AC-5: Given các dòng mà lượt sửa này **thêm vào** hai tệp đích, When quét,
+- AC-5: Given các dòng mà lượt sửa này **thêm vào** hai tệp đích — so với mốc
+  GHIM `54b5cb2` (commit ngay trước lượt sửa), không phải `merge-base` — When quét,
   Then không dòng nào chứa `as any`, `@ts-expect-error`, `@ts-ignore`, hay
   `as unknown as`. Phạm vi là dòng THÊM chứ không phải cả tệp, có chủ đích: hai
   tệp đã mang sẵn bốn chỗ dùng các mẫu ấy từ trước lượt này, và chúng nằm ngoài
@@ -71,6 +72,10 @@ nói ra ở đây thay vì giấu đi.
   buộc tội lượt này. Bộ quét phải tự chứng minh cả hai chiều: fixture CÓ đủ bốn
   mẫu phải báo đủ bốn, fixture sạch phải báo không; và số dòng thêm phải > 0
   trước khi được kết luận "sạch". Một bộ quét hỏng báo "sạch" trên mọi đầu vào.
+  Mốc phải GHIM: `merge-base` đúng khi PR còn mở nhưng bằng chính HEAD sau khi
+  merge, và khi ấy số dòng thêm về 0 — một phép đo chỉ chạy được trước merge thì
+  không phải phép đo, nó là một cửa sổ. (Đo thật: PR #50 merge xong là chốt
+  `added.length > 0` nổ.)
 - AC-5b: Given TRỌN hai tệp đích (không chỉ dòng thêm), When quét `as never`,
   Then không chỗ nào dùng nó ở **vị trí giá trị** (`const x: T = expr as never`)
   — dạng ấy gán được vào mọi kiểu nên giặt sạch bất kỳ lỗi kiểu nào, và nguy
@@ -78,8 +83,19 @@ nói ra ở đây thay vì giấu đi.
   ĐƯỢC: đó là cách hợp lệ để thoả một tham số khai `never` có chủ đích, và cả 7
   chỗ dùng hiện có đều thuộc dạng này. Cả hai cú pháp ép kiểu đều phải xét:
   `x as never` VÀ `<never>x` — dạng sau hợp lệ trong `.ts` và giặt kiểu y hệt.
-  Phân loại phải hỏi CÂY CÚ PHÁP (`typescript` đã có sẵn trong devDependencies),
-  không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
+  Phép ép kiểu phải được nhận diện bằng BỘ KIỂM KIỂU, không bằng mặt chữ của
+  node kiểu: `type N = never; e as N` là ép về `never` y như `e as never`, mà
+  cú pháp không thấy được (`as N` là `TypeReference`). Phải bắt được cả bí danh
+  một tầng, bí danh dây chuyền (`type M = N`), và bí danh NHẬP TỪ TỆP KHÁC; và
+  phải KHÔNG bắt một bí danh không phải never (`type NeverMind = string`).
+  Còn phần MIỄN TRỪ thì hỏi «tham số tương ứng ĐƯỢC KHAI kiểu gì», không hỏi
+  «phép ép nằm ở đâu». Vị trí đối số KHÔNG bảo đảm tham số kia khai `never`:
+  `declare function __id<T>(v: T): T; const w: number = __id({} as never)` cho
+  `T` suy ra `never` rồi đổ thẳng vào ô `number`. Và phải đọc kiểu KHAI chứ
+  không phải kiểu đã suy — `getResolvedSignature` trả chữ ký ĐÃ suy diễn, nơi
+  `T` đã hoá `never`, tức rơi đúng vào bẫy đang cần bắt. Không xác định được
+  tham số tương ứng thì KHÔNG kết luận "hợp lệ" (cùng luật AC-5c/AC-5d).
+  Không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
   và mọi phép phỏng đoán mặt chữ đều thủng ở ngoặc-nhóm, đối-số-không-đứng-cuối,
   ngoặc trong chuỗi, và số dòng sau chú thích nhiều dòng. Bộ quét phải chứng
   minh: mã nguy hiểm thật → đỏ kèm số dòng ĐÚNG; 7 chỗ đối số → không tính và
@@ -94,6 +110,16 @@ nói ra ở đây thay vì giấu đi.
   là **không đo được ≠ sạch**, cùng nguyên tắc đã áp cho mốc so của AC-5. Phép
   đo phải chứng minh hai chiều: hai ca nuốt → đỏ kèm số lỗi cú pháp; tệp sạch
   → 0 lỗi, chốt không nổ oan.
+- AC-5d: Given một bí danh `never` tới được bản biên dịch THẬT qua đường mà một
+  program một-tệp không thấy (ví dụ `declare type N = never` trong một `.d.ts`
+  toàn cục mà tsconfig `include`), When quét, Then phải bị BẮT. Và Given một tên
+  kiểu KHÔNG giải được, When quét, Then phải NGÃ TO chứ không đọc thành "sạch" —
+  vì `getTypeFromTypeNode` trả kiểu LỖI mang cờ `Any`, trông y hệt một kiểu vô
+  hại. Hai điều kiện: program phải dựng từ `tsconfig` THẬT của project chứa tệp
+  (không phải tuỳ chọn viết tay quanh một tệp), và tên không giải được phải đếm
+  riêng. Phép đo phải chứng minh cả hai chiều: bí danh `.d.ts` toàn cục → đỏ
+  đúng dòng **kể cả khi `tsc` xanh** (nên E1 KHÔNG đỡ hộ); tên không giải được →
+  đỏ; và hai tệp đích thật → 0 tên không giải được, chốt không nổ oan.
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
   `MapView.tsx` nuốt `satelliteTiles`; `recipes.ts` đổi mặc định area-overview về
@@ -146,6 +172,29 @@ nói ra ở đây thay vì giấu đi.
   là một bộ phân tích từ vựng, trong khi `typescript` nằm sẵn trong
   devDependencies suốt thời gian đó. Giờ hỏi thẳng AST — đúng chú thích, chuỗi,
   template, regex và vị trí, miễn phí.
+- Lối vòng BÍ DANH KIỂU do vòng chấm 4 tìm ra là tầng thứ tư của cùng một bài
+  học: mặt chữ → cây cú pháp → chẩn đoán cú pháp → KIỂM KIỂU. Mỗi tầng chữa
+  đúng lỗi của tầng trước rồi để lộ một lớp mà nó không có giác quan để thấy.
+  Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
+- Luật miễn trừ theo KIỂU KHAI của tham số sinh ra từ vòng chấm 6, và là tầng
+  thứ SÁU: mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → phạm vi biên
+  dịch → **kiểu khai của tham số**. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
+  vòng 2 từng ghi: một phép thử sai theo CẢ HAI chiều (bỏ lọt `__id(x as never)`
+  đồng thời đỏ oan `f((x as never))`) là phỏng đoán đặt thấp hơn một tầng so
+  với câu hỏi thật.
+- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế:
+  bộ quét đo PHÉP ÉP KIỂU. Hai dạng giặt kiểu KHÔNG dùng phép ép nào —
+  `declare function __ln<T>(x: unknown): T` (biến bất cứ gì thành bất cứ gì,
+  trong nguồn không có cả `never` lẫn `any`) và hàm khẳng định
+  `asserts x is never` — nằm ngoài tầm của MỌI tầng ở trên. Bắt được chúng cần
+  phân tích luồng dữ liệu, tức một công cụ khác. Đây là trần, không phải sót.
+- AC-5d sinh ra từ vòng chấm 5, và là tầng thứ NĂM của cùng một bài học:
+  mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → **phạm vi biên dịch**.
+  Luật «không đo được ≠ sạch» của AC-5c viết đúng nhưng chỉ áp cho cú pháp;
+  không ai hỏi bộ KIỂM KIỂU có giải được cái tên đó không. Chi tiết đáng nhớ:
+  `getSymbolAtLocation` trên một tên không tồn tại KHÔNG trả `undefined` mà trả
+  một symbol LỖI mang đúng tên ấy — nên phép thử hiển nhiên nhất im lặng cho 0
+  và lỗ vẫn mở. Dấu hiệu thật là chẩn đoán ngữ nghĩa 2304.
 - AC-5c sinh ra từ vòng chấm 3, và nó là bài học lặp lại của chính hồ sơ này ở
   một tầng cao hơn: bộ phân tích thật chữa mọi lỗi phỏng đoán mặt chữ, nhưng
   chuyển luôn chế độ hỏng từ «đọc nhầm» sang «đọc trống». Một thước im lặng khi

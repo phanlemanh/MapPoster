@@ -55,28 +55,80 @@ const PATTERNS: { name: string; src: string }[] = [
 const TARGETS = ['src/components/MapView.test.tsx', 'mcp-server/src/recipes.test.ts'];
 
 /**
- * `as never` — phân loại bằng CHÍNH BỘ PHÂN TÍCH CÚ PHÁP của TypeScript.
+ * `as never` — phân loại bằng CHÍNH BỘ KIỂM KIỂU của TypeScript.
  *
- * Đường đi tới đây đáng ghi lại, vì nó là bài học chứ không phải chi tiết:
- * bản đầu dùng phép thử mặt chữ «có `)` ngay sau không» làm đại diện cho «có ở
- * vị trí đối số không». Vòng chấm thứ hai đâm thủng đại diện ấy bốn chỗ. Vá
- * bằng cách lần ngược đếm ngoặc thì thủng tiếp ba chỗ nữa — số dòng lệch vì
- * chú thích nhiều dòng; ngoặc NẰM TRONG chuỗi (`'{z}/{x}/{y}'`, mẫu regex) làm
- * lệch phép đếm và giặt một dòng bịt miệng vào ô "hợp lệ"; rồi bộ xoá ruột
- * chuỗi tự nó lệch pha ở một dấu nháy và nuốt mất một dòng mã THẬT.
+ * Đường đi tới đây là bài học lặp ba lần, ghi lại vì nó đáng hơn cả đoạn mã:
+ *   - Bản 1 đoán vị trí đối số bằng «có `)` ngay sau không». Vòng chấm 2 đâm
+ *     thủng bốn chỗ (ngoặc nhóm, đối số không đứng cuối, `<never>x`, số dòng).
+ *   - Bản 2 lần ngược đếm ngoặc. Thủng thêm ba chỗ: chú thích nhiều dòng làm
+ *     lệch số dòng; ngoặc NẰM TRONG chuỗi làm lệch phép đếm và GIẶT một dòng
+ *     bịt miệng vào ô "hợp lệ"; bộ xoá ruột chuỗi lệch pha nuốt mất mã thật.
+ *   - Bản 3 hỏi CÂY CÚ PHÁP. Đúng hết về cấu trúc, nhưng dời chế độ hỏng từ
+ *     «đọc nhầm» sang «đọc trống» (vòng 3), và vẫn trượt một lối vòng mà cấu
+ *     trúc không thấy được (vòng 4): **bí danh kiểu**.
+ *       `type N = never; const x: number = e as N;`
+ *     Cây nguyên vẹn, 0 chẩn đoán cú pháp, `tsc` xanh — nên cả AC-5c lẫn E1
+ *     đều KHÔNG đỡ. Cú pháp không đủ vì `as N` là `TypeReference`, và chỉ có
+ *     bộ KIỂM KIỂU mới biết `N` trỏ về `never`.
  *
- * Ba lần vá, ba lỗ mới: đó là dấu hiệu sai KIẾN TRÚC, không phải sai chi tiết.
- * Thứ đang bị viết tay ở đây là một bộ phân tích từ vựng — mà `typescript` đã
- * nằm sẵn trong devDependencies suốt thời gian đó. Bộ phân tích thật đọc đúng
- * chú thích, chuỗi, template, regex và cho vị trí chính xác, miễn phí.
+ * Nên bản này hỏi bộ kiểm kiểu: `checker.getTypeFromTypeNode(node.type)` rồi
+ * xét cờ `TypeFlags.Never`. Nó giải được `never` trực tiếp, bí danh một tầng,
+ * bí danh dây chuyền (`type M = N`), và bí danh nhập từ tệp khác — miễn phí,
+ * vì đó là việc của chính trình biên dịch. Đo lúc dựng: ~280ms mỗi tệp thật.
  *
- * Luật giữ nguyên, chỉ cách đo là đổi:
- *   - `f(x as never)` — ĐỐI SỐ: cách hợp lệ để thoả tham số khai `never` có
- *     chủ đích (`RecipeSpec.compile`, `resolveConfig`).
- *   - `const x: T = expr as never` — GIÁ TRỊ: `never` gán được vào mọi kiểu nên
- *     dạng này giặt sạch mọi lỗi kiểu. Nguy hiểm hơn `as any` vì trông vô hại hơn.
- * Cả hai cú pháp ép kiểu đều được xét: `x as never` và `<never>x`.
+ * Luật vị trí giữ nguyên và vẫn hỏi cây cú pháp (đúng chỗ của nó):
+ *   - `f(x as never)` — ĐỐI SỐ: cách hợp lệ thoả tham số khai `never` có chủ ý.
+ *   - `const x: T = e as never` — GIÁ TRỊ: giặt sạch mọi lỗi kiểu.
  */
+function makeProgram(fileName: string, source: string, extra: Record<string, string> = {}) {
+  const virtual: Record<string, string> = { [fileName]: source, ...extra };
+  const opts: ts.CompilerOptions = {
+    target: ts.ScriptTarget.Latest,
+    skipLibCheck: true,
+    ...(fileName.endsWith('.tsx') ? { jsx: ts.JsxEmit.Preserve } : {}),
+  };
+  const host = ts.createCompilerHost(opts, true);
+  const origGet = host.getSourceFile.bind(host);
+  const origRead = host.readFile.bind(host);
+  host.getSourceFile = (n, v, e, sc) =>
+    virtual[n] !== undefined
+      ? ts.createSourceFile(n, virtual[n]!, v, true, n.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+      : origGet(n, v, e, sc);
+  host.readFile = (n) => (virtual[n] !== undefined ? virtual[n] : origRead(n));
+  host.fileExists = (n) => virtual[n] !== undefined || ts.sys.fileExists(n);
+  return ts.createProgram([fileName], opts, host);
+}
+
+/** Mọi chỗ ép về `never` (kể cả qua bí danh), kèm số dòng THẬT và vị trí. */
+function classifyNever(rawSrc: string, fileName = 'probe.ts', extra: Record<string, string> = {}) {
+  const program = makeProgram(fileName, rawSrc, extra);
+  const checker = program.getTypeChecker();
+  const sf = program.getSourceFile(fileName)!;
+  const out: { line: number; text: string; arg: boolean }[] = [];
+
+  const visit = (node: ts.Node) => {
+    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
+      // Hỏi bộ KIỂM KIỂU, không hỏi mặt chữ của node kiểu: `as N` với
+      // `type N = never` phải tính là never, còn `as NeverMind` thì không.
+      const isNever = (checker.getTypeFromTypeNode(node.type).flags & ts.TypeFlags.Never) !== 0;
+      if (isNever) {
+        const parent = node.parent;
+        // Vị trí đối số = con TRỰC TIẾP trong `arguments` của lời gọi. Đây là
+        // câu hỏi về CẤU TRÚC nên hỏi cây cú pháp mới đúng chỗ.
+        const arg =
+          !!parent &&
+          (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+          (parent.arguments?.some((a) => a === node) ?? false);
+        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+        out.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 /**
  * Số lỗi CÚ PHÁP của một tệp — chốt hỏng-thì-ĐÓNG cho `classifyNever`.
  *
@@ -108,39 +160,6 @@ function parseErrorCount(rawSrc: string, fileName = 'probe.ts'): number {
   return res.diagnostics?.length ?? 0;
 }
 
-function classifyNever(rawSrc: string, fileName = 'probe.ts') {
-  const sf = ts.createSourceFile(
-    fileName,
-    rawSrc,
-    ts.ScriptTarget.Latest,
-    /* setParentNodes */ true,
-    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
-  const out: { line: number; text: string; arg: boolean }[] = [];
-
-  const isNeverCast = (n: ts.Node): n is ts.AsExpression | ts.TypeAssertion =>
-    (ts.isAsExpression(n) || ts.isTypeAssertionExpression(n)) &&
-    n.type.kind === ts.SyntaxKind.NeverKeyword;
-
-  const visit = (node: ts.Node) => {
-    if (isNeverCast(node)) {
-      const parent = node.parent;
-      // Vị trí đối số = con TRỰC TIẾP trong danh sách `arguments` của lời gọi.
-      // Hỏi thẳng cây cú pháp, nên `f(a as never, b)` (đối số không đứng cuối)
-      // và `(x as never)` (ngoặc NHÓM) tự phân biệt được, không cần luật riêng.
-      const arg =
-        !!parent &&
-        (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
-        (parent.arguments?.some((a) => a === node) ?? false);
-      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-      out.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
-  return out;
-}
-
 
 let failures = 0;
 const say = (ok: boolean, msg: string) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${msg}`); if (!ok) failures++; };
@@ -164,7 +183,7 @@ const CLEAN = [
   'return r.compile(ex as never);',   // ép ở ĐỐI SỐ — không phải mẫu bịt miệng
 ].join('\n');
 
-const NEVER_CASES: { src: string; arg: boolean; why: string }[] = [
+const NEVER_CASES: { src: string; arg: boolean; why: string; skip?: boolean }[] = [
   { src: 'const _p1: number = buildMapStyle.mock.calls[0][0].basemap as never; void _p1;', arg: false, why: 'ca hồi quy type-probe' },
   { src: 'const z: Foo = bar as never;', arg: false, why: 'gán thẳng' },
   { src: 'const _z: number = (someIdentifier as never);', arg: false, why: 'ngoặc NHÓM, không phải lời gọi (lỗ #1 vòng 2)' },
@@ -175,12 +194,39 @@ const NEVER_CASES: { src: string; arg: boolean; why: string }[] = [
   { src: 'resolveConfig(a as never, b);', arg: true, why: 'đối số KHÔNG đứng cuối (lỗ #2 vòng 2)' },
   { src: "const url = 'https://t.example/{z}/{x}/{y}.jpg'; const _l: number = getRecipe as never;", arg: false, why: 'ngoặc trong CHUỖI không được làm lệch phép đếm (lỗ của bản lần-ngược)' },
   { src: "const s = 'don\\'t'; const _m: number = getRecipe as never;", arg: false, why: 'nháy thoát trong chuỗi không được lệch pha' },
+  // Lối vòng BÍ DANH KIỂU — vòng chấm 4 tìm ra. Cú pháp không thấy được, chỉ
+  // bộ kiểm kiểu mới biết `N` trỏ về `never`.
+  { src: 'type N = never; declare const e: string; const _a: number = e as N;', arg: false, why: 'bí danh một tầng (lối vòng vòng 4)' },
+  { src: 'type N = never; type M = N; declare const e: string; const _b: number = e as M;', arg: false, why: 'bí danh DÂY CHUYỀN' },
+  { src: 'type N = never; declare function f(p: never): void; declare const e: string; f(e as N);', arg: true, why: 'bí danh ở vị trí đối số — vẫn hợp lệ' },
+  // Đối chứng âm quan trọng: một bí danh KHÔNG phải never thì không được tính.
+  { src: 'type NeverMind = string; declare const e: number; const _c: string = e as NeverMind;', arg: false, why: 'bí danh KHÔNG phải never — phải không có khớp nào', skip: true },
 ];
 
 for (const c of NEVER_CASES) {
   const got = classifyNever(c.src);
+  if (c.skip) {           // `skip` = KHÔNG được có khớp nào (đối chứng âm)
+    say(got.length === 0, `phân loại «${c.why}» → ${got.length} khớp (đúng: 0)`);
+    continue;
+  }
   const ok = got.length === 1 && got[0]!.arg === c.arg;
   say(ok, `phân loại «${c.why}» → ${got.length === 1 ? (got[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${got.length} khớp`} (đúng: ${c.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ'})`);
+}
+
+// Bí danh NHẬP TỪ TỆP KHÁC — biến thể khó nhất, và là thứ chỉ có bộ kiểm kiểu
+// với đủ độ phân giải mới lần ra. Dựng bằng tệp ảo thứ hai trong cùng program.
+{
+  // Khoá của tệp ảo phải là đường dẫn TUYỆT ĐỐI: bộ giải module tính ra đường
+  // tuyệt đối từ `'./alias'`, nên khoá tương đối không bao giờ khớp (đo được:
+  // 0 khớp, và "0 khớp" ở đây trông y hệt "sạch" — đúng lớp lỗi hồ sơ này canh).
+  const dir = path.join(ROOT, '_acceptance', 'typecheck-mock-signature');
+  const crossFile = classifyNever(
+    "import type { N } from './alias';\ndeclare const e: string;\nconst _x: number = e as N;",
+    path.join(dir, '__vt_main.ts'),
+    { [path.join(dir, 'alias.ts')]: 'export type N = never;' },
+  );
+  say(crossFile.length === 1 && !crossFile[0]!.arg,
+    `phân loại «bí danh NHẬP TỪ TỆP KHÁC» → ${crossFile.length === 1 ? (crossFile[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${crossFile.length} khớp`} (đúng: GIÁ TRỊ)`);
 }
 
 // Chốt hỏng-thì-ĐÓNG: tệp không parse được phải bị BẮT, không được đi qua như
@@ -212,16 +258,27 @@ say(hits(DIRTY).length === 4, `đối chứng dương: fixture 4 mẫu → bắt
 say(hits(CLEAN).length === 0, `đối chứng âm: fixture sạch → bắt ${hits(CLEAN).length} (phải là 0)`);
 if (failures > 0) { console.log('\nFAILED — bộ quét hỏng, mọi kết luận đều vô nghĩa'); process.exit(1); }
 
-// ── Mốc so: gốc chung với nhánh đích ─────────────────────────────────────────
+// ── Mốc so: GHIM, không phải merge-base ──────────────────────────────────────
+// AC-5 hỏi "lượt sửa NÀY có thêm mẫu bịt miệng nào không". Lượt sửa ấy là một
+// sự kiện lịch sử cố định, nên mốc so của nó cũng phải cố định.
+//
+// Bản đầu dùng `git merge-base HEAD origin/main`. Đúng khi PR còn mở, SAI ngay
+// khi PR merge: merge-base khi đó chính là HEAD, số dòng thêm về 0, và phép đo
+// mất đối tượng. Đo được thật lúc merge PR #50 — chốt `added.length > 0` nổ
+// đúng như thiết kế ("không đo được gì") thay vì im lặng báo sạch, nhưng một
+// phép đo chỉ chạy được trước khi merge thì không phải phép đo, nó là một cửa sổ.
+//
+// `SILENCER_SCAN_BASE` cho phép trỏ mốc khác khi cần; mặc định là commit ngay
+// TRƯỚC lượt sửa. Không giải được mốc thì script ngã (không-đo-được ≠ sạch).
+const PINNED_BASE = '54b5cb263259bc8ebe0ef5d20960b82b369b1f6e';   // main ngay trước lượt sửa typecheck-mock-signature
 function baseRef(): string {
-  for (const ref of ['origin/main', 'main']) {
-    try {
-      return execFileSync('git', ['merge-base', 'HEAD', ref], { cwd: ROOT, encoding: 'utf8' }).trim();
-    } catch { /* thử ref kế */ }
+  const want = process.env.SILENCER_SCAN_BASE || PINNED_BASE;
+  try {
+    return execFileSync('git', ['rev-parse', `${want}^{commit}`], { cwd: ROOT, encoding: 'utf8' }).trim();
+  } catch {
+    console.log(`FAIL  không giải được mốc so «${want}» — phép đo không chạy được`);
+    process.exit(1);
   }
-  // Không giải được mốc so = KHÔNG ĐO ĐƯỢC, không phải "sạch".
-  console.log('FAIL  không giải được mốc so (origin/main hoặc main) — phép đo không chạy được');
-  process.exit(1);
 }
 const BASE = baseRef();
 console.log(`mốc so: ${BASE}`);

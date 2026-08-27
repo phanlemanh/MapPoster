@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: signed-off
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -63,7 +63,8 @@ nói ra ở đây thay vì giấu đi.
   phải một hình dạng viết tay — chứng minh cùng chiều phủ định: đọc một field
   không tồn tại trên `CompiledRecipeCall` phải làm typecheck ĐỎ, và `.basemap`
   phải mang kiểu hẹp `'vector' | 'satellite'` chứ không phải `string`.
-- AC-5: Given các dòng mà lượt sửa này **thêm vào** hai tệp đích, When quét,
+- AC-5: Given các dòng mà lượt sửa này **thêm vào** hai tệp đích — so với mốc
+  GHIM `54b5cb2` (commit ngay trước lượt sửa), không phải `merge-base` — When quét,
   Then không dòng nào chứa `as any`, `@ts-expect-error`, `@ts-ignore`, hay
   `as unknown as`. Phạm vi là dòng THÊM chứ không phải cả tệp, có chủ đích: hai
   tệp đã mang sẵn bốn chỗ dùng các mẫu ấy từ trước lượt này, và chúng nằm ngoài
@@ -71,6 +72,10 @@ nói ra ở đây thay vì giấu đi.
   buộc tội lượt này. Bộ quét phải tự chứng minh cả hai chiều: fixture CÓ đủ bốn
   mẫu phải báo đủ bốn, fixture sạch phải báo không; và số dòng thêm phải > 0
   trước khi được kết luận "sạch". Một bộ quét hỏng báo "sạch" trên mọi đầu vào.
+  Mốc phải GHIM: `merge-base` đúng khi PR còn mở nhưng bằng chính HEAD sau khi
+  merge, và khi ấy số dòng thêm về 0 — một phép đo chỉ chạy được trước merge thì
+  không phải phép đo, nó là một cửa sổ. (Đo thật: PR #50 merge xong là chốt
+  `added.length > 0` nổ.)
 - AC-5b: Given TRỌN hai tệp đích (không chỉ dòng thêm), When quét `as never`,
   Then không chỗ nào dùng nó ở **vị trí giá trị** (`const x: T = expr as never`)
   — dạng ấy gán được vào mọi kiểu nên giặt sạch bất kỳ lỗi kiểu nào, và nguy
@@ -78,8 +83,13 @@ nói ra ở đây thay vì giấu đi.
   ĐƯỢC: đó là cách hợp lệ để thoả một tham số khai `never` có chủ đích, và cả 7
   chỗ dùng hiện có đều thuộc dạng này. Cả hai cú pháp ép kiểu đều phải xét:
   `x as never` VÀ `<never>x` — dạng sau hợp lệ trong `.ts` và giặt kiểu y hệt.
-  Phân loại phải hỏi CÂY CÚ PHÁP (`typescript` đã có sẵn trong devDependencies),
-  không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
+  Phép ép kiểu phải được nhận diện bằng BỘ KIỂM KIỂU, không bằng mặt chữ của
+  node kiểu: `type N = never; e as N` là ép về `never` y như `e as never`, mà
+  cú pháp không thấy được (`as N` là `TypeReference`). Phải bắt được cả bí danh
+  một tầng, bí danh dây chuyền (`type M = N`), và bí danh NHẬP TỪ TỆP KHÁC; và
+  phải KHÔNG bắt một bí danh không phải never (`type NeverMind = string`).
+  Còn VỊ TRÍ (đối số hay giá trị) thì hỏi cây cú pháp — đó mới là câu hỏi cấu
+  trúc. Không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
   và mọi phép phỏng đoán mặt chữ đều thủng ở ngoặc-nhóm, đối-số-không-đứng-cuối,
   ngoặc trong chuỗi, và số dòng sau chú thích nhiều dòng. Bộ quét phải chứng
   minh: mã nguy hiểm thật → đỏ kèm số dòng ĐÚNG; 7 chỗ đối số → không tính và
@@ -146,6 +156,10 @@ nói ra ở đây thay vì giấu đi.
   là một bộ phân tích từ vựng, trong khi `typescript` nằm sẵn trong
   devDependencies suốt thời gian đó. Giờ hỏi thẳng AST — đúng chú thích, chuỗi,
   template, regex và vị trí, miễn phí.
+- Lối vòng BÍ DANH KIỂU do vòng chấm 4 tìm ra là tầng thứ tư của cùng một bài
+  học: mặt chữ → cây cú pháp → chẩn đoán cú pháp → KIỂM KIỂU. Mỗi tầng chữa
+  đúng lỗi của tầng trước rồi để lộ một lớp mà nó không có giác quan để thấy.
+  Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
 - AC-5c sinh ra từ vòng chấm 3, và nó là bài học lặp lại của chính hồ sơ này ở
   một tầng cao hơn: bộ phân tích thật chữa mọi lỗi phỏng đoán mặt chữ, nhưng
   chuyển luôn chế độ hỏng từ «đọc nhầm» sang «đọc trống». Một thước im lặng khi

@@ -76,10 +76,16 @@ nói ra ở đây thay vì giấu đi.
   — dạng ấy gán được vào mọi kiểu nên giặt sạch bất kỳ lỗi kiểu nào, và nguy
   hiểm hơn `as any` vì trông vô hại hơn. **Vị trí đối số** (`f(x as never)`) thì
   ĐƯỢC: đó là cách hợp lệ để thoả một tham số khai `never` có chủ đích, và cả 7
-  chỗ dùng hiện có đều thuộc dạng này. Bộ quét phải chứng minh ba chiều: mã
-  nguy hiểm thật → đỏ kèm số dòng; 7 chỗ đối số → không tính; và một chú thích
-  chỉ NHẮC TỚI `as never` → KHÔNG đỏ (một bộ quét nổ trên văn xuôi là bộ quét
-  người ta sẽ tắt đi, và phép đo bị tắt thì không đo gì cả).
+  chỗ dùng hiện có đều thuộc dạng này. Cả hai cú pháp ép kiểu đều phải xét:
+  `x as never` VÀ `<never>x` — dạng sau hợp lệ trong `.ts` và giặt kiểu y hệt.
+  Phân loại phải hỏi CÂY CÚ PHÁP (`typescript` đã có sẵn trong devDependencies),
+  không phỏng đoán bằng ký tự đứng sau: `)` không phải dấu hiệu của lời gọi hàm,
+  và mọi phép phỏng đoán mặt chữ đều thủng ở ngoặc-nhóm, đối-số-không-đứng-cuối,
+  ngoặc trong chuỗi, và số dòng sau chú thích nhiều dòng. Bộ quét phải chứng
+  minh: mã nguy hiểm thật → đỏ kèm số dòng ĐÚNG; 7 chỗ đối số → không tính và
+  được báo RIÊNG; `f(a as never, b)` → không đỏ oan; và một chú thích chỉ NHẮC
+  TỚI `as never` → KHÔNG đỏ (bộ quét nổ trên văn xuôi là bộ quét người ta sẽ
+  tắt đi, và phép đo bị tắt thì không đo gì cả).
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
   `MapView.tsx` nuốt `satelliteTiles`; `recipes.ts` đổi mặc định area-overview về
@@ -123,10 +129,15 @@ nói ra ở đây thay vì giấu đi.
 
 ## Notes
 
-- Giới hạn còn lại của AC-5b, nói ra thay vì giấu: bộ quét là lưới **mặt chữ**,
-  không phải bộ phân tích cú pháp. Một `as never` bọc trong ngoặc ở vế phải phép
-  gán — `const y = (x as never);` — vẫn lọt, vì nó cũng kết thúc bằng `)`. Đóng
-  nốt lỗ này cần đọc AST, và đó là một lượt khác.
+- Bài học của AC-5b, ghi lại vì nó là bài học chứ không phải chi tiết: bản đầu
+  đoán vị trí đối số bằng «có `)` ngay sau không». Vòng chấm 2 đâm thủng bốn
+  chỗ; vá bằng cách lần ngược đếm ngoặc thì thủng thêm ba chỗ nữa (số dòng lệch
+  vì chú thích nhiều dòng, ngoặc trong chuỗi làm lệch phép đếm và giặt một dòng
+  bịt miệng vào ô «hợp lệ», rồi bộ xoá ruột chuỗi lệch pha nuốt mất một dòng mã
+  thật). Ba lần vá ba lỗ mới là dấu hiệu sai KIẾN TRÚC: thứ đang được viết tay
+  là một bộ phân tích từ vựng, trong khi `typescript` nằm sẵn trong
+  devDependencies suốt thời gian đó. Giờ hỏi thẳng AST — đúng chú thích, chuỗi,
+  template, regex và vị trí, miễn phí.
 
 - Risk tier T2: chỉ chạm 2 tệp test, không tệp nào nằm trong `risk_tiers.t3_paths`
   (`src/lib/export.ts`, `src/lib/mapStyle.ts`).

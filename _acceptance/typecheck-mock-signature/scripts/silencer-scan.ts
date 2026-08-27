@@ -39,6 +39,7 @@
  * sạch dạng nguy hiểm — giữ được mức đó thì giữ, đừng hạ xuống cho dễ.
  */
 import { execFileSync } from 'node:child_process';
+import ts from 'typescript';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -54,22 +55,61 @@ const PATTERNS: { name: string; src: string }[] = [
 const TARGETS = ['src/components/MapView.test.tsx', 'mcp-server/src/recipes.test.ts'];
 
 /**
- * `as never` KHÔNG đứng ngay trước một dấu `)` — tức không ở vị trí đối số.
- * Giới hạn đã biết, nói ra thay vì giấu: một `as never` bọc trong ngoặc ở vế
- * phải phép gán — `const y = (x as never);` — vẫn lọt, vì nó cũng kết thúc
- * bằng `)`. Bộ quét này là lưới mặt chữ, không phải bộ phân tích cú pháp.
+ * `as never` — phân loại bằng CHÍNH BỘ PHÂN TÍCH CÚ PHÁP của TypeScript.
+ *
+ * Đường đi tới đây đáng ghi lại, vì nó là bài học chứ không phải chi tiết:
+ * bản đầu dùng phép thử mặt chữ «có `)` ngay sau không» làm đại diện cho «có ở
+ * vị trí đối số không». Vòng chấm thứ hai đâm thủng đại diện ấy bốn chỗ. Vá
+ * bằng cách lần ngược đếm ngoặc thì thủng tiếp ba chỗ nữa — số dòng lệch vì
+ * chú thích nhiều dòng; ngoặc NẰM TRONG chuỗi (`'{z}/{x}/{y}'`, mẫu regex) làm
+ * lệch phép đếm và giặt một dòng bịt miệng vào ô "hợp lệ"; rồi bộ xoá ruột
+ * chuỗi tự nó lệch pha ở một dấu nháy và nuốt mất một dòng mã THẬT.
+ *
+ * Ba lần vá, ba lỗ mới: đó là dấu hiệu sai KIẾN TRÚC, không phải sai chi tiết.
+ * Thứ đang bị viết tay ở đây là một bộ phân tích từ vựng — mà `typescript` đã
+ * nằm sẵn trong devDependencies suốt thời gian đó. Bộ phân tích thật đọc đúng
+ * chú thích, chuỗi, template, regex và cho vị trí chính xác, miễn phí.
+ *
+ * Luật giữ nguyên, chỉ cách đo là đổi:
+ *   - `f(x as never)` — ĐỐI SỐ: cách hợp lệ để thoả tham số khai `never` có
+ *     chủ đích (`RecipeSpec.compile`, `resolveConfig`).
+ *   - `const x: T = expr as never` — GIÁ TRỊ: `never` gán được vào mọi kiểu nên
+ *     dạng này giặt sạch mọi lỗi kiểu. Nguy hiểm hơn `as any` vì trông vô hại hơn.
+ * Cả hai cú pháp ép kiểu đều được xét: `x as never` và `<never>x`.
  */
-const AS_NEVER_VALUE_POS = String.raw`\bas\s+never\s*(?![\s)])`;
+function classifyNever(rawSrc: string, fileName = 'probe.ts') {
+  const sf = ts.createSourceFile(
+    fileName,
+    rawSrc,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const out: { line: number; text: string; arg: boolean }[] = [];
 
-/**
- * Bỏ chú thích trước khi quét `as never`. Đo thật lúc dựng: một dòng chú thích
- * chỉ NHẮC TỚI `as never` cũng bị đếm, làm số chỗ vọt từ 1 lên 2. Một bộ quét
- * nổ trên văn xuôi là bộ quét mà người ta sẽ học cách tắt đi — và một phép đo
- * bị tắt thì không đo gì cả. Chú thích không được biên dịch, nên bỏ chúng
- * KHÔNG nới lỏng phép đo: mã bị comment-out vốn đã vô hại.
- */
-const stripComments = (src: string) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const isNeverCast = (n: ts.Node): n is ts.AsExpression | ts.TypeAssertion =>
+    (ts.isAsExpression(n) || ts.isTypeAssertionExpression(n)) &&
+    n.type.kind === ts.SyntaxKind.NeverKeyword;
+
+  const visit = (node: ts.Node) => {
+    if (isNeverCast(node)) {
+      const parent = node.parent;
+      // Vị trí đối số = con TRỰC TIẾP trong danh sách `arguments` của lời gọi.
+      // Hỏi thẳng cây cú pháp, nên `f(a as never, b)` (đối số không đứng cuối)
+      // và `(x as never)` (ngoặc NHÓM) tự phân biệt được, không cần luật riêng.
+      const arg =
+        !!parent &&
+        (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+        (parent.arguments?.some((a) => a === node) ?? false);
+      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+      out.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 
 let failures = 0;
 const say = (ok: boolean, msg: string) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${msg}`); if (!ok) failures++; };
@@ -85,30 +125,45 @@ const DIRTY = [
   'const b = y as unknown as Foo;',
 ].join('\n');
 // Ca hồi quy THẬT: đúng dòng đã làm mũi TS2322 của type-probe.ts không bao giờ
-// đỏ được, cho tới khi đối chứng mã-lỗi bắt được nó.
-const DIRTY_NEVER = [
-  'const _p1: number = buildMapStyle.mock.calls[0][0].basemap as never; void _p1;',
-  'const z: Foo = bar as never;',
-].join('\n');
-const CLEAN_NEVER = [
-  'return r.compile(ex as never);',
-  'await expect(resolveConfig(compiled as never)).rejects.toThrow(KEY);',
-  "const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);",
-].join('\n');
+// đỏ được, cho tới khi đối chứng mã-lỗi bắt được nó. Bốn ca sau là bốn lỗ mà
+// vòng chấm thứ hai đâm thủng bản quét đầu — giữ lại làm ca hồi quy.
 const CLEAN = [
   'const buildMapStyle = vi.fn((_args: BuildStyleArgs) => ({ version: 8 }));',
   'const arg = buildMapStyle.mock.calls[0][0];',
   'return r.compile(ex as never);',   // ép ở ĐỐI SỐ — không phải mẫu bịt miệng
 ].join('\n');
-const nverHits = (text: string) => text.match(new RegExp(AS_NEVER_VALUE_POS, 'g')) ?? [];
+
+const NEVER_CASES: { src: string; arg: boolean; why: string }[] = [
+  { src: 'const _p1: number = buildMapStyle.mock.calls[0][0].basemap as never; void _p1;', arg: false, why: 'ca hồi quy type-probe' },
+  { src: 'const z: Foo = bar as never;', arg: false, why: 'gán thẳng' },
+  { src: 'const _z: number = (someIdentifier as never);', arg: false, why: 'ngoặc NHÓM, không phải lời gọi (lỗ #1 vòng 2)' },
+  { src: 'const _y: number = <never>someIdentifier;', arg: false, why: 'cú pháp ép kiểu kia (lỗ #3 vòng 2)' },
+  { src: 'return r.compile(ex as never);', arg: true, why: 'đối số cuối' },
+  { src: "const compiled = r.compile({ ...(r.example as object), basemap: 'satellite' } as never);", arg: true, why: 'đối số cuối, có ngoặc lồng' },
+  { src: 'await expect(resolveConfig(compiled as never)).rejects.toThrow(KEY);', arg: true, why: 'đối số lồng trong lời gọi khác' },
+  { src: 'resolveConfig(a as never, b);', arg: true, why: 'đối số KHÔNG đứng cuối (lỗ #2 vòng 2)' },
+  { src: "const url = 'https://t.example/{z}/{x}/{y}.jpg'; const _l: number = getRecipe as never;", arg: false, why: 'ngoặc trong CHUỖI không được làm lệch phép đếm (lỗ của bản lần-ngược)' },
+  { src: "const s = 'don\\'t'; const _m: number = getRecipe as never;", arg: false, why: 'nháy thoát trong chuỗi không được lệch pha' },
+];
+
+for (const c of NEVER_CASES) {
+  const got = classifyNever(c.src);
+  const ok = got.length === 1 && got[0]!.arg === c.arg;
+  say(ok, `phân loại «${c.why}» → ${got.length === 1 ? (got[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${got.length} khớp`} (đúng: ${c.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ'})`);
+}
+
+// Chú thích chỉ NHẮC TỚI as never không được tính — ca hồi quy của lỗi trước.
+say(classifyNever('// mũi thử: as never ở vị trí giá trị thì phải đỏ').length === 0,
+  'đối chứng âm: chú thích nhắc tới «as never» → 0 (văn xuôi không phải mã)');
+
+// Số dòng phải ĐÚNG kể cả sau một khối chú thích nhiều dòng — lỗ #4 vòng 2.
+const LINENO_FIXTURE = ['const a = 1;', '/* khối', 'chú thích', 'ba dòng */', 'const b: number = x as never;'].join('\n');
+const lineHit = classifyNever(LINENO_FIXTURE);
+say(lineHit.length === 1 && lineHit[0]!.line === 5,
+  `số dòng sau khối chú thích nhiều dòng → ${lineHit[0]?.line ?? 'không bắt'} (đúng: 5)`);
 
 say(hits(DIRTY).length === 4, `đối chứng dương: fixture 4 mẫu → bắt ${hits(DIRTY).length} (${hits(DIRTY).join(', ') || 'không có'})`);
 say(hits(CLEAN).length === 0, `đối chứng âm: fixture sạch → bắt ${hits(CLEAN).length} (phải là 0)`);
-say(nverHits(stripComments(DIRTY_NEVER)).length === 2, `đối chứng dương «as never» vị trí GIÁ TRỊ → bắt ${nverHits(stripComments(DIRTY_NEVER)).length}/2 (gồm ca hồi quy của type-probe)`);
-say(nverHits(stripComments(CLEAN_NEVER)).length === 0, `đối chứng âm «as never» vị trí ĐỐI SỐ → bắt ${nverHits(stripComments(CLEAN_NEVER)).length} (phải là 0 — đây là cách dùng hợp lệ)`);
-// Chú thích chỉ NHẮC TỚI as never không được tính — ca hồi quy của chính lỗi trên.
-const COMMENT_ONLY = '// mũi thử: as never ở vị trí giá trị thì phải đỏ';
-say(nverHits(stripComments(COMMENT_ONLY)).length === 0, `đối chứng âm: chú thích nhắc tới «as never» → bắt ${nverHits(stripComments(COMMENT_ONLY)).length} (phải là 0 — văn xuôi không phải mã)`);
 if (failures > 0) { console.log('\nFAILED — bộ quét hỏng, mọi kết luận đều vô nghĩa'); process.exit(1); }
 
 // ── Mốc so: gốc chung với nhánh đích ─────────────────────────────────────────
@@ -136,16 +191,13 @@ for (const t of TARGETS) {
     added.forEach((l) => { if (PATTERNS.some((p) => new RegExp(p.src).test(l))) console.log(`      + ${l.trim()}`); });
   }
 
-  // `as never` vị trí GIÁ TRỊ — quét TRỌN tệp, không chỉ dòng thêm: hai tệp
-  // đích đang sạch dạng này, giữ được mức đó thì giữ.
-  const body = stripComments(fs.readFileSync(path.join(ROOT, t), 'utf8'));
-  const lines = body.split('\n');
-  const bad = lines
-    .map((l, i) => ({ l, n: i + 1 }))
-    .filter(({ l }) => new RegExp(AS_NEVER_VALUE_POS).test(l));
-  const argPos = (body.match(/\bas\s+never\s*\)/g) ?? []).length;
+  // `as never` / `<never>` vị trí GIÁ TRỊ — quét TRỌN tệp, không chỉ dòng thêm:
+  // hai tệp đích đang sạch dạng này, giữ được mức đó thì giữ.
+  const all = classifyNever(fs.readFileSync(path.join(ROOT, t), 'utf8'), t);
+  const bad = all.filter((h) => !h.arg);
+  const argPos = all.length - bad.length;
   say(bad.length === 0, `${t}: không «as never» ở vị trí giá trị (${bad.length} chỗ); ${argPos} chỗ ở vị trí đối số — hợp lệ, không tính`);
-  bad.forEach(({ l, n }) => console.log(`      ${t}:${n}: ${l.trim()}`));
+  bad.forEach((h) => console.log(`      ${t}:${h.line}: ${h.text}`));
 }
 
 console.log(`\n${failures === 0 ? 'OK' : 'FAILED'} — ${failures} khẳng định đỏ`);

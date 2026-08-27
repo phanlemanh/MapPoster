@@ -5,7 +5,7 @@ slug: typecheck-mock-signature
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: implemented
 approved_by:
 approved_at:
 veto_state: mo
@@ -104,6 +104,16 @@ nói ra ở đây thay vì giấu đi.
   là **không đo được ≠ sạch**, cùng nguyên tắc đã áp cho mốc so của AC-5. Phép
   đo phải chứng minh hai chiều: hai ca nuốt → đỏ kèm số lỗi cú pháp; tệp sạch
   → 0 lỗi, chốt không nổ oan.
+- AC-5d: Given một bí danh `never` tới được bản biên dịch THẬT qua đường mà một
+  program một-tệp không thấy (ví dụ `declare type N = never` trong một `.d.ts`
+  toàn cục mà tsconfig `include`), When quét, Then phải bị BẮT. Và Given một tên
+  kiểu KHÔNG giải được, When quét, Then phải NGÃ TO chứ không đọc thành "sạch" —
+  vì `getTypeFromTypeNode` trả kiểu LỖI mang cờ `Any`, trông y hệt một kiểu vô
+  hại. Hai điều kiện: program phải dựng từ `tsconfig` THẬT của project chứa tệp
+  (không phải tuỳ chọn viết tay quanh một tệp), và tên không giải được phải đếm
+  riêng. Phép đo phải chứng minh cả hai chiều: bí danh `.d.ts` toàn cục → đỏ
+  đúng dòng **kể cả khi `tsc` xanh** (nên E1 KHÔNG đỡ hộ); tên không giải được →
+  đỏ; và hai tệp đích thật → 0 tên không giải được, chốt không nổ oan.
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
   `MapView.tsx` nuốt `satelliteTiles`; `recipes.ts` đổi mặc định area-overview về
@@ -160,6 +170,13 @@ nói ra ở đây thay vì giấu đi.
   học: mặt chữ → cây cú pháp → chẩn đoán cú pháp → KIỂM KIỂU. Mỗi tầng chữa
   đúng lỗi của tầng trước rồi để lộ một lớp mà nó không có giác quan để thấy.
   Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
+- AC-5d sinh ra từ vòng chấm 5, và là tầng thứ NĂM của cùng một bài học:
+  mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → **phạm vi biên dịch**.
+  Luật «không đo được ≠ sạch» của AC-5c viết đúng nhưng chỉ áp cho cú pháp;
+  không ai hỏi bộ KIỂM KIỂU có giải được cái tên đó không. Chi tiết đáng nhớ:
+  `getSymbolAtLocation` trên một tên không tồn tại KHÔNG trả `undefined` mà trả
+  một symbol LỖI mang đúng tên ấy — nên phép thử hiển nhiên nhất im lặng cho 0
+  và lỗ vẫn mở. Dấu hiệu thật là chẩn đoán ngữ nghĩa 2304.
 - AC-5c sinh ra từ vòng chấm 3, và nó là bài học lặp lại của chính hồ sơ này ở
   một tầng cao hơn: bộ phân tích thật chữa mọi lỗi phỏng đoán mặt chữ, nhưng
   chuyển luôn chế độ hỏng từ «đọc nhầm» sang «đọc trống». Một thước im lặng khi

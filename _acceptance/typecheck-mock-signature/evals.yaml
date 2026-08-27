@@ -141,3 +141,24 @@ evals:
       sạch (0 lỗi)" phải có mặt cho TỪNG tệp trước khi bất kỳ kết luận "sạch"
       nào được phép đọc.
     evidence_required: [run_id, exit_code, verifier, verified_at, output]
+
+  # E10 dùng chung lượt chạy với E5/E8/E9 — tiêu chí riêng vì nó đo PHẠM VI của
+  # bản biên dịch mà bộ quét nhìn thấy. Vòng chấm 5 dựng được lối vòng đi TRỌN
+  # cổng từ đúng chỗ này: chín eval xanh hết với một chỗ laundering nằm trong cây.
+  - id: E10
+    criterion: AC-5d
+    executor: script
+    cmd: config:executors.script.mock_silencer_scan
+    paths: [mcp-server/tsconfig.json, tsconfig.app.json]
+    expected: >-
+      exit 0; bằng chứng phải cho thấy HAI chốt. (1) Program dựng từ tsconfig
+      THẬT của project chứa tệp — kiểm được bằng dòng "mọi tên kiểu trong phép
+      ép đều giải được (0 không giải được)" cho TỪNG tệp đích. (2) Tên kiểu
+      không giải được thì NGÃ TO: tự-canh phải cho thấy một tên bịa ra sinh 0
+      khớp never NHƯNG 1 tên không giải được, và đối chứng âm là một bí danh
+      giải được cho 0. Điều đáng đọc kỹ nhất khi thẩm định: `getSymbolAtLocation`
+      trên một tên không tồn tại trả về symbol LỖI mang đúng tên ấy chứ không
+      trả `undefined`, nên phép thử ấy im lặng — dấu hiệu thật là chẩn đoán
+      ngữ nghĩa 2304, và chỉ chẩn đoán RƠI VÀO đúng node kiểu của phép ép mới
+      được tính.
+    evidence_required: [run_id, exit_code, verifier, verified_at, output]

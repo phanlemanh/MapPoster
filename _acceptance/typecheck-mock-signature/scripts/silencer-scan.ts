@@ -80,6 +80,95 @@ const TARGETS = ['src/components/MapView.test.tsx', 'mcp-server/src/recipes.test
  *   - `f(x as never)` — ĐỐI SỐ: cách hợp lệ thoả tham số khai `never` có chủ ý.
  *   - `const x: T = e as never` — GIÁ TRỊ: giặt sạch mọi lỗi kiểu.
  */
+/**
+ * tsconfig THẬT của project chứa tệp.
+ *
+ * Vì sao bắt buộc: bản trước dựng `ts.Program` từ MỘT tệp với tuỳ chọn viết
+ * tay. Vòng chấm 5 dựng được lối vòng đi TRỌN cổng từ đúng chỗ đó —
+ * `declare type NG5 = never;` trong `mcp-server/src/*.d.ts` (tsconfig
+ * `include: ["src"]` nên `tsc` thật nạp) rồi `{} as NG5` trong tệp test: trong
+ * program một-tệp, `NG5` giải ra KIỂU LỖI, mà kiểu lỗi mang cờ `Any` nên trông
+ * y hệt một kiểu vô hại → bộ quét báo "0 chỗ", xanh, và E1..E9 xanh hết.
+ *
+ * Dựng program theo đúng `fileNames` + `options` của tsconfig thì cái tên ấy
+ * giải được thật. Đo lúc dựng: 49 tệp / ~440ms cho mcp-server, 59 tệp / ~320ms
+ * cho project web — rẻ hơn nhiều so với một lỗ đi trọn cổng.
+ */
+const PROJECT_OF = (rel: string) => (rel.startsWith('mcp-server/') ? 'mcp-server/tsconfig.json' : 'tsconfig.app.json');
+
+function loadProject(tsconfigRel: string) {
+  const abs = path.join(ROOT, tsconfigRel);
+  const raw = ts.readConfigFile(abs, ts.sys.readFile);
+  if (raw.error) {
+    console.log(`FAIL  không đọc được ${tsconfigRel} — phép đo không chạy được`);
+    process.exit(1);
+  }
+  return ts.parseJsonConfigFileContent(raw.config, ts.sys, path.dirname(abs));
+}
+
+/**
+ * Thu mọi chỗ ép về `never`, VÀ đếm những tên kiểu KHÔNG giải được.
+ *
+ * Tên không giải được là chỗ nguy hiểm nhất, vì `getTypeFromTypeNode` trả kiểu
+ * lỗi mang cờ `Any` — im lặng, trông vô hại, không phải `never`. Đó chính là
+ * cơ chế của lối vòng vòng 5. Nên luật «không đo được ≠ sạch» của AC-5c phải
+ * áp cả ở tầng KIỂM KIỂU, không chỉ ở tầng cú pháp: đếm riêng và ngã to.
+ */
+function collectNever(program: ts.Program, sf: ts.SourceFile, rawSrc: string) {
+  const checker = program.getTypeChecker();
+  const hits: { line: number; text: string; arg: boolean }[] = [];
+  const typeNodes: { node: ts.TypeNode; start: number; end: number }[] = [];
+  const lineOf = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+
+  const visit = (node: ts.Node) => {
+    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
+      typeNodes.push({ node: node.type, start: node.type.getStart(sf), end: node.type.getEnd() });
+      if ((checker.getTypeFromTypeNode(node.type).flags & ts.TypeFlags.Never) !== 0) {
+        const parent = node.parent;
+        const arg =
+          !!parent &&
+          (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+          (parent.arguments?.some((a) => a === node) ?? false);
+        const line = lineOf(node);
+        hits.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+
+  // Tên kiểu KHÔNG giải được, phát hiện bằng CHẨN ĐOÁN NGỮ NGHĨA.
+  //
+  // Đường đầu tiên thử — `getSymbolAtLocation` trả undefined — SAI, đo được:
+  // với một tên không tồn tại nó vẫn trả về một SYMBOL LỖI mang đúng tên ấy,
+  // nên phép thử im lặng cho 0 và lỗ vẫn mở. Dấu hiệu thật là mã chẩn đoán
+  // 2304 «Cannot find name» (và họ hàng), cộng một chi tiết đáng nhớ: kiểu lỗi
+  // in ra bằng CHÍNH TÊN chưa giải được chứ không phải chữ `any`, dù cờ của nó
+  // là `Any`. Đó là lý do nó lọt: trông như một kiểu vô hại, không phải never.
+  const RESOLUTION_CODES = new Set([2304, 2503, 2307, 2552, 2688]);
+  const unresolved: { line: number; name: string }[] = [];
+  for (const d of program.getSemanticDiagnostics(sf)) {
+    if (!RESOLUTION_CODES.has(d.code) || d.start === undefined) continue;
+    const inCast = typeNodes.find((t) => d.start! >= t.start && d.start! < t.end);
+    if (!inCast) continue;     // lỗi giải tên ở chỗ khác không phải việc của phép đo này
+    unresolved.push({ line: lineOf(inCast.node), name: inCast.node.getText(sf) });
+  }
+  return { hits, unresolved };
+}
+
+/** Phân tích một tệp THẬT bằng program dựng từ tsconfig của chính project nó. */
+function analyzeRealFile(rel: string) {
+  const parsed = loadProject(PROJECT_OF(rel));
+  const program = ts.createProgram(parsed.fileNames, parsed.options);
+  const abs = path.join(ROOT, rel);
+  const sf = program.getSourceFile(abs);
+  if (!sf) {
+    console.log(`FAIL  ${rel} không nằm trong program của ${PROJECT_OF(rel)} — không đo được`);
+    process.exit(1);
+  }
+  return collectNever(program, sf, fs.readFileSync(abs, 'utf8'));
+}
+
 function makeProgram(fileName: string, source: string, extra: Record<string, string> = {}) {
   const virtual: Record<string, string> = { [fileName]: source, ...extra };
   const opts: ts.CompilerOptions = {
@@ -99,34 +188,11 @@ function makeProgram(fileName: string, source: string, extra: Record<string, str
   return ts.createProgram([fileName], opts, host);
 }
 
-/** Mọi chỗ ép về `never` (kể cả qua bí danh), kèm số dòng THẬT và vị trí. */
+/** Như trên, nhưng cho nguồn ẢO (fixture): program dựng trong bộ nhớ. */
 function classifyNever(rawSrc: string, fileName = 'probe.ts', extra: Record<string, string> = {}) {
   const program = makeProgram(fileName, rawSrc, extra);
-  const checker = program.getTypeChecker();
   const sf = program.getSourceFile(fileName)!;
-  const out: { line: number; text: string; arg: boolean }[] = [];
-
-  const visit = (node: ts.Node) => {
-    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
-      // Hỏi bộ KIỂM KIỂU, không hỏi mặt chữ của node kiểu: `as N` với
-      // `type N = never` phải tính là never, còn `as NeverMind` thì không.
-      const isNever = (checker.getTypeFromTypeNode(node.type).flags & ts.TypeFlags.Never) !== 0;
-      if (isNever) {
-        const parent = node.parent;
-        // Vị trí đối số = con TRỰC TIẾP trong `arguments` của lời gọi. Đây là
-        // câu hỏi về CẤU TRÚC nên hỏi cây cú pháp mới đúng chỗ.
-        const arg =
-          !!parent &&
-          (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
-          (parent.arguments?.some((a) => a === node) ?? false);
-        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-        out.push({ line, text: (rawSrc.split('\n')[line - 1] ?? '').trim(), arg });
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
-  return out;
+  return collectNever(program, sf, rawSrc);
 }
 
 /**
@@ -204,7 +270,7 @@ const NEVER_CASES: { src: string; arg: boolean; why: string; skip?: boolean }[] 
 ];
 
 for (const c of NEVER_CASES) {
-  const got = classifyNever(c.src);
+  const got = classifyNever(c.src).hits;
   if (c.skip) {           // `skip` = KHÔNG được có khớp nào (đối chứng âm)
     say(got.length === 0, `phân loại «${c.why}» → ${got.length} khớp (đúng: 0)`);
     continue;
@@ -224,7 +290,7 @@ for (const c of NEVER_CASES) {
     "import type { N } from './alias';\ndeclare const e: string;\nconst _x: number = e as N;",
     path.join(dir, '__vt_main.ts'),
     { [path.join(dir, 'alias.ts')]: 'export type N = never;' },
-  );
+  ).hits;
   say(crossFile.length === 1 && !crossFile[0]!.arg,
     `phân loại «bí danh NHẬP TỪ TỆP KHÁC» → ${crossFile.length === 1 ? (crossFile[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${crossFile.length} khớp`} (đúng: GIÁ TRỊ)`);
 }
@@ -237,20 +303,31 @@ const SWALLOWED: { src: string; why: string }[] = [
   { src: 'const a = `chưa đóng;\nconst _q: number = x as never;', why: 'template literal không đóng' },
 ];
 for (const c of SWALLOWED) {
-  const casts = classifyNever(c.src).length;
+  const casts = classifyNever(c.src).hits.length;
   const perr = parseErrorCount(c.src);
   say(casts === 0 && perr > 0,
     `hỏng-thì-đóng «${c.why}»: cast bị nuốt (${casts} thấy được) NHƯNG chẩn đoán cú pháp bắt được (${perr} lỗi)`);
 }
 say(parseErrorCount('const _q: number = x as never;') === 0, 'đối chứng âm: tệp sạch → 0 lỗi cú pháp (chốt không nổ oan)');
 
+// Chốt hỏng-thì-ĐÓNG ở tầng KIỂM KIỂU (lối vòng vòng 5). Một tên kiểu KHÔNG
+// giải được cho kiểu LỖI, mà kiểu lỗi mang cờ Any — im lặng, trông vô hại,
+// không phải never. Phải đếm riêng và ngã to, chứ không được đọc thành "sạch".
+{
+  const un = classifyNever('declare const e: string; const _u: number = e as KhongHeTonTai;');
+  say(un.hits.length === 0 && un.unresolved.length === 1,
+    `hỏng-thì-đóng tầng kiểm kiểu: tên không giải được → 0 khớp never NHƯNG ${un.unresolved.length} tên không giải được (phải là 1)`);
+  const ok = classifyNever('type N = never; declare const e: string; const _r: number = e as N;');
+  say(ok.unresolved.length === 0, `đối chứng âm: tên giải được → ${ok.unresolved.length} tên không giải được (phải là 0)`);
+}
+
 // Chú thích chỉ NHẮC TỚI as never không được tính — ca hồi quy của lỗi trước.
-say(classifyNever('// mũi thử: as never ở vị trí giá trị thì phải đỏ').length === 0,
+say(classifyNever('// mũi thử: as never ở vị trí giá trị thì phải đỏ').hits.length === 0,
   'đối chứng âm: chú thích nhắc tới «as never» → 0 (văn xuôi không phải mã)');
 
 // Số dòng phải ĐÚNG kể cả sau một khối chú thích nhiều dòng — lỗ #4 vòng 2.
 const LINENO_FIXTURE = ['const a = 1;', '/* khối', 'chú thích', 'ba dòng */', 'const b: number = x as never;'].join('\n');
-const lineHit = classifyNever(LINENO_FIXTURE);
+const lineHit = classifyNever(LINENO_FIXTURE).hits;
 say(lineHit.length === 1 && lineHit[0]!.line === 5,
   `số dòng sau khối chú thích nhiều dòng → ${lineHit[0]?.line ?? 'không bắt'} (đúng: 5)`);
 
@@ -300,7 +377,13 @@ for (const t of TARGETS) {
   const perr = parseErrorCount(rawBody, t);
   say(perr === 0, `${t}: phân tích cú pháp sạch (${perr} lỗi) — không parse được thì KHÔNG kết luận "sạch"`);
   if (perr > 0) continue;   // không đo được ≠ sạch
-  const all = classifyNever(rawBody, t);
+
+  // Program dựng từ tsconfig THẬT của project — nếu không, một bí danh khai
+  // trong `.d.ts` toàn cục sẽ giải ra kiểu lỗi và đi lọt (lối vòng vòng 5).
+  const { hits: all, unresolved } = analyzeRealFile(t);
+  say(unresolved.length === 0,
+    `${t}: mọi tên kiểu trong phép ép đều giải được (${unresolved.length} không giải được) — không giải được thì KHÔNG kết luận "sạch"`);
+  unresolved.forEach((u) => console.log(`      ${t}:${u.line}: tên không giải được «${u.name}»`));
   const bad = all.filter((h) => !h.arg);
   const argPos = all.length - bad.length;
   say(bad.length === 0, `${t}: không «as never» ở vị trí giá trị (${bad.length} chỗ); ${argPos} chỗ ở vị trí đối số — hợp lệ, không tính`);

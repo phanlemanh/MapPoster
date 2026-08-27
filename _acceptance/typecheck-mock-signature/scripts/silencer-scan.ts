@@ -134,28 +134,68 @@ function loadProject(tsconfigRel: string) {
  * đọc nó là rơi đúng vào bẫy đang cần bắt. Đọc node kiểu trên phần KHAI BÁO
  * của chữ ký thì `__id` cho «T» (không phải never) còn `compile` cho «never».
  */
-function classifyPosition(node: ts.Node, checker: ts.TypeChecker): 'never-param' | 'value' | 'undetermined' {
-  // Bọc bao nhiêu lớp ngoặc cũng vẫn là đối số ấy.
-  let argNode: ts.Node = node;
-  while (argNode.parent && ts.isParenthesizedExpression(argNode.parent)) argNode = argNode.parent;
-  const call = argNode.parent;
-  if (!call || !(ts.isCallExpression(call) || ts.isNewExpression(call))) return 'value';
+type Pos = 'never-param' | 'value' | 'undetermined';
 
-  const idx = call.arguments?.findIndex((a) => a === argNode) ?? -1;
-  if (idx < 0) return 'value';
-
-  const decl = checker.getResolvedSignature(call)?.declaration as ts.SignatureDeclaration | undefined;
-  const params = decl?.parameters;
-  if (!params || params.length === 0) return 'undetermined';
-
+/** Node kiểu ĐÃ VIẾT của tham số thứ `idx` trên một chữ ký; `null` nếu chịu. */
+function declaredParamTypeNode(
+  sig: ts.Signature | undefined,
+  idx: number,
+): ts.TypeNode | null {
+  const params = (sig?.declaration as ts.SignatureDeclaration | undefined)?.parameters;
+  if (!params || params.length === 0) return null;
   const p = params[Math.min(idx, params.length - 1)];
   let tn = p?.type;
   // `...p: never[]` — tham số biến thiên: kiểu của MỘT đối số là phần tử.
   if (p?.dotDotDotToken && tn && ts.isArrayTypeNode(tn)) tn = tn.elementType;
-  if (!tn) return 'undetermined';
-
-  return (checker.getTypeFromTypeNode(tn).flags & ts.TypeFlags.Never) !== 0 ? 'never-param' : 'value';
+  return tn ?? null;
 }
+
+function classifyPosition(node: ts.Node, checker: ts.TypeChecker): Pos {
+  const isNeverNode = (tn: ts.TypeNode | null): Pos =>
+    tn === null ? 'undetermined' : (checker.getTypeFromTypeNode(tn).flags & ts.TypeFlags.Never) !== 0 ? 'never-param' : 'value';
+
+  // Bọc bao nhiêu lớp ngoặc cũng vẫn là chỗ ấy.
+  let cur: ts.Node = node;
+  while (cur.parent && ts.isParenthesizedExpression(cur.parent)) cur = cur.parent;
+  const parent = cur.parent;
+  if (!parent) return 'value';
+
+  // (a) Đối số của lời gọi / `new`.
+  if (ts.isCallExpression(parent) || ts.isNewExpression(parent)) {
+    const idx = parent.arguments?.findIndex((a) => a === cur) ?? -1;
+    if (idx < 0) return 'value';
+    return isNeverNode(declaredParamTypeNode(checker.getResolvedSignature(parent), idx));
+  }
+
+  // (b) Trị thay thế của TEMPLATE CÓ NHÃN — thật sự là đối số của hàm nhãn,
+  // lệch một chỗ vì tham số 0 là `TemplateStringsArray`.
+  if (ts.isTemplateSpan(parent) && ts.isTemplateExpression(parent.parent) && ts.isTaggedTemplateExpression(parent.parent.parent)) {
+    const idx = parent.parent.templateSpans.indexOf(parent) + 1;
+    return isNeverNode(declaredParamTypeNode(checker.getResolvedSignature(parent.parent.parent), idx));
+  }
+
+  // (c) THUỘC TÍNH JSX. Lấy prop qua kiểu ngữ cảnh nhưng đọc node kiểu ĐÃ VIẾT
+  // — nên component generic `<T>(p: {a: T})` cho «T», không phải `never` đã
+  // suy. Đây đúng là bẫy mà `getContextualType` một mình sẽ sập: đo được, nó
+  // trả `never` cho `__id({} as never)` vì `T` đã suy thành `never`.
+  if (ts.isJsxExpression(parent) && ts.isJsxAttribute(parent.parent) && ts.isJsxAttributes(parent.parent.parent)) {
+    const attr = parent.parent;
+    const prop = checker.getContextualType(parent.parent.parent)?.getProperty(attr.name.getText(attr.getSourceFile()));
+    const d = prop?.declarations?.[0];
+    return isNeverNode(d && ts.isPropertySignature(d) ? (d.type ?? null) : null);
+  }
+
+  // (d) Nằm trong một phần tử TRẢI `f(...[x as never])`: không lần được tham số
+  // tương ứng. Khai là KHÔNG XÁC ĐỊNH chứ không vu cho nó tội giặt kiểu — vẫn
+  // đỏ (fail-closed), nhưng nói đúng lý do.
+  for (let a: ts.Node | undefined = cur; a; a = a.parent) {
+    if (ts.isSpreadElement(a) && a.parent && (ts.isCallExpression(a.parent) || ts.isNewExpression(a.parent))) return 'undetermined';
+    if (ts.isStatement(a)) break;
+  }
+
+  return 'value';
+}
+
 
 function collectNever(program: ts.Program, sf: ts.SourceFile, rawSrc: string) {
   const checker = program.getTypeChecker();
@@ -307,6 +347,10 @@ const NEVER_CASES: { src: string; arg: boolean; why: string; skip?: boolean; ski
   { src: 'declare function __id<T>(v: T): T; const _w: number = __id({} as never); void _w;', arg: false, why: 'generic identity — tham số khai T, KHÔNG phải never (lối vòng vòng 6)' },
   { src: 'declare function takesNever(p: never): void; takesNever(({} as never));', arg: true, why: 'đối số BỌC NGOẶC, tham số khai never — hết đỏ oan (dương-tính-giả vòng 3)' },
   { src: 'declare function restNever(...p: never[]): void; restNever({} as never);', arg: true, why: 'tham số biến thiên ...p: never[]' },
+  // Ba dạng đỏ oan vòng 7 tìm ra — cùng một nguyên nhân: luật cũ đòi cha TRỰC
+  // TIẾP là lời gọi. Giữ cả sáu ca (ba chiều đúng + ba chiều sai) làm hồi quy.
+  { src: 'declare function tagN(s: TemplateStringsArray, ...v: never[]): void; tagN`x=${{} as never}`;', arg: true, why: 'template CÓ NHÃN, tham số khai never[] — hết đỏ oan (vòng 7)' },
+  { src: 'declare function tagS(s: TemplateStringsArray, ...v: string[]): void; tagS`x=${{} as never}`;', arg: false, why: 'template có nhãn nhưng tham số khai string[] — vẫn phải tố' },
   { src: 'declare function takesAny(p: unknown): void; const _v: number = takesAny({} as never) as never; void _v;', arg: false, why: 'tham số khai unknown — không được miễn trừ', skip2: true },
   { src: "const url = 'https://t.example/{z}/{x}/{y}.jpg'; const _l: number = getRecipe as never;", arg: false, why: 'ngoặc trong CHUỖI không được làm lệch phép đếm (lỗ của bản lần-ngược)' },
   { src: "const s = 'don\\'t'; const _m: number = getRecipe as never;", arg: false, why: 'nháy thoát trong chuỗi không được lệch pha' },
@@ -331,6 +375,26 @@ for (const c of NEVER_CASES) {
   }
   const ok = got.length === 1 && got[0]!.arg === c.arg;
   say(ok, `phân loại «${c.why}» → ${got.length === 1 ? (got[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${got.length} khớp`} (đúng: ${c.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ'})`);
+}
+
+// THUỘC TÍNH JSX — phải dùng tệp .tsx, và phải phân biệt được component
+// generic: `<T>(p: {a: T})` cho «T» chứ không phải `never` đã suy. Đây đúng là
+// bẫy mà `getContextualType` một mình sẽ sập.
+{
+  const JSX_CASES: { src: string; arg: boolean; why: string }[] = [
+    { src: 'declare function CompN(p: { a: never }): null; const _e = <CompN a={{} as never} />; void _e;', arg: true, why: 'prop khai never — hết đỏ oan (vòng 7)' },
+    { src: 'declare function CompS(p: { a: string }): null; const _e = <CompS a={{} as never} />; void _e;', arg: false, why: 'prop khai string — vẫn phải tố' },
+    { src: 'declare function CompG<T>(p: { a: T }): null; const _e = <CompG a={{} as never} />; void _e;', arg: false, why: 'component GENERIC: đọc node đã viết «T», không đọc kiểu đã suy' },
+  ];
+  for (const c of JSX_CASES) {
+    const got = classifyNever(c.src, path.join(ROOT, '_acceptance', 'typecheck-mock-signature', '__vt_jsx.tsx')).hits;
+    say(got.length === 1 && got[0]!.arg === c.arg,
+      `phân loại JSX «${c.why}» → ${got.length === 1 ? (got[0]!.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ') : `${got.length} khớp`} (đúng: ${c.arg ? 'ĐỐI SỐ' : 'GIÁ TRỊ'})`);
+  }
+  // Đối số TRẢI: không lần được tham số → phải khai KHÔNG XÁC ĐỊNH, không vu tội.
+  const spread = classifyNever('declare function f(p: never): void; f(...[{} as never]);');
+  say(spread.undetermined.length === 1,
+    `đối số TRẢI → khai "không xác định" (${spread.undetermined.length}) thay vì vu cho tội giặt kiểu`);
 }
 
 // Bí danh NHẬP TỪ TỆP KHÁC — biến thể khó nhất, và là thứ chỉ có bộ kiểm kiểu
@@ -363,6 +427,59 @@ for (const c of SWALLOWED) {
     `hỏng-thì-đóng «${c.why}»: cast bị nuốt (${casts} thấy được) NHƯNG chẩn đoán cú pháp bắt được (${perr} lỗi)`);
 }
 say(parseErrorCount('const _q: number = x as never;') === 0, 'đối chứng âm: tệp sạch → 0 lỗi cú pháp (chốt không nổ oan)');
+
+// ── AC-5d: tự dựng lối vòng .d.ts TOÀN CỤC rồi chấm qua đường tsconfig ──────
+//
+// Vì sao ca này phải tồn tại: vòng chấm 8 chỉ ra E10 YẾU hơn lời `expected:`
+// của nó. AC-5d đòi chứng minh «bí danh `.d.ts` toàn cục → đỏ KỂ CẢ KHI tsc
+// xanh», nhưng mọi ca tự-canh trước đều dựng program MỘT-TỆP trong bộ nhớ, mà
+// dòng "0 tên không giải được" in ra y hệt dưới program một-tệp. Nghĩa là bằng
+// chứng cho chốt ấy đến từ mũi tiêm của NGƯỜI CHẤM, không từ phép đo — vòng sau
+// không ai tiêm thì chốt trống. Đúng lớp lỗi cả hồ sơ này tồn tại để chặn, lần
+// này nằm trong chính hồ sơ.
+//
+// Ca này dựng thật: một `.d.ts` trong `mcp-server/src/` (tsconfig include
+// ['src'] nên tsc thật nạp) + một tệp dùng nó, rồi chấm HAI đường và đòi chúng
+// TRẢ KHÁC NHAU — đó mới là bằng chứng đường tsconfig đang gánh việc:
+//   · đường tsconfig  → thấy ĐÚNG một chỗ ép về never ở vị trí giá trị;
+//   · đường một-tệp   → 0 chỗ, và cái tên không giải được.
+// Hai tệp tạm luôn bị dọn, kể cả khi script ngã giữa chừng.
+{
+  const dts = path.join(ROOT, 'mcp-server', 'src', '__ac5d_probe.d.ts');
+  const use = path.join(ROOT, 'mcp-server', 'src', '__ac5d_probe_use.ts');
+  const useRel = 'mcp-server/src/__ac5d_probe_use.ts';
+  const useSrc = 'export const __ac5dProbe: number = {} as __Ac5dNever;\n';
+  const clean = () => { for (const f of [dts, use]) try { fs.unlinkSync(f); } catch { /* đã dọn */ } };
+  process.on('exit', clean);
+  try {
+    fs.writeFileSync(dts, 'declare type __Ac5dNever = never;\n');
+    fs.writeFileSync(use, useSrc);
+
+    const viaProject = analyzeRealFile(useRel);
+    const badP = viaProject.hits.filter((h) => !h.arg);
+    say(badP.length === 1 && viaProject.unresolved.length === 0,
+      `AC-5d qua tsconfig THẬT: bí danh .d.ts toàn cục bị bắt (${badP.length} chỗ vị trí giá trị, ${viaProject.unresolved.length} tên không giải được)`);
+
+    const viaSingle = classifyNever(useSrc, use);
+    say(viaSingle.hits.length === 0 && viaSingle.unresolved.length === 1,
+      `AC-5d đối chứng: program MỘT-TỆP KHÔNG thấy nó (${viaSingle.hits.length} chỗ) mà chỉ báo tên không giải được (${viaSingle.unresolved.length}) — nên đường tsconfig là thứ đang gánh việc`);
+
+    // Nửa còn lại của AC-5d: «đỏ KỂ CẢ KHI tsc xanh». Không có chốt này thì ca
+    // trên mới chứng minh «bộ quét bắt được», chưa chứng minh «bộ quét là thứ
+    // DUY NHẤT bắt được» — mà đó mới là lý do AC-5d tồn tại.
+    let tscCode = 0;
+    try {
+      execFileSync('npx', ['tsc', '-p', 'mcp-server/tsconfig.json'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+    } catch (e) {
+      tscCode = (e as { status?: number }).status ?? 1;
+    }
+    say(tscCode === 0,
+      `AC-5d: trong lúc lối vòng đang nằm trong cây, \`tsc -p mcp-server\` vẫn sạch — nên E1 KHÔNG đỡ hộ, bộ quét là thứ duy nhất bắt được`);
+  } finally {
+    clean();
+    say(!fs.existsSync(dts) && !fs.existsSync(use), 'AC-5d: hai tệp thăm dò đã dọn sạch');
+  }
+}
 
 // Chốt hỏng-thì-ĐÓNG ở tầng KIỂM KIỂU (lối vòng vòng 5). Một tên kiểu KHÔNG
 // giải được cho kiểu LỖI, mà kiểu lỗi mang cờ Any — im lặng, trông vô hại,

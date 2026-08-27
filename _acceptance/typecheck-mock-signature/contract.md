@@ -48,10 +48,14 @@ nói ra ở đây thay vì giấu đi.
   `npx tsc -p mcp-server/tsconfig.json`, Then cả hai thoát 0 và không in dòng
   lỗi nào. Phải là `--force`: `tsc -b` đọc `tsbuildinfo`, nên một lượt chạy tăng
   dần có thể báo sạch mà chưa hề chấm lại tệp nào.
-- AC-2: Given bước Typecheck của CI nối hai lệnh bằng `&&`, When lệnh đầu ngã,
-  Then lệnh sau KHÔNG chạy — nên phép đo AC-1 phải chấm **cả hai project một
-  cách độc lập**, không được để `&&` che vế sau. Đây chính là lớp lỗi đã giấu 2
-  lỗi ở `mcp-server/src/recipes.test.ts` suốt 5 ngày trong khi báo cáo chỉ thấy 4.
+- AC-2: Given bước Typecheck của CI là một khối `run: |` hai dòng chạy dưới
+  `bash -e`, When lệnh đầu ngã, Then cả bước DỪNG và lệnh sau KHÔNG chạy — nên
+  phép đo AC-1 phải chấm **cả hai project một cách độc lập**, không để vế đầu
+  che vế sau. Đây chính là lớp lỗi đã giấu 2 lỗi ở
+  `mcp-server/src/recipes.test.ts` suốt 5 ngày trong khi báo cáo sự cố chỉ thấy 4.
+  *(Đính chính: các bản trước của tiêu chí này viết CI nối hai lệnh bằng `&&`.
+  Sai so với tệp — `.github/workflows/ci.yml` không có `&&` nào. Hệ quả thì đúng
+  y như mô tả, nhưng cơ chế thì gọi sai tên; vòng chấm 5 bắt được.)*
 - AC-3: Given `src/components/MapView.test.tsx` sau khi chữa, When đọc
   `buildMapStyle.mock.calls[0][0]`, Then đối số ấy được TypeScript chấm theo
   giao diện THẬT `BuildStyleArgs` — chứng minh bằng chiều **phủ định**: gán
@@ -117,8 +121,16 @@ nói ra ở đây thay vì giấu đi.
   vì `getTypeFromTypeNode` trả kiểu LỖI mang cờ `Any`, trông y hệt một kiểu vô
   hại. Hai điều kiện: program phải dựng từ `tsconfig` THẬT của project chứa tệp
   (không phải tuỳ chọn viết tay quanh một tệp), và tên không giải được phải đếm
-  riêng. Phép đo phải chứng minh cả hai chiều: bí danh `.d.ts` toàn cục → đỏ
-  đúng dòng **kể cả khi `tsc` xanh** (nên E1 KHÔNG đỡ hộ); tên không giải được →
+  riêng. Phép đo phải **TỰ DỰNG** lối vòng ấy chứ không chờ người chấm tiêm:
+  dựng một `.d.ts` khai `never` trong `mcp-server/src/` cùng một tệp dùng nó,
+  rồi chấm HAI đường và đòi chúng trả **KHÁC NHAU** — đường tsconfig thấy, đường
+  một-tệp không thấy. Đây phải là phép đo VI SAI, vì một dòng "0 tên không giải
+  được" in ra y hệt dưới program một-tệp nên tự nó KHÔNG chứng minh gì về phạm
+  vi biên dịch (vòng chấm 8 bắt được đúng lỗi này: bằng chứng khi ấy đang đến từ
+  mũi tiêm của người chấm, không từ phép đo). Kèm hai chốt: `tsc` phải vẫn XANH
+  trong lúc lối vòng còn nằm trong cây — nếu không thì E1 đỡ hộ và AC-5d không
+  chứng minh được "bộ quét là thứ DUY NHẤT bắt được" — và hai tệp thăm dò phải
+  được dọn sạch, khẳng định bằng kiểm tra tồn tại. Thêm: tên không giải được →
   đỏ; và hai tệp đích thật → 0 tên không giải được, chốt không nổ oan.
 - AC-6: Given code sản phẩm bị phá đúng một chỗ mỗi lần, When chạy tệp test
   tương ứng, Then bộ test phải ĐỎ — ba mũi: `MapView.tsx` ép `basemap: 'vector'`;
@@ -178,16 +190,31 @@ nói ra ở đây thay vì giấu đi.
   Cấu trúc không biết `N` nghĩa là gì; chỉ bộ kiểm kiểu biết.
 - Luật miễn trừ theo KIỂU KHAI của tham số sinh ra từ vòng chấm 6, và là tầng
   thứ SÁU: mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → phạm vi biên
-  dịch → **kiểu khai của tham số**. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
+  dịch → **kiểu khai của tham số**. Vòng 7 nới luật ấy ra ba chỗ chứa-đối-số
+  nữa — template có nhãn, thuộc tính JSX, đối số trải — nhưng nguyên tắc không
+  đổi: vẫn đọc node kiểu ĐÃ VIẾT. `getContextualType` một mình KHÔNG dùng được,
+  đo được: nó trả `never` cho `__id({} as never)` vì `T` đã suy thành `never`,
+  tức sập đúng cái bẫy vòng 6. Chỗ nào không lần được tham số tương ứng (đối số
+  trải) thì khai KHÔNG XÁC ĐỊNH — vẫn đỏ, nhưng nói đúng lý do thay vì vu tội. Dấu hiệu nhận ra nó cũng chính là dấu hiệu
   vòng 2 từng ghi: một phép thử sai theo CẢ HAI chiều (bỏ lọt `__id(x as never)`
   đồng thời đỏ oan `f((x as never))`) là phỏng đoán đặt thấp hơn một tầng so
   với câu hỏi thật.
-- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế:
-  bộ quét đo PHÉP ÉP KIỂU. Hai dạng giặt kiểu KHÔNG dùng phép ép nào —
-  `declare function __ln<T>(x: unknown): T` (biến bất cứ gì thành bất cứ gì,
-  trong nguồn không có cả `never` lẫn `any`) và hàm khẳng định
-  `asserts x is never` — nằm ngoài tầm của MỌI tầng ở trên. Bắt được chúng cần
-  phân tích luồng dữ liệu, tức một công cụ khác. Đây là trần, không phải sót.
+- **Trần của hợp đồng này**, ghi ra để không ai tưởng nó phủ nhiều hơn thực tế.
+  Bộ quét đo PHÉP ÉP KIỂU, và chỉ hỏi về kiểu ĐÍCH của phép ép ấy. Nằm ngoài
+  tầm MỌI tầng ở trên là mọi lối giặt kiểu mà **cửa ra là kiểu TRẢ VỀ hoặc
+  luồng**, bất kể nguồn có phép ép hay không:
+    - `declare function __ln<T>(x: unknown): T` — biến bất cứ gì thành bất cứ
+      gì; trong nguồn không có cả `never` lẫn `any`.
+    - `declare function __sinkE<T>(v: never): T` — CÓ `as never` trong nguồn và
+      luật miễn trừ xử ĐÚNG (tham số khai `never` thật), nhưng thứ giặt kiểu là
+      `T` ở đầu ra, chỗ bộ quét không hỏi tới. Vòng chấm 7 tìm ra ca này; câu
+      chữ trần trước đó hẹp hơn thực tế vì mới chỉ nói tới dạng "không có phép
+      ép nào".
+    - hàm khẳng định `asserts x is never` — giặt qua thu hẹp luồng, không qua
+      phép ép nào.
+  Điểm chung: cửa ra nằm ở kiểu trả về hoặc ở luồng, không nằm ở kiểu đích của
+  một phép ép. Bắt được chúng cần phân tích luồng dữ liệu — một công cụ khác.
+  Đây là TRẦN, không phải sót.
 - AC-5d sinh ra từ vòng chấm 5, và là tầng thứ NĂM của cùng một bài học:
   mặt chữ → cây cú pháp → chẩn đoán cú pháp → kiểm kiểu → **phạm vi biên dịch**.
   Luật «không đo được ≠ sạch» của AC-5c viết đúng nhưng chỉ áp cho cú pháp;

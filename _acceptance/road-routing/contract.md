@@ -5,7 +5,7 @@ slug: road-routing
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: signed-off
 approved_by: manh
 approved_at: 2026-08-07T08:40:00Z
 time_human_minutes: {gate1: 4, gate2: 10}

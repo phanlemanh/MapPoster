@@ -5,7 +5,7 @@ slug: anchors-camera
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: signed-off
 approved_by: manh
 approved_at: 2026-08-07T11:20:00Z
 time_human_minutes: {gate1: 5, gate2: 0}

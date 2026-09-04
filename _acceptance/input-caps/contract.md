@@ -5,7 +5,7 @@ slug: input-caps
 owner: phanlemanh@gmail.com
 risk_tier: T2
 surfaces: [api]
-status: verified
+status: signed-off
 approved_by: Manh Phan
 approved_at: 2026-08-18T14:43:34Z
 human_signoff:

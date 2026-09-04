@@ -7,11 +7,16 @@ reason: "Vòng 1 ghim lại ở baf27d3: 9/9 eval máy chạy tươi, 0 đỏ."
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: fcb64d7e71aaaa320926cd08e92e32ee70da1478
+verified_commit: 480e40daf0032005235b1f788e7837849e76429d
 human_signoff: manh — 2026-08-18
 ---
 
 # Evidence Report: input-caps
+
+### Re-pin lần 5 — 2026-09-04, do lật sổ 14 làn đã ký sang signed-off — chạm _acceptance/<slug>/ đánh thức luật hết-hạn (STALE-DIFF-SCOPE-GUARD), trôi là hai tệp test mcp-server/src/recipes.test.ts + src/components/MapView.test.tsx từ ab0a1f5/ebb0676
+run_id: repin-20260904-480e40d
+sha: 480e40daf0032005235b1f788e7837849e76429d · suites: 3 lệnh exit 0 (bộ đơn vị 629 đạt · test:e2e 18 đạt · test:mcp 22 đạt) — Node v24.19.0
+Chữ ký người GIỮ NGUYÊN — thay đổi làm hết hạn nằm trọn trong làn test, không chạm hành vi sản phẩm.
 
 ### Re-pin lần 4 — 2026-08-19, do vá thiếu Web Storage cho làn test (vitest.config.ts + vitest.setup.ts + src/test-env) sau khi Node máy dev tự nâng lên 26.7
 run_id: repin-20260819-fcb64d7

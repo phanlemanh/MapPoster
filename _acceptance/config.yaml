@@ -82,6 +82,7 @@ risk_tiers:
     # Bộ gate vendored (đường dẫn CHÍNH XÁC, KHÔNG phải glob): nâng chính cái thước
     # không được làm hết hạn evidence đã ghim verified_commit — thước đo ≠ product code.
     - "scripts/pre-merge-check.sh"
+    - "lib/eval-yaml.cjs" # vendored kit 2.9.0 — bộ đọc evals.yaml cho luật làn-eval (ADR 0014)
     # Kit 2.0.0 đổi hậu tố .js → .cjs (CommonJS khoá bằng tên file, không phụ
     # thuộc "type" trong package.json của repo tiêu thụ) và thêm 3 lib.
     - "scripts/recheck-evidence.cjs"

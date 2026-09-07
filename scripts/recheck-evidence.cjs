@@ -89,6 +89,20 @@ if (!core.determineEnforce(payload)) process.exit(0);
       if (vc && !cited.some(id => { const e = repins.get(id); return e && e.sha === vc; })) {
         errs.push(`REPIN x none of the cited re-pin lane(s) matches verified_commit ${vc} — the current pin has no backing lane; re-pin against the verified commit, do not hand-edit the pin`);
       }
+      // ── Eval-lane rule (repin-chay-lai-eval, 2026-09-07) ─────────────────
+      // The lane that backs verified_commit must have re-run THIS slug's
+      // test/script evals at that sha (evals_exit). One rule source:
+      // core.checkRepinEvals — pre-merge prints the same words under its own
+      // label; history lanes (before REPIN_EVALS_SINCE) only NOTE there.
+      if (vc) {
+        const evalsPath = path.join(dir, 'evals.yaml');
+        const evalsText = fs.existsSync(evalsPath) ? fs.readFileSync(evalsPath, 'utf8') : null;
+        for (const id of new Set(cited)) {
+          const e = repins.get(id);
+          if (!e || e.sha !== vc) continue;
+          for (const x of core.checkRepinEvals(e, evalsText, slug).errs) errs.push(`REPIN x ${x}`);
+        }
+      }
     }
     if (errs.length) {
       process.stderr.write(`recheck-evidence: ${reportPath} — re-pin provenance fails:\n` + errs.map(s => '  ' + s).join('\n') + '\n');

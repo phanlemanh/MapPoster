@@ -1122,6 +1122,47 @@ REPINIDS
       echo "VIOLATION [$slug]: none of the cited re-pin lane(s) matches verified_commit $vc — the current pin has no backing lane; re-pin against the verified commit, do not hand-edit the pin"
       repin_bad=1
     fi
+    # ── Eval-lane rule (repin-chay-lai-eval, 2026-09-07) ─────────────────────
+    # Làn chống lưng verified_commit phải chạy lại eval MÁY của CHÍNH hồ sơ
+    # (evals_exit phủ mọi eval test/script trong evals.yaml, đều 0) — làn chỉ
+    # chứng suite từng cho một hồ sơ mất tiền đề đi thẳng nhánh chính với CI
+    # xanh (crm-onehub 07/09). MỘT nguồn luật: checkRepinEvals trong
+    # lib/evidence-core.cjs (bên đọc thứ hai là recheck-evidence.cjs); nó liệt
+    # kê eval máy qua lib/eval-yaml.cjs, nên cả hai phải được chép theo
+    # INIT-CI-COPY-LIST. Làn trước mốc REPIN_EVALS_SINCE là sử liệu suite-only:
+    # NOTE, không chặn. Thiếu node/lib → khai NOT ENFORCED, không im lặng.
+    if [ -n "$vc" ]; then
+      if command -v node >/dev/null 2>&1 && [ -f "$HERE/../lib/evidence-core.cjs" ]; then
+        repin_evals_out="$(REPIN_IDS="$repin_ids" node -e '
+          const fs = require("fs");
+          const core = require(process.argv[1]);
+          const logPath = process.argv[2], evalsPath = process.argv[3], vc = process.argv[4], slug = process.argv[5];
+          if (typeof core.checkRepinEvals !== "function") { process.stdout.write("lib/evidence-core.cjs is older than the eval-lane rule (no checkRepinEvals)\n"); process.exit(3); }
+          const ids = new Set(String(process.env.REPIN_IDS || "").split("\n").map(s => s.trim()).filter(Boolean));
+          const repins = new Map();
+          for (const l of fs.readFileSync(logPath, "utf8").split("\n")) {
+            try { const e = JSON.parse(l); if (e && e.kind === "repin" && typeof e.run_id === "string") repins.set(e.run_id, e); } catch (_) { /* dòng hỏng: bỏ qua */ }
+          }
+          const evalsText = fs.existsSync(evalsPath) ? fs.readFileSync(evalsPath, "utf8") : null;
+          let bad = 0;
+          for (const id of ids) {
+            const e = repins.get(id); if (!e || e.sha !== vc) continue;
+            const r = core.checkRepinEvals(e, evalsText, slug);
+            if (r.note) process.stdout.write(`NOTE [${slug}]: ${r.note}\n`);
+            for (const x of r.errs) { bad = 1; process.stdout.write(`VIOLATION [${slug}]: ${x}\n`); }
+          }
+          process.exit(bad);
+        ' "$HERE/../lib/evidence-core.cjs" "$dir/run-log.jsonl" "$dir/evals.yaml" "$vc" "$slug" 2>&1)"; repin_evals_rc=$?
+        [ -n "$repin_evals_out" ] && printf '%s\n' "$repin_evals_out"
+        case "$repin_evals_rc" in
+          0) ;;
+          1) repin_bad=1 ;;
+          *) echo "VIOLATION [$slug]: eval-lane rule could not run (exit $repin_evals_rc) — fail-closed; vendor lib/evidence-core.cjs + lib/eval-yaml.cjs per INIT-CI-COPY-LIST"; repin_bad=1 ;;
+        esac
+      else
+        echo "NOTE [$slug]: eval-lane rule NOT ENFORCED — node or lib/evidence-core.cjs unavailable; a suite-only re-pin lane is not caught here"
+      fi
+    fi
     if [ -n "$repin_bad" ]; then violations=$((violations+1)); continue; fi
   fi
   # observed (schema v2): older reports with screenshot evidence never faced the

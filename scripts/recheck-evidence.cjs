@@ -93,14 +93,14 @@ if (!core.determineEnforce(payload)) process.exit(0);
       // The lane that backs verified_commit must have re-run THIS slug's
       // test/script evals at that sha (evals_exit). One rule source:
       // core.checkRepinEvals — pre-merge prints the same words under its own
-      // label; history lanes (before REPIN_EVALS_SINCE) only NOTE there.
+      // label. No date mark, no grandfather (owner, 2026-09-08).
       if (vc) {
         const evalsPath = path.join(dir, 'evals.yaml');
         const evalsText = fs.existsSync(evalsPath) ? fs.readFileSync(evalsPath, 'utf8') : null;
         for (const id of new Set(cited)) {
           const e = repins.get(id);
           if (!e || e.sha !== vc) continue;
-          for (const x of core.checkRepinEvals(e, evalsText, slug).errs) errs.push(`REPIN x ${x}`);
+          for (const x of core.checkRepinEvals(e, evalsText, slug, payload).errs) errs.push(`REPIN x ${x}`);
         }
       }
     }

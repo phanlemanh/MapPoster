@@ -91,6 +91,9 @@ risk_tiers:
     - "lib/workspace-record.cjs"
     - "lib/ac-line.cjs"
     - "lib/md-section.cjs"
+    # Kit 2.10.0 thêm lib thứ chín của lớp vendored: luật duy nhất «hợp đồng có
+    # mặt người nhìn không» mà pre-merge-check.sh gọi qua `node … classify`.
+    - "lib/lop-nhin-thay.cjs"
     # GIỮ tên CŨ: hồ sơ đã ký trước 2.0.0 ghim verified_commit ở thời điểm các
     # tên này còn sống. Bỏ dòng cũ đi thì một lần đổi tên thuần tuý của THƯỚC ĐO
     # sẽ làm hết hạn bằng chứng của SẢN PHẨM.

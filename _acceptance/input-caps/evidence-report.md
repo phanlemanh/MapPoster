@@ -7,7 +7,7 @@ reason: "Vòng 1 ghim lại ở baf27d3: 9/9 eval máy chạy tươi, 0 đỏ."
 verified_by: Claude Opus 5 (phiên 2026-08-13) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 480e40daf0032005235b1f788e7837849e76429d
+verified_commit: 2bd10263130a9606c0fda52086cd4e618f2a157c
 human_signoff: manh — 2026-08-18
 ---
 
@@ -162,3 +162,7 @@ Vòng 1 — 9/9 eval máy, chạy tươi, 0 đỏ.
   cmd: bash _acceptance/input-caps/negctrl/run-negctrl.sh
   output: |
     ── ca 4: gỡ .max() ở schema Zod (issue #2, tầng biên) ⇒ E4 phải đỏ · negctrl ok [E4 / AC-4]: đỏ đúng như kỳ vọng · negctrl: 4/4 ca đỏ đúng chỗ — bất biến hai tầng đứng
+
+### Re-pin lần 6 — 2026-09-12, do chiến dịch kit 2.11.0 — trả nợ làn suite-only
+run_id: repin-20260912T031949Z-13723
+sha: 2bd10263130a9606c0fda52086cd4e618f2a157c · suites: 2 lệnh exit 0 · evals: 9/9 eval máy đạt kỳ vọng

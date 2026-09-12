@@ -7,7 +7,7 @@ reason: "Vòng 1 ở 4a00cbc: 4/4 eval máy thoát 0. Làn suite từng BLOCKED 
 verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 480e40daf0032005235b1f788e7837849e76429d
+verified_commit: 2bd10263130a9606c0fda52086cd4e618f2a157c
 human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
@@ -88,3 +88,7 @@ phân biệt được "từ chối đúng lúc" với "từ chối bừa".
   cmd: npx vitest run mcp-server/src/recipes.test.ts
   output: |
     Tests 40 passed (40)
+
+### Re-pin lần 2 — 2026-09-12, do chiến dịch kit 2.11.0 — trả nợ làn suite-only
+run_id: repin-20260912T031949Z-13723
+sha: 2bd10263130a9606c0fda52086cd4e618f2a157c · suites: 2 lệnh exit 0 · evals: 4/4 eval máy đạt kỳ vọng

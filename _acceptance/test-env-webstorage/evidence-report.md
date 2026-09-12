@@ -7,7 +7,7 @@ reason: "Vòng 1 ở fcb64d7: bộ test sống lại trên Node 26.7 — 6/6 eva
 verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 480e40daf0032005235b1f788e7837849e76429d
+verified_commit: 2bd10263130a9606c0fda52086cd4e618f2a157c
 human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
@@ -119,3 +119,7 @@ Cổng 2.
   cmd: npx tsx _acceptance/test-env-webstorage/scripts/suite-coverage.ts
   output: |
     629 đạt · 0 đỏ · bốn tệp từng chết đều có ca đạt > 0
+
+### Re-pin lần 2 — 2026-09-12, do chiến dịch kit 2.11.0 — trả nợ làn suite-only
+run_id: repin-20260912T031949Z-13723
+sha: 2bd10263130a9606c0fda52086cd4e618f2a157c · suites: 2 lệnh exit 0 · evals: 6/6 eval máy đạt kỳ vọng

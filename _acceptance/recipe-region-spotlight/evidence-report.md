@@ -7,7 +7,7 @@ reason: "Vòng 2 ở cfe51aa: bộ đo đã trỏ đúng tệp test tầng recip
 verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 480e40daf0032005235b1f788e7837849e76429d
+verified_commit: 2bd10263130a9606c0fda52086cd4e618f2a157c
 human_signoff: manh — 2026-08-19
 ---
 
@@ -387,3 +387,7 @@ Thay bằng `scripts/t3-untouched.ts` đo đúng ý định *trong phạm vi gó
   cmd: npx tsx _acceptance/recipe-region-spotlight/scripts/t3-untouched.ts
   output: |
     951a2d8 feat(recipes): tầng recipe + region-spotlight — một call ra một cảnh hoàn chỉnh ·  · t3-untouched: 7 commit của tầng recipe, KHÔNG cái nào chạm src/lib/export.ts / src/lib/mapStyle.ts
+
+### Re-pin lần 6 — 2026-09-12, do chiến dịch kit 2.11.0 — trả nợ làn suite-only
+run_id: repin-20260912T031949Z-13723
+sha: 2bd10263130a9606c0fda52086cd4e618f2a157c · suites: 2 lệnh exit 0 · evals: 13/13 eval máy đạt kỳ vọng

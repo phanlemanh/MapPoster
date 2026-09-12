@@ -7,7 +7,7 @@ reason: "Vòng 3 ở c35ac43: bịt lỗ bằng chứng của AC-8 (phép đo c�
 verified_by: Claude Opus 5 (phiên 2026-08-19) — vòng verify tại chỗ, không phải subagent ngữ-cảnh-mới
 enforcement_mode: strict
 bypass_used: false
-verified_commit: 480e40daf0032005235b1f788e7837849e76429d
+verified_commit: 2bd10263130a9606c0fda52086cd4e618f2a157c
 human_signoff: manh — 2026-08-19 (máy gõ theo lệnh của người duyệt trong phiên)
 ---
 
@@ -351,3 +351,7 @@ Gói này là **T3** — nó đổi cả hai `t3_paths` (`src/lib/export.ts` +20
 
 `verified_commit` = `baf27d3b94673ba706de51fdd9e45776224f0bc2`. `human_signoff` để **RỖNG** — Cổng 2 chờ người ký, và `signoff.require_human_commit: true` nghĩa là chữ ký phải nằm trong commit do chính người duyệt tạo, ở một commit chỉ chạm dòng người-sở-hữu.
 
+
+### Re-pin lần 4 — 2026-09-12, do chiến dịch kit 2.11.0 — trả nợ làn suite-only
+run_id: repin-20260912T031949Z-13723
+sha: 2bd10263130a9606c0fda52086cd4e618f2a157c · suites: 2 lệnh exit 0 · evals: 11/11 eval máy đạt kỳ vọng

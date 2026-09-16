@@ -54,6 +54,9 @@ violations=0
 # Bật khi lưới giữ-chỗ nổ ít nhất một lần; dùng để in ĐÚNG MỘT dòng cảnh báo
 # về phạm vi hẹp của chính lưới đó ở cuối lần chạy.
 NARROW_NET_SEEN=""
+# Lưới giữ-chỗ KHÔNG chạy được (thiếu node / thiếu lib/evidence-core.cjs / lib lỗi).
+# Nói ra ở cuối lượt: một luật im lặng không chạy là luật không còn.
+NARROW_NET_BLIND=""
 # Bật khi răng cross-layer phải chấm bằng khuôn awk nội bộ vì thiếu node hoặc
 # lib/ac-line.cjs. Răng VẪN chạy (awk rộng hơn nên không rụng dòng nào), nhưng đó
 # là một định nghĩa "dòng criterion" khác với ba consumer JS — in đúng một dòng ở
@@ -410,6 +413,10 @@ claims_released() { # <dir> — 0 iff thư mục TỰ NHẬN đã qua cổng.
   return 1
 }
 
+# MỘT NGUỒN của vị từ «chữ ký thật» (đổi khuôn S4-r2). Đường dẫn suy từ vị trí
+# script như các lib khác của lưới (AC_LINE_LIB, LNT_LIB, WSREC_LIB).
+CHU_KY_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/evidence-core.cjs"
+
 placeholder_signoff() { # <chuỗi> — 0 iff chữ ký khớp một mẫu giữ-chỗ đã biết.
   # ĐÂY LÀ LUẬT CHỮ KÝ DUY NHẤT còn lại (ngoài chốt rỗng). Không có lớp dự
   # phòng nào phía sau: `signoff.approvers` KHÔNG được cổng đọc kể từ 1.24.0 —
@@ -422,12 +429,74 @@ placeholder_signoff() { # <chuỗi> — 0 iff chữ ký khớp một mẫu giữ
   # `x`, `.`), và mọi giữ-chỗ viết bằng ngôn ngữ khác (`chờ Manh gật`).
   # Khớp theo TIỀN TỐ vì chữ ký thật dẫn đầu bằng tên. LC_ALL=C để `tr` không
   # chết trên UTF-8.
+  # ĐỔI KHUÔN S4-r2 (owner quyết 12/09): bảng mẫu KHÔNG còn ở đây. Nó sống MỘT
+  # chỗ — `laGiuCho` trong lib/evidence-core.cjs — và hàm này hỏi nó qua node,
+  # cùng nếp `lib/lop-nhin-thay.cjs classify`. Bảng bash cũ (bốn dòng `case`) đã
+  # GỠ và liệt đích danh trong ALLOWED_REMOVALS của DV5: giữ nó lại là giữ đúng
+  # bản-dựng-thứ-hai mà hai lượt chấm vừa bắt.
+  # Không đọc được nguồn (thiếu node / thiếu lib / lib lỗi) → KHÔNG chặn, và nói
+  # ra: cùng doctrine với lớp nhìn-thấy và ac-line trong chính tệp này, và ca NO2
+  # của lưới thường trực ghim đúng điều đó («thiếu node: NOTE không được chặn
+  # merge»). Bản đầu của lượt S4-r2 chọn fail-CLOSED ở đây và làm 6 ca đỏ —
+  # chốt rỗng phía trên vẫn chặn chữ ký trống, nên đường này không im lặng cho
+  # qua một hồ sơ chưa ký; nó chỉ thôi phân loại GIỮ-CHỖ khi không có bộ đọc.
+  _gc="$(node "$CHU_KY_LIB" giu-cho "$1" 2>/dev/null)"
+  case "$_gc" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+  # Engine không nạp được (thiếu node / thiếu lib / lib lỗi). Đây là luật CHẶN và
+  # trước đổi khuôn nó KHÔNG cần node — nên KHÔNG được im lặng cho qua (S4-r3:
+  # đo được «lib bị gỡ → exit 0, mất VIOLATION»). Bản lùi dưới đây là BẢN CHIẾU
+  # của bảng ở lib, KHÔNG phải nguồn thứ hai: chân `lui-khong-engine` chạy MỌI mẫu
+  # của nguồn qua chính đường này với lib đã gỡ và đòi kết luận khớp, nên hai bên
+  # không trôi khỏi nhau trong im lặng. Tiền lệ cùng hình dạng: khuôn awk của
+  # ac-line ở lại làm đường lùi cho máy thiếu node.
+  NARROW_NET_BLIND=1
+# <<<BANG-LUI-GIU-CHO
   case "$(printf '%s' "$1" | LC_ALL=C tr '[:upper:]' '[:lower:]')" in
     '>'|'|'|'-') return 0 ;;
     '<'*) return 0 ;;                       # template chưa điền: "<name> <date>"
     pending*|tbd*|todo*|n/a*|none|unsigned*|waiting*) return 0 ;;
   esac
+# BANG-LUI-GIU-CHO>>>
   return 1
+}
+
+# Chữ ký người ở Cổng Bằng chứng ĐÓNG cửa veto (hồ sơ cua-veto-sau-chu-ky).
+# Cửa veto là đường đảo cho việc MÁY tự quyết mà người chưa nói gì; người đã
+# phát ngôn rồi thì «owner chưa veto» là câu sai. Đo 11/09: 27 trên 30 tên ở
+# dòng tổng của kit đã ký, media-library 3/3, floorplanstudio 1/1.
+#
+# Vị từ là QUAN HỆ, không phải nhãn: `status: signed-off` không đóng cửa (nhãn
+# là lời khai, luật khác đã bắt nó), chữ ký giữ-chỗ cũng không — dùng lại ĐÚNG
+# `placeholder_signoff` ở trên, không dựng bảng thứ hai. Chỉ đọc frontmatter DẪN
+# ĐẦU qua front_field: một dòng `human_signoff:` ở THÂN báo cáo (trích khuôn)
+# không phải chữ ký.
+# MỘT hàm cho CẢ HAI chỗ đọc (NOTE làn V và vòng veto-trace) — hai bản trong
+# cùng một file là hình dạng bên-viết-bên-đọc-trôi mà kit đã dẫm nhiều lần.
+chu_ky_gia_tri() { # <đường dẫn báo cáo> — in GIÁ TRỊ chữ ký theo NGUỒN (rỗng nếu vắng)
+  local _l
+  _l="$(node "$CHU_KY_LIB" chu-ky-that "$1" 2>/dev/null)"
+  if [ -n "$_l" ]; then printf '%s' "$_l" | cut -f3; return 0; fi
+  NARROW_NET_BLIND=1
+  front_field "$1" human_signoff
+}
+
+signoff_that() { # <thư mục hồ sơ> — 0 iff có chữ ký THẬT; đặt $SIGNOFF_THAT
+  # ĐỔI KHUÔN S4-r2: không tự đọc frontmatter nữa. Ngữ pháp (dấu fence, luật cột,
+  # cách viết khoá, bảng giữ-chỗ) sống MỘT chỗ trong lib/evidence-core.cjs; hàm
+  # này hỏi nó qua node và đọc MỘT dòng tab — nếp lib/lop-nhin-thay.cjs.
+  # Không đọc được nguồn → return 1 (chưa ký): cửa veto GIỮ MỞ, chiều an toàn của
+  # luật này, và hồ sơ vẫn đi tiếp qua các chốt bằng chứng như thường.
+  SIGNOFF_THAT=""
+  [ -f "$1/evidence-report.md" ] || return 1
+  local _line _signed
+  _line="$(node "$CHU_KY_LIB" chu-ky-that "$1/evidence-report.md" 2>/dev/null)" || return 1
+  _signed="$(printf '%s' "$_line" | cut -f1)"
+  [ "$_signed" = "1" ] || return 1
+  SIGNOFF_THAT="$(printf '%s' "$_line" | cut -f3)"
+  return 0
 }
 
 
@@ -774,6 +843,12 @@ for dir in "$ACC"/*/; do
           elif [ -z "$_vat" ] || ! date_parseable "$_vat"; then
             echo "VIOLATION [$slug]: status=$status but approved_by is empty — veto_opened_at ${_vat:+\"$_vat\" }không đọc được: làn V ĐÒI một mốc thời gian parse được, không có nó thì đây là bỏ cổng im lặng chứ không phải cửa veto có dấu vết."
             violations=$((violations+1)); continue
+          elif signoff_that "$dir"; then
+            # Đã ký ở Cổng Bằng chứng: cửa veto hết là chốt đang giữ hồ sơ, nên
+            # câu «cửa veto mở» là sai. Nhánh này đặt TRƯỚC nhánh cũ; vế
+            # `[ -n "$_vsig" ]` của nhánh dưới từ nay không còn tới được nhưng
+            # GIỮ NGUYÊN VĂN — luật diff-chỉ-thêm (DV5) cấm sửa dòng cũ.
+            echo "NOTE [$slug]: làn V — Cổng 1 không có chữ duyệt; Cổng 2 đã có chữ ký người ($SIGNOFF_THAT): cửa veto đã đóng bằng chữ ký"
           elif [ -n "$_vsig" ] || xanh_sach_check "$_vrep"; then
             echo "NOTE [$slug]: làn V — máy đi trước, Cổng 1 không có chữ duyệt; cửa veto mở"
           else
@@ -978,7 +1053,12 @@ XLACS
   # provenance reads below, so a no-fence/offset-fence report can't pass verdict
   # while its provenance reads empty (would otherwise let a bypassed PASS slip).
   verdict="$(front_field "$report" verdict)"
-  signoff="$(front_field "$report" human_signoff)"
+  # S4-r3: chỗ đọc chữ ký của luật Cổng 2 cũng đi qua NGUỒN. Trước đó nó dùng
+  # front_field (awk chỉ nhận `human_signoff:`) trong khi engine nhận thêm `=` và
+  # khoảng trắng trước dấu — cùng một tệp cho hai kết luận: lưới in «đã đóng bằng
+  # chữ ký (…)» rồi ngay dưới in «xanh-sạch … cửa veto vẫn mở». Một ngữ pháp, một
+  # chỗ. Engine vắng → lùi về front_field (khai ở NOTE của lưới giữ-chỗ).
+  signoff="$(chu_ky_gia_tri "$report")"
   LAN_V=0 # DLPS-LAN-V-MOT-DUONG: 1 khi hồ sơ làn V xanh-sạch đi tiếp KHÔNG chữ ký (đổi khuôn, owner 08/09)
   # ── machine-cleared × chữ ký người = hai sự thật cãi nhau (hồ sơ ra-co-ten, AC-15) ──
   # Ký thì status phải sang signed-off; để chữ ký nằm trên hồ sơ máy-thông là mọi bên đọc
@@ -1349,6 +1429,11 @@ if [ -d "$ACC" ]; then
     contract="$dir/contract.md"
     [ -f "$contract" ] || continue
     vstate="$(front_field "$contract" veto_state | tr '[:upper:]' '[:lower:]')"
+    # Hồ sơ đã có chữ ký người thì cửa veto không còn là chốt đang giữ nó — đổi
+    # nhãn TRƯỚC khi `case` đếm, để dòng `mo)` bên dưới giữ nguyên văn (DV5).
+    # Nhãn `mo-da-ky` cố ý KHÔNG rỗng: nhánh ghi-ngược bên dưới đọc `$vstate`, và
+    # một chuỗi rỗng ở đó nghĩa là «đã gỡ khoá» — nói dối về một hồ sơ còn khoá.
+    if [ "$vstate" = "mo" ] && signoff_that "$dir"; then vstate="mo-da-ky"; fi
     case "$vstate" in
       mo)
         VETO_OPEN_N=$((VETO_OPEN_N+1))
@@ -1357,6 +1442,11 @@ if [ -d "$ACC" ]; then
         echo "VIOLATION [$slug]: veto_state=da-veto chưa xử — owner đã veto, hồ sơ không được merge ở trạng thái này. Xử bằng một trong hai đường rồi ghi entry sổ quyết định: quay hồ sơ về status draft để làm lại phạm vi, hoặc owner duyệt tay (approved_by)."
         violations=$((violations+1)) ;;
     esac
+    # Trả nhãn tạm về ngay sau `case`: `mo-da-ky` chỉ sống ĐÚNG trong phép đếm ở
+    # trên. Để nó chảy tiếp thì thông điệp của luật ghi-ngược in «da-veto ->
+    # mo-da-ky» — một nhãn nội bộ rò ra câu nói với người, và đó là ĐỔI một câu
+    # chặn chứ không còn là đổi lời của cửa veto (chân luat-lan-can bắt sống).
+    if [ "$vstate" = "mo-da-ky" ]; then vstate="mo"; fi
     # chiều ghi-ngược — chỉ xét được khi dựng nổi phạm vi diff
     if [ "$DIFF_READY" -eq 1 ] && slug_in_diff "$slug"; then
       base_c="$(git -C "$ROOT" show "$BASE_SHA:_acceptance/$slug/contract.md" 2>/dev/null || true)"
@@ -1476,7 +1566,11 @@ if [ -n "$AC_LINE_FALLBACK_SEEN" ]; then
 fi
 
 if [ -n "$NARROW_NET_SEEN" ]; then
-  echo "NOTE: the placeholder net that just fired matches a SHORT FIXED prefix list — pending, tbd, todo, n/a, none, unsigned, waiting, a bare > | or -, and an unfilled <...> template. NOTHING else. A holding note phrased any other way (\"FIXME\", \"LGTM\", \"ok\", or one written in another language) passes this gate. Rewording the line is NOT a fix; put a real approver name + date there."
+  echo "NOTE: the placeholder net that just fired matches a SHORT FIXED prefix list — $(node "$CHU_KY_LIB" bang-mau 2>/dev/null) (dấu * = khớp tiền tố). NOTHING else is treated as a placeholder: unlisted English holds (FIXME, placeholder, LGTM), curt words (ok, yes, x, .), and holds written in any other language ALL PASS the net. Bảng ở lib/evidence-core.cjs là MỘT nguồn — câu này đọc từ đó, không chép lại."
+fi
+
+if [ -n "$NARROW_NET_BLIND" ]; then
+  echo "NOTE: lưới giữ-chỗ của chữ ký KHÔNG chạy được lượt này — thiếu node hoặc thiếu lib/evidence-core.cjs (mang cổng vào repo phải copy CẢ lib/). Chốt «chữ ký rỗng» vẫn chặn; riêng phép phân loại giữ-chỗ (bảng ở lib/evidence-core.cjs, xem \`node lib/evidence-core.cjs bang-mau\`) không kiểm được, nên một dòng giữ chỗ có thể lọt. NOTE này không chặn."
 fi
 
 if [ "$LEGACY_SIGN_KNOB" -eq 1 ]; then

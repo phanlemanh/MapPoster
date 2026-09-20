@@ -754,6 +754,43 @@ for dir in "$ACC"/*/; do
   tier="$(fm_field "$contract" risk_tier)"
   status="$(fm_field "$contract" status)"
 
+  # ── Hồ sơ NGHỈ (hồ sơ ho-so-nghi — AC-1/AC-2/AC-7) ─────────────────────────
+  # Luật làn eval (owner 08/09, hai lần) nói pin chưa chứng là nợ ở MỌI lượt
+  # chạy, lối ra duy nhất là ghim lại — ĐÚNG, trừ món nợ không bao giờ trả được:
+  # tiền đề ngoài đã chết (kho nguồn một phụ thuộc biến mất), hoặc vật đã cố ý
+  # đổi sau chữ ký. Lối ra là một DÒNG SỔ có người và lý do, KHÔNG phải sửa chữ
+  # ký — chữ ký là sử liệu (owner từ chối 17/09).
+  # MỘT nguồn luật: hoSoNghi trong lib/workspace-record.cjs; ba bên đọc còn lại
+  # là start-scan.mjs, recheck-evidence.cjs và thẻ (qua bộ quét). Thiếu node hay
+  # lib → khai NOT ENFORCED, KHÔNG im: một luật tắt lặng là luật không tồn tại.
+  if command -v node >/dev/null 2>&1 && [ -f "$HERE/../lib/workspace-record.cjs" ]; then
+    nghi_out="$(node -e '
+      const core = require(process.argv[1]); const fs = require("fs");
+      const dir = process.argv[2], slug = process.argv[3];
+      if (typeof core.hoSoNghi !== "function") { process.stdout.write(`NOTE [${slug}]: luật nghỉ NOT ENFORCED — lib/workspace-record.cjs cũ hơn luật nghỉ (không có hoSoNghi)\n`); process.exit(0); }
+      const rd = p => { try { return fs.readFileSync(p, "utf8"); } catch { return null; } };
+      const n = core.hoSoNghi({ ledgerText: rd(dir + "/decisions.jsonl"), reportText: rd(dir + "/evidence-report.md"), contractAtRoot: true, suLieuContract: false });
+      if (!n) process.exit(0);
+      if (n.kieu === "chua-ky") {
+        process.stdout.write(`NOTE [${slug}]: có dòng cho nghỉ nhưng hồ sơ CHƯA có chữ ký người — dòng nghỉ chưa có hiệu lực, chấm như hồ sơ đang sống. Nghỉ chỉ dành cho lời hứa đã ký; hồ sơ chưa qua Cổng Bằng chứng thì bác hoặc xếp lại ở tầng cơ hội.\n`);
+        process.exit(0);
+      }
+      if (n.kieu === "dong-so-thieu") {
+        for (const v of n.thieu) process.stdout.write(`NOTE [${slug}]: dòng nghỉ thiếu ${v} — chấm như hồ sơ đang sống\n`);
+        process.exit(0);
+      }
+      if (n.kieu === "dong-so") {
+        process.stdout.write(`NOTE [${slug}]: hồ sơ nghỉ — ${n.by} ${n.at}: ${n.ly_do}; hồ sơ ĐÃ KÝ này thôi bị chấm ở phần còn lại của lưới (gồm cũ hoá · làn ghim lại · làn eval); chữ ký giữ làm sử liệu\n`);
+        process.exit(9);
+      }
+      process.exit(0);
+    ' "$HERE/../lib/workspace-record.cjs" "$dir" "$slug" 2>&1)"; nghi_rc=$?
+    [ -n "$nghi_out" ] && printf '%s\n' "$nghi_out"
+    if [ "$nghi_rc" -eq 9 ]; then continue; fi
+  else
+    echo "NOTE [$slug]: luật nghỉ NOT ENFORCED — node hoặc lib/workspace-record.cjs vắng; một hồ sơ đã cho nghỉ vẫn bị chấm như đang sống"
+  fi
+
   # Thiếu field ≠ khai báo → bị flag. Field CÓ mặt nhưng tier ngoài
   # required_for LÀ khai báo có chủ đích của config → im lặng đúng thiết kế.
   # Status draft/approved thì KHÔNG còn im lặng vô điều kiện — xem nhánh

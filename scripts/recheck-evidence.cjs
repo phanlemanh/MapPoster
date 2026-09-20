@@ -43,6 +43,27 @@ try {
 // Only a PASS-family verdict carries an evidence bar to re-check.
 if (!core.determineEnforce(payload)) process.exit(0);
 
+// ── Hồ sơ NGHỈ ───────────────────────────────────────────────────────────────
+// Pin của một hồ sơ đã cho nghỉ là SỬ LIỆU, không phải một lời hứa đang sống:
+// tiền đề nó đo đã chết, hoặc vật đã cố ý đổi sau chữ ký, nên «ghim lại» không
+// phải một việc ai làm được. MỘT nguồn luật với lưới trước-merge và bộ quét:
+// hoSoNghi trong lib/workspace-record.cjs. Không có hàm (bản lib cũ hơn luật)
+// → đi tiếp như chưa có luật, đúng đường đọc-cũ.
+{
+  const wr = require(path.join(__dirname, '..', 'lib', 'workspace-record.cjs'));
+  if (typeof wr.hoSoNghi === 'function') {
+    const dir = path.dirname(path.resolve(reportPath));
+    const slug = path.basename(dir);
+    let ledger = null;
+    try { ledger = fs.readFileSync(path.join(dir, 'decisions.jsonl'), 'utf8'); } catch { /* vắng: bình thường */ }
+    const n = wr.hoSoNghi({ ledgerText: ledger, reportText: payload, contractAtRoot: true, suLieuContract: false });
+    if (n && n.kieu === 'dong-so') {
+      console.log(`NOTE [${slug}]: hồ sơ nghỉ — ${n.by} ${n.at}: ${n.ly_do}; bỏ kiểm lại, chữ ký giữ làm sử liệu`);
+      process.exit(0);
+    }
+  }
+}
+
 // ── Re-pin provenance (delta-verify-repin, additive rule) ────────────────────
 // New-form "### Re-pin" sections cite a run_id on its own line; the lane that
 // produced it must be logged per-slug ({"kind":"repin"} line), its sha must

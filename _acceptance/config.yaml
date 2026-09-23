@@ -94,6 +94,15 @@ risk_tiers:
     # Kit 2.10.0 thêm lib thứ chín của lớp vendored: luật duy nhất «hợp đồng có
     # mặt người nhìn không» mà pre-merge-check.sh gọi qua `node … classify`.
     - "lib/lop-nhin-thay.cjs"
+    # Kit 2.18.1 — lớp CI vendored lên 15 tệp (GUIDE-CI-COPY-LIST): nhan-canh-gay do
+    # pre-merge/re-check gọi; năm tệp kế là bao đóng nạp của product-map.mjs. Cùng lớp
+    # thước đo. Khuôn skills/acceptance/references/opportunity-template.md đã khớp "**/*.md".
+    - "lib/nhan-canh-gay.cjs"
+    - "lib/out-of-contract.cjs"
+    - "lib/nguong-o-co-hoi.cjs"
+    - "scripts/product-map.mjs"
+    - "scripts/trang-thai-ho-so.cjs"
+    - "scripts/khong-can-nguoi.mjs"
     # GIỮ tên CŨ: hồ sơ đã ký trước 2.0.0 ghim verified_commit ở thời điểm các
     # tên này còn sống. Bỏ dòng cũ đi thì một lần đổi tên thuần tuý của THƯỚC ĐO
     # sẽ làm hết hạn bằng chứng của SẢN PHẨM.

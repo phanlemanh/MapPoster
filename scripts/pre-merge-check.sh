@@ -331,6 +331,7 @@ date_parseable() { # <chuỗi>
 xanh_sach_check() { # <report path>
   local report="$1" clean_ok=1 clean_why="" _cdir _tier _sec _body _v _bp _ack
   CLEAN_WHY=""
+  CLEAN_OOC_DINH_TUYEN=0
   [ -f "$report" ] || { CLEAN_WHY="không có evidence-report.md"; return 1; }
   # SÁU điều kiện, khai đủ ở ĐÂY (không dựa vào chốt nào chạy trước): hai chỗ
   # gọi hàm này đứng ở hai vị trí khác nhau trong luồng, nên hàm phải tự đủ.
@@ -379,6 +380,27 @@ xanh_sach_check() { # <report path>
       __LOI__)  clean_ok=0; clean_why="không đọc được mục «$_sec» (fail-closed)"; break ;;
     esac
     done
+  fi
+  # Vế hai của điều kiện «Ngoài hợp đồng» (hồ sơ ho-so-khep-thoi-hoi AC-4): tệp phát hiện
+  # cạnh báo cáo có mục nào CHƯA có dòng sổ gate2 của người → còn cần người. CÙNG hàm
+  # mucChuaDinhTuyen mà bản mjs (khong-can-nguoi.mjs) gọi; tệp vắng → vế này im; lib vắng
+  # hoặc đọc lỗi → fail-closed như khối section ngay trên.
+  if [ "$clean_ok" -eq 1 ] && [ -f "$_cdir/review-findings.md" ]; then
+    local _ooc
+    _ooc="$(node -e '
+      const {mucChuaDinhTuyen}=require(process.argv[1]);
+      const fs=require("fs");
+      const rd=p=>{try{return fs.readFileSync(p,"utf8")}catch{return null}};
+      const m=mucChuaDinhTuyen(rd(process.argv[2]),rd(process.argv[3]));
+      if(m.suspect){process.stdout.write("__NGO__");process.exit(0);}
+      process.stdout.write(m.chua.length?m.chua.length+"|"+m.chua.join(", "):"OK:"+m.tong);
+    ' "$ROOT/lib/out-of-contract.cjs" "$_cdir/review-findings.md" "$_cdir/decisions.jsonl" 2>/dev/null || printf '__LOI__')"
+    case "$_ooc" in
+      OK:*) CLEAN_OOC_DINH_TUYEN="${_ooc#OK:}" ;;
+      __NGO__) clean_ok=0; clean_why="review-findings.md có chữ trong mục «Ngoài hợp đồng» nhưng không đọc ra mục nào (sai khuôn OOC-ITEM-TEMPLATE)" ;;
+      __LOI__) clean_ok=0; clean_why="không đọc được review-findings.md × sổ quyết định (fail-closed)" ;;
+      *)       clean_ok=0; clean_why="review-findings.md có ${_ooc%%|*} mục ngoài hợp đồng chưa người định tuyến: ${_ooc#*|}" ;;
+    esac
   fi
   CLEAN_WHY="$clean_why"
   [ "$clean_ok" -eq 1 ]
@@ -823,9 +845,31 @@ for dir in "$ACC"/*/; do
   #       này đang thoả T1-escape cho code đó, mà chưa arm thì không luật nào
   #       chấm.
   # Đặt SAU `case REQUIRED_FOR`: tier ngoài required_for vẫn im (ARM12).
+  # ── Trạng thái thứ bảy: REALITY ĐÃ CHẤM (hồ sơ nhan-trang-thai-va-reality AC-10, ADR 0020) ──
+  # Người ghi bản dựng đang phục vụ prod + ngày + tên (dòng sổ `thuc-te`, qua
+  # /acceptance-gate:observed). Máy nhận là CUỐI: không luật verdict/chữ ký nào áp, và mọi
+  # việc thước trên hồ sơ bị khoá. Vị từ MỘT nguồn: checkThucTe của lib/workspace-record.cjs
+  # (cùng hàm recheck-evidence gọi). Dòng vắng / đã mở lại bằng `supersedes` → rơi xuống
+  # luật của hồ sơ đã arm (verdict phải PASS) — «mở lại» đưa về luật cũ, CHẶT hơn.
+  TT_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/workspace-record.cjs"
+  if [ "$status" = "da-cham-boi-thuc-te" ] && [ -f "$TT_LIB" ] && command -v node >/dev/null 2>&1; then
+    _tt="$(node "$TT_LIB" --thuc-te --root "$ROOT" --slug "$slug" 2>/dev/null)"; _tt_rc=$?
+    case "$_tt_rc" in
+      0) read -r _tt_sha _tt_ngay _tt_ten <<< "${_tt#OK }"
+         echo "NOTE [$slug]: đã chấm bởi thực tế — chạy trên prod từ bản dựng $_tt_sha (quan sát $_tt_ngay, $_tt_ten)"
+         continue ;;
+      1) echo "VIOLATION [$slug]: dòng quan sát thiếu vế ${_tt#THIEU } — ghi lại bằng /acceptance-gate:observed"
+         violations=$((violations+1)); continue ;;
+      3) echo "VIOLATION [$slug]: bản dựng không có trong kho — ${_tt#LA } (build_sha phải là sha bản dựng đang phục vụ prod)"
+         violations=$((violations+1)); continue ;;
+      4) echo "VIOLATION [$slug]: khoá việc thước — hồ sơ đã chấm bởi thực tế mà ${_tt#KHOA } đổi sau dòng quan sát (mở lại bằng một dòng sổ supersedes)"
+         violations=$((violations+1)); continue ;;
+    esac
+  fi
   case "$status" in
     implemented|verified|signed-off) ;;
     machine-cleared) ;;
+    da-cham-boi-thuc-te) ;;   # dòng quan sát vắng/đã mở lại: chấm như hồ sơ đã arm
     *)
       _arm_why=""
       if [ -f "$dir/evidence-report.md" ] && { [ "$DIFF_READY" -eq 0 ] || slug_in_diff "$slug"; }; then
@@ -1104,6 +1148,23 @@ XLACS
     echo "VIOLATION [$slug]: chữ ký người trên hồ sơ máy-thông — ký thì status phải sang signed-off (human_signoff=\"$signoff\", status=machine-cleared). /signoff đổi status cùng lượt ghi chữ ký."
     violations=$((violations+1)); continue
   fi
+  # ── Ký trên CẠNH GÃY có tên (hồ sơ nhan-trang-thai-va-reality, AC-8) ──
+  # BLOCKED chỉ vì bàn đo (hoặc hệ thống chết đã thử lại) + chữ ký người + MỖI mục chặn có
+  # một dòng sổ `revisit` đúng khuôn → qua, verdict và con số KHÔNG đổi. Vị từ sống ở
+  # lib/nhan-canh-gay.cjs — MỘT nguồn với thẻ Cổng 2 và recheck-evidence.cjs. Lib vắng /
+  # node vắng → rơi xuống luật cũ (VIOLATION): thiếu lớp thì ĐÓNG, không mở.
+  NCG_LIB="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/lib/nhan-canh-gay.cjs"
+  if [ "$verdict" = "BLOCKED" ] && [ -n "$signoff" ] && [ -f "$NCG_LIB" ] && command -v node >/dev/null 2>&1; then
+    _ncg="$(node "$NCG_LIB" --check --root "$ROOT" --slug "$slug" 2>/dev/null)"; _ncg_rc=$?
+    case "$_ncg_rc" in
+      0) echo "NOTE [$slug]: ký trên cạnh gãy có tên — ${_ncg#OK } (verdict BLOCKED giữ nguyên; người ký chấp nhận chưa đọc)"
+         # Biến CỤC BỘ của lưới: từ đây hồ sơ đi các chốt còn lại như một PASS có chữ ký.
+         # Báo cáo trên đĩa KHÔNG đổi — con số giữ nguyên (AC-5).
+         verdict="PASS" ;;
+      1) echo "VIOLATION [$slug]: ký trên cạnh gãy thiếu dòng sổ revisit cho ${_ncg#THIEU } — ghi dòng theo khối CANH-GAY-REVISIT-LINE của /acceptance-gate:signoff rồi chạy lại"
+         violations=$((violations+1)); continue ;;
+    esac
+  fi
   if [ "$verdict" != "PASS" ]; then
     echo "VIOLATION [$slug]: verdict=$verdict (must be PASS to merge)"
     violations=$((violations+1)); continue
@@ -1138,7 +1199,14 @@ XLACS
     if [ "$clean_ok" -eq 1 ]; then
       # Đường xanh-sạch KHÔNG có chữ ký để kiểm tiếp — các chốt dưới (giữ-chỗ,
       # provenance commit chữ ký) đều nói về một chuỗi không tồn tại ở đây.
+      # Vế «Ngoài hợp đồng» đọc TỪ kết quả vị từ, không khẳng định cố định (ho-so-khep-thoi-hoi AC-4):
+      # mục đã có dòng sổ gate2 của người thì nói ra số mục, không gọi là «rỗng» (crm khuon-mat-bo-phan).
+      # Dòng cũ giữ NGUYÊN VĂN ở nhánh else — luật chỉ-thêm DV5.
+      if [ "${CLEAN_OOC_DINH_TUYEN:-0}" -gt 0 ] 2>/dev/null; then
+      echo "NOTE [$slug]: xanh-sạch — máy đi tiếp, KHÔNG mời ký (verdict PASS · 0 UNCERTAIN · không bypass · Known limits rỗng · Ngoài hợp đồng: ${CLEAN_OOC_DINH_TUYEN} mục, đã người định tuyến qua sổ · hạng T2). Cửa veto vẫn mở."
+      else
       echo "NOTE [$slug]: xanh-sạch — máy đi tiếp, KHÔNG mời ký (verdict PASS · 0 UNCERTAIN · không bypass · Known limits rỗng · Ngoài hợp đồng rỗng · hạng T2). Cửa veto vẫn mở."
+      fi
       # DLPS-LAN-V-MOT-DUONG (duong-lui-phai-song, đổi khuôn — owner 08/09/2026): KHÔNG `continue`.
       # Làn V rơi xuống CÙNG chuỗi kiểm với hồ sơ có chữ ký — hoá cũ · pin ma · re-pin
       # provenance · làn eval · soi lại — đúng chữ «soi MỌI hồ sơ ở MỌI lượt» (ADR 0014).
@@ -1459,6 +1527,14 @@ fi
 #       So với BASE của diff; đường xử hợp lệ (có entry sổ quyết định khớp
 #       slug) KHÔNG bị chặn oan.
 VETO_OPEN_N=0; VETO_OPEN_SLUGS=""
+# Hồ sơ ĐÃ KHÉP (nghỉ · chấm bởi thực tế — vị từ hoSoDaKhep của lib/workspace-record.cjs, MỘT lần
+# gọi cho cả vòng) không còn là cửa veto đang mở (hồ sơ ho-so-khep-thoi-hoi AC-2). Thiếu node/lib
+# → danh sách rỗng: đếm như cũ (lệch về phía BÁO thừa, không giấu).
+KHEP_SLUGS=""
+if command -v node >/dev/null 2>&1 && [ -f "$HERE/../lib/workspace-record.cjs" ]; then
+  KHEP_SLUGS="$(node "$HERE/../lib/workspace-record.cjs" --da-khep --root "$ROOT" 2>/dev/null || true)"
+fi
+khep_slug() { [ -n "$KHEP_SLUGS" ] && printf '%s\n' "$KHEP_SLUGS" | grep -qxF -- "$1"; }
 if [ -d "$ACC" ]; then
   for dir in "$ACC"/*/; do
     [ -d "$dir" ] || continue
@@ -1471,6 +1547,7 @@ if [ -d "$ACC" ]; then
     # Nhãn `mo-da-ky` cố ý KHÔNG rỗng: nhánh ghi-ngược bên dưới đọc `$vstate`, và
     # một chuỗi rỗng ở đó nghĩa là «đã gỡ khoá» — nói dối về một hồ sơ còn khoá.
     if [ "$vstate" = "mo" ] && signoff_that "$dir"; then vstate="mo-da-ky"; fi
+    if [ "$vstate" = "mo" ] && khep_slug "$slug"; then vstate="mo-da-khep"; fi
     case "$vstate" in
       mo)
         VETO_OPEN_N=$((VETO_OPEN_N+1))
@@ -1484,6 +1561,7 @@ if [ -d "$ACC" ]; then
     # mo-da-ky» — một nhãn nội bộ rò ra câu nói với người, và đó là ĐỔI một câu
     # chặn chứ không còn là đổi lời của cửa veto (chân luat-lan-can bắt sống).
     if [ "$vstate" = "mo-da-ky" ]; then vstate="mo"; fi
+    if [ "$vstate" = "mo-da-khep" ]; then vstate="mo"; fi
     # chiều ghi-ngược — chỉ xét được khi dựng nổi phạm vi diff
     if [ "$DIFF_READY" -eq 1 ] && slug_in_diff "$slug"; then
       base_c="$(git -C "$ROOT" show "$BASE_SHA:_acceptance/$slug/contract.md" 2>/dev/null || true)"

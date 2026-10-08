@@ -37,12 +37,25 @@ jobs:
 
   gate:
     runs-on: ubuntu-latest
+    env:
+      # Kit acceptance-gate ghim sha (kit GUIDE §5.3 «Đường mặc định»): cổng chạy từ
+      # MỘT bản kit, không chép tệp kit vào kho. Nâng kit = đổi DÒNG NÀY bằng PR có
+      # chủ đích mỗi mốc — không auto-follow (kit §7.1).
+      KIT_SHA: 9d1ae5271c947d206dbc418b34089e09b68f106b  # v2.24.0
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # Lấy kit về NGOÀI cây kho, để `_acceptance/` của kit không bị quét lẫn với hồ
+      # sơ của kho. Mọi bộ đọc của cổng tìm `lib/` cạnh chính nó.
+      - name: Lấy kit acceptance-gate ở sha ghim
+        run: |
+          git init -q "$RUNNER_TEMP/kit"
+          git -C "$RUNNER_TEMP/kit" fetch -q --depth 1 https://github.com/phanlemanh/acceptance-gate-kit "$KIT_SHA"
+          git -C "$RUNNER_TEMP/kit" checkout -q FETCH_HEAD
+          echo "CLAUDE_PLUGIN_ROOT=$RUNNER_TEMP/kit" >> "$GITHUB_ENV"
       - name: Acceptance gate
-        run: bash scripts/pre-merge-check.sh --base "origin/${{ github.base_ref || 'main' }}"
+        run: bash "$CLAUDE_PLUGIN_ROOT/scripts/pre-merge-check.sh" . --base "origin/${{ github.base_ref || 'main' }}"
       # Lint đấu dây bộ phép đo — hỏi thứ cổng không hỏi: lệnh của một phép đo
       # có thật sự chạm tiêu chí nó khai không. Chặn ở L0/L1/L2 (tiêu chí không
       # có phép đo, lệnh trỏ tệp không tồn tại, bộ đọc của chính lint hỏng);

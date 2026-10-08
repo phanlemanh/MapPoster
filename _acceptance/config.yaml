@@ -81,6 +81,9 @@ risk_tiers:
     - ".github/**"
     # Bộ gate vendored (đường dẫn CHÍNH XÁC, KHÔNG phải glob): nâng chính cái thước
     # không được làm hết hạn evidence đã ghim verified_commit — thước đo ≠ product code.
+    # LỊCH SỬ từ khi rời đường chép (kit 2.24.0, CI lấy kit theo KIT_SHA): các tệp dưới
+    # đã xoá khỏi kho nhưng GIỮ dòng khai — gỡ dòng là biến chính việc xoá thành «code
+    # đổi sau verify» cho mọi hồ sơ ký trước đó (kit GUIDE §5.3 mục 3).
     - "scripts/pre-merge-check.sh"
     - "lib/eval-yaml.cjs" # vendored kit 2.9.0 — bộ đọc evals.yaml cho luật làn-eval (ADR 0014)
     # Kit 2.0.0 đổi hậu tố .js → .cjs (CommonJS khoá bằng tên file, không phụ
